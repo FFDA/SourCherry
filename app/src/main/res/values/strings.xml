@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">SourCherry</string>
+    <string name="button_create_database">Create database</string>
+    <string name="button_select_database">Select database</string>
+    <string name="button_open_database">Open</string>
+    <string name="text_password_label">Password</string>
+    <string name="text_message_no_database">Create or select a CherryTree database</string>
+    <string name="title_activity_xml_view">xml_view</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+</resources>
