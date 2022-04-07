@@ -28,7 +28,6 @@ public class XMLView extends AppCompatActivity {
 
         NavigationView navView = (NavigationView) findViewById(R.id.navigationView);
         Menu m = navView.getMenu();
-        m.add("Domas");
 
         // pass the Open and Close toggle for the drawer layout listener
         // to toggle the button
