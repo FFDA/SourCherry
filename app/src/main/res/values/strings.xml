@@ -11,4 +11,6 @@
     <string name="nav_header_title">Android Studio</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
+    <string name="nav_open">Open</string>
+    <string name="nav_close">Close</string>
 </resources>

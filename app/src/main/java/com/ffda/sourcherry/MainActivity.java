@@ -34,9 +34,9 @@ public class MainActivity extends AppCompatActivity {
                 String databaseUri = sharedPref.getString("databaseUri", null);
                 if (databaseFileExtension.equals("ctd")) {
                     // Works with not protected XML based databases
-//                    Intent openXML = new Intent(v.getContext(), XMLView.class);
-//                    openXML.putExtra(XML_DATABASE, databaseUri);
-//                    startActivity(openXML);
+                    Intent openXML = new Intent(v.getContext(), XMLView.class);
+                    openXML.putExtra(XML_DATABASE, databaseUri);
+                    startActivity(openXML);
                 }
 //                } else if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctx")) {
 //                    // Works with SQLite based databases
