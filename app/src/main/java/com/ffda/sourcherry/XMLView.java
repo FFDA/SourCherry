@@ -5,11 +5,17 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.XmlResourceParser;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import com.google.android.material.navigation.NavigationView;
+
+import java.io.IOException;
+import java.util.ArrayList;
 
 public class XMLView extends AppCompatActivity {
 
@@ -26,9 +32,18 @@ public class XMLView extends AppCompatActivity {
         drawerLayout = findViewById(R.id.drawer_layout);
         actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.nav_open, R.string.nav_close);
 
+        SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
+        String databaseString = sharedPref.getString("databaseUri", null);
+
+        XMLReader xmlReader = new XMLReader(databaseString);
+        ArrayList<String> nodes = xmlReader.getNodes();
+
         NavigationView navView = (NavigationView) findViewById(R.id.navigationView);
         Menu m = navView.getMenu();
-
+        // Add submenu add items here
+        for (String node: nodes) {
+            m.add(node);
+        }
         // pass the Open and Close toggle for the drawer layout listener
         // to toggle the button
         drawerLayout.addDrawerListener(actionBarDrawerToggle);

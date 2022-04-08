@@ -15,6 +15,9 @@ tools:context=".MainActivity">
     android:layout_width="wrap_content"
     android:layout_height="match_parent"
     android:layout_gravity="start"
-    app:menu="@menu/navigation_menu" />
+    app:menu="@menu/navigation_menu"
+    app:itemMaxLines="5" />
+<!--    Mano pridėti. Gali būti trinami, kai tvarkysiu dizainą-->
+
 
 </androidx.drawerlayout.widget.DrawerLayout>
