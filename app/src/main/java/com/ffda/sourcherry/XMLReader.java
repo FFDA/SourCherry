@@ -34,6 +34,8 @@ public class XMLReader {
 
     public ArrayList<String> getNodes() {
         ArrayList<String> nodes = new ArrayList<>();
+        nodes.add("Pirmas");
+        nodes.add("Antras");
 
         File database = new File(this.databaseUriString);
         nodes.add(this.databaseUriString);
