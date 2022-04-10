@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         buttonOpen.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+                SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
                 String databaseFileExtension = sharedPref.getString("databaseFileExtension", null);
                 String databaseUri = sharedPref.getString("databaseUri", null);
                 if (databaseFileExtension.equals("ctd")) {
@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         String[] splitExtension = decodedUri.split("\\."); // Splitting the path to extract the file extension.
 
         // Saving filename and path to file in the preferences
-        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
         SharedPreferences.Editor sharedPrefEditor = sharedPref.edit();
 
         sharedPrefEditor.putString("databaseFilename", splitFilename[splitFilename.length - 1]);
@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setMessageWithDatabaseName() {
-        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
         EditText editTextTextPassword = findViewById(R.id.editTextTextPassword);
         TextView textViewMessage = findViewById(R.id.textViewMessage);
         TextView textViewPassword = findViewById(R.id.textViewPassword);
