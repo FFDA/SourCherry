@@ -49,6 +49,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
+        // Adding persistent read and write permissions. Not sure if actually working yet.
+        getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION & Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        //
+        
         String decodedUri = Uri.decode(result.getEncodedPath()); // Decoding the path to file to make it more readable
         String[] splitFilename = decodedUri.split("/"); // Splitting the path to extract the filename
         String[] splitExtension = decodedUri.split("\\."); // Splitting the path to extract the file extension.
