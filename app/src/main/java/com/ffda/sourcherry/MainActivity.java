@@ -3,10 +3,13 @@ package com.ffda.sourcherry;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -46,6 +49,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
+        // Adding persistent read and write permissions. Not sure if actually working yet.
+        getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION & Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        //
+        
         String decodedUri = Uri.decode(result.getEncodedPath()); // Decoding the path to file to make it more readable
         String[] splitFilename = decodedUri.split("/"); // Splitting the path to extract the filename
         String[] splitExtension = decodedUri.split("\\."); // Splitting the path to extract the file extension.
@@ -63,7 +70,16 @@ public class MainActivity extends AppCompatActivity {
         setMessageWithDatabaseName();
     });
 
+    private ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+    });
+
     public void openGetDatabase(View view) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+            requestPermissionLauncher.launch(
+                    Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
+        // There should be an else statement here do disable Select Button and most likely other buttons
+
         getDatabase.launch(new String[]{"*/*",});
     }
 
