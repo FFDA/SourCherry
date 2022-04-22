@@ -18,8 +18,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
-    public static final String XML_DATABASE = "com.ffda.SourCherry.XML_DATABASE";
-    private SharedPreferences sharedPref;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
                 if (databaseFileExtension.equals("ctd")) {
                     // Works with not protected XML based databases
                     Intent openXML = new Intent(v.getContext(), XMLView.class);
-                    openXML.putExtra(XML_DATABASE, databaseUri);
                     startActivity(openXML);
                 }
 //                } else if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctx")) {

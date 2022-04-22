@@ -1,14 +1,11 @@
 package com.ffda.sourcherry;
 
-import android.content.res.XmlResourceParser;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 
@@ -16,39 +13,28 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 public class XMLReader {
-    private String databaseUriString;
+    private InputStream is;
 
-    public XMLReader(String databaseUriString) {
-        this.databaseUriString = databaseUriString;
+    public XMLReader(InputStream is) {
+        this.is = is;
     }
 
     public ArrayList<String> getNodes() {
         ArrayList<String> nodes = new ArrayList<>();
 
-        nodes.add("Vienas");
-        nodes.add("penki");
-        nodes.add("trys");
-
-        File database = new File(this.databaseUriString);
-        nodes.add(this.databaseUriString); // trinti
         try {
-            InputStream is = new FileInputStream(database.getPath());
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
-            Document doc = db.parse(new InputSource(is));
+            Document doc = db.parse(new InputSource(this.is));
             doc.getDocumentElement().normalize();
 
             NodeList nodeList = doc.getElementsByTagName("node");
 
-            nodes.add(String.valueOf(nodeList.getLength()));
-
-//            for (int i=0; i < nodeList.getLength(); i++) {
-//                Node node = nodeList.item(i);
-////                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-//                String nameValue = node.getNodeValue();
-//                nodes.add(nameValue);
-//                nodes.add(String.valueOf(i));
-//            }
+            for (int i=0; i < nodeList.getLength(); i++) {
+                Node node = nodeList.item(i);
+                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+                nodes.add(nameValue);
+            }
 
         } catch (Exception e) {
             nodes.add(e.getMessage());

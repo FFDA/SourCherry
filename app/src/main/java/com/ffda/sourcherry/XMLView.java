@@ -10,16 +10,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.XmlResourceParser;
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.Menu;
 import android.view.MenuItem;
 
-import com.google.android.material.navigation.NavigationView;
-
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
@@ -27,6 +21,7 @@ public class XMLView extends AppCompatActivity {
 
     public DrawerLayout drawerLayout;
     public ActionBarDrawerToggle actionBarDrawerToggle;
+    private InputStream is;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +37,13 @@ public class XMLView extends AppCompatActivity {
         String databaseString = sharedPref.getString("databaseUri", null);
         getContentResolver().takePersistableUriPermission(Uri.parse(databaseString), Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-        XMLReader xmlReader = new XMLReader(databaseString);
+        try {
+            this.is = getContentResolver().openInputStream(Uri.parse(databaseString));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        XMLReader xmlReader = new XMLReader(this.is);
         ArrayList<String> nodes = xmlReader.getNodes();
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
