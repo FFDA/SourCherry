@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setMessageWithDatabaseName() {
-        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
         EditText editTextTextPassword = findViewById(R.id.editTextTextPassword);
         TextView textViewMessage = findViewById(R.id.textViewMessage);
         TextView textViewPassword = findViewById(R.id.textViewPassword);

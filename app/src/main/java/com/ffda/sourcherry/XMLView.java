@@ -4,6 +4,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -38,12 +40,11 @@ public class XMLView extends AppCompatActivity {
         XMLReader xmlReader = new XMLReader(databaseString);
         ArrayList<String> nodes = xmlReader.getNodes();
 
-        NavigationView navView = (NavigationView) findViewById(R.id.navigationView);
-        Menu m = navView.getMenu();
-        // Add submenu add items here
-        for (String node: nodes) {
-            m.add(node);
-        }
+        RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
+        MenuItemAdapter adapter = new MenuItemAdapter(nodes);
+        rvMenu.setAdapter(adapter);
+        rvMenu.setLayoutManager(new LinearLayoutManager(this));
+
         // pass the Open and Close toggle for the drawer layout listener
         // to toggle the button
         drawerLayout.addDrawerListener(actionBarDrawerToggle);
