@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
 
         sharedPrefEditor.putString("databaseFilename", splitFilename[splitFilename.length - 1]);
         sharedPrefEditor.putString("databaseFileExtension", splitExtension[splitExtension.length - 1]);
-        sharedPrefEditor.putString("databaseUri", decodedUri);
+        sharedPrefEditor.putString("databaseUri", result.toString());
         sharedPrefEditor.apply();
         //
 
