@@ -13,6 +13,8 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Toast;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -48,6 +50,13 @@ public class XMLView extends AppCompatActivity {
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
         MenuItemAdapter adapter = new MenuItemAdapter(nodes);
+        adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View itemView, int position) {
+                String nodeName = nodes.get(position);
+                Toast.makeText(XMLView.this, nodeName, Toast.LENGTH_SHORT).show();
+            }
+        });
         rvMenu.setAdapter(adapter);
         rvMenu.setLayoutManager(new LinearLayoutManager(this));
 
