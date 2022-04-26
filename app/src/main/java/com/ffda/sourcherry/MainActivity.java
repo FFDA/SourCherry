@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         String[] splitFilename = decodedUri.split("/"); // Splitting the path to extract the filename
         String[] splitExtension = decodedUri.split("\\."); // Splitting the path to extract the file extension.
 
-        // Saving filename and path to file in the preferences
+        // Saving filename and path to the file in the preferences
         SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
         SharedPreferences.Editor sharedPrefEditor = sharedPref.edit();
 
