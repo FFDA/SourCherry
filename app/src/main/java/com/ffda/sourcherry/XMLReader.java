@@ -30,7 +30,7 @@ public class XMLReader {
         // Returns all the node from the document
         // Used for the search/filter in the drawer menu
         NodeList nodeList = this.doc.getElementsByTagName("node");
-        ArrayList<String[]> nodes = returnSubnodeArrayList(nodeList);
+        ArrayList<String[]> nodes = returnSubnodeArrayList(nodeList, "false");
         return nodes;
     }
 
@@ -43,7 +43,7 @@ public class XMLReader {
         NodeList nodeList = this.doc.getElementsByTagName("cherrytree");
         NodeList mainNodeList = nodeList.item(0).getChildNodes();
 
-        nodes = returnSubnodeArrayList(mainNodeList);
+        nodes = returnSubnodeArrayList(mainNodeList, "true");
 
         return nodes;
     }
@@ -59,14 +59,24 @@ public class XMLReader {
             if (node.getAttributes().getNamedItem("name").getNodeValue().equals(nodeName)) {
                 // When it finds a match - creates a NodeList and uses other function to get the MenuItems
                 NodeList childNodeList = node.getChildNodes();
-                nodes = returnSubnodeArrayList(childNodeList);
+                nodes = returnSubnodeArrayList(childNodeList, "false");
+
+                // Creating parent node and adding it to the ArrayList
+                String parentNodeName = node.getAttributes().getNamedItem("name").getNodeValue();
+                String parentNodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                String parentNodeHasSubnode = String.valueOf(hasSubnodes(node));
+                String parentNodeIsParent = "true";
+                String[] parentNode = {parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent};
+                nodes.add(0, parentNode);
+                //
+
                 return nodes;
             }
         }
         return nodes;
     }
     
-    public ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList) {
+    public ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isParent) {
         // This function scans provided NodeList and
         // returns ArrayList with nested String Arrays that
         // holds individual menu items.
@@ -80,11 +90,10 @@ public class XMLReader {
                 String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
                 String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                 String hasSubnode = String.valueOf(hasSubnodes(node));
-                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode};
+                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent};
                 nodes.add(currentNodeArray);
             }
         }
-        
         return nodes;
     }
 
@@ -97,7 +106,6 @@ public class XMLReader {
                 return true;
             }
         }
-
         return false;
     }
 }

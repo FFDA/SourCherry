@@ -14,7 +14,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Toast;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -56,7 +55,12 @@ public class XMLView extends AppCompatActivity {
             @Override
             public void onItemClick(View itemView, int position) {
                 String nodeName = nodes.get(position)[0];
-                XMLView.this.updateMenu(adapter, nodeName);
+                String nodeUniqueID = nodes.get(position)[1];
+                String nodeHasSudnodes = nodes.get(position)[2];
+                String nodeIsParent = nodes.get(position)[3];
+                if (nodeHasSudnodes.equals("true")) {
+                    XMLView.this.updateMenu(adapter, nodeName);
+                }
 
             }
         });

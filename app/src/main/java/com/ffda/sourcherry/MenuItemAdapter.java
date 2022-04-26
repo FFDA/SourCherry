@@ -40,7 +40,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         }
     }
 
-    // nodeList has values in this order: {name, unique_id, has_subnodes, main_menu, is_parent}
+    // nodeList has values in this order: {name, unique_id, has_subnodes, is_parent}
     private ArrayList<String[]> nodeList;
     private OnItemClickListener listener;
 
