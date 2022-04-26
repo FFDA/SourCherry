@@ -16,6 +16,7 @@ public class XMLReader {
     private Document doc;
 
     public XMLReader(InputStream is) {
+        // Creates a document that can be used to read tags with provided InputStream
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
@@ -42,14 +43,8 @@ public class XMLReader {
         NodeList nodeList = this.doc.getElementsByTagName("cherrytree");
         NodeList mainNodeList = nodeList.item(0).getChildNodes();
 
-        for (int i=0; i < mainNodeList.getLength(); i++) {
-            Node node = mainNodeList.item(i);
-            if (node.getNodeType() != Node.TEXT_NODE) {
-                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                String[] currentNodeArray = {nameValue};
-                nodes.add(currentNodeArray);
-            }
-        }
+        nodes = returnSubnodeArrayList(mainNodeList);
+
         return nodes;
     }
 
@@ -62,17 +57,19 @@ public class XMLReader {
         for (int i=0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("name").getNodeValue().equals(nodeName)) {
+                // When it finds a match - creates a NodeList and uses other function to get the MenuItems
                 NodeList childNodeList = node.getChildNodes();
                 nodes = returnSubnodeArrayList(childNodeList);
                 return nodes;
             }
-
         }
-
         return nodes;
     }
     
     public ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList) {
+        // This function scans provided NodeList and
+        // returns ArrayList with nested String Arrays that
+        // holds individual menu items.
         
         ArrayList<String[]> nodes = new ArrayList<>();
 
@@ -92,6 +89,7 @@ public class XMLReader {
     }
 
     public boolean hasSubnodes(Node node) {
+        // Checks if provided node has nested "node" tag
         NodeList subNodes = node.getChildNodes();
 
         for (int i = 0; i < subNodes.getLength(); i++) {

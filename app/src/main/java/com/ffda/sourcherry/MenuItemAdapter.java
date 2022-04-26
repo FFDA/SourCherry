@@ -9,7 +9,6 @@ import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHolder> {
 
@@ -41,7 +40,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         }
     }
 
-    // nodeList has values in this order: name, main_menu, is_parent, has_subnodes, unique_id
+    // nodeList has values in this order: {name, unique_id, has_subnodes, main_menu, is_parent}
     private ArrayList<String[]> nodeList;
     private OnItemClickListener listener;
 
