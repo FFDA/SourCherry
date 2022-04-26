@@ -4,12 +4,12 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHolder> {
 
@@ -41,10 +41,11 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         }
     }
 
-    private ArrayList<String> nodeList;
+    // nodeList has values in this order: name, main_menu, is_parent, has_subnodes, unique_id
+    private ArrayList<String[]> nodeList;
     private OnItemClickListener listener;
 
-    public MenuItemAdapter(ArrayList<String> nodeList) {
+    public MenuItemAdapter(ArrayList<String[]> nodeList) {
         this.nodeList = nodeList;
     }
 
@@ -69,10 +70,10 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(MenuItemAdapter.ViewHolder holder, int position) {
-        String node = nodeList.get(position);
+        String nodeName = nodeList.get(position)[0];
 
         TextView menuItem = holder.menuItem;
-        menuItem.setText(node);
+        menuItem.setText(nodeName);
     }
 
     @Override

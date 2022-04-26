@@ -24,7 +24,7 @@ public class XMLView extends AppCompatActivity {
     public DrawerLayout drawerLayout;
     public ActionBarDrawerToggle actionBarDrawerToggle;
     private InputStream is;
-    private ArrayList<String> nodes;
+    private ArrayList<String[]> nodes;
     private XMLReader xmlReader;
 
     @Override
@@ -49,16 +49,13 @@ public class XMLView extends AppCompatActivity {
 
         this.xmlReader = new XMLReader(this.is);
         this.nodes = xmlReader.getMainNodes();
-//        this.nodes = xmlReader.getSubNodes("General Notes"); // Trinti
-
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
         MenuItemAdapter adapter = new MenuItemAdapter(this.nodes);
         adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
-                String nodeName = nodes.get(position);
-//                Toast.makeText(XMLView.this, nodeName, Toast.LENGTH_SHORT).show();
+                String nodeName = nodes.get(position)[0];
                 XMLView.this.updateMenu(adapter, nodeName);
 
             }
