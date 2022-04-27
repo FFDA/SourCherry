@@ -8,15 +8,25 @@
     android:paddingBottom="10dp"
     >
 
+    <ImageView
+        android:id="@+id/menu_item_padding"
+        android:visibility="gone"
+        android:layout_width="24dp"
+        android:layout_height="wrap_content"/>
+
+    <ImageView
+        android:id="@+id/menu_item_arrow"
+        android:layout_width="24dp"
+        android:layout_height="wrap_content"/>
+
     <TextView
-        android:id="@+id/menu_item"
+        android:id="@+id/menu_item_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:paddingTop="5dp"
-        android:paddingLeft="5dp"
-        android:paddingBottom="5dp"
-        android:paddingRight="5dp"
         android:background="?android:attr/selectableItemBackground"
-        />
+        android:paddingLeft="5dp"
+        android:paddingTop="5dp"
+        android:paddingRight="5dp"
+        android:paddingBottom="5dp" />
 </LinearLayout>

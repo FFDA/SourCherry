@@ -4,6 +4,7 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -14,12 +15,16 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
 
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
-        public TextView menuItem;
+        public ImageView menuItemPadding;
+        public ImageView menuItemArrow;
+        public TextView menuItemText;
 
         public ViewHolder(View itemView) {
             super(itemView);
 
-            menuItem = (TextView) itemView.findViewById(R.id.menu_item);
+            menuItemPadding = (ImageView) itemView.findViewById(R.id.menu_item_padding);
+            menuItemArrow = (ImageView) itemView.findViewById(R.id.menu_item_arrow);
+            menuItemText = (TextView) itemView.findViewById(R.id.menu_item_name);
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -40,7 +45,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         }
     }
 
-    // nodeList has values in this order: {name, unique_id, has_subnodes, is_parent}
+    // nodeList has values in this order: {name, unique_id, has_subnodes, is_parent, is_subnode}
     private ArrayList<String[]> nodeList;
     private OnItemClickListener listener;
 
@@ -68,11 +73,32 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     }
 
     @Override
-    public void onBindViewHolder(MenuItemAdapter.ViewHolder holder, int position) {
+    public void onBindViewHolder(ViewHolder holder, int position) {
         String nodeName = nodeList.get(position)[0];
+        String nodeUniqueID = nodeList.get(position)[1];
+        String nodeHasSubnodes = nodeList.get(position)[2];
+        String nodeIsParent = nodeList.get(position)[3];
+        String nodeIsSubnode = nodeList.get(position)[4];
 
-        TextView menuItem = holder.menuItem;
-        menuItem.setText(nodeName);
+        ImageView menuItemPaddig = holder.menuItemPadding;
+        ImageView menuItemArrow = holder.menuItemArrow;
+        TextView menuItemText = holder.menuItemText;
+
+        if (nodeHasSubnodes.equals("true")) {
+            menuItemArrow.setImageResource(R.drawable.ic_baseline_arrow_has_subnodes_24);
+        }
+        if (nodeIsParent.equals("true")) {
+//            menuItemArrow.setImageDrawable((ContextCompat.getDrawable(holder.itemView.getContext(), R.drawable.ic_baseline_arrow_is_parent_24))); //Pasilieku kaip priminimą
+            menuItemArrow.setImageResource(R.drawable.ic_baseline_arrow_is_parent_24);
+        }
+        if (nodeIsSubnode.equals("true")) {
+            menuItemPaddig.setVisibility(View.INVISIBLE);
+        } else {
+            menuItemPaddig.setVisibility(View.GONE);
+        }
+
+        menuItemText.setText(nodeName);
+
     }
 
     @Override

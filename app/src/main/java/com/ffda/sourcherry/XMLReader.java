@@ -43,12 +43,12 @@ public class XMLReader {
         NodeList nodeList = this.doc.getElementsByTagName("cherrytree");
         NodeList mainNodeList = nodeList.item(0).getChildNodes();
 
-        nodes = returnSubnodeArrayList(mainNodeList, "true");
+        nodes = returnSubnodeArrayList(mainNodeList, "false");
 
         return nodes;
     }
 
-    public ArrayList<String[]> getSubNodes(String nodeName) {
+    public ArrayList<String[]> getSubnodes(String nodeName) {
         // Returns Subnodes of the node that's name is provided
         ArrayList<String[]> nodes = new ArrayList<>();
 
@@ -59,14 +59,15 @@ public class XMLReader {
             if (node.getAttributes().getNamedItem("name").getNodeValue().equals(nodeName)) {
                 // When it finds a match - creates a NodeList and uses other function to get the MenuItems
                 NodeList childNodeList = node.getChildNodes();
-                nodes = returnSubnodeArrayList(childNodeList, "false");
+                nodes = returnSubnodeArrayList(childNodeList, "true");
 
                 // Creating parent node and adding it to the ArrayList
                 String parentNodeName = node.getAttributes().getNamedItem("name").getNodeValue();
                 String parentNodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                 String parentNodeHasSubnode = String.valueOf(hasSubnodes(node));
                 String parentNodeIsParent = "true";
-                String[] parentNode = {parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent};
+                String parentNodeIsSubnode = "false";
+                String[] parentNode = {parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent, parentNodeIsSubnode};
                 nodes.add(0, parentNode);
                 //
 
@@ -76,7 +77,7 @@ public class XMLReader {
         return nodes;
     }
     
-    public ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isParent) {
+    public ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isSubnode) {
         // This function scans provided NodeList and
         // returns ArrayList with nested String Arrays that
         // holds individual menu items.
@@ -90,7 +91,8 @@ public class XMLReader {
                 String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
                 String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                 String hasSubnode = String.valueOf(hasSubnodes(node));
-                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent};
+                String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
+                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
                 nodes.add(currentNodeArray);
             }
         }

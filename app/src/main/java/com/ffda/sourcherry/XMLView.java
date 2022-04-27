@@ -88,7 +88,7 @@ public class XMLView extends AppCompatActivity {
 
     public void updateMenu(MenuItemAdapter adapter, String nodeName) {
         this.nodes.clear();
-        this.nodes.addAll(this.xmlReader.getSubNodes(nodeName));
+        this.nodes.addAll(this.xmlReader.getSubnodes(nodeName));
         adapter.notifyDataSetChanged();
 
     }
