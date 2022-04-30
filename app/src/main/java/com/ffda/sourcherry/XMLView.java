@@ -89,15 +89,15 @@ public class XMLView extends AppCompatActivity {
     private void openSubmenu() {
         // Clears existing menu and recreate with submenu of the currentNode
         this.nodes.clear();
-        this.nodes.addAll(this.xmlReader.getSubnodes(this.currentNode[0]));
+        this.nodes.addAll(this.xmlReader.getSubnodes(this.currentNode[1]));
         this.adapter.notifyDataSetChanged();
 
     }
 
     public void goNodeUp(View view) {
-        ArrayList<String[]> nodes = xmlReader.getParentWithSubnodes(this.currentNode[0]);
+        ArrayList<String[]> nodes = xmlReader.getParentWithSubnodes(this.currentNode[1]);
         if (nodes != null) {
-            Toast.makeText(this, this.currentNode[0], Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, this.currentNode[0], Toast.LENGTH_SHORT).show(); // Test line. Delete later
             this.currentNode = nodes.get(0);
             this.nodes.clear();
             this.nodes.addAll(nodes);
