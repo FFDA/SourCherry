@@ -15,7 +15,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
 
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
-        public ImageView menuItemPadding;
+        public ImageView menuItemPadding; // This item is only needed to make menu items look indented
         public ImageView menuItemArrow;
         public TextView menuItemText;
 
@@ -84,13 +84,20 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         ImageView menuItemArrow = holder.menuItemArrow;
         TextView menuItemText = holder.menuItemText;
 
+        // Making visible/invisible an arrow that indicates that node has subnodes
         if (nodeHasSubnodes.equals("true")) {
-            menuItemArrow.setImageResource(R.drawable.ic_baseline_arrow_has_subnodes_24);
+            menuItemArrow.setVisibility(View.VISIBLE);
+        } else {
+            menuItemArrow.setVisibility(View.INVISIBLE);
         }
+
+        // Adding arrow that make menu item took differently to indicate that this node is a parent (top) node
         if (nodeIsParent.equals("true")) {
 //            menuItemArrow.setImageDrawable((ContextCompat.getDrawable(holder.itemView.getContext(), R.drawable.ic_baseline_arrow_is_parent_24))); //Pasilieku kaip priminimą
             menuItemArrow.setImageResource(R.drawable.ic_baseline_arrow_is_parent_24);
         }
+
+        // If node is a subnode - adds small ImageView item to make it look indented.
         if (nodeIsSubnode.equals("true")) {
             menuItemPaddig.setVisibility(View.INVISIBLE);
         } else {

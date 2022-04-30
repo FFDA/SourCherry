@@ -49,7 +49,7 @@ public class XMLReader {
     }
 
     public ArrayList<String[]> getSubnodes(String nodeName) {
-        // Returns Subnodes of the node that's name is provided
+        // Returns Subnodes of the node which name is provided
         ArrayList<String[]> nodes = new ArrayList<>();
 
         NodeList nodeList = this.doc.getElementsByTagName("node");
@@ -110,4 +110,42 @@ public class XMLReader {
         }
         return false;
     }
+
+    private String[] createParentNode(Node parentNode) {
+        // Creates and returns the node that will be added to the node array
+        String parentNodeName = parentNode.getAttributes().getNamedItem("name").getNodeValue();
+        String parentNodeUniqueID = parentNode.getAttributes().getNamedItem("unique_id").getNodeValue();
+        String parentNodeHasSubnode = String.valueOf(hasSubnodes(parentNode));
+        String parentNodeIsParent = "true";
+        String parentNodeIsSubnode = "false";
+        String[] node = {parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent, parentNodeIsSubnode};
+        return node;
+    }
+
+    public ArrayList<String[]> getParentWithSubnodes(String nodeName) {
+        // Checks if it is possible to go up in document's node tree from given node's name
+        // Returns array with appropriate nodes
+        ArrayList<String[]> nodes = null;
+
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("name").getNodeValue().equals(nodeName)) {
+                Node parentNode = node.getParentNode();
+                if (parentNode == null) {
+                    return nodes;
+                } else if (parentNode.getNodeName().equals("cherrytree")) {
+                    nodes = this.getMainNodes();
+                } else {
+                    NodeList parentSubnodes = parentNode.getChildNodes();
+                    nodes = returnSubnodeArrayList(parentSubnodes, "true");
+                    nodes.add(0, createParentNode(parentNode));
+                }
+
+            }
+        }
+        return nodes;
+    }
+
 }

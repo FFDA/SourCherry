@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -25,6 +26,8 @@ public class XMLView extends AppCompatActivity {
     private InputStream is;
     private ArrayList<String[]> nodes;
     private XMLReader xmlReader;
+    private MenuItemAdapter adapter;
+    private String[] currentNode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,18 +51,16 @@ public class XMLView extends AppCompatActivity {
 
         this.xmlReader = new XMLReader(this.is);
         this.nodes = xmlReader.getMainNodes();
+        this.currentNode = null;
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
-        MenuItemAdapter adapter = new MenuItemAdapter(this.nodes);
+        this.adapter = new MenuItemAdapter(this.nodes);
         adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
-                String nodeName = nodes.get(position)[0];
-                String nodeUniqueID = nodes.get(position)[1];
-                String nodeHasSudnodes = nodes.get(position)[2];
-                String nodeIsParent = nodes.get(position)[3];
-                if (nodeHasSudnodes.equals("true")) {
-                    XMLView.this.updateMenu(adapter, nodeName);
+                XMLView.this.currentNode = nodes.get(position);
+                if (nodes.get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
+                    XMLView.this.openSubmenu();
                 }
 
             }
@@ -74,7 +75,6 @@ public class XMLView extends AppCompatActivity {
 
         // to make the Navigation drawer icon always appear on the action bar
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
     }
 
     @Override
@@ -86,10 +86,24 @@ public class XMLView extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public void updateMenu(MenuItemAdapter adapter, String nodeName) {
+    private void openSubmenu() {
+        // Clears existing menu and recreate with submenu of the currentNode
         this.nodes.clear();
-        this.nodes.addAll(this.xmlReader.getSubnodes(nodeName));
-        adapter.notifyDataSetChanged();
+        this.nodes.addAll(this.xmlReader.getSubnodes(this.currentNode[0]));
+        this.adapter.notifyDataSetChanged();
 
+    }
+
+    public void goNodeUp(View view) {
+        ArrayList<String[]> nodes = xmlReader.getParentWithSubnodes(this.currentNode[0]);
+        if (nodes != null) {
+            Toast.makeText(this, this.currentNode[0], Toast.LENGTH_SHORT).show();
+            this.currentNode = nodes.get(0);
+            this.nodes.clear();
+            this.nodes.addAll(nodes);
+            this.adapter.notifyDataSetChanged();
+        } else {
+            Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
+        }
     }
 }

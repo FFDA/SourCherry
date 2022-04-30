@@ -7,6 +7,7 @@
         <entry key="app/src/main/res/drawable/arrow.xml" value="0.2535" />
         <entry key="app/src/main/res/drawable/ic_baseline_arrow_has_subnodes_24.xml" value="0.3165" />
         <entry key="app/src/main/res/drawable/ic_baseline_arrow_has_subnotes_24.xml" value="0.2535" />
+        <entry key="app/src/main/res/drawable/ic_baseline_arrow_node_up_24.xml" value="0.2535" />
         <entry key="app/src/main/res/drawable/ic_baseline_keyboard_arrow_is_parent_24.xml" value="0.3165" />
         <entry key="app/src/main/res/drawable/ic_launcher_background.xml" value="0.291" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.3421875" />
@@ -14,7 +15,13 @@
         <entry key="app/src/main/res/layout/activity_xmlview.xml" value="0.25" />
         <entry key="app/src/main/res/layout/app_bar_main.xml" value="0.18229166666666666" />
         <entry key="app/src/main/res/layout/babab.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/layout/header_navigation_drawer.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/layout/header_navitation_drawer.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/menu_item.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/layout/nav_drawer_header.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/menu/drawer_content_resolver_menu.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/menu/group.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/menu/header.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/menu/menu_item.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/menu/navigation_menu.xml" value="0.25" />
       </map>

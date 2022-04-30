@@ -87,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
         TextView textViewPassword = findViewById(R.id.textViewPassword);
         Button buttonOpen = findViewById(R.id.button_open);
 
-
         // Settings message for the user if there isn't a database selected to open
         // Otherwise displaying the name of the file
         String databaseFilename = sharedPref.getString("databaseFilename", null);

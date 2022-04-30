@@ -5,22 +5,35 @@
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".XMLView">
+<!--    Pakeičiau tools:context į dabartinį iš .MainActivity. Nežinau ar taip turėtų būti.-->
 
     <!--this the navigation view which draws
         and shows the navigation drawer-->
     <!--include the menu created in the menu folder-->
+
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_gravity="start"
-        >
+        android:layout_gravity="start">
+
+        <ImageButton
+            android:id="@+id/navigation_drawer_button_up"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="top"
+            android:onClick="goNodeUp"
+            android:clickable="true"
+            android:background="?selectableItemBackground"
+            android:src="@drawable/ic_baseline_arrow_node_up_24" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:layout_marginTop="40dp"
+            android:layout_gravity="bottom" />
     </com.google.android.material.navigation.NavigationView>
 
 </androidx.drawerlayout.widget.DrawerLayout>
