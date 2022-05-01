@@ -1,8 +1,10 @@
 package com.ffda.sourcherry;
 
 
+import android.graphics.Color;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
 import android.text.style.StrikethroughSpan;
 
 import org.w3c.dom.Document;
@@ -75,12 +77,12 @@ public class XMLReader {
         }
         return nodes;
     }
-    
+
     public ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isSubnode) {
         // This function scans provided NodeList and
         // returns ArrayList with nested String Arrays that
         // holds individual menu items.
-        
+
         ArrayList<String[]> nodes = new ArrayList<>();
 
         for (int i=0; i < nodeList.getLength(); i++) {
@@ -180,22 +182,33 @@ public class XMLReader {
     }
 
     public SpannableStringBuilder makeFormattedText(Node node) {
-        // Returns SpannableStringBuilder that has spans marked for formating
-        SpannableStringBuilder nodesAttributesString = new SpannableStringBuilder();
-        nodesAttributesString.append(node.getTextContent());
+        // Returns SpannableStringBuilder that has spans marked for string formatting
+        // Formatting made out of nodes attribute
+        SpannableStringBuilder formattedNodeText = new SpannableStringBuilder();
+        formattedNodeText.append(node.getTextContent());
 
         NamedNodeMap nodeAttributes = node.getAttributes(); // Gets all the passed node attributes as NodeList
         for (int i = 0; i < nodeAttributes.getLength(); i++) {
             String attribute = nodeAttributes.item(i).getNodeName();
-            switch (attribute) {
-                case "strikethrough": {
+
+            if (attribute.equals("strikethrough")) {
                     StrikethroughSpan sts = new StrikethroughSpan();
-                    nodesAttributesString.setSpan(sts,0, nodesAttributesString.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else if (attribute.equals("foreground")) {
+                String foregroundColorOriginal = nodeAttributes.item(i).getTextContent();
+                // Creating a normal HEX color code, because XML document has strange one with 12 symbols
+                StringBuilder colorCode = new StringBuilder();
+                colorCode.append("#");
+                colorCode.append(foregroundColorOriginal.substring(1,3));
+                colorCode.append(foregroundColorOriginal.substring(5,7));
+                colorCode.append(foregroundColorOriginal.substring(9,11));
+                //
+                ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(colorCode.toString()));
+                formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
             }
-        }
 
-        return nodesAttributesString;
+        return formattedNodeText;
     }
 
 }
