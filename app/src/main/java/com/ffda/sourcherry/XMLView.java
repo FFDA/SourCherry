@@ -12,9 +12,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.SpannableStringBuilder;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -62,7 +67,7 @@ public class XMLView extends AppCompatActivity {
                 if (nodes.get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
                     XMLView.this.openSubmenu();
                 }
-
+                XMLView.this.loadNodeContent();
             }
         });
         rvMenu.setAdapter(adapter);
@@ -105,5 +110,20 @@ public class XMLView extends AppCompatActivity {
         } else {
             Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public void loadNodeContent() {
+        LinearLayout mainLinearLayout = findViewById(R.id.mainLinearLayout);
+        ArrayList<SpannableStringBuilder> nodeContent = xmlReader.getNodeContent(this.currentNode[1]);
+        mainLinearLayout.removeAllViews();
+        for (SpannableStringBuilder par: nodeContent) {
+//            TextInputEditText tv = new TextInputEditText(this);
+            TextView tv = new TextView(this);
+//            tv.setEnabled(false);
+            tv.setText(par, TextView.BufferType.EDITABLE);
+            mainLinearLayout.addView(tv);
+
+        }
+
     }
 }

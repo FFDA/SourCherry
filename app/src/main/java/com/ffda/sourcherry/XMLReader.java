@@ -1,7 +1,12 @@
 package com.ffda.sourcherry;
 
 
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.StrikethroughSpan;
+
 import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -140,6 +145,57 @@ public class XMLReader {
             }
         }
         return nodes;
+    }
+
+    public ArrayList<SpannableStringBuilder> getNodeContent(String uniqueID) {
+        // Original XML document has newline characters marked
+        // Returns ArrayList of SpannableStringBuilder elements
+
+        ArrayList<SpannableStringBuilder> nodeContent = new ArrayList<>();
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) { // Finds element that user chose
+                SpannableStringBuilder newNode = new SpannableStringBuilder();
+                NodeList nodeContentNodeList = node.getChildNodes();
+                for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
+                    // Loops through nodes of selected node
+                    Node currentNode = nodeContentNodeList.item(x);
+                    if (currentNode.getNodeName().equals("rich_text")) {
+                        // Node is a text_rich node
+                        if (currentNode.hasAttributes()) {
+                            newNode.append(makeFormattedText(currentNode));
+                        } else {
+                            newNode.append(currentNode.getTextContent());
+                        }
+                    }
+                }
+
+                nodeContent.add(newNode);
+            }
+        }
+
+        return nodeContent;
+    }
+
+    public SpannableStringBuilder makeFormattedText(Node node) {
+        // Returns SpannableStringBuilder that has spans marked for formating
+        SpannableStringBuilder nodesAttributesString = new SpannableStringBuilder();
+        nodesAttributesString.append(node.getTextContent());
+
+        NamedNodeMap nodeAttributes = node.getAttributes(); // Gets all the passed node attributes as NodeList
+        for (int i = 0; i < nodeAttributes.getLength(); i++) {
+            String attribute = nodeAttributes.item(i).getNodeName();
+            switch (attribute) {
+                case "strikethrough": {
+                    StrikethroughSpan sts = new StrikethroughSpan();
+                    nodesAttributesString.setSpan(sts,0, nodesAttributesString.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+            }
+        }
+
+        return nodesAttributesString;
     }
 
 }
