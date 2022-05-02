@@ -6,6 +6,7 @@ import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StrikethroughSpan;
+import android.text.style.URLSpan;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -205,10 +206,13 @@ public class XMLReader {
                 //
                 ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(colorCode.toString()));
                 formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                }
+            } else if (attribute.equals("link")) {
+                String linkURL = nodeAttributes.item(i).getTextContent();
+                URLSpan us = new URLSpan(linkURL);
+                formattedNodeText.setSpan(us,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
+        }
 
         return formattedNodeText;
     }
-
 }

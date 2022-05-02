@@ -12,7 +12,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Html;
 import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -20,6 +22,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
+
+import org.w3c.dom.Node;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -119,11 +123,11 @@ public class XMLView extends AppCompatActivity {
         for (SpannableStringBuilder par: nodeContent) {
 //            TextInputEditText tv = new TextInputEditText(this);
             TextView tv = new TextView(this);
+            tv.setTextIsSelectable(true);
 //            tv.setEnabled(false);
             tv.setText(par, TextView.BufferType.EDITABLE);
             mainLinearLayout.addView(tv);
 
         }
-
     }
 }
