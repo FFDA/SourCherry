@@ -4,11 +4,15 @@ package com.ffda.sourcherry;
 import android.graphics.Color;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+
 import android.text.style.ForegroundColorSpan;
+import android.text.style.QuoteSpan;
 import android.text.style.StrikethroughSpan;
+import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -150,41 +154,49 @@ public class XMLReader {
         return nodes;
     }
 
-    public ArrayList<SpannableStringBuilder> getNodeContent(String uniqueID) {
+    public SpannableStringBuilder getNodeContent(String uniqueID) {
         // Original XML document has newline characters marked
         // Returns ArrayList of SpannableStringBuilder elements
 
-        ArrayList<SpannableStringBuilder> nodeContent = new ArrayList<>();
+        SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder();
         NodeList nodeList = this.doc.getElementsByTagName("node");
+
+        int totalCharOffset = 0;
 
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) { // Finds element that user chose
-                SpannableStringBuilder newNode = new SpannableStringBuilder();
-                NodeList nodeContentNodeList = node.getChildNodes();
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) { // Finds node that user chose
+
+
+                NodeList nodeContentNodeList = node.getChildNodes(); // Gets all the subnodes/childnodes of selected node
+
                 for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
                     // Loops through nodes of selected node
                     Node currentNode = nodeContentNodeList.item(x);
-                    if (currentNode.getNodeName().equals("rich_text")) {
-                        // Node is a text_rich node
+                    String currentNodeType = currentNode.getNodeName();
+                    if (currentNodeType.equals("rich_text")) {
                         if (currentNode.hasAttributes()) {
-                            newNode.append(makeFormattedText(currentNode));
+                            nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
                         } else {
-                            newNode.append(currentNode.getTextContent());
+                            nodeContentStringBuilder.append(currentNode.getTextContent());
                         }
+                    } else if (currentNodeType.equals("codebox")) {
+                        int charOffset = getCharOffset(currentNode);
+
+                        SpannableStringBuilder codeboxText = makeFormattedCodebox(currentNode);
+                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
+                        totalCharOffset += codeboxText.length() - 1;
                     }
                 }
-
-                nodeContent.add(newNode);
             }
         }
 
-        return nodeContent;
+        return nodeContentStringBuilder;
     }
 
-    public SpannableStringBuilder makeFormattedText(Node node) {
+    public SpannableStringBuilder makeFormattedRichText(Node node) {
         // Returns SpannableStringBuilder that has spans marked for string formatting
-        // Formatting made out of nodes attribute
+        // Formatting made based on nodes attribute
         SpannableStringBuilder formattedNodeText = new SpannableStringBuilder();
         formattedNodeText.append(node.getTextContent());
 
@@ -212,7 +224,43 @@ public class XMLReader {
                 formattedNodeText.setSpan(us,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
+        return formattedNodeText;
+    }
+
+    public SpannableStringBuilder makeFormattedCodebox(Node node) {
+        // Returns SpannableStringBuilder that has spans marked for string formatting
+        // Formatting isn't based on nodes attributes, because all codebox'es will look the same
+        SpannableStringBuilder formattedNodeText = new SpannableStringBuilder();
+        formattedNodeText.append(node.getTextContent());
+
+        // Adds vertical line in front the paragraph, to make it stand out as quote
+        QuoteSpan qs = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            qs = new QuoteSpan(Color.parseColor("#AC1111"), 5, 30);
+        } else {
+            qs = new QuoteSpan(Color.RED);
+        }
+        formattedNodeText.setSpan(qs, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        // Changes font
+        TypefaceSpan tf = new TypefaceSpan("monospace");
+        formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        // Changes background color. Doesn't work as it should to look decent.
+//        BackgroundColorSpan bcs = new BackgroundColorSpan(Color.BLUE);
+//        formattedNodeText.setSpan(bcs, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
         return formattedNodeText;
+    }
+
+    public int getCharOffset(Node node) {
+        // Returns character offset value that is used in codebox and encoded_png tags
+        // It is needed to add text in the correct location
+        // One needs to -1 from the value to make it work
+        // I don't have and idea why
+
+        Element el = (Element) node;
+        int charOffset = Integer.valueOf(el.getAttribute("char_offset"));
+        return charOffset;
     }
 }

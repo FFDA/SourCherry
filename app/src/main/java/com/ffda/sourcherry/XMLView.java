@@ -118,16 +118,13 @@ public class XMLView extends AppCompatActivity {
 
     public void loadNodeContent() {
         LinearLayout mainLinearLayout = findViewById(R.id.mainLinearLayout);
-        ArrayList<SpannableStringBuilder> nodeContent = xmlReader.getNodeContent(this.currentNode[1]);
+        SpannableStringBuilder nodeContent = xmlReader.getNodeContent(this.currentNode[1]);
         mainLinearLayout.removeAllViews();
-        for (SpannableStringBuilder par: nodeContent) {
-//            TextInputEditText tv = new TextInputEditText(this);
-            TextView tv = new TextView(this);
-            tv.setTextIsSelectable(true);
-//            tv.setEnabled(false);
-            tv.setText(par, TextView.BufferType.EDITABLE);
-            mainLinearLayout.addView(tv);
 
-        }
+        TextView tv = new TextView(this);
+        tv.setTextIsSelectable(true);
+        tv.setText(nodeContent, TextView.BufferType.EDITABLE);
+        mainLinearLayout.addView(tv);
+
     }
 }
