@@ -10,13 +10,17 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.style.ImageSpan;
+import android.util.Base64;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -58,7 +62,7 @@ public class XMLView extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        this.xmlReader = new XMLReader(this.is);
+        this.xmlReader = new XMLReader(this.is, this);
         this.nodes = xmlReader.getMainNodes();
         this.currentNode = null;
 
@@ -125,6 +129,5 @@ public class XMLView extends AppCompatActivity {
         tv.setTextIsSelectable(true);
         tv.setText(nodeContent, TextView.BufferType.EDITABLE);
         mainLinearLayout.addView(tv);
-
     }
 }

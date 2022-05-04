@@ -43,6 +43,12 @@ public class MainActivity extends AppCompatActivity {
 //                }
             }
         });
+
+        //// Disables button Create Database
+        // Function isn't implemented yet
+        Button createDatabase = (Button) findViewById(R.id.button_create_database);
+        createDatabase.setEnabled(false);
+        ////
     }
 
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
