@@ -1,10 +1,12 @@
 package com.ffda.sourcherry;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,6 +20,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         public ImageView menuItemPadding; // This item is only needed to make menu items look indented
         public ImageView menuItemArrow;
         public TextView menuItemText;
+        public LinearLayout menuItemLinearLayout;
 
         public ViewHolder(View itemView) {
             super(itemView);
@@ -25,15 +28,19 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
             menuItemPadding = (ImageView) itemView.findViewById(R.id.menu_item_padding);
             menuItemArrow = (ImageView) itemView.findViewById(R.id.menu_item_arrow);
             menuItemText = (TextView) itemView.findViewById(R.id.menu_item_name);
+            menuItemLinearLayout = (LinearLayout) itemView.findViewById(R.id.menu_linear_layout);
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View itemView) {
                     if (listener != null) {
-                        int position = getAdapterPosition();
+                        int position = getBindingAdapterPosition();
                         if (position != RecyclerView.NO_POSITION) {
                             listener.onItemClick(itemView, position);
                         }
+                        notifyItemChanged(selectedPos);
+                        selectedPos = getLayoutPosition();
+                        notifyItemChanged(selectedPos);
                     }
                 }
             });
@@ -48,6 +55,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     // nodeList has values in this order: {name, unique_id, has_subnodes, is_parent, is_subnode}
     private ArrayList<String[]> nodeList;
     private OnItemClickListener listener;
+    private int selectedPos = RecyclerView.NO_POSITION;
 
     public MenuItemAdapter(ArrayList<String[]> nodeList) {
         this.nodeList = nodeList;
@@ -80,6 +88,8 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         String nodeIsParent = nodeList.get(position)[3];
         String nodeIsSubnode = nodeList.get(position)[4];
 
+        holder.itemView.setSelected(selectedPos == position);
+
         ImageView menuItemPaddig = holder.menuItemPadding;
         ImageView menuItemArrow = holder.menuItemArrow;
         TextView menuItemText = holder.menuItemText;
@@ -105,7 +115,6 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         }
 
         menuItemText.setText(nodeName);
-
     }
 
     @Override
