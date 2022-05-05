@@ -34,8 +34,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
                 @Override
                 public void onClick(View itemView) {
                     if (listener != null) {
-//                        int position = getBindingAdapterPosition();
-                        int position = getAbsoluteAdapterPosition();
+                        int position = getBindingAdapterPosition();
                         if (position != RecyclerView.NO_POSITION) {
                             listener.onItemClick(itemView, position);
                         }
