@@ -32,6 +32,7 @@ public class XMLView extends AppCompatActivity {
     private XMLReader xmlReader;
     private MenuItemAdapter adapter;
     private String[] currentNode;
+    private int currentNodePosition;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,14 +59,18 @@ public class XMLView extends AppCompatActivity {
         this.currentNode = null;
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
-        this.adapter = new MenuItemAdapter(this.nodes);
+        this.adapter = new MenuItemAdapter(this.nodes, this);
         adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
                 XMLView.this.currentNode = nodes.get(position);
                 if (nodes.get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
                     XMLView.this.openSubmenu();
+                    XMLView.this.currentNodePosition = 0;
+                } else {
+                    XMLView.this.currentNodePosition = position;
                 }
+
                 XMLView.this.loadNodeContent();
             }
         });
@@ -95,16 +100,16 @@ public class XMLView extends AppCompatActivity {
         this.nodes.clear();
         this.nodes.addAll(this.xmlReader.getSubnodes(this.currentNode[1]));
         this.adapter.notifyDataSetChanged();
-
     }
 
     public void goNodeUp(View view) {
-        ArrayList<String[]> nodes = xmlReader.getParentWithSubnodes(this.currentNode[1]);
+        ArrayList<String[]> nodes = xmlReader.getParentWithSubnodes(this.nodes.get(0)[1]);
         if (nodes != null) {
 //            Toast.makeText(this, this.currentNode[0], Toast.LENGTH_SHORT).show(); // Test line. Delete later
             this.currentNode = nodes.get(0);
             this.nodes.clear();
             this.nodes.addAll(nodes);
+            this.adapter.markItemSelected(-1);
             this.adapter.notifyDataSetChanged();
         } else {
             Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
@@ -115,6 +120,9 @@ public class XMLView extends AppCompatActivity {
         LinearLayout mainLinearLayout = findViewById(R.id.mainLinearLayout);
         SpannableStringBuilder nodeContent = xmlReader.getNodeContent(this.currentNode[1]);
         mainLinearLayout.removeAllViews();
+
+        this.adapter.markItemSelected(currentNodePosition);
+        this.adapter.notifyDataSetChanged();
 
         TextView tv = new TextView(this);
         tv.setTextIsSelectable(true);

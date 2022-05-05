@@ -34,13 +34,12 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
                 @Override
                 public void onClick(View itemView) {
                     if (listener != null) {
-                        int position = getBindingAdapterPosition();
+//                        int position = getBindingAdapterPosition();
+                        int position = getAbsoluteAdapterPosition();
                         if (position != RecyclerView.NO_POSITION) {
                             listener.onItemClick(itemView, position);
                         }
-                        notifyItemChanged(selectedPos);
-                        selectedPos = getLayoutPosition();
-                        notifyItemChanged(selectedPos);
+
                     }
                 }
             });
@@ -56,9 +55,11 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     private ArrayList<String[]> nodeList;
     private OnItemClickListener listener;
     private int selectedPos = RecyclerView.NO_POSITION;
+    private Context context;
 
-    public MenuItemAdapter(ArrayList<String[]> nodeList) {
+    public MenuItemAdapter(ArrayList<String[]> nodeList, Context context) {
         this.nodeList = nodeList;
+        this.context = context;
     }
 
     public interface OnItemClickListener {
@@ -88,7 +89,8 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         String nodeIsParent = nodeList.get(position)[3];
         String nodeIsSubnode = nodeList.get(position)[4];
 
-        holder.itemView.setSelected(selectedPos == position);
+        // Setting selected items background color
+        holder.itemView.setBackgroundColor(selectedPos == position ? this.context.getResources().getColor(R.color.cherry_red_500, this.context.getTheme()) : Color.TRANSPARENT);
 
         ImageView menuItemPaddig = holder.menuItemPadding;
         ImageView menuItemArrow = holder.menuItemArrow;
@@ -115,6 +117,10 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         }
 
         menuItemText.setText(nodeName);
+    }
+
+    public void markItemSelected(int selectedPos) {
+        this.selectedPos = selectedPos;
     }
 
     @Override
