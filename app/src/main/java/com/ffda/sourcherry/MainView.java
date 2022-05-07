@@ -36,7 +36,7 @@ public class MainView extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_xmlview);
+        setContentView(R.layout.activity_mainview);
 
         // drawer layout instance to toggle the menu icon to open
         // drawer and back button to close drawer
