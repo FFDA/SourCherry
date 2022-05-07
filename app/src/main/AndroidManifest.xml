@@ -12,7 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SourCherry">
         <activity
-            android:name=".XMLView"
+            android:name=".MainView"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

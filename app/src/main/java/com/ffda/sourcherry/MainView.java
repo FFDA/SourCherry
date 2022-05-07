@@ -22,7 +22,7 @@ import android.widget.Toast;
 import java.io.InputStream;
 import java.util.ArrayList;
 
-public class XMLView extends AppCompatActivity {
+public class MainView extends AppCompatActivity {
 
     public DrawerLayout drawerLayout;
     public ActionBarDrawerToggle actionBarDrawerToggle;
@@ -62,15 +62,15 @@ public class XMLView extends AppCompatActivity {
         adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
-                XMLView.this.currentNode = nodes.get(position);
+                MainView.this.currentNode = nodes.get(position);
                 if (nodes.get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
-                    XMLView.this.openSubmenu();
-                    XMLView.this.currentNodePosition = 0;
+                    MainView.this.openSubmenu();
+                    MainView.this.currentNodePosition = 0;
                 } else {
-                    XMLView.this.currentNodePosition = position;
+                    MainView.this.currentNodePosition = position;
                 }
 
-                XMLView.this.loadNodeContent();
+                MainView.this.loadNodeContent();
             }
         });
         rvMenu.setAdapter(adapter);
