@@ -162,6 +162,7 @@ public class MainView extends AppCompatActivity {
         this.adapter.notifyDataSetChanged();
 
         TextView tv = new TextView(this);
+        tv.setTextSize(16);
         tv.setTextIsSelectable(true);
         tv.setText(nodeContent, TextView.BufferType.EDITABLE);
         mainLinearLayout.addView(tv);
