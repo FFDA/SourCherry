@@ -22,7 +22,6 @@ import android.widget.Toast;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class MainView extends AppCompatActivity {
