@@ -14,13 +14,12 @@
         android:id="@+id/menu_item_padding"
         android:visibility="gone"
         android:layout_width="24dp"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content" />
 
     <ImageView
         android:id="@+id/menu_item_arrow"
         android:layout_width="24dp"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_baseline_arrow_has_subnodes_24"/>
+        android:layout_height="wrap_content" />
 
     <TextView
         android:id="@+id/menu_item_name"
