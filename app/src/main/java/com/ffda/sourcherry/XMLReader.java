@@ -263,7 +263,7 @@ public class XMLReader {
         TypefaceSpan tf = new TypefaceSpan("monospace");
         formattedCodebox.setSpan(tf, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
-        // Changes background color. Doesn't work as it should to look decent.
+        // Changes background color. Doesn't work as it should to / look decent.
 //        BackgroundColorSpan bcs = new BackgroundColorSpan(Color.BLUE);
 //        formattedNodeText.setSpan(bcs, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 

@@ -29,15 +29,31 @@
         android:layout_height="match_parent"
         android:layout_gravity="start">
 
-        <ImageButton
-            android:id="@+id/navigation_drawer_button_up"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_gravity="top"
-            android:onClick="goNodeUp"
-            android:clickable="true"
-            android:background="?selectableItemBackground"
-            android:src="@drawable/ic_baseline_arrow_node_up_24" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/navigation_drawer_button_up"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top"
+                android:background="?selectableItemBackground"
+                android:clickable="true"
+                android:onClick="goNodeUp"
+                android:src="@drawable/ic_baseline_arrow_node_up_24" />
+
+            <ImageButton
+                android:id="@+id/navigation_drawer_button_home"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="top"
+                android:background="?selectableItemBackground"
+                android:clickable="true"
+                android:onClick="goHome"
+                android:src="@drawable/ic_outline_home_24" />
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"

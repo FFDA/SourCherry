@@ -104,7 +104,6 @@ public class MainView extends AppCompatActivity {
     public void goNodeUp(View view) {
         ArrayList<String[]> nodes = xmlReader.getParentWithSubnodes(this.nodes.get(0)[1]);
         if (nodes != null) {
-//            Toast.makeText(this, this.currentNode[0], Toast.LENGTH_SHORT).show(); // Test line. Delete later
             this.currentNode = nodes.get(0);
             this.nodes.clear();
             this.nodes.addAll(nodes);
@@ -113,6 +112,14 @@ public class MainView extends AppCompatActivity {
         } else {
             Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public void goHome(View view) {
+        // Reloads drawer menu to show main menu
+        this.nodes.clear();
+        this.nodes.addAll(xmlReader.getMainNodes());
+        this.adapter.markItemSelected(-1);
+        this.adapter.notifyDataSetChanged();
     }
 
     public void loadNodeContent() {
