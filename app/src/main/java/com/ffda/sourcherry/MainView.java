@@ -94,10 +94,12 @@ public class MainView extends AppCompatActivity {
         searchView.setOnCloseListener(new SearchView.OnCloseListener() {
             @Override
             public boolean onClose() {
-                if (MainView.this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
-                    MainView.this.openSubmenu();
-                } else {
-                    MainView.this.resetMenuToCurrentNode();
+                if (MainView.this.currentNode != null) {
+                    if (MainView.this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
+                        MainView.this.openSubmenu();
+                    } else {
+                        MainView.this.resetMenuToCurrentNode();
+                    }
                 }
                 return false;
             }
@@ -188,17 +190,20 @@ public class MainView extends AppCompatActivity {
     public void resetMenuToCurrentNode() {
         // Restores drawer menu to current selection after user search
         // when no node was selected
-        this.nodes.clear();
-        this.nodes.addAll(MainView.this.xmlReader.getParentWithSubnodes(MainView.this.currentNode[1]));
 
-        for (int index = 0; index < this.nodes.size(); index++) {
-            if (this.nodes.get(index)[1].equals(this.currentNode[1])) {
-                this.currentNodePosition = index;
-                this.adapter.markItemSelected(this.currentNodePosition);
+        if (this.currentNode != null) {
+            this.nodes.clear();
+            this.nodes.addAll(this.xmlReader.getParentWithSubnodes(this.currentNode[1]));
+
+            for (int index = 0; index < this.nodes.size(); index++) {
+                if (this.nodes.get(index)[1].equals(this.currentNode[1])) {
+                    this.currentNodePosition = index;
+                    this.adapter.markItemSelected(this.currentNodePosition);
+                }
             }
-        }
 
-        this.adapter.notifyDataSetChanged();
+            this.adapter.notifyDataSetChanged();
+        }
     }
 
     public void resetSearchView() {

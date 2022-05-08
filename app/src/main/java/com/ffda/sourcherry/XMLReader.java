@@ -288,7 +288,6 @@ public class XMLReader {
         return formattedImage;
     }
 
-
     public int getCharOffset(Node node) {
         // Returns character offset value that is used in codebox and encoded_png tags
         // It is needed to add text in the correct location

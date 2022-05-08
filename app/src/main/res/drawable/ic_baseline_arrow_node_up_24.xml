@@ -5,8 +5,8 @@
     android:viewportHeight="24"
     android:tint="?attr/colorControlNormal">
     <group
-        android:pivotX="12"
-        android:pivotY="12"
+        android:pivotX="12.5"
+        android:pivotY="11.5"
         android:rotation="90" >
         <path
             android:fillColor="@android:color/white"
