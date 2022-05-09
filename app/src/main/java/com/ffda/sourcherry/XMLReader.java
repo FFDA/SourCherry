@@ -12,6 +12,7 @@ import android.text.Spanned;
 
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
+import android.text.style.LineBackgroundSpan;
 import android.text.style.QuoteSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.TypefaceSpan;
@@ -259,9 +260,11 @@ public class XMLReader {
         TypefaceSpan tf = new TypefaceSpan("monospace");
         formattedCodebox.setSpan(tf, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
-        // Changes background color. Doesn't work as it should to / look decent.
-//        BackgroundColorSpan bcs = new BackgroundColorSpan(Color.BLUE);
-//        formattedNodeText.setSpan(bcs, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        // Changes background color
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+            formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
 
         return formattedCodebox;
     }
