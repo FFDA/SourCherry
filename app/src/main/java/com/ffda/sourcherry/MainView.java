@@ -209,6 +209,7 @@ public class MainView extends AppCompatActivity {
                 table.addView(tableHeaderRow);
                 ////
 
+                //// Creates and formats data for the table
                 for (int row = 1; row < part.size() - 1; row++) {
                     TableRow tableRow = new TableRow(this);
                     CharSequence[] tableRowCells = (CharSequence[]) part.get(row);
@@ -224,6 +225,7 @@ public class MainView extends AppCompatActivity {
                     }
                     table.addView(tableRow);
                 }
+                ////
 
                 table.setBackground(getDrawable(R.drawable.table_border));
                 tableScrollView.addView(table);
