@@ -7,6 +7,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.app.ActionBar;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,8 +16,11 @@ import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.SearchView;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -156,17 +160,76 @@ public class MainView extends AppCompatActivity {
 
     public void loadNodeContent() {
         LinearLayout mainLinearLayout = findViewById(R.id.mainLinearLayout);
-        SpannableStringBuilder nodeContent = xmlReader.getNodeContent(this.currentNode[1]);
+        ArrayList<ArrayList<CharSequence[]>> nodeContent = xmlReader.getNodeContent(this.currentNode[1]);
         mainLinearLayout.removeAllViews();
 
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
 
-        TextView tv = new TextView(this);
-        tv.setTextSize(16);
-        tv.setTextIsSelectable(true);
-        tv.setText(nodeContent, TextView.BufferType.EDITABLE);
-        mainLinearLayout.addView(tv);
+        for (ArrayList part: nodeContent) {
+            CharSequence[] type = (CharSequence[]) part.get(0);
+            if (type[0].equals("text")) {
+                // This adds not only text, but images, codeboxes
+                CharSequence[] textContent = (CharSequence[]) part.get(1);
+                SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) textContent[0];
+                TextView tv = new TextView(this);
+                tv.setTextSize(16);
+                tv.setTextIsSelectable(true);
+                tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
+                mainLinearLayout.addView(tv);
+            }
+            if (type[0].equals("table")) {
+                HorizontalScrollView tableScrollView = new HorizontalScrollView(this);
+                TableLayout table = new TableLayout(this);
+
+                //// Getting max and min column values from table
+                // Multiplying by arbitrary number to make it look better.
+                // For some reason table that looks good in PC version looks worse on android
+                int colMax = (int) (Integer.valueOf((String) type[1]) * 1.3);
+                int colMin = (int) (Integer.valueOf((String) type[2]) * 1.3);
+                ////
+
+                // Wraps content in cell correctly
+                TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+
+                //// Creates and formats header for the table
+                CharSequence[] tableHeaderCells = (CharSequence[]) part.get(part.size() - 1);
+                TableRow tableHeaderRow = new TableRow(this);
+
+                for (CharSequence cell: tableHeaderCells) {
+                    TextView headerTextView = new TextView(this);
+                    headerTextView.setBackground(getDrawable(R.drawable.table_header_cell));
+                    headerTextView.setMinWidth(colMin);
+                    headerTextView.setMaxWidth(colMax);
+                    headerTextView.setPadding(10,10,10,10);
+                    headerTextView.setLayoutParams(params);
+                    headerTextView.setText(cell);
+                    tableHeaderRow.addView(headerTextView);
+                }
+                table.addView(tableHeaderRow);
+                ////
+
+                for (int row = 1; row < part.size() - 1; row++) {
+                    TableRow tableRow = new TableRow(this);
+                    CharSequence[] tableRowCells = (CharSequence[]) part.get(row);
+                    for (CharSequence cell: tableRowCells) {
+                        TextView cellTextView = new TextView(this);
+                        cellTextView.setBackground(getDrawable(R.drawable.table_data_cell));
+                        cellTextView.setMinWidth(colMin);
+                        cellTextView.setMaxWidth(colMax);
+                        cellTextView.setPadding(10,10,10,10);
+                        cellTextView.setLayoutParams(params);
+                        cellTextView.setText(cell);
+                        tableRow.addView(cellTextView);
+                    }
+                    table.addView(tableRow);
+                }
+
+                table.setBackground(getDrawable(R.drawable.table_border));
+                tableScrollView.addView(table);
+                mainLinearLayout.addView(tableScrollView);
+            }
+        }
     }
 
     public void filterNodes(String query) {

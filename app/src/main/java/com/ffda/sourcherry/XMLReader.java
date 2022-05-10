@@ -165,14 +165,23 @@ public class XMLReader {
         return nodes;
     }
 
-    public SpannableStringBuilder getNodeContent(String uniqueID) {
+    public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String uniqueID) {
         // Original XML document has newline characters marked
         // Returns ArrayList of SpannableStringBuilder elements
 
-        SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder();
+        ArrayList<ArrayList<CharSequence[]>> nodeContent = new ArrayList<>(); // The one that will be returned
+
+        SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
+        ArrayList<ArrayList<CharSequence[]>> nodeTables = new ArrayList<>(); // Temporary for table storage
+
         NodeList nodeList = this.doc.getElementsByTagName("node");
 
+        //// This needed to calculate where to place span in to builder
+        // Because after every insertion in the middle it displaces the next insertion
+        // by the length of the inserted span.
+        // During the loop lengths of the string elements (not images or tables) are added to this
         int totalCharOffset = 0;
+        ////
 
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
@@ -200,12 +209,75 @@ public class XMLReader {
                         int charOffset = getCharOffset(currentNode);
 
                         nodeContentStringBuilder.insert(charOffset, getImageSpan(currentNode));
+                    } else if (currentNodeType.equals("table")) {
+                        int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
+                        CharSequence[] cellMaxMin = getTableMaxMin(currentNode);
+                        nodeContentStringBuilder.insert(charOffset," "); // Adding space for formatting reason
+                        ArrayList<CharSequence[]> currentTable = new ArrayList<>(); // ArrayList with all the data from the table that will added to nodeTables
+                        currentTable.add(new CharSequence[]{"table", String.valueOf(charOffset), cellMaxMin[0], cellMaxMin[1]}); // Values of the table. There aren't any table data in this line
+                        NodeList tableRowsNodes = currentNode.getChildNodes(); // All the rows of the table. There are empty text nodes that has to be filered out
+                        for (int row = 0; row < tableRowsNodes.getLength(); row++) {
+                            if (tableRowsNodes.item(row).getNodeType() == 1) {
+                                currentTable.add(getTableRow(tableRowsNodes.item(row)));
+                            }
+                        }
+                        nodeTables.add(currentTable);
                     }
                 }
             }
         }
 
-        return nodeContentStringBuilder;
+        int subStringStart = 0; // Holds start from where SpannableStringBuilder has to be split from
+
+        if (nodeTables.size() > 0) {
+            // If there are at least one table in the node
+            // SpannableStringBuilder that holds are split in to parts
+            // After each text array table array is added
+            for (ArrayList<CharSequence[]> table: nodeTables) {
+                // Getting table's char_offset that was embedded into CharArray
+                // It will be used to split the text in appropriate parts
+                int charOffset = Integer.valueOf((String) table.get(0)[1]);
+                //
+
+                // Creating text part of this iteration
+                SpannableStringBuilder textPart = (SpannableStringBuilder) nodeContentStringBuilder.subSequence(subStringStart, charOffset);
+                subStringStart = charOffset; // Next stirng will be cut starting from this offset (previous end)
+                ArrayList<CharSequence[]> nodeContentText = new ArrayList<>();
+                nodeContentText.add(new CharSequence[]{"text"});
+                nodeContentText.add(new CharSequence[]{textPart});
+                nodeContent.add(nodeContentText);
+                //
+
+                // Creating table part of this iteration
+                ArrayList<CharSequence[]> nodeContentTable = new ArrayList<>();
+                // Add string for separating text and table arrays and col_max, col_min to set table cells width
+                nodeContentTable.add(new CharSequence[]{"table", table.get(0)[2], table.get(0)[3]});
+                // Because first row had information about it start to read from the second line till the last one
+                for (int row = 1; row < table.size(); row++) {
+                    nodeContentTable.add(table.get(row));
+                }
+                nodeContent.add(nodeContentTable);
+                //
+            }
+            // Last part of the SpannableStringBuilder (if there is one) is appended to nodeContent array
+            if (subStringStart < nodeContentStringBuilder.length()) {
+                SpannableStringBuilder textPart = (SpannableStringBuilder) nodeContentStringBuilder.subSequence(subStringStart, nodeContentStringBuilder.length());
+                ArrayList<CharSequence[]> nodeContentText = new ArrayList<>();
+                nodeContentText.add(new CharSequence[]{"text"});
+                nodeContentText.add(new CharSequence[]{textPart});
+                nodeContent.add(nodeContentText);
+            }
+
+        } else {
+            // If there are no tables in the Node content
+            // Only one text CharSequence array is created and added to the nodeContent
+            ArrayList<CharSequence[]> nodeContentText = new ArrayList<>();
+            nodeContentText.add(new CharSequence[]{"text"});
+            nodeContentText.add(new CharSequence[]{nodeContentStringBuilder});
+            nodeContent.add(nodeContentText);
+        }
+
+        return nodeContent;
     }
 
     public SpannableStringBuilder makeFormattedRichText(Node node) {
@@ -291,6 +363,20 @@ public class XMLReader {
         return formattedImage;
     }
 
+    public CharSequence[] getTableRow(Node row) {
+        // Returns CharSequence[] of the node's "cell" element text
+        NodeList rowCellNodes = row.getChildNodes();
+        CharSequence[] rowCells = new CharSequence[(rowCellNodes.getLength() - 1) / 2];
+        int cellCounter = 0;
+        for (int cell = 0; cell < rowCellNodes.getLength(); cell++) {
+            if (rowCellNodes.item(cell).getNodeType() == 1) {
+                rowCells[cellCounter] = String.valueOf(rowCellNodes.item(cell).getTextContent());
+                cellCounter++;
+            }
+        }
+        return rowCells;
+    }
+
     public int getCharOffset(Node node) {
         // Returns character offset value that is used in codebox and encoded_png tags
         // It is needed to add text in the correct location
@@ -300,5 +386,14 @@ public class XMLReader {
         Element el = (Element) node;
         int charOffset = Integer.valueOf(el.getAttribute("char_offset"));
         return charOffset;
+    }
+
+    public CharSequence[] getTableMaxMin(Node node) {
+        // They will be used to set min and max width for table ceel
+
+        Element el = (Element) node;
+        String colMax = el.getAttribute("col_max");
+        String colMin = el.getAttribute("col_min");
+        return new CharSequence[] {colMax, colMin};
     }
 }
