@@ -10,6 +10,7 @@ import android.graphics.drawable.Drawable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 
+import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
 import android.text.style.LineBackgroundSpan;
@@ -305,8 +306,7 @@ public class XMLReader {
                 ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(colorCode.toString()));
                 formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (attribute.equals("link")) {
-                String linkURL = nodeAttributes.item(i).getTextContent();
-                URLSpan us = new URLSpan(linkURL);
+                URLSpan us = new URLSpan(node.getTextContent());
                 formattedNodeText.setSpan(us,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }

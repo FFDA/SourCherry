@@ -8,14 +8,13 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.app.ActionBar;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
-import android.view.Gravity;
+import android.text.method.LinkMovementMethod;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.HorizontalScrollView;
@@ -183,6 +182,7 @@ public class MainView extends AppCompatActivity {
                 tv.setTextSize(16);
                 tv.setTextIsSelectable(true);
                 tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
+                tv.setMovementMethod(LinkMovementMethod.getInstance());
                 mainLinearLayout.addView(tv);
             }
             if (type[0].equals("table")) {
