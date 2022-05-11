@@ -1,75 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.drawerlayout.widget.DrawerLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainView">
-<!--    Pakeičiau tools:context į dabartinį iš .MainActivity. Nežinau ar taip turėtų būti.-->
+    android:orientation="vertical">
 
-    <!--this the navigation view which draws
-        and shows the navigation drawer-->
-    <!--include the menu created in the menu folder-->
-
-    <ScrollView
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.DayNight.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.DayNight"/>
 
-        <LinearLayout
-            android:id="@+id/mainLinearLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="10dp"/>
-    </ScrollView>
-
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/navigationView"
-        android:layout_width="wrap_content"
+    <androidx.drawerlayout.widget.DrawerLayout
+        android:id="@+id/drawer_layout"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="start">
+        tools:context=".MainView">
+    <!--    Pakeičiau tools:context į dabartinį iš .MainActivity. Nežinau ar taip turėtų būti.-->
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal">
-
-            <ImageButton
-                android:id="@+id/navigation_drawer_button_up"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_gravity="top"
-                android:background="?selectableItemBackground"
-                android:clickable="true"
-                android:onClick="goNodeUp"
-                android:src="@drawable/ic_baseline_arrow_node_up_24" />
-
-            <ImageButton
-                android:id="@+id/navigation_drawer_button_home"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_gravity="top"
-                android:background="?selectableItemBackground"
-                android:clickable="true"
-                android:onClick="goHome"
-                android:src="@drawable/ic_outline_home_24" />
-
-            <SearchView
-                android:id="@+id/navigation_drawer_search"
+            <ScrollView
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_gravity="top" />
+                android:layout_height="match_parent">
 
-        </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/mainLinearLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="10dp"/>
+            </ScrollView>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerView"
-            android:layout_width="fill_parent"
+
+        <com.google.android.material.navigation.NavigationView
+            android:id="@+id/navigationView"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_marginTop="50dp"
-            android:layout_gravity="bottom" />
-    </com.google.android.material.navigation.NavigationView>
+            android:layout_gravity="start">
 
-</androidx.drawerlayout.widget.DrawerLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/navigation_drawer_button_up"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:layout_gravity="top"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:onClick="goNodeUp"
+                    android:src="@drawable/ic_baseline_arrow_node_up_24" />
+
+                <ImageButton
+                    android:id="@+id/navigation_drawer_button_home"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:layout_gravity="top"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:onClick="goHome"
+                    android:src="@drawable/ic_outline_home_24" />
+
+                <SearchView
+                    android:id="@+id/navigation_drawer_search"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_gravity="top" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:layout_width="fill_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="50dp"
+                android:layout_gravity="bottom" />
+        </com.google.android.material.navigation.NavigationView>
+
+    </androidx.drawerlayout.widget.DrawerLayout>
+
+</LinearLayout>
