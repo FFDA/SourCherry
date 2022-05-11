@@ -14,4 +14,5 @@
     <string name="nav_open">Open</string>
     <string name="nav_close">Close</string>
     <string name="com.ffda.SourCherry.PREFERENCE_FILE_KEY">preference_file_key</string>
+    <string name="checkbox_open_database_startup">Open this database on startup</string>
 </resources>
