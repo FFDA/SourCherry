@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:onClick="opensc"
     android:orientation="vertical">
 
     <androidx.appcompat.widget.Toolbar
@@ -14,27 +14,19 @@
         android:background="?attr/colorPrimary"
         android:elevation="4dp"
         android:theme="@style/ThemeOverlay.AppCompat.DayNight.ActionBar"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.DayNight"/>
+        app:popupTheme="@style/ThemeOverlay.AppCompat.DayNight" />
 
     <androidx.drawerlayout.widget.DrawerLayout
         android:id="@+id/drawer_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:context=".MainView">
-    <!--    Pakeičiau tools:context į dabartinį iš .MainActivity. Nežinau ar taip turėtų būti.-->
+        <!--    Pakeičiau tools:context į dabartinį iš .MainActivity. Nežinau ar taip turėtų būti.-->
 
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <LinearLayout
-                    android:id="@+id/mainLinearLayout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="10dp"/>
-            </ScrollView>
-
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/main_view_fragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
         <com.google.android.material.navigation.NavigationView
             android:id="@+id/navigationView"
@@ -78,8 +70,8 @@
                 android:id="@+id/recyclerView"
                 android:layout_width="fill_parent"
                 android:layout_height="match_parent"
-                android:layout_marginTop="50dp"
-                android:layout_gravity="bottom" />
+                android:layout_gravity="bottom"
+                android:layout_marginTop="50dp" />
         </com.google.android.material.navigation.NavigationView>
 
     </androidx.drawerlayout.widget.DrawerLayout>

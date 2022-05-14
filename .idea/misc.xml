@@ -32,6 +32,9 @@
         <entry key="app/src/main/res/layout/header_navitation_drawer.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/menu_item.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/nav_drawer_header.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/layout/node_content_fragment.xml" value="0.35572916666666665" />
+        <entry key="app/src/main/res/layout/node_image_fragment.xml" value="0.35572916666666665" />
+        <entry key="app/src/main/res/layout/node_view_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/table_cell_textview.xml" value="0.2515625" />
         <entry key="app/src/main/res/menu/drawer_content_resolver_menu.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/menu/group.xml" value="0.3572916666666667" />
