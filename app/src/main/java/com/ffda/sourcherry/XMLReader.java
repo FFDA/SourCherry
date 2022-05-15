@@ -11,6 +11,7 @@ import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 
+import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
@@ -327,23 +328,32 @@ public class XMLReader {
         SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
         formattedCodebox.append(node.getTextContent());
 
-        // Adds vertical line in front the paragraph, to make it stand out as quote
-        QuoteSpan qs = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            qs = new QuoteSpan(Color.parseColor("#AC1111"), 5, 30);
-        } else {
-            qs = new QuoteSpan(Color.RED);
-        }
-        formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
         // Changes font
         TypefaceSpan tf = new TypefaceSpan("monospace");
         formattedCodebox.setSpan(tf, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
-        // Changes background color
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-            formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        int[] codeboxDimensions = this.getCodeBoxHeightWidth(node);
+
+        // This part of codebox formatting depends on size of the codebox
+        // Because if user made a small codebox it might have text in front or after it
+        // For this reason some of the formatting can't be spanned over all the line
+        if (codeboxDimensions[0] < 30 && codeboxDimensions [1] < 200) {
+            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
+            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else {
+            // Adds vertical line in front the paragraph, to make it stand out as quote
+            QuoteSpan qs = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                qs = new QuoteSpan(Color.parseColor("#AC1111"), 5, 30);
+            } else {
+                qs = new QuoteSpan(Color.RED);
+            }
+            formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            // Changes background color
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+                formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
         }
 
         return formattedCodebox;
@@ -431,5 +441,16 @@ public class XMLReader {
         String colMax = el.getAttribute("col_max");
         String colMin = el.getAttribute("col_min");
         return new CharSequence[] {colMax, colMin};
+    }
+
+    public int[] getCodeBoxHeightWidth(Node node) {
+        // This returns int[] with in codebox tag embedded box dimensios
+        // They will be used to guess what type of formatting to use
+
+        Element el = (Element) node;
+        int frameHeight = Integer.valueOf(el.getAttribute("frame_height"));
+        int frameWidth = Integer.valueOf(el.getAttribute("frame_width"));
+
+        return new int[] {frameHeight, frameWidth};
     }
 }
