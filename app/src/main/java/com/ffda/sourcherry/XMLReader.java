@@ -48,15 +48,16 @@ public class XMLReader {
 
     public XMLReader(InputStream is, Context context, FragmentManager fragmentManager) {
         // Creates a document that can be used to read tags with provided InputStream
+        this.context = context;
+        this.fragmentManager = fragmentManager;
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
             this.doc = db.parse(new InputSource(is));
         } catch (Exception e) {
+            Toast.makeText(this.context, "Failed to load database", Toast.LENGTH_SHORT).show();
             System.out.println(e.getMessage());
         }
-        this.context = context;
-        this.fragmentManager = fragmentManager;
     }
 
     public ArrayList<String[]> getAllNodes() {
