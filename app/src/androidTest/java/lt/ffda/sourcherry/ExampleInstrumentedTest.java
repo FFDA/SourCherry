@@ -1,4 +1,4 @@
-package com.ffda.sourcherry;
+package lt.ffda.sourcherry;
 
 import android.content.Context;
 

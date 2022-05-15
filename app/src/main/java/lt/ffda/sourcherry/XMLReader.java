@@ -1,4 +1,4 @@
-package com.ffda.sourcherry;
+package lt.ffda.sourcherry;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -27,6 +27,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
+
+import lt.ffda.sourcherry.R;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;

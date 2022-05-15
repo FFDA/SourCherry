@@ -1,4 +1,4 @@
-package com.ffda.sourcherry;
+package lt.ffda.sourcherry;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -10,6 +10,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
+
+import lt.ffda.sourcherry.R;
 
 import java.util.ArrayList;
 

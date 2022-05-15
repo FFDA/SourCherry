@@ -1,4 +1,4 @@
-package com.ffda.sourcherry;
+package lt.ffda.sourcherry;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -18,6 +18,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.SearchView;
 import android.widget.Toast;
+
+import lt.ffda.sourcherry.R;
 
 import java.io.InputStream;
 import java.util.ArrayList;

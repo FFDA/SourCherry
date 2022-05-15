@@ -6,7 +6,7 @@ android {
     compileSdk 31
 
     defaultConfig {
-        applicationId 'com.ffda.sourcherry'
+        applicationId 'lt.ffda.sourcherry'
         minSdk 25
         targetSdk 31
         versionCode 1
@@ -25,7 +25,7 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    namespace 'com.ffda.sourcherry'
+    namespace 'lt.ffda.sourcherry'
 }
 
 dependencies {

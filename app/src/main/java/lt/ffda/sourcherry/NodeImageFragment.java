@@ -1,4 +1,4 @@
-package com.ffda.sourcherry;
+package lt.ffda.sourcherry;
 
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
@@ -11,6 +11,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import androidx.fragment.app.Fragment;
+
+import lt.ffda.sourcherry.R;
 
 public class NodeImageFragment extends Fragment {
     public NodeImageFragment() {

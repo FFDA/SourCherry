@@ -11,10 +11,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SourCherry">
         <activity
-            android:name=".MainView"
+            android:name="lt.ffda.sourcherry.MainView"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name="lt.ffda.sourcherry.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
