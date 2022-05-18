@@ -9,7 +9,7 @@ android {
         applicationId 'lt.ffda.sourcherry'
         minSdk 23
         targetSdk 31
-        versionCode 0
+        versionCode 1
         versionName "Alfa"
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
