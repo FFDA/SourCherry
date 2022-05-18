@@ -7,9 +7,9 @@ android {
 
     defaultConfig {
         applicationId 'lt.ffda.sourcherry'
-        minSdk 25
+        minSdk 23
         targetSdk 31
-        versionCode 1
+        versionCode 0
         versionName "Alfa"
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
