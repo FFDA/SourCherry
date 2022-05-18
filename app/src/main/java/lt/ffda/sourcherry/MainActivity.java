@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -29,10 +30,20 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
+import org.apache.commons.compress.archivers.sevenz.SevenZFile;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+
 import lt.ffda.sourcherry.R;
 
 public class MainActivity extends AppCompatActivity {
-
     private SharedPreferences sharedPref;
 
     @Override
@@ -67,10 +78,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
-        // Adding persistent read and write permissions. Not sure if actually working yet.
-        getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION & Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        //
-        
         String decodedUri = Uri.decode(result.getEncodedPath()); // Decoding the path to file to make it more readable
         String[] splitFilename = decodedUri.split("/"); // Splitting the path to extract the filename
         String[] splitExtension = decodedUri.split("\\."); // Splitting the path to extract the file extension.
@@ -78,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
         // Saving filename and path to the file in the preferences
         SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
 
+        sharedPrefEditor.putString("databaseStorageType", "shared");
         sharedPrefEditor.putString("databaseFilename", splitFilename[splitFilename.length - 1]);
         sharedPrefEditor.putString("databaseFileExtension", splitExtension[splitExtension.length - 1]);
         sharedPrefEditor.putString("databaseUri", result.toString());
@@ -139,22 +147,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openDatabase() {
-        if (this.sharedPref.getString("databaseFileExtension", null).equals("ctx") || this.sharedPref.getString("databaseFileExtension", null).equals("ctz")) {
-            // Checks if there is a password in the password field before opening database
+        String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
+
+        if (databaseFileExtension.equals("ctz")) {
+//          Checks if there is a password in the password field before opening database
             EditText passwordField = (EditText) findViewById(R.id.passwordField);
             if (passwordField.getText().length() <= 0) {
                 Toast.makeText(this,"Please enter password", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this,"Not implemented yet!", Toast.LENGTH_SHORT).show();
+                this.extractDatabase();
+                Intent openDatabase = new Intent(this, MainView.class);
+                startActivity(openDatabase);
             }
-        } else {
+        } else if (databaseFileExtension.equals("ctd")){
             try {
                 Intent openDatabase = new Intent(this, MainView.class);
                 startActivity(openDatabase);
             } catch (Exception e) {
                 Toast.makeText(this,"Failed to open database!", Toast.LENGTH_SHORT).show();
             }
-
+        } else {
+            Toast.makeText(this,"Doesn't look like a CherryTree database", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -166,4 +179,62 @@ public class MainActivity extends AppCompatActivity {
         sharedPrefEditor.commit();
     }
 
+    private void extractDatabase() {
+        String databaseString = sharedPref.getString("databaseUri", null);
+        EditText passwordField = findViewById(R.id.passwordField);
+        String password = passwordField.getText().toString();
+
+        String tmpDatabaseFilename = "";
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                //// Copying file to temporary internal apps storage (cache)
+                File tmpCompressedDatabase = File.createTempFile("tmpDatabaseFile", null);
+                InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
+                Files.copy(is, tmpCompressedDatabase.toPath().toRealPath(), StandardCopyOption.REPLACE_EXISTING);
+                ////
+                is.close();
+
+                //// Extracting file to permanent internal apps storage
+                SevenZFile sevenZFile = new SevenZFile(tmpCompressedDatabase, password.toCharArray());
+                SevenZArchiveEntry entry = sevenZFile.getNextEntry();
+                tmpDatabaseFilename = entry.getName();
+                while (entry != null) {
+                    System.out.println(entry.getName());
+                    FileOutputStream out = openFileOutput(entry.getName(), Context.MODE_PRIVATE);
+                    byte[] content = new byte[(int) entry.getSize()];
+                    sevenZFile.read(content, 0, content.length);
+                    out.write(content);
+                    out.close();
+                    entry = sevenZFile.getNextEntry();
+                }
+                ////
+
+                //// Creating new settings
+                SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
+                String[] splitExtension = tmpDatabaseFilename.split("\\."); // Splitting the path to extract the file extension.
+
+                sharedPrefEditor.putString("databaseStorageType", "internal");
+                sharedPrefEditor.putString("databaseFilename", tmpDatabaseFilename);
+                sharedPrefEditor.putString("databaseFileExtension", splitExtension[splitExtension.length - 1]);
+                // This is not a real Uri, so don't try to use it, but I use it to check if database should be opened automatically
+                sharedPrefEditor.putString("databaseUri", getFilesDir().getPath() + "/" + this.sharedPref.getString("databaseFilename", null));
+                sharedPrefEditor.apply();
+                ////
+
+                //// Cleaning up
+                tmpCompressedDatabase.delete();
+                sevenZFile.close();
+                ////
+            } catch (FileNotFoundException e) {
+                Toast.makeText(this, "Error FileNotFoundException: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            } catch (IOException e) {
+                Toast.makeText(this, "Error IOException: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            }
+        } else {
+            Toast.makeText(this, "Only versions SDK 26 or later supported", Toast.LENGTH_LONG).show();
+        }
+    }
 }

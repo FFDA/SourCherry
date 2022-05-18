@@ -68,10 +68,14 @@ public class MainView extends AppCompatActivity {
 
         SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
         String databaseString = sharedPref.getString("databaseUri", null);
-        getContentResolver().takePersistableUriPermission(Uri.parse(databaseString), Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         try {
-            this.is = getContentResolver().openInputStream(Uri.parse(databaseString));
+            if (sharedPref.getString("databaseStorageType", null).equals("shared")) {
+                getContentResolver().takePersistableUriPermission(Uri.parse(databaseString), Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                this.is = getContentResolver().openInputStream(Uri.parse(databaseString));
+            } else {
+                this.is = this.openFileInput(sharedPref.getString("databaseFilename", null));
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
