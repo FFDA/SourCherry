@@ -210,42 +210,51 @@ public class XMLReader {
             Node node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) { // Finds node that user chose
 
-                NodeList nodeContentNodeList = node.getChildNodes(); // Gets all the subnodes/childnodes of selected node
+                String nodeProgLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
 
-                for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
-                    // Loops through nodes of selected node
-                    Node currentNode = nodeContentNodeList.item(x);
-                    String currentNodeType = currentNode.getNodeName();
-                    if (currentNodeType.equals("rich_text")) {
-                        if (currentNode.hasAttributes()) {
-                            nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
-                        } else {
-                            nodeContentStringBuilder.append(currentNode.getTextContent());
-                        }
-                    } else if (currentNodeType.equals("codebox")) {
-                        int charOffset = getCharOffset(currentNode);
+                if (nodeProgLang.equals("custom-colors") || nodeProgLang.equals("plain-text")) {
+                    // This is formatting for Rich Text and Plain Text nodes
+                    NodeList nodeContentNodeList = node.getChildNodes(); // Gets all the subnodes/childnodes of selected node
 
-                        SpannableStringBuilder codeboxText = makeFormattedCodebox(currentNode);
-                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
-                        totalCharOffset += codeboxText.length() - 1;
-                    } else if (currentNodeType.equals("encoded_png")) {
-                        int charOffset = getCharOffset(currentNode);
+                    for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
+                        // Loops through nodes of selected node
+                        Node currentNode = nodeContentNodeList.item(x);
+                        String currentNodeType = currentNode.getNodeName();
 
-                        nodeContentStringBuilder.insert(charOffset, getImageSpan(currentNode));
-                    } else if (currentNodeType.equals("table")) {
-                        int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
-                        CharSequence[] cellMaxMin = getTableMaxMin(currentNode);
-                        nodeContentStringBuilder.insert(charOffset," "); // Adding space for formatting reason
-                        ArrayList<CharSequence[]> currentTable = new ArrayList<>(); // ArrayList with all the data from the table that will added to nodeTables
-                        currentTable.add(new CharSequence[]{"table", String.valueOf(charOffset), cellMaxMin[0], cellMaxMin[1]}); // Values of the table. There aren't any table data in this line
-                        NodeList tableRowsNodes = currentNode.getChildNodes(); // All the rows of the table. There are empty text nodes that has to be filered out
-                        for (int row = 0; row < tableRowsNodes.getLength(); row++) {
-                            if (tableRowsNodes.item(row).getNodeType() == 1) {
-                                currentTable.add(getTableRow(tableRowsNodes.item(row)));
+                        if (currentNodeType.equals("rich_text")) {
+                            if (currentNode.hasAttributes()) {
+                                nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
+                            } else {
+                                nodeContentStringBuilder.append(currentNode.getTextContent());
                             }
+                        } else if (currentNodeType.equals("codebox")) {
+                            int charOffset = getCharOffset(currentNode);
+
+                            SpannableStringBuilder codeboxText = makeFormattedCodebox(currentNode);
+                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
+                            totalCharOffset += codeboxText.length() - 1;
+                        } else if (currentNodeType.equals("encoded_png")) {
+                            int charOffset = getCharOffset(currentNode);
+
+                            nodeContentStringBuilder.insert(charOffset, getImageSpan(currentNode));
+                        } else if (currentNodeType.equals("table")) {
+                            int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
+                            CharSequence[] cellMaxMin = getTableMaxMin(currentNode);
+                            nodeContentStringBuilder.insert(charOffset, " "); // Adding space for formatting reason
+                            ArrayList<CharSequence[]> currentTable = new ArrayList<>(); // ArrayList with all the data from the table that will added to nodeTables
+                            currentTable.add(new CharSequence[]{"table", String.valueOf(charOffset), cellMaxMin[0], cellMaxMin[1]}); // Values of the table. There aren't any table data in this line
+                            NodeList tableRowsNodes = currentNode.getChildNodes(); // All the rows of the table. There are empty text nodes that has to be filered out
+                            for (int row = 0; row < tableRowsNodes.getLength(); row++) {
+                                if (tableRowsNodes.item(row).getNodeType() == 1) {
+                                    currentTable.add(getTableRow(tableRowsNodes.item(row)));
+                                }
+                            }
+                            nodeTables.add(currentTable);
                         }
-                        nodeTables.add(currentTable);
                     }
+                } else {
+                    // Node is Code Node. It's just a big CodeBox with no dimensions
+                    nodeContentStringBuilder.append(makeFormattedCodeNode(node));
                 }
             }
         }
@@ -370,6 +379,26 @@ public class XMLReader {
         }
 
         return formattedCodebox;
+    }
+
+    public SpannableStringBuilder makeFormattedCodeNode(Node node) {
+        // Returns SpannableStringBuilder that has spans marked for string formatting
+        // CodeNode is just a CodeBox that do not have height and width (dimensions)
+
+        SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
+        formattedCodeNode.append(node.getTextContent());
+
+        // Changes font
+        TypefaceSpan tf = new TypefaceSpan("monospace");
+        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        // Changes background color
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+
+        return formattedCodeNode;
     }
 
     public SpannableStringBuilder getImageSpan(Node node) {
