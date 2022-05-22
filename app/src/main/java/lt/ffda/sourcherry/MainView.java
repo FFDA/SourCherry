@@ -44,7 +44,7 @@ public class MainView extends AppCompatActivity {
     private XMLReader xmlReader;
     private MenuItemAdapter adapter;
     private String[] currentNode;
-    private int currentNodePosition;
+    private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,7 +79,6 @@ public class MainView extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         this.xmlReader = new XMLReader(this.is, this, getSupportFragmentManager());
         this.nodes = xmlReader.getMainNodes();
         this.currentNode = null;
@@ -248,5 +247,13 @@ public class MainView extends AppCompatActivity {
             searchView.clearFocus();
             searchView.setIconified(true);
         }
+    }
+
+    public XMLReader getXmlReader() {
+        return this.xmlReader;
+    }
+
+    public String getCurrentNodeUniqueID() {
+        return this.currentNode[1];
     }
 }

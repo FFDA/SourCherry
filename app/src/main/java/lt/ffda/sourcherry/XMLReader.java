@@ -16,6 +16,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
@@ -23,6 +24,7 @@ import android.text.Spanned;
 
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
+import android.text.style.DynamicDrawableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
 import android.text.style.LineBackgroundSpan;
@@ -57,6 +59,7 @@ public class XMLReader {
     private Document doc;
     private Context context;
     private FragmentManager fragmentManager;
+    private String currentNodeUniqueID;
 
     public XMLReader(InputStream is, Context context, FragmentManager fragmentManager) {
         // Creates a document that can be used to read tags with provided InputStream
@@ -192,6 +195,8 @@ public class XMLReader {
         // Original XML document has newline characters marked
         // Returns ArrayList of SpannableStringBuilder elements
 
+        this.currentNodeUniqueID = uniqueID;
+
         ArrayList<ArrayList<CharSequence[]>> nodeContent = new ArrayList<>(); // The one that will be returned
 
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
@@ -210,6 +215,8 @@ public class XMLReader {
             Node node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) { // Finds node that user chose
 
+                // prog_lang attribute is used to set formatting for the node and separate between node types
+                // The same attribute is used for codeboxes
                 String nodeProgLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
 
                 if (nodeProgLang.equals("custom-colors") || nodeProgLang.equals("plain-text")) {
@@ -236,7 +243,16 @@ public class XMLReader {
                         } else if (currentNodeType.equals("encoded_png")) {
                             int charOffset = getCharOffset(currentNode);
 
-                            nodeContentStringBuilder.insert(charOffset, getImageSpan(currentNode));
+                            if (currentNode.getAttributes().getNamedItem("filename") != null) {
+                                SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode);
+                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                totalCharOffset += attachedFileSpan.length() - 1;
+                            } else {
+                                SpannableStringBuilder imageSpan = makeImageSpan(currentNode);
+                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
+                                totalCharOffset += imageSpan.length() - 1;
+                            }
+
                         } else if (currentNodeType.equals("table")) {
                             int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
                             CharSequence[] cellMaxMin = getTableMaxMin(currentNode);
@@ -401,7 +417,7 @@ public class XMLReader {
         return formattedCodeNode;
     }
 
-    public SpannableStringBuilder getImageSpan(Node node) {
+    public SpannableStringBuilder makeImageSpan(Node node) {
         // Returns SpannableStringBuilder that has spans with images in them
         // Images are decoded from Base64 string embedded in the tag
 
@@ -451,6 +467,52 @@ public class XMLReader {
         return formattedImage;
     }
 
+    public SpannableStringBuilder makeAttachedFileSpan(Node node) {
+        // Returns SpannableStringBuilder that has spans with images and filename(?)
+        // Files are decoded from Base64 string embedded in the tag
+
+
+        String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
+
+        SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
+
+        formattedAttachedFile.append(" "); // Needed to insert image
+
+        //// Inserting image
+        Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_attachment_24);
+        drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
+        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, DynamicDrawableSpan.ALIGN_CENTER);
+        formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ////
+
+        formattedAttachedFile.append(attachedFileFilename); // Appending filename
+
+        //// Detects touches on icon and filename
+        ClickableSpan imageClickableSpan = new ClickableSpan() {
+
+            @Override
+            public void onClick(@NonNull View widget) {
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // Setting up to send arguments to Dialog Fragment
+                    Bundle bundle = new Bundle();
+                    bundle.putString("filename", attachedFileFilename);
+
+                    SaveOpenDialogFragment saveOpenDialogFragment = new SaveOpenDialogFragment();
+                    saveOpenDialogFragment.setArguments(bundle);
+                    saveOpenDialogFragment.show(XMLReader.this.fragmentManager, "saveOpenDialog");
+                } else {
+                    Toast.makeText(XMLReader.this.context, R.string.toast_error_minimum_android_version_8, Toast.LENGTH_SHORT).show();
+                }
+            }
+        };
+        formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+        ////
+
+
+        return formattedAttachedFile;
+    }
+
     public CharSequence[] getTableRow(Node row) {
         // Returns CharSequence[] of the node's "cell" element text
         NodeList rowCellNodes = row.getChildNodes();
@@ -477,7 +539,7 @@ public class XMLReader {
     }
 
     public CharSequence[] getTableMaxMin(Node node) {
-        // They will be used to set min and max width for table ceel
+        // They will be used to set min and max width for table cell
 
         Element el = (Element) node;
         String colMax = el.getAttribute("col_max");
@@ -486,7 +548,7 @@ public class XMLReader {
     }
 
     public int[] getCodeBoxHeightWidth(Node node) {
-        // This returns int[] with in codebox tag embedded box dimensios
+        // This returns int[] with in codebox tag embedded box dimensions
         // They will be used to guess what type of formatting to use
 
         Element el = (Element) node;
@@ -494,5 +556,58 @@ public class XMLReader {
         int frameWidth = Integer.valueOf(el.getAttribute("frame_width"));
 
         return new int[] {frameHeight, frameWidth};
+    }
+
+    public ArrayList<String> getAttachedFileList(String filename, String nodeUniqueID) {
+        // This function returns only all the filename matches in one node (nodeUniqueID provided to function)
+        // So this String array will be made out of the same strings
+        // This means that if String[] length is > 1 there are multiple files in the node with the same filename
+        ArrayList<String> filenameArray = new ArrayList<>();
+
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
+                NodeList encodedpngNodeList = ((Element) node).getElementsByTagName("encoded_png"); // Gets all nodes with tag <encoded_png> (images and files)
+                for (int x = 0; x < encodedpngNodeList.getLength(); x++) {
+                    Node currentNode = encodedpngNodeList.item(x);
+                    if (currentNode.getAttributes().getNamedItem("filename") != null) { // Checks if node has the attribute, otherwise it's an image
+                        if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals(filename)) { // If filename matches the one provided
+                            filenameArray.add(currentNode.getAttributes().getNamedItem("filename").getNodeValue()); // Adds it to the list
+                        }
+                    }
+                }
+            }
+        }
+
+        return filenameArray;
+    }
+
+    public String getFileBase64String(String nodeUniqueID, String filename, int index) {
+        // Returns Base64 encoded string extracted from correct tag
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+
+        int counter = 0; // If there is more than one file with the same name the counter is needed to know witch one was encountered
+
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
+                NodeList encodedpngNodeList = ((Element) node).getElementsByTagName("encoded_png"); // Gets all nodes with tag <encoded_png> (images and files)
+                for (int x = 0; x < encodedpngNodeList.getLength(); x++) {
+                    Node currentNode = encodedpngNodeList.item(x);
+                    if (currentNode.getAttributes().getNamedItem("filename") != null) { // Checks if node has the attribute, otherwise it's an image
+                        if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals(filename)) { // If filename matches the one provided
+                            if (counter == index) { // Checks if index of the file matches the counter
+                                return currentNode.getTextContent(); // Returns base64 encoded string
+                            }
+                            counter++;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 }

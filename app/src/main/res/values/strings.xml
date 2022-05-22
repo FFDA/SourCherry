@@ -2,7 +2,7 @@
     <string name="app_name">SourCherry</string>
     <string name="button_create_database">Create database</string>
     <string name="button_select_database">Select database</string>
-    <string name="button_open_database">Open</string>
+    <string name="button_open">Open</string>
     <string name="text_password_label">Password</string>
     <string name="text_message_no_database">Create or select a CherryTree database</string>
     <string name="title_activity_xml_view">xml_view</string>
@@ -15,4 +15,11 @@
     <string name="nav_close">Close</string>
     <string name="com.ffda.SourCherry.PREFERENCE_FILE_KEY">preference_file_key</string>
     <string name="checkbox_open_database_startup">Open this database on startup</string>
+    <string name="save_open_dialog_fragment_title">Save or Open the File</string>
+    <string name="button_save">Save</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="toast_save_open_dialog_fragment_no_filename_error">Error: Couldn\'t find any files.</string>
+    <string name="save_open_dialog_fragment_multiple_file_message">Multiple files with the same name were found. They should be shown in the order they appear in the node. Please select one:</string>
+    <string name="toast_error_minimum_android_version_8">Only Android 8 or later supported</string>
+    <string name="toast_seve_open_dialog_fragment_no_file_selected">Please select a file</string>
 </resources>
