@@ -7,7 +7,7 @@ android {
 
     defaultConfig {
         applicationId 'lt.ffda.sourcherry'
-        minSdk 23
+        minSdk 24
         targetSdk 31
         versionCode 1
         versionName "Alpha"
