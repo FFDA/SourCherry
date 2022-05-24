@@ -22,6 +22,7 @@ import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 
+import android.text.TextPaint;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
 import android.text.style.DynamicDrawableSpan;
@@ -59,7 +60,6 @@ public class XMLReader {
     private Document doc;
     private Context context;
     private FragmentManager fragmentManager;
-    private String currentNodeUniqueID;
 
     public XMLReader(InputStream is, Context context, FragmentManager fragmentManager) {
         // Creates a document that can be used to read tags with provided InputStream
@@ -154,7 +154,7 @@ public class XMLReader {
         return false;
     }
 
-    private String[] createParentNode(Node parentNode) {
+    public String[] createParentNode(Node parentNode) {
         // Creates and returns the node that will be added to the node array as parent node
         String parentNodeName = parentNode.getAttributes().getNamedItem("name").getNodeValue();
         String parentNodeUniqueID = parentNode.getAttributes().getNamedItem("unique_id").getNodeValue();
@@ -185,17 +185,45 @@ public class XMLReader {
                     nodes = returnSubnodeArrayList(parentSubnodes, "true");
                     nodes.add(0, createParentNode(parentNode));
                 }
-
             }
         }
         return nodes;
     }
 
+    public String[] getSingleMenuItem(String uniqueNodeID) {
+        // Returns single menu item to be used when opening anchor links
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueNodeID)) {
+                if (node.getNodeName().equals("node")) {
+                    // Node name and unique_id always the same for the node
+                    String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+                    String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                    if (hasSubnodes(node)) {
+                        // if node has subnodes, then it has to be opened as a parent node and displayed as such
+                        String hasSubnode = "true";
+                        String isParent = "true";
+                        String isSubnode = "false";
+                        String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                        return currentNodeArray;
+                    } else {
+                        // If node doesn't have subnodes, then it has to be open as subnode of some other node
+                        String hasSubnode = "false";
+                        String isParent = "false";
+                        String isSubnode = "true";
+                        String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                        return currentNodeArray;
+                    }
+                }
+            }
+        }
+        return null; // null if no node was found
+    }
+
     public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String uniqueID) {
         // Original XML document has newline characters marked
         // Returns ArrayList of SpannableStringBuilder elements
-
-        this.currentNodeUniqueID = uniqueID;
 
         ArrayList<ArrayList<CharSequence[]>> nodeContent = new ArrayList<>(); // The one that will be returned
 
@@ -247,6 +275,12 @@ public class XMLReader {
                                 SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                 totalCharOffset += attachedFileSpan.length() - 1;
+                            } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
+                                // It doesn't need node to be passed to it,
+                                // because there isn't any relevant information embedded into it
+                                SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan();
+                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
+                                totalCharOffset += anchorImageSpan.length() - 1;
                             } else {
                                 SpannableStringBuilder imageSpan = makeImageSpan(currentNode);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
@@ -353,8 +387,15 @@ public class XMLReader {
                 ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(colorCode.toString()));
                 formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (attribute.equals("link")) {
-                URLSpan us = new URLSpan(node.getTextContent());
-                formattedNodeText.setSpan(us,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
+                if (attributeValue[0].equals("webs")) {
+                    // Making links to open websites
+                    URLSpan us = new URLSpan(attributeValue[1]);
+                    formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (attributeValue[0].equals("node")) {
+                    // Making links to open other nodes (Anchors)
+                    formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
             }
         }
         return formattedNodeText;
@@ -471,7 +512,6 @@ public class XMLReader {
         // Returns SpannableStringBuilder that has spans with images and filename(?)
         // Files are decoded from Base64 string embedded in the tag
 
-
         String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
 
         SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
@@ -509,8 +549,44 @@ public class XMLReader {
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
         ////
 
-
         return formattedAttachedFile;
+    }
+
+    public SpannableStringBuilder makeAnchorImageSpan() {
+        // Makes an image span that displays an anchor to mark position of it.
+        // It does not respond to touches in any way
+        SpannableStringBuilder anchorImageSpan = new SpannableStringBuilder();
+        anchorImageSpan.append(" ");
+
+        //// Inserting image
+        Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_anchor_24);
+        drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
+        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, DynamicDrawableSpan.ALIGN_CENTER);
+        anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ////
+
+        return anchorImageSpan;
+    }
+
+    public ClickableSpan makeAnchorLinkSpan(String nodeUniqueID) {
+        // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
+        // As in CherryTree it's foreground color #07841B
+
+        ClickableSpan AnchorLinkSpan = new ClickableSpan() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
+            }
+
+            @Override
+            public void updateDrawState(TextPaint ds) {
+                // Formatting of span text
+                ds.setColor(context.getColor(R.color.anchor_link));
+                ds.setUnderlineText(true);
+            }
+        };
+
+        return AnchorLinkSpan;
     }
 
     public CharSequence[] getTableRow(Node row) {

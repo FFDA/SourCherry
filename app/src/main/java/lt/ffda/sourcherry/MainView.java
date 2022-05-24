@@ -111,7 +111,7 @@ public class MainView extends AppCompatActivity {
             @Override
             public boolean onQueryTextChange(String newText) {
                 MainView.this.filterNodes(newText);
-                return true;
+                return false;
             }
         });
 
@@ -207,6 +207,10 @@ public class MainView extends AppCompatActivity {
         // Changes the node list that represents menu and updates it
         // Case insensitive
 
+        //// This would fix the issue that shows all nodes in menu after screen rotation, but not in all instances
+//        SearchView searchView = (SearchView) findViewById(R.id.navigation_drawer_search);
+//        if (!searchView.isIconified()) {
+        ////
         this.nodes.clear();
         this.adapter.markItemSelected(-1);
         this.nodes.addAll(xmlReader.getAllNodes());
@@ -255,5 +259,16 @@ public class MainView extends AppCompatActivity {
 
     public String getCurrentNodeUniqueID() {
         return this.currentNode[1];
+    }
+
+    public void openAnchorLink(String[] nodeArray) {
+        this.currentNode = nodeArray;
+        this.nodes.clear();
+        if (this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
+            this.openSubmenu();
+        } else {
+            this.resetMenuToCurrentNode();
+        }
+        this.loadNodeContent();
     }
 }
