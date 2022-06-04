@@ -1,12 +1,12 @@
 # SourCherry
 
-SourCherry is an Android app to open CherryTree’s (note taking program [1](https://github.com/giuspen/cherrytree),[2](https://www.giuspen.com/)) databases. Right now app can only read and do not have any writing capabilities.
+SourCherry is an Android app to open CherryTree’s (note taking program [1](https://github.com/giuspen/cherrytree),[2](https://www.giuspen.com/)) databases. Right now app can only read databases and do not have any writing capabilities.
 
 ![gif with SourCherry UI](https://github.com/FFDA/ffda.github.storage/raw/main/images/SourCherry.gif)
 
 App is targeted for sdk 31 (Android 12) with min version of 24 (Android 7).
 
-This project is for for Android/Java/Git learning purposes.
+This project is for Android/Java/Git learning purposes and is not official CherryTree android app or are associated with CherryTree project or it's creator.
 
 ## Instalation / Download
 
@@ -16,7 +16,7 @@ Right now anyone can download this repository and build the apk file using Andro
 
 ## Limitations
 
-* Right now it can only open databases based on XML files in read only mode.
+* Right now it can only open databases in read only mode.
 * There is a possibility that not all text will be displayed. 
 * Some text most definitely will be missing some formatting and it will look differently compared to how it looks in CherryTree.
 * Password protected databases can be opened only on phones with Android 8 or later.
@@ -29,3 +29,7 @@ It is also possible to open password protected databases, however there will be 
 * Starting Android 10 Google implemented stricter file access system ([SAF](https://developer.android.com/guide/topics/providers/document-provider)), that made impossible to read/open files as objects and not InputStreams that are not in app-specific storage.
 
 So to open password protected database app needs to copy file to app-specific storage, extract it, and only then open it. After extraction database will be kept inside app-specific storage and won’t be reachable by other apps. From that point forward that database will be opened without a password.
+
+## SQL databases
+
+For the same reason (SAF) that prevents file extraction without saving files inside app-specific storage SQL based databases have to be copied to it before opening. There will be a performance hit. Should be noticeable when opening a SQL database for the first time.
