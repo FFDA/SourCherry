@@ -23,7 +23,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -202,8 +201,6 @@ public class MainActivity extends AppCompatActivity {
             // If directory does not exists - create it
             databaseDir.mkdirs();
         }
-
-        Log.i("Duombaze katalogas", databaseDir.getAbsolutePath()); // Trinti
 
         String tmpDatabaseFilename = "";
 

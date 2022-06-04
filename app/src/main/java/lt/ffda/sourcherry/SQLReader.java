@@ -26,7 +26,6 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
-import android.text.style.DynamicDrawableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
 import android.text.style.LineBackgroundSpan;
@@ -47,6 +46,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -186,23 +186,23 @@ public class SQLReader implements DatabaseReader {
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // Node name and unique_id always the same for the node
             String nameValue = cursor.getString(0);
-            String uniqueID = uniqueNodeID;
             if (hasSubnodes(uniqueNodeID)) {
                 // if node has subnodes, then it has to be opened as a parent node and displayed as such
                 String hasSubnode = "true";
                 String isParent = "true";
                 String isSubnode = "false";
-                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                String[] currentNodeArray = {nameValue, uniqueNodeID, hasSubnode, isParent, isSubnode};
                 return currentNodeArray;
             } else {
                 // If node doesn't have subnodes, then it has to be opened as subnode of some other node
                 String hasSubnode = "false";
                 String isParent = "false";
                 String isSubnode = "true";
-                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                String[] currentNodeArray = {nameValue, uniqueNodeID, hasSubnode, isParent, isSubnode};
                 return currentNodeArray;
             }
         }
+        cursor.close();
         return null;
     }
 
@@ -557,7 +557,7 @@ public class SQLReader implements DatabaseReader {
         //// Inserting image
         Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_attachment_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, DynamicDrawableSpan.ALIGN_CENTER);
+        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ////
 
@@ -599,7 +599,7 @@ public class SQLReader implements DatabaseReader {
         //// Inserting image
         Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_anchor_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, DynamicDrawableSpan.ALIGN_CENTER);
+        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ////
 
@@ -664,7 +664,7 @@ public class SQLReader implements DatabaseReader {
             Document doc = DocumentBuilderFactory
                     .newInstance()
                     .newDocumentBuilder()
-                    .parse(new ByteArrayInputStream(nodeString.getBytes("UTF-8"))
+                    .parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8))
                     );
             // It seems that there is always just one tag (<node> or <table>), so returning just the first one in the NodeList
             return doc.getElementsByTagName(type).item(0).getChildNodes();

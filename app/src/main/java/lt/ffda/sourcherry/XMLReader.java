@@ -34,7 +34,6 @@ import android.text.style.StrikethroughSpan;
 import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
 import android.util.Base64;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -530,7 +529,7 @@ public class XMLReader implements DatabaseReader{
         //// Inserting image
         Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_attachment_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, DynamicDrawableSpan.ALIGN_CENTER);
+        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ////
 
@@ -572,7 +571,7 @@ public class XMLReader implements DatabaseReader{
         //// Inserting image
         Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_anchor_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, DynamicDrawableSpan.ALIGN_CENTER);
+        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ////
 

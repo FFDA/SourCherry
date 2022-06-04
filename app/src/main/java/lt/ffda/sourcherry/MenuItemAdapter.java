@@ -95,7 +95,6 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         String nodeName = nodeList.get(position)[0];
-        String nodeUniqueID = nodeList.get(position)[1];
         String nodeHasSubnodes = nodeList.get(position)[2];
         String nodeIsParent = nodeList.get(position)[3];
         String nodeIsSubnode = nodeList.get(position)[4];
@@ -103,7 +102,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         // Setting selected items background color
         holder.itemView.setBackgroundColor(selectedPos == position ? this.context.getResources().getColor(R.color.cherry_red_500, this.context.getTheme()) : Color.TRANSPARENT);
 
-        ImageView menuItemPaddig = holder.menuItemPadding;
+        ImageView menuItemPadding = holder.menuItemPadding;
         ImageView menuItemArrow = holder.menuItemArrow;
         TextView menuItemText = holder.menuItemText;
 
@@ -118,15 +117,15 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         // Adding arrow that make menu item took differently to indicate that this node is a parent (top) node
         if (nodeIsParent.equals("true")) {
             menuItemArrow.setVisibility(View.VISIBLE);
-//            menuItemArrow.setImageDrawable((ContextCompat.getDrawable(holder.itemView.getContext(), R.drawable.ic_baseline_arrow_is_parent_24))); //Pasilieku kaip priminimą
+//            menuItemArrow.setImageDrawable((ContextCompat.getDrawable(holder.itemView.getContext(), R.drawable.ic_baseline_arrow_is_parent_24))); // Leaving this as a reminder
             menuItemArrow.setImageResource(R.drawable.ic_baseline_arrow_is_parent_24);
         }
 
         // If node is a subnode - adds small ImageView item to make it look indented.
         if (nodeIsSubnode.equals("true")) {
-            menuItemPaddig.setVisibility(View.INVISIBLE);
+            menuItemPadding.setVisibility(View.INVISIBLE);
         } else {
-            menuItemPaddig.setVisibility(View.GONE);
+            menuItemPadding.setVisibility(View.GONE);
         }
 
         menuItemText.setText(nodeName);
