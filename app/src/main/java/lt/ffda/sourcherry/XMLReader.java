@@ -34,6 +34,7 @@ import android.text.style.StrikethroughSpan;
 import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
 import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -300,11 +301,9 @@ public class XMLReader implements DatabaseReader{
                             nodeContentStringBuilder.insert(charOffset, " "); // Adding space for formatting reason
                             ArrayList<CharSequence[]> currentTable = new ArrayList<>(); // ArrayList with all the data from the table that will added to nodeTables
                             currentTable.add(new CharSequence[]{"table", String.valueOf(charOffset), cellMaxMin[0], cellMaxMin[1]}); // Values of the table. There aren't any table data in this line
-                            NodeList tableRowsNodes = currentNode.getChildNodes(); // All the rows of the table. There are empty text nodes that has to be filtered out
+                            NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
                             for (int row = 0; row < tableRowsNodes.getLength(); row++) {
-                                if (tableRowsNodes.item(row).getNodeType() == 1) {
-                                    currentTable.add(getTableRow(tableRowsNodes.item(row)));
-                                }
+                                currentTable.add(getTableRow(tableRowsNodes.item(row)));
                             }
                             nodeTables.add(currentTable);
                         }
@@ -330,7 +329,7 @@ public class XMLReader implements DatabaseReader{
 
                 // Creating text part of this iteration
                 SpannableStringBuilder textPart = (SpannableStringBuilder) nodeContentStringBuilder.subSequence(subStringStart, charOffset);
-                subStringStart = charOffset; // Next stirng will be cut starting from this offset (previous end)
+                subStringStart = charOffset; // Next string will be cut starting from this offset (previous end)
                 ArrayList<CharSequence[]> nodeContentText = new ArrayList<>();
                 nodeContentText.add(new CharSequence[]{"text"});
                 nodeContentText.add(new CharSequence[]{textPart});
@@ -605,14 +604,10 @@ public class XMLReader implements DatabaseReader{
     @Override
     public CharSequence[] getTableRow(Node row) {
         // Returns CharSequence[] of the node's "cell" element text
-        NodeList rowCellNodes = row.getChildNodes();
-        CharSequence[] rowCells = new CharSequence[(rowCellNodes.getLength() - 1) / 2];
-        int cellCounter = 0;
+        NodeList rowCellNodes = ((Element) row).getElementsByTagName("cell");
+        CharSequence[] rowCells = new CharSequence[rowCellNodes.getLength()];
         for (int cell = 0; cell < rowCellNodes.getLength(); cell++) {
-            if (rowCellNodes.item(cell).getNodeType() == 1) {
-                rowCells[cellCounter] = String.valueOf(rowCellNodes.item(cell).getTextContent());
-                cellCounter++;
-            }
+            rowCells[cell] = String.valueOf(rowCellNodes.item(cell).getTextContent());
         }
         return rowCells;
     }
