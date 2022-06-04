@@ -11,6 +11,8 @@
 package lt.ffda.sourcherry;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -21,7 +23,6 @@ import android.os.Bundle;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
-
 import android.text.TextPaint;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
@@ -33,7 +34,6 @@ import android.text.style.QuoteSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
-import android.util.Base64;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -41,61 +41,50 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 
-import lt.ffda.sourcherry.R;
-
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
-import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-public class XMLReader implements DatabaseReader{
-    private Document doc;
+public class SQLReader implements DatabaseReader {
+    private SQLiteDatabase sqlite;
     private Context context;
     private FragmentManager fragmentManager;
 
-    public XMLReader(InputStream is, Context context, FragmentManager fragmentManager) {
-        // Creates a document that can be used to read tags with provided InputStream
+    public SQLReader(SQLiteDatabase sqlite, Context context, FragmentManager fragmentManager) {
         this.context = context;
         this.fragmentManager = fragmentManager;
-        try {
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            this.doc = db.parse(new InputSource(is));
-        } catch (Exception e) {
-            Toast.makeText(this.context, "Failed to load database", Toast.LENGTH_SHORT).show();
-            System.out.println(e.getMessage());
-        }
+        this.sqlite = sqlite;
     }
 
     @Override
     public ArrayList<String[]> getAllNodes() {
         // Returns all the node from the document
         // Used for the search/filter in the drawer menu
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        ArrayList<String[]> nodes = returnSubnodeArrayList(nodeList, "false");
+        Cursor cursor = this.sqlite.query("node", new String[]{"name", "node_id"}, null, null, null, null, null);
+
+        ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "false");
+
+        cursor.close();
         return nodes;
     }
 
     @Override
     public ArrayList<String[]> getMainNodes() {
-        // Returns main nodes from the document
+        // Returns main nodes from the database
         // Used to display menu when app starts
-
         ArrayList<String[]> nodes = new ArrayList<>();
 
-        NodeList nodeList = this.doc.getElementsByTagName("cherrytree"); // There is only one this type of tag in the database
-        NodeList mainNodeList = nodeList.item(0).getChildNodes(); // So selecting all children of the first node is always safe
+        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
+        nodes = returnSubnodeArrayList(cursor, "false");
 
-        nodes = returnSubnodeArrayList(mainNodeList, "false");
-
+        cursor.close();
         return nodes;
     }
 
@@ -104,67 +93,64 @@ public class XMLReader implements DatabaseReader{
         // Returns Subnodes of the node which uniqueID is provided
         ArrayList<String[]> nodes = new ArrayList<>();
 
-        NodeList nodeList = this.doc.getElementsByTagName("node");
+        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{uniqueID});
+        nodes = returnSubnodeArrayList(cursor, "true");
 
-        for (int i=0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) {
-                // When it finds a match - creates a NodeList and uses other function to get the MenuItems
-                NodeList childNodeList = node.getChildNodes();
-                nodes = returnSubnodeArrayList(childNodeList, "true");
+        nodes.add(0, createParentNode(uniqueID));
 
-                String[] parentNode = createParentNode(node);
-                nodes.add(0, parentNode);
-                //
-
-                return nodes;
-            }
-        }
+        cursor.close();
         return nodes;
     }
 
-    public ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isSubnode) {
+    public ArrayList<String[]> returnSubnodeArrayList(Cursor cursor, String isSubnode) {
         // This function scans provided NodeList and
         // returns ArrayList with nested String Arrays that
         // holds individual menu items
-
         ArrayList<String[]> nodes = new ArrayList<>();
 
-        for (int i=0; i < nodeList.getLength(); i++) {
-
-            Node node = nodeList.item(i);
-            if (node.getNodeName().equals("node")) {
-                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                String hasSubnode = String.valueOf(hasSubnodes(node));
-                String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
-                nodes.add(currentNodeArray);
-            }
+        while (cursor.moveToNext()) {
+            String nameValue = cursor.getString(0);
+            String uniqueID = String.valueOf(cursor.getInt(1));
+            String hasSubnode = String.valueOf(hasSubnodes(uniqueID));
+            String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
+            String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+            nodes.add(currentNodeArray);
         }
+
         return nodes;
     }
 
-    public boolean hasSubnodes(Node node) {
-        // Checks if provided node has nested "node" tag
-        NodeList subNodes = node.getChildNodes();
+    public boolean hasSubnodes(String uniqueNodeID) {
+        // Checks if node with provided unique_id has subnodes
+        Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{uniqueNodeID},null,null,null);
 
-        for (int i = 0; i < subNodes.getLength(); i++) {
-            if (subNodes.item(i).getNodeName().equals("node")) {
-                return true;
-            }
+        if (cursor.getCount() > 0) {
+            cursor.close();
+            return true;
+        } else {
+            cursor.close();
+            return false;
         }
-        return false;
     }
 
-    public String[] createParentNode(Node parentNode) {
+    public String[] createParentNode(String uniqueNodeID) {
         // Creates and returns the node that will be added to the node array as parent node
-        String parentNodeName = parentNode.getAttributes().getNamedItem("name").getNodeValue();
-        String parentNodeUniqueID = parentNode.getAttributes().getNamedItem("unique_id").getNodeValue();
-        String parentNodeHasSubnode = String.valueOf(hasSubnodes(parentNode));
+        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueNodeID}, null, null,null);
+
+        String parentNodeName = "";
+        if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
+            parentNodeName = cursor.getString(0);
+        } else {
+            return null;
+        }
+        String parentNodeUniqueID = uniqueNodeID;
+        String parentNodeHasSubnode = String.valueOf(hasSubnodes(parentNodeUniqueID));
         String parentNodeIsParent = "true";
         String parentNodeIsSubnode = "false";
         String[] node = {parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent, parentNodeIsSubnode};
+
+        cursor.close();
+
         return node;
     }
 
@@ -174,69 +160,61 @@ public class XMLReader implements DatabaseReader{
         // Returns array with appropriate nodes
         ArrayList<String[]> nodes = null;
 
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) {
-                Node parentNode = node.getParentNode();
-                if (parentNode == null) {
-                    return nodes;
-                } else if (parentNode.getNodeName().equals("cherrytree")) {
-                    nodes = this.getMainNodes();
-                } else {
-                    NodeList parentSubnodes = parentNode.getChildNodes();
-                    nodes = returnSubnodeArrayList(parentSubnodes, "true");
-                    nodes.add(0, createParentNode(parentNode));
-                }
+        String nodeParentID = "-1";
+        Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{uniqueID}, null, null, null);
+        if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
+            nodeParentID = cursor.getString(0);
+            cursor.close();
+            if (nodeParentID.equals("0")) {
+                nodes = getMainNodes();
+            } else {
+                cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeParentID});
+                nodes = returnSubnodeArrayList(cursor, "true");
+                nodes.add(0, createParentNode(nodeParentID));
             }
         }
+
+        cursor.close();
         return nodes;
     }
 
     @Override
     public String[] getSingleMenuItem(String uniqueNodeID) {
         // Returns single menu item to be used when opening anchor links
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueNodeID)) {
-                if (node.getNodeName().equals("node")) {
-                    // Node name and unique_id always the same for the node
-                    String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                    String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                    if (hasSubnodes(node)) {
-                        // if node has subnodes, then it has to be opened as a parent node and displayed as such
-                        String hasSubnode = "true";
-                        String isParent = "true";
-                        String isSubnode = "false";
-                        String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
-                        return currentNodeArray;
-                    } else {
-                        // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-                        String hasSubnode = "false";
-                        String isParent = "false";
-                        String isSubnode = "true";
-                        String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
-                        return currentNodeArray;
-                    }
-                }
+
+        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueNodeID}, null, null,null);
+        if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
+            // Node name and unique_id always the same for the node
+            String nameValue = cursor.getString(0);
+            String uniqueID = uniqueNodeID;
+            if (hasSubnodes(uniqueNodeID)) {
+                // if node has subnodes, then it has to be opened as a parent node and displayed as such
+                String hasSubnode = "true";
+                String isParent = "true";
+                String isSubnode = "false";
+                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                return currentNodeArray;
+            } else {
+                // If node doesn't have subnodes, then it has to be opened as subnode of some other node
+                String hasSubnode = "false";
+                String isParent = "false";
+                String isSubnode = "true";
+                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                return currentNodeArray;
             }
         }
-        return null; // null if no node was found
+        return null;
     }
 
     @Override
     public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String uniqueID) {
-        // Original XML document has newline characters marked
+        // Original XML document has newline characters marked (hopefully it's the same with SQL database)
         // Returns ArrayList of SpannableStringBuilder elements
 
         ArrayList<ArrayList<CharSequence[]>> nodeContent = new ArrayList<>(); // The one that will be returned
 
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
         ArrayList<ArrayList<CharSequence[]>> nodeTables = new ArrayList<>(); // Temporary for table storage
-
-        NodeList nodeList = this.doc.getElementsByTagName("node");
 
         //// This needed to calculate where to place span in to builder
         // Because after every insertion in the middle it displaces the next insertion
@@ -245,76 +223,130 @@ public class XMLReader implements DatabaseReader{
         int totalCharOffset = 0;
         ////
 
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) { // Finds node that user chose
+        Cursor cursor = this.sqlite.query("node", null, "node_id=?", new String[]{uniqueID}, null, null, null); // Get node table entry with uniqueID
+        if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
+            // syntax is the same as prog_lang attribute in XML database
+            // It is used to set formatting for the node and separate between node types (Code Node)
+            // The same attribute is used for codeboxes
+            String nodeSyntax = cursor.getString(3);
 
-                // prog_lang attribute is the same as syntax in SQL database
-                // it is used to set formatting for the node and separate between node types
-                // The same attribute is used for codeboxes
-                String nodeProgLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
+            if (nodeSyntax.equals("custom-colors")) {
+                // This is formatting for Rich Text and Plain Text nodes
+                NodeList nodeContentNodeList = getNodeFromString(cursor.getString(2), "node"); // Gets all the subnodes/childnodes of selected node
+                for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
+                    // Loops through nodes of selected node
+                    Node currentNode = nodeContentNodeList.item(x);
+                    if (currentNode.hasAttributes()) {
+                        nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
+                    } else {
+                        nodeContentStringBuilder.append(currentNode.getTextContent());
+                    }
+                }
 
-                if (nodeProgLang.equals("custom-colors") || nodeProgLang.equals("plain-text")) {
-                    // This is formatting for Rich Text and Plain Text nodes
-                    NodeList nodeContentNodeList = node.getChildNodes(); // Gets all the subnodes/childnodes of selected node
+                int hasCodebox = cursor.getInt(7);
+                int hasTable = cursor.getInt(8);
+                int hasImage = cursor.getInt(9);
+                
+                // If any it is marked that node has codebox, table or image
+                if (hasCodebox == 1 || hasTable == 1 || hasImage == 1) {
+                    //// Building string for SQLQuery
+                    // Because every element is in it own table
+                    // Only the ones that actually are in the table will be searched
+                    // hopefully
+                    // During the selection eleventh (index: 10) column will be added.
+                    // That will have 7 (codebox), 8 (table) or 9 (image) written to it. It should make separating which line come from this table easier
+                    StringBuilder codeboxTableImageQueryString = new StringBuilder();
 
-                    for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
-                        // Loops through nodes of selected node
-                        Node currentNode = nodeContentNodeList.item(x);
-                        String currentNodeType = currentNode.getNodeName();
+                    // Depending on how many tables will be searched
+                    // instances of how many time uniqueID will have to be inserted will differ
+                    int queryCounter = 0; // This is the counter for that
+                    if (hasCodebox == 1) {
+                        // Means that node has has codeboxes in it
+                        codeboxTableImageQueryString.append("SELECT *, 7 FROM codebox WHERE node_id=? ");
+                        queryCounter++;
+                    }
+                    if (hasTable == 1) {
+                        // Means that node has tables in it
+                        if (hasCodebox == 1) {
+                            codeboxTableImageQueryString.append("UNION ");
+                        }
+                        codeboxTableImageQueryString.append("SELECT *, null, null, null, null, 8 FROM grid WHERE node_id=? ");
+                        queryCounter++;
+                    }
+                    if (hasImage == 1) {
+                        // Means that node has has images (images, anchors or files) in it
+                        if (hasCodebox == 1 || hasTable == 1) {
+                            codeboxTableImageQueryString.append("UNION ");
+                        }
+                        codeboxTableImageQueryString.append("SELECT *, null, null, 9 FROM image WHERE node_id=? ");
+                        queryCounter++;
+                    }
+                    codeboxTableImageQueryString.append("ORDER BY offset ASC");
 
-                        if (currentNodeType.equals("rich_text")) {
-                            if (currentNode.hasAttributes()) {
-                                nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
-                            } else {
-                                nodeContentStringBuilder.append(currentNode.getTextContent());
-                            }
-                        } else if (currentNodeType.equals("codebox")) {
-                            int charOffset = getCharOffset(currentNode);
-
-                            SpannableStringBuilder codeboxText = makeFormattedCodebox(currentNode);
-                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
-                            totalCharOffset += codeboxText.length() - 1;
-                        } else if (currentNodeType.equals("encoded_png")) {
-                            int charOffset = getCharOffset(currentNode);
-
-                            if (currentNode.getAttributes().getNamedItem("filename") != null) {
-                                SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode);
-                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
-                                totalCharOffset += attachedFileSpan.length() - 1;
-                            } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
-                                // It doesn't need node to be passed to it,
-                                // because there isn't any relevant information embedded into it
+                    /// Creating the array that will be used to insert uniqueIDs
+                    String[] queryArguments = new String[queryCounter];
+                    Arrays.fill(queryArguments, uniqueID);
+                    ///
+                    ////
+                    
+                    Cursor codeboxTableImageCursor = this.sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
+                    
+                    while (codeboxTableImageCursor.moveToNext()) {
+                        int charOffset = codeboxTableImageCursor.getInt(1);
+                        if (codeboxTableImageCursor.getInt(10) == 9) {
+                            // If 8th or 9th columns are null then this row is from image table;
+                            if (!codeboxTableImageCursor.getString(3).isEmpty()) {
+                                // Text in column 3 means that this line is for anchor
                                 SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan();
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
                                 totalCharOffset += anchorImageSpan.length() - 1;
+                                continue;
+                            }
+                            if (!codeboxTableImageCursor.getString(5).isEmpty()) {
+                                // Text in column 5 means that this line is for file
+                                SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(codeboxTableImageCursor.getString(5), String.valueOf(codeboxTableImageCursor.getDouble(7)));
+                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                totalCharOffset += attachedFileSpan.length() - 1;
+                                continue;
                             } else {
-                                SpannableStringBuilder imageSpan = makeImageSpan(currentNode);
+                                // Any other line should be an image
+                                SpannableStringBuilder imageSpan = makeImageSpan(codeboxTableImageCursor.getBlob(4)); // Blob is the image in byte[] form
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                                 totalCharOffset += imageSpan.length() - 1;
+                                continue;
                             }
-
-                        } else if (currentNodeType.equals("table")) {
-                            int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
-                            CharSequence[] cellMaxMin = getTableMaxMin(currentNode);
-                            nodeContentStringBuilder.insert(charOffset, " "); // Adding space for formatting reason
+                        } else if (codeboxTableImageCursor.getInt(10) == 7) {
+                            // codebox row
+                            SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxTableImageCursor.getString(3), codeboxTableImageCursor.getInt(5), codeboxTableImageCursor.getInt(6));
+                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
+                            totalCharOffset += codeboxText.length() - 1;
+                        } else if (codeboxTableImageCursor.getInt(10) == 8) {
+                            // table row
+                            int tableCharOffset = charOffset + totalCharOffset; // Place where SpannableStringBuilder will be split
+                            String cellMax = codeboxTableImageCursor.getString(5);
+                            String cellMin = codeboxTableImageCursor.getString(4);
+                            nodeContentStringBuilder.insert(tableCharOffset, " "); // Adding space for formatting reason
                             ArrayList<CharSequence[]> currentTable = new ArrayList<>(); // ArrayList with all the data from the table that will added to nodeTables
-                            currentTable.add(new CharSequence[]{"table", String.valueOf(charOffset), cellMaxMin[0], cellMaxMin[1]}); // Values of the table. There aren't any table data in this line
-                            NodeList tableRowsNodes = currentNode.getChildNodes(); // All the rows of the table. There are empty text nodes that has to be filtered out
+                            currentTable.add(new CharSequence[]{"table", String.valueOf(tableCharOffset), cellMax, cellMin}); // Values of the table. There aren't any table data in this line
+                            NodeList tableRowsNodes = getNodeFromString(codeboxTableImageCursor.getString(3), "table"); // All the rows of the table. Not like in XML database, there are not any empty text nodes to be filtered out
                             for (int row = 0; row < tableRowsNodes.getLength(); row++) {
-                                if (tableRowsNodes.item(row).getNodeType() == 1) {
-                                    currentTable.add(getTableRow(tableRowsNodes.item(row)));
-                                }
+                                currentTable.add(getTableRow(tableRowsNodes.item(row)));
                             }
                             nodeTables.add(currentTable);
                         }
                     }
-                } else {
-                    // Node is Code Node. It's just a big CodeBox with no dimensions
-                    nodeContentStringBuilder.append(makeFormattedCodeNode(node));
+                    codeboxTableImageCursor.close();
                 }
+            } else if (nodeSyntax.equals("plain-text")) {
+                // Plain text node does not have any formatting and has not node embedded in to it
+                nodeContentStringBuilder.append(cursor.getString(2));
+            } else {
+                // Node is Code Node. It's just a big CodeBox with no dimensions
+                nodeContentStringBuilder.append(makeFormattedCodeNode(cursor.getString(2)));
             }
         }
+
+        cursor.close();
 
         int subStringStart = 0; // Holds start from where SpannableStringBuilder has to be split from
 
@@ -381,8 +413,8 @@ public class XMLReader implements DatabaseReader{
             String attribute = nodeAttributes.item(i).getNodeName();
 
             if (attribute.equals("strikethrough")) {
-                    StrikethroughSpan sts = new StrikethroughSpan();
-                    formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                StrikethroughSpan sts = new StrikethroughSpan();
+                formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (attribute.equals("foreground")) {
                 String foregroundColorOriginal = nodeAttributes.item(i).getTextContent();
                 // Creating a normal HEX color code, because XML document has strange one with 12 symbols
@@ -409,23 +441,21 @@ public class XMLReader implements DatabaseReader{
         return formattedNodeText;
     }
 
-    public SpannableStringBuilder makeFormattedCodebox(Node node) {
+    public SpannableStringBuilder makeFormattedCodebox(String nodeContent, int frameWidth, int frameHeight ) {
         // Returns SpannableStringBuilder that has spans marked for string formatting
         // Formatting depends on Codebox'es height and width
-        // It is retrieved from the tag using getCodeBoxHeightWidth()
+        // They are passed as arguments
         SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
-        formattedCodebox.append(node.getTextContent());
+        formattedCodebox.append(nodeContent);
 
         // Changes font
         TypefaceSpan tf = new TypefaceSpan("monospace");
         formattedCodebox.setSpan(tf, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
-        int[] codeboxDimensions = this.getCodeBoxHeightWidth(node);
-
         // This part of codebox formatting depends on size of the codebox
         // Because if user made a small codebox it might have text in front or after it
         // For this reason some of the formatting can't be spanned over all the line
-        if (codeboxDimensions[0] < 30 && codeboxDimensions [1] < 200) {
+        if (frameWidth < 200 && frameHeight < 30) {
             BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
             formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else {
@@ -447,12 +477,12 @@ public class XMLReader implements DatabaseReader{
         return formattedCodebox;
     }
 
-    public SpannableStringBuilder makeFormattedCodeNode(Node node) {
+    public SpannableStringBuilder makeFormattedCodeNode(String nodeContent) {
         // Returns SpannableStringBuilder that has spans marked for string formatting
         // CodeNode is just a CodeBox that do not have height and width (dimensions)
 
         SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
-        formattedCodeNode.append(node.getTextContent());
+        formattedCodeNode.append(nodeContent);
 
         // Changes font
         TypefaceSpan tf = new TypefaceSpan("monospace");
@@ -467,9 +497,9 @@ public class XMLReader implements DatabaseReader{
         return formattedCodeNode;
     }
 
-    public SpannableStringBuilder makeImageSpan(Node node) {
+    public SpannableStringBuilder makeImageSpan(byte[] imageBlob) {
         // Returns SpannableStringBuilder that has spans with images in them
-        // Images are decoded from Base64 string embedded in the tag
+        // Images are decoded from byte array that was passed to the function
 
         SpannableStringBuilder formattedImage = new SpannableStringBuilder();
 
@@ -477,8 +507,7 @@ public class XMLReader implements DatabaseReader{
 
         //// Adds image to the span
         try {
-            byte[] decodedString = Base64.decode(node.getTextContent().trim(), Base64.DEFAULT);
-            Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+            Bitmap decodedByte = BitmapFactory.decodeByteArray(imageBlob, 0, imageBlob.length);
             Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
             image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
             ImageSpan is = new ImageSpan(image);
@@ -502,7 +531,7 @@ public class XMLReader implements DatabaseReader{
                 bundle.putCharSequence("image", nodeContentSpan.subSequence(start, end));
                 ///
 
-                XMLReader.this.fragmentManager
+                SQLReader.this.fragmentManager
                         .beginTransaction()
                         .setCustomAnimations(R.anim.pop_in, R.anim.fade_out, R.anim.fade_in, R.anim.pop_out)
                         .replace(R.id.main_view_fragment, NodeImageFragment.class, bundle)
@@ -517,12 +546,9 @@ public class XMLReader implements DatabaseReader{
         return formattedImage;
     }
 
-    public SpannableStringBuilder makeAttachedFileSpan(Node node) {
+    public SpannableStringBuilder makeAttachedFileSpan(String attachedFileFilename, String time) {
         // Returns SpannableStringBuilder that has spans with images and filename
         // Files are decoded from Base64 string embedded in the tag
-
-        String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
-        String time = node.getAttributes().getNamedItem("time").getNodeValue();
 
         SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
 
@@ -551,9 +577,9 @@ public class XMLReader implements DatabaseReader{
 
                     SaveOpenDialogFragment saveOpenDialogFragment = new SaveOpenDialogFragment();
                     saveOpenDialogFragment.setArguments(bundle);
-                    saveOpenDialogFragment.show(XMLReader.this.fragmentManager, "saveOpenDialog");
+                    saveOpenDialogFragment.show(SQLReader.this.fragmentManager, "saveOpenDialog");
                 } else {
-                    Toast.makeText(XMLReader.this.context, R.string.toast_error_minimum_android_version_8, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SQLReader.this.context, R.string.toast_error_minimum_android_version_8, Toast.LENGTH_SHORT).show();
                 }
             }
         };
@@ -588,7 +614,7 @@ public class XMLReader implements DatabaseReader{
         ClickableSpan AnchorLinkSpan = new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
-                ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
+                ((MainView) SQLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
             }
 
             @Override
@@ -606,68 +632,45 @@ public class XMLReader implements DatabaseReader{
     public CharSequence[] getTableRow(Node row) {
         // Returns CharSequence[] of the node's "cell" element text
         NodeList rowCellNodes = row.getChildNodes();
-        CharSequence[] rowCells = new CharSequence[(rowCellNodes.getLength() - 1) / 2];
-        int cellCounter = 0;
+        CharSequence[] rowCells = new CharSequence[rowCellNodes.getLength()];
         for (int cell = 0; cell < rowCellNodes.getLength(); cell++) {
-            if (rowCellNodes.item(cell).getNodeType() == 1) {
-                rowCells[cellCounter] = String.valueOf(rowCellNodes.item(cell).getTextContent());
-                cellCounter++;
-            }
+                rowCells[cell] = String.valueOf(rowCellNodes.item(cell).getTextContent());
         }
         return rowCells;
     }
 
-    public int getCharOffset(Node node) {
-        // Returns character offset value that is used in codebox and encoded_png tags
-        // It is needed to add text in the correct location
-        // One needs to -1 from the value to make it work
-        // I don't have and idea why
-
-        Element el = (Element) node;
-        int charOffset = Integer.valueOf(el.getAttribute("char_offset"));
-        return charOffset;
-    }
-
-    public CharSequence[] getTableMaxMin(Node node) {
-        // They will be used to set min and max width for table cell
-
-        Element el = (Element) node;
-        String colMax = el.getAttribute("col_max");
-        String colMin = el.getAttribute("col_min");
-        return new CharSequence[] {colMax, colMin};
-    }
-
-    public int[] getCodeBoxHeightWidth(Node node) {
-        // This returns int[] with in codebox tag embedded box dimensions
-        // They will be used to guess what type of formatting to use
-
-        Element el = (Element) node;
-        int frameHeight = Integer.valueOf(el.getAttribute("frame_height"));
-        int frameWidth = Integer.valueOf(el.getAttribute("frame_width"));
-
-        return new int[] {frameHeight, frameWidth};
-    }
-
     @Override
-    public byte[] getFileByteArray(String nodeUniqueID, String filename, String time) {
+    public byte[] getFileByteArray(String uniqueID, String filename, String time) {
         // Returns byte array (stream) to be written to file or opened
-        NodeList nodeList = this.doc.getElementsByTagName("node");
 
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
-                NodeList encodedpngNodeList = ((Element) node).getElementsByTagName("encoded_png"); // Gets all nodes with tag <encoded_png> (images and files)
-                for (int x = 0; x < encodedpngNodeList.getLength(); x++) {
-                    Node currentNode = encodedpngNodeList.item(x);
-                    if (currentNode.getAttributes().getNamedItem("filename") != null) { // Checks if node has the attribute, otherwise it's an image
-                        if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals(filename)) { // If filename matches the one provided
-                            if (currentNode.getAttributes().getNamedItem("time").getNodeValue().equals(time)) { // Checks if index of the file matches the counter
-                                return Base64.decode(currentNode.getTextContent(), Base64.DEFAULT);
-                            }
-                        }
-                    }
-                }
-            }
+        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=?", new String[]{uniqueID, filename, time}, null, null, null);
+        try {
+            // Try needed to close the cursor. Otherwise ofter return statement it won't be closed;
+            cursor.move(1);
+            return cursor.getBlob(0);
+        } finally {
+            cursor.close();
+        }
+    }
+
+    public NodeList getNodeFromString(String nodeString, String type) {
+        // SQL Database has a XML document inserted in to it
+        // XML document is for node content formatting
+        // So SQL document is just a XML document with extra steps
+        // For that reason node with all the content has to be separated from other tags for processing
+        // Variable type is just node type to select (node or table values)
+
+        try {
+            Document doc = DocumentBuilderFactory
+                    .newInstance()
+                    .newDocumentBuilder()
+                    .parse(new ByteArrayInputStream(nodeString.getBytes("UTF-8"))
+                    );
+            // It seems that there is always just one tag (<node> or <table>), so returning just the first one in the NodeList
+            return doc.getElementsByTagName(type).item(0).getChildNodes();
+        } catch (Exception e) {
+            Toast.makeText(context, "Failed to convert String to NodeList", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
         }
 
         return null;

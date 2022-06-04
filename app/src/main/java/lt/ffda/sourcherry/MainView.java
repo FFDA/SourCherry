@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -31,6 +32,7 @@ import android.widget.Toast;
 
 import lt.ffda.sourcherry.R;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
@@ -41,7 +43,7 @@ public class MainView extends AppCompatActivity {
     public ActionBarDrawerToggle actionBarDrawerToggle;
     private InputStream is;
     private ArrayList<String[]> nodes;
-    private XMLReader xmlReader;
+    private DatabaseReader reader;
     private MenuItemAdapter adapter;
     private String[] currentNode;
     private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
@@ -71,16 +73,30 @@ public class MainView extends AppCompatActivity {
 
         try {
             if (sharedPref.getString("databaseStorageType", null).equals("shared")) {
+                // If file is in external storage
                 getContentResolver().takePersistableUriPermission(Uri.parse(databaseString), Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                this.is = getContentResolver().openInputStream(Uri.parse(databaseString));
+                if (sharedPref.getString("databaseFileExtension", null).equals("ctd")) {
+                    // If file is xml
+                    this.is = getContentResolver().openInputStream(Uri.parse(databaseString));
+                    this.reader = new XMLReader(this.is, this, getSupportFragmentManager());
+                }
             } else {
-                this.is = this.openFileInput(sharedPref.getString("databaseFilename", null));
+                // If file is in internal app storage
+                if (sharedPref.getString("databaseFileExtension", null).equals("ctd")) {
+                    // If file is xml
+                    this.is = new FileInputStream(sharedPref.getString("databaseUri", null));
+                    this.reader = new XMLReader(this.is, this, getSupportFragmentManager());
+                } else {
+                    // If file is sql (password protected or not)
+                    SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
+                    this.reader = new SQLReader(sqlite, this, getSupportFragmentManager());
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        this.xmlReader = new XMLReader(this.is, this, getSupportFragmentManager());
-        this.nodes = xmlReader.getMainNodes();
+
+        this.nodes = reader.getMainNodes();
         this.currentNode = null;
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
@@ -150,13 +166,13 @@ public class MainView extends AppCompatActivity {
     private void openSubmenu() {
         // Clears existing menu and recreate with submenu of the currentNode
         this.nodes.clear();
-        this.nodes.addAll(this.xmlReader.getSubnodes(this.currentNode[1]));
+        this.nodes.addAll(this.reader.getSubnodes(this.currentNode[1]));
         this.currentNodePosition = 0;
         this.adapter.notifyDataSetChanged();
     }
 
     public void goNodeUp(View view) {
-        ArrayList<String[]> nodes = xmlReader.getParentWithSubnodes(this.nodes.get(0)[1]);
+        ArrayList<String[]> nodes = this.reader.getParentWithSubnodes(this.nodes.get(0)[1]);
         if (nodes != null) {
             this.currentNode = nodes.get(0);
             this.nodes.clear();
@@ -172,7 +188,7 @@ public class MainView extends AppCompatActivity {
     public void goHome(View view) {
         // Reloads drawer menu to show main menu
         this.nodes.clear();
-        this.nodes.addAll(xmlReader.getMainNodes());
+        this.nodes.addAll(this.reader.getMainNodes());
         this.currentNodePosition = -1;
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
@@ -192,7 +208,7 @@ public class MainView extends AppCompatActivity {
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
         // Sends ArrayList to fragment to be added added to view
-        nodeContentFragment.setNodeContent(xmlReader.getNodeContent(this.currentNode[1]));
+        nodeContentFragment.setNodeContent(this.reader.getNodeContent(this.currentNode[1]));
 
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
@@ -213,7 +229,7 @@ public class MainView extends AppCompatActivity {
         ////
         this.nodes.clear();
         this.adapter.markItemSelected(-1);
-        this.nodes.addAll(xmlReader.getAllNodes());
+        this.nodes.addAll(this.reader.getAllNodes());
 
         ArrayList<String[]> filteredNodes = this.nodes.stream()
                 .filter(node -> node[0].toLowerCase().contains(query.toLowerCase()))
@@ -230,7 +246,7 @@ public class MainView extends AppCompatActivity {
 
         if (this.currentNode != null) {
             this.nodes.clear();
-            this.nodes.addAll(this.xmlReader.getParentWithSubnodes(this.currentNode[1]));
+            this.nodes.addAll(this.reader.getParentWithSubnodes(this.currentNode[1]));
 
             for (int index = 0; index < this.nodes.size(); index++) {
                 if (this.nodes.get(index)[1].equals(this.currentNode[1])) {
@@ -253,8 +269,8 @@ public class MainView extends AppCompatActivity {
         }
     }
 
-    public XMLReader getXmlReader() {
-        return this.xmlReader;
+    public DatabaseReader reader() {
+        return this.reader;
     }
 
     public String getCurrentNodeUniqueID() {

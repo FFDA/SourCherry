@@ -17,13 +17,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,14 +34,12 @@ import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.nio.file.Files;
-import java.util.ArrayList;
 
 public class SaveOpenDialogFragment extends DialogFragment {
-    private XMLReader xmlReader;
-    private ArrayList<String> filesInNode; // All filenames matching filename that was touched by the user
+    private DatabaseReader reader;
     private String nodeUniqueID;
     private String filename;
-    private int index = -1; // Index of selected radio button. -1 - no radio button selected
+    private String time;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -53,11 +48,11 @@ public class SaveOpenDialogFragment extends DialogFragment {
         // NeutralButton will cancel dialog and NegativeButton will be for saving the file
         super.onCreateDialog(savedInstanceState);
 
-        xmlReader  = ((MainView) getActivity()).getXmlReader(); // xmlReader from main MainView
+        this.reader = ((MainView) getActivity()).reader(); // reader from main MainView
 
         this.filename = getArguments().getString("filename", null); // Filename passed to fragment
+        this.time = getArguments().getString("time");
         this.nodeUniqueID = ((MainView) getActivity()).getCurrentNodeUniqueID(); // Current node's unique_id retrieved from MainView
-        this.filesInNode = this.xmlReader.getAttachedFileList(filename, nodeUniqueID);
 
         //// Dialog fragment layout
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
@@ -69,16 +64,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
             .setPositiveButton(R.string.button_open, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int id) {
-                    if (filesInNode.size() > 1) { // Multiple files. User has to choose
-                        if (SaveOpenDialogFragment.this.index == -1) { // User did not select any file
-                            Toast.makeText(getContext(), R.string.toast_seve_open_dialog_fragment_no_file_selected, Toast.LENGTH_SHORT).show();
-                        } else {
-                            openFile();
-                        }
-                    } else { // Just one file
-                        SaveOpenDialogFragment.this.index = 0;
-                        openFile();
-                    }
+                    openFile();
                 }
             })
             .setNeutralButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
@@ -93,51 +79,12 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
                 }
             });
-        //
 
         /// Part of layout that changes depending on how many files with same filename there are in node
         LinearLayout dialogLayout = view.findViewById(R.id.dialog_save_open_fragment_layout);
-
-        if (filesInNode.size() == 1) {
-            TextView textViewFilename = new TextView(getContext());
-            textViewFilename.setText(filesInNode.get(0));
-            dialogLayout.addView(textViewFilename);
-        } else if (filesInNode.size() > 1) {
-            // If there are more than one filename radio buttons are displayed for user to select a file
-            int fileRadioGroupID = 1000; // Id for the RadioGroup
-            int counter = 1; // Counter to add radio buttons to the group with increasing id number
-
-            // Message for the user about the issue
-            TextView multipleFilesMessageTextView = new TextView(getContext());
-            multipleFilesMessageTextView.setText(R.string.save_open_dialog_fragment_multiple_file_message);
-            dialogLayout.addView(multipleFilesMessageTextView);
-            //
-
-            // Adding radio group and buttons
-            RadioGroup fileRadioGroup = new RadioGroup(getContext());
-            fileRadioGroup.setId(fileRadioGroupID); // Id for the group. Always 1000
-            fileRadioGroup.setPadding(0,20,0,0); // Some formatting for the group
-            for (String f: filesInNode) { // For every filename (that is actually the same)
-                RadioButton currentFilename = new RadioButton(getContext()); // Creating radio button
-                currentFilename.setText(f); // Setting the filename
-                currentFilename.setId(fileRadioGroupID + counter); // Adding the id 1000 + counter (starts from 1)
-                fileRadioGroup.addView(currentFilename);
-                counter++;
-            }
-            fileRadioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(RadioGroup group, int checkedId) {
-                    SaveOpenDialogFragment.this.index = checkedId - 1001;
-                }
-            });
-            dialogLayout.addView(fileRadioGroup);
-        } else {
-            // Error message if there is 0 filenames
-            Toast.makeText(getContext(), R.string.toast_save_open_dialog_fragment_no_filename_error, Toast.LENGTH_SHORT).show();
-            dismiss();
-        }
-        ///
-        ////
+        TextView textViewFilename = new TextView(getContext());
+        textViewFilename.setText(filename);
+        dialogLayout.addView(textViewFilename);
 
         // Create the AlertDialog object and return it
         return builder.create();
@@ -154,21 +101,12 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
         AlertDialog alertDialog = (AlertDialog) getDialog();
         //// Save button
-        // This needed to make keep activity alive while file is being written
+        // This is needed to make keep activity alive while file is being written
         Button saveButton = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (filesInNode.size() > 1) { // Multiple files. User has to choose
-                    if (SaveOpenDialogFragment.this.index == -1) { // User did not select any file
-                        Toast.makeText(getContext(), R.string.toast_seve_open_dialog_fragment_no_file_selected, Toast.LENGTH_SHORT).show();
-                    } else {
-                        saveFile.launch(SaveOpenDialogFragment.this.filename);
-                    }
-                } else { // Just one file
-                    SaveOpenDialogFragment.this.index = 0;
-                    saveFile.launch(SaveOpenDialogFragment.this.filename);
-                }
+                saveFile.launch(SaveOpenDialogFragment.this.filename);
             }
         });
         ////
@@ -184,7 +122,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
             // Writes Base64 encoded string to the temporary file
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Files.write(tmpAttachedFile.toPath(), Base64.decode(xmlReader.getFileBase64String(this.nodeUniqueID, this.filename, this.index), Base64.DEFAULT));
+                Files.write(tmpAttachedFile.toPath(), reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));
             } else {
                 // Android 8 is SDK 26
                 Toast.makeText(getContext(), R.string.toast_error_minimum_android_version_8, Toast.LENGTH_SHORT).show();
@@ -205,7 +143,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
             startActivity(intent);
 
         } catch (Exception e) {
-            Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+            e.printStackTrace();
         }
     }
 
@@ -215,7 +153,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
         try {
             OutputStream outputStream = getContext().getContentResolver().openOutputStream(result, "w"); // Output file
             // Writes byte array converted from encoded string
-            outputStream.write(Base64.decode(xmlReader.getFileBase64String(this.nodeUniqueID, this.filename, this.index), Base64.DEFAULT));
+            outputStream.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));
             outputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
