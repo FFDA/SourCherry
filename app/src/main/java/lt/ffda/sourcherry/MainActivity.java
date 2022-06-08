@@ -14,6 +14,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.documentfile.provider.DocumentFile;
 
 import android.Manifest;
 import android.content.Context;
@@ -23,6 +24,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -79,16 +81,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
-        String decodedUri = Uri.decode(result.getEncodedPath()); // Decoding the path to file to make it more readable
-        String[] splitFilename = decodedUri.split("/"); // Splitting the path to extract the filename
-        String[] splitExtension = decodedUri.split("\\."); // Splitting the path to extract the file extension.
+        DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
 
         // Saving filename and path to the file in the preferences
         SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
 
         sharedPrefEditor.putString("databaseStorageType", "shared");
-        sharedPrefEditor.putString("databaseFilename", splitFilename[splitFilename.length - 1]);
-        sharedPrefEditor.putString("databaseFileExtension", splitExtension[splitExtension.length - 1]);
+        sharedPrefEditor.putString("databaseFilename", databaseDocumentFile.getName());
+        sharedPrefEditor.putString("databaseFileExtension", databaseDocumentFile.getName().split("\\.")[1]);
         sharedPrefEditor.putString("databaseUri", result.toString());
         sharedPrefEditor.apply();
         //
@@ -159,13 +159,11 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Please enter password", Toast.LENGTH_SHORT).show();
             } else {
                 this.extractDatabase();
-//                Intent openDatabase = new Intent(this, MainView.class);
                 startActivity(openDatabase);
             }
         } else if (databaseFileExtension.equals("ctd")) {
             // XML database file
             try {
-//                Intent openDatabase = new Intent(this, MainView.class);
                 startActivity(openDatabase);
             } catch (Exception e) {
                 Toast.makeText(this, "Failed to open database!", Toast.LENGTH_SHORT).show();
@@ -176,7 +174,6 @@ public class MainActivity extends AppCompatActivity {
             if (this.sharedPref.getString("databaseStorageType", null).equals("shared")) {
                 this.copyDatabaseToAppSpecificStorage();
             }
-//            Intent openDatabase = new Intent(this, MainView.class);
             startActivity(openDatabase);
         }else {
             Toast.makeText(this,"Doesn't look like a CherryTree database", Toast.LENGTH_SHORT).show();
