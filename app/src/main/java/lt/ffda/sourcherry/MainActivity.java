@@ -182,6 +182,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        deleteTempFiles();
+    }
+
     private void checkIfDeleteDatabaseisBeingUsed(String databaseFilename) {
         // Checks if user deletes the database that is set to be opened when user presses on Open button
         // And sett everything to null in (database) settings if it's true
@@ -314,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
                 ////
 
                 //// Cleaning up
-                tmpCompressedDatabase.delete();
+//                tmpCompressedDatabase.delete(); // Using deleteTempFile onDestroy
                 sevenZFile.close();
                 ////
             } catch (FileNotFoundException e) {
@@ -378,5 +384,16 @@ public class MainActivity extends AppCompatActivity {
         sharedPrefEditor.putString("databaseFileExtension", databaseFileExtension);
         sharedPrefEditor.putString("databaseUri", databaseUri);
         sharedPrefEditor.apply();
+    }
+
+    private void deleteTempFiles() {
+        // Deletes all file from cache (temp) directory
+        File cachedFileDir = getCacheDir();
+
+        if (cachedFileDir.list().length > 0) {
+            for (String filename: cachedFileDir.list()) {
+                new File(cachedFileDir, filename).delete();
+            }
+        }
     }
 }
