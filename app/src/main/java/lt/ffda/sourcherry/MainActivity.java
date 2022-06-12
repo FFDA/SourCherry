@@ -12,23 +12,27 @@ package lt.ffda.sourcherry;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.documentfile.provider.DocumentFile;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -80,17 +84,17 @@ public class MainActivity extends AppCompatActivity {
         ////
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        listImportedDatabases(); // Displaying databases on this step because this is the step that app returns to from other Activity
+    }
+
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
         DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
 
         // Saving filename and path to the file in the preferences
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
-
-        sharedPrefEditor.putString("databaseStorageType", "shared");
-        sharedPrefEditor.putString("databaseFilename", databaseDocumentFile.getName());
-        sharedPrefEditor.putString("databaseFileExtension", databaseDocumentFile.getName().split("\\.")[1]);
-        sharedPrefEditor.putString("databaseUri", result.toString());
-        sharedPrefEditor.apply();
+        saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], result.toString());
         //
 
         setMessageWithDatabaseName();
@@ -107,6 +111,84 @@ public class MainActivity extends AppCompatActivity {
         // There should be an else statement here do disable Select Button and most likely other buttons
 
         getDatabase.launch(new String[]{"*/*",});
+    }
+
+    private void listImportedDatabases() {
+        // This all databases that are currently in app-specific storage
+        File databaseDir = new File(getFilesDir(), "databases");
+
+        // View into which all databases will be listed to
+        LinearLayout importedDatabases = findViewById(R.id.layout_imported_databases);
+        importedDatabases.removeAllViews(); // Everytime all the items are removed and re-added just in case user deleted something
+
+        TextView importedDatabasesTitle = findViewById(R.id.imported_databases_title);
+        importedDatabasesTitle.setVisibility(View.INVISIBLE); // Hides "Imported Databases" title if there a no
+
+        if (databaseDir.list().length > 0) {
+            // If there are any databases in app-specific storage
+            importedDatabasesTitle.setVisibility(View.VISIBLE);
+
+            LayoutInflater layoutInflater = this.getLayoutInflater();
+
+            for (String databaseFilename: databaseDir.list()) {
+                // Inflates database list item view
+                LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.imported_databases_item, null);
+
+                TextView databaseFilenameTextView = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
+                databaseFilenameTextView.setText(databaseFilename); // Adds database filename do be displayed for the current database
+
+                databaseFilenameTextView.setOnClickListener(new View.OnClickListener() {
+                    // If user taps on database filename
+                    @Override
+                    public void onClick(View v) {
+                        File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
+                        // Saves selected database's information to the settings
+                        saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
+                        setMessageWithDatabaseName();
+                    }
+                });
+
+                //// Delete icon/button
+                ImageView removeDatabaseIcon = importedDatabaseItem.findViewById(R.id.imported_databases_item_image);
+                removeDatabaseIcon.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        // If user taps on delete (trashcan image) icon
+                        // confirmation dialog window for deletion is displayed
+                        AlertDialog.Builder confirmDeletion = new AlertDialog.Builder(MainActivity.this)
+                                .setTitle(databaseFilename)
+                                .setMessage(R.string.main_activity_imported_databases_delete_dialog_message)
+                                .setPositiveButton(R.string.button_delete, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        File selectedDatabaseToDelete = new File(databaseDir, databaseFilename);
+                                        selectedDatabaseToDelete.delete(); // Deletes database file
+                                        checkIfDeleteDatabaseisBeingUsed(databaseFilename);
+                                        listImportedDatabases(); // Launches this function to make a new list of imported databases
+                                    }
+                                })
+                                .setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.cancel();
+                                    }
+                                });
+                        confirmDeletion.show();
+                    }
+                });
+                ////
+                importedDatabases.addView(importedDatabaseItem);
+            }
+        }
+    }
+
+    private void checkIfDeleteDatabaseisBeingUsed(String databaseFilename) {
+        // Checks if user deletes the database that is set to be opened when user presses on Open button
+        // And sett everything to null in (database) settings if it's true
+        if (sharedPref.getString("databaseStorageType", null).equals("internal") && sharedPref.getString("databaseFilename", null).equals(databaseFilename)) {
+            saveDatabaseToPrefs(null, null, null, null); // Setting database info as null that correct message for user will be displayed
+            setMessageWithDatabaseName();
+        }
     }
 
     private void setMessageWithDatabaseName() {
@@ -225,15 +307,10 @@ public class MainActivity extends AppCompatActivity {
                 ////
 
                 //// Creating new settings
-                SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
+                // Saved Uri is not a real Uri, so don't try to use it.
+                // The only reason to save it here is, because I'm using it to check if database should be opened automatically
                 String[] splitExtension = tmpDatabaseFilename.split("\\."); // Splitting the path to extract the file extension.
-
-                sharedPrefEditor.putString("databaseStorageType", "internal");
-                sharedPrefEditor.putString("databaseFilename", tmpDatabaseFilename);
-                sharedPrefEditor.putString("databaseFileExtension", splitExtension[splitExtension.length - 1]);
-                // This is not a real Uri, so don't try to use it, but I use it to check if database should be opened automatically
-                sharedPrefEditor.putString("databaseUri", databaseDir.getPath() + "/" + tmpDatabaseFilename);
-                sharedPrefEditor.apply();
+                saveDatabaseToPrefs("internal", tmpDatabaseFilename, splitExtension[splitExtension.length - 1], databaseDir.getPath() + "/" + tmpDatabaseFilename);
                 ////
 
                 //// Cleaning up
@@ -291,5 +368,15 @@ public class MainActivity extends AppCompatActivity {
         sharedPrefEditor.putString("databaseUri", databaseOutputFile);
         sharedPrefEditor.apply();
         ////
+    }
+
+    private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
+        // Saves passed information about database to preferences
+        SharedPreferences.Editor sharedPrefEditor = MainActivity.this.sharedPref.edit();
+        sharedPrefEditor.putString("databaseStorageType", databaseStorageType);
+        sharedPrefEditor.putString("databaseFilename", databaseFilename);
+        sharedPrefEditor.putString("databaseFileExtension", databaseFileExtension);
+        sharedPrefEditor.putString("databaseUri", databaseUri);
+        sharedPrefEditor.apply();
     }
 }
