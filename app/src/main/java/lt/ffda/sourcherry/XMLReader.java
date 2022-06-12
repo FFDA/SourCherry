@@ -14,6 +14,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
@@ -25,14 +26,19 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
-import android.text.style.DynamicDrawableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
 import android.text.style.LineBackgroundSpan;
+import android.text.style.MetricAffectingSpan;
 import android.text.style.QuoteSpan;
+import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
+import android.text.style.SubscriptSpan;
+import android.text.style.SuperscriptSpan;
 import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
+import android.text.style.UnderlineSpan;
 import android.util.Base64;
 import android.view.View;
 import android.widget.TextView;
@@ -392,6 +398,48 @@ public class XMLReader implements DatabaseReader{
                 //
                 ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(colorCode.toString()));
                 formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else if (attribute.equals("background")) {
+                String backgroundColorOriginal = nodeAttributes.item(i).getTextContent();
+                // Creating a normal HEX color code, because XML document has strange one with 12 symbols
+                StringBuilder colorCode = new StringBuilder();
+                colorCode.append("#");
+                colorCode.append(backgroundColorOriginal.substring(1,3));
+                colorCode.append(backgroundColorOriginal.substring(5,7));
+                colorCode.append(backgroundColorOriginal.substring(9,11));
+                //
+                BackgroundColorSpan bcs = new BackgroundColorSpan(Color.parseColor(colorCode.toString()));
+                formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else if (attribute.equals("weight")) {
+                StyleSpan boldStyleSpan = new StyleSpan(Typeface.BOLD);
+                formattedNodeText.setSpan(boldStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else if (attribute.equals("style")) {
+                StyleSpan italicStyleSpan = new StyleSpan(Typeface.ITALIC);
+                formattedNodeText.setSpan(italicStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else if (attribute.equals("underline")) {
+                UnderlineSpan us = new UnderlineSpan();
+                formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else if (attribute.equals("scale")) {
+                String scaleValue = nodeAttributes.item(i).getTextContent();
+                MetricAffectingSpan mas = null;
+                switch (scaleValue) {
+                    case "h1": formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        break;
+                    case "h2": formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        break;
+                    case "h3": formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        break;
+                    case "small": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        break;
+                    case "sup": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                formattedNodeText.setSpan(new SuperscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        break;
+                    case "sub": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                formattedNodeText.setSpan(new SubscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        break;
+                }
+            } else if (attribute.equals("family")) {
+                TypefaceSpan tf = new TypefaceSpan("monospace");
+                formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (attribute.equals("link")) {
                 String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
                 if (attributeValue[0].equals("webs")) {
