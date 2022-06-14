@@ -33,6 +33,7 @@ import android.widget.Toast;
 import lt.ffda.sourcherry.R;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
@@ -41,7 +42,6 @@ public class MainView extends AppCompatActivity {
 
     public DrawerLayout drawerLayout;
     public ActionBarDrawerToggle actionBarDrawerToggle;
-    private InputStream is;
     private ArrayList<String[]> nodes;
     private DatabaseReader reader;
     private MenuItemAdapter adapter;
@@ -77,15 +77,17 @@ public class MainView extends AppCompatActivity {
                 getContentResolver().takePersistableUriPermission(Uri.parse(databaseString), Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 if (sharedPref.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
-                    this.is = getContentResolver().openInputStream(Uri.parse(databaseString));
-                    this.reader = new XMLReader(this.is, this, getSupportFragmentManager());
+                    InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
+                    this.reader = new XMLReader(is, this, getSupportFragmentManager());
+                    is.close();
                 }
             } else {
                 // If file is in internal app storage
                 if (sharedPref.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
-                    this.is = new FileInputStream(sharedPref.getString("databaseUri", null));
-                    this.reader = new XMLReader(this.is, this, getSupportFragmentManager());
+                    InputStream is = new FileInputStream(sharedPref.getString("databaseUri", null));
+                    this.reader = new XMLReader(is, this, getSupportFragmentManager());
+                    is.close();
                 } else {
                     // If file is sql (password protected or not)
                     SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
