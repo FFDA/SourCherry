@@ -114,8 +114,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void listImportedDatabases() {
-        // This all databases that are currently in app-specific storage
+        // Lists all databases that are currently in app-specific storage
         File databaseDir = new File(getFilesDir(), "databases");
+
+        if (!databaseDir.exists()) {
+            // If directory does not exists (when app is launched first time)
+            // There this no need to continue
+            // It will cause crash otherwise
+            return;
+        }
 
         // View into which all databases will be listed to
         LinearLayout importedDatabases = findViewById(R.id.layout_imported_databases);
