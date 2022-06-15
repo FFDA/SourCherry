@@ -93,11 +93,12 @@ public class MainActivity extends AppCompatActivity {
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
         DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
 
-        // Saving filename and path to the file in the preferences
-        saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], result.toString());
-        //
-
-        setMessageWithDatabaseName();
+        if (result != null) {
+            // Saving filename and path to the file in the preferences
+            saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], result.toString());
+            //
+            setMessageWithDatabaseName();
+        }
     });
 
     private ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
