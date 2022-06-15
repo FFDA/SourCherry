@@ -115,6 +115,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void listImportedDatabases() {
         // Lists all databases that are currently in app-specific storage
+
+        // View into which all databases will be listed to
+        LinearLayout importedDatabases = findViewById(R.id.layout_imported_databases);
+        importedDatabases.removeAllViews(); // Everytime all the items are removed and re-added just in case user deleted something
+
+        TextView importedDatabasesTitle = findViewById(R.id.imported_databases_title);
+        importedDatabasesTitle.setVisibility(View.INVISIBLE); // Hides "Imported Databases" title if there a no
+
         File databaseDir = new File(getFilesDir(), "databases");
 
         if (!databaseDir.exists()) {
@@ -123,13 +131,6 @@ public class MainActivity extends AppCompatActivity {
             // It will cause crash otherwise
             return;
         }
-
-        // View into which all databases will be listed to
-        LinearLayout importedDatabases = findViewById(R.id.layout_imported_databases);
-        importedDatabases.removeAllViews(); // Everytime all the items are removed and re-added just in case user deleted something
-
-        TextView importedDatabasesTitle = findViewById(R.id.imported_databases_title);
-        importedDatabasesTitle.setVisibility(View.INVISIBLE); // Hides "Imported Databases" title if there a no
 
         if (databaseDir.list().length > 0) {
             // If there are any databases in app-specific storage
