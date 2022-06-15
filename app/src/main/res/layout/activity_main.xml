@@ -108,7 +108,7 @@
             android:layout_marginTop="16dp"
             android:text="@string/main_activity_imported_databases"
             android:textAlignment="center"
-            android:textColor="@color/black"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="15sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
