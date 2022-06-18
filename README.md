@@ -8,7 +8,7 @@ App is targeted for sdk 31 (Android 12) with min version of 24 (Android 7).
 
 This project is for Android/Java/Git learning purposes and is not official CherryTree android app or are associated with CherryTree project or it's creator.
 
-## Instalation / Download
+## Installation / Download
 
 I plan to add SourCherry to Play Store when it has more features and can open and read all types of CherryTree databases.
 
