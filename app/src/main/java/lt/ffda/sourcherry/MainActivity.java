@@ -79,8 +79,8 @@ public class MainActivity extends AppCompatActivity {
 
         //// Disables button Create Database
         // Function isn't implemented yet
-        Button createDatabase = (Button) findViewById(R.id.button_create_database);
-        createDatabase.setEnabled(false);
+        Button createDatabaseButton = (Button) findViewById(R.id.button_create_database);
+        createDatabaseButton.setEnabled(false);
         ////
     }
 
