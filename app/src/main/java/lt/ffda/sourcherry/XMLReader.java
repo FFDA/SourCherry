@@ -388,26 +388,12 @@ public class XMLReader implements DatabaseReader{
                     StrikethroughSpan sts = new StrikethroughSpan();
                     formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (attribute.equals("foreground")) {
-                String foregroundColorOriginal = nodeAttributes.item(i).getTextContent();
-                // Creating a normal HEX color code, because XML document has strange one with 12 symbols
-                StringBuilder colorCode = new StringBuilder();
-                colorCode.append("#");
-                colorCode.append(foregroundColorOriginal.substring(1,3));
-                colorCode.append(foregroundColorOriginal.substring(5,7));
-                colorCode.append(foregroundColorOriginal.substring(9,11));
-                //
-                ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(colorCode.toString()));
+                String foregroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting foreground color code from the tag
+                ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(foregroundColorOriginal));
                 formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (attribute.equals("background")) {
-                String backgroundColorOriginal = nodeAttributes.item(i).getTextContent();
-                // Creating a normal HEX color code, because XML document has strange one with 12 symbols
-                StringBuilder colorCode = new StringBuilder();
-                colorCode.append("#");
-                colorCode.append(backgroundColorOriginal.substring(1,3));
-                colorCode.append(backgroundColorOriginal.substring(5,7));
-                colorCode.append(backgroundColorOriginal.substring(9,11));
-                //
-                BackgroundColorSpan bcs = new BackgroundColorSpan(Color.parseColor(colorCode.toString()));
+                String backgroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting background color code from the tag
+                BackgroundColorSpan bcs = new BackgroundColorSpan(Color.parseColor(backgroundColorOriginal));
                 formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (attribute.equals("weight")) {
                 StyleSpan boldStyleSpan = new StyleSpan(Typeface.BOLD);
@@ -713,5 +699,25 @@ public class XMLReader implements DatabaseReader{
         }
 
         return null;
+    }
+
+    public String getValidColorCode(String originalColorCode) {
+        // Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
+        // some colors can look like this #ffffffff0000 while other like this #ffff00 in the same file
+        // To always get normal color hash code (made from 7 symbols) is the purpose of this function
+
+        if (originalColorCode.length() == 7) {
+            // If length of color code is 7 symbols it should be a valid one
+            return originalColorCode;
+        } else {
+            // Creating a normal HEX color code, because XML tag has strange one with 13 symbols
+            StringBuilder validColorCode = new StringBuilder();
+            validColorCode.append("#");
+            validColorCode.append(originalColorCode.substring(1,3));
+            validColorCode.append(originalColorCode.substring(5,7));
+            validColorCode.append(originalColorCode.substring(9,11));
+
+            return validColorCode.toString();
+        }
     }
 }

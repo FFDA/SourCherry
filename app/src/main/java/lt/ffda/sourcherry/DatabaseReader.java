@@ -97,4 +97,9 @@ public interface DatabaseReader {
 
     byte[] getFileByteArray(String nodeUniqueID, String filename, String time);
     // Returns byte array (stream) to be written to file or opened
+
+    String getValidColorCode(String originalColorCode);
+    // Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
+    // some colors can look like this #ffffffff0000 while other like this #ffff00 in the same file
+    // To always get normal color hash code (made from 7 symbols) is the purpose of this function
 }
