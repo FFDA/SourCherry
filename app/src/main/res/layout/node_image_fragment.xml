@@ -4,9 +4,8 @@
     android:id="@+id/image_fragment_frame"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <ImageView
+    <lt.ffda.sourcherry.ZoomableImageView
         android:id="@+id/image_fragment_imageview"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
-
 </FrameLayout>
