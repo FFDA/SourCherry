@@ -10,26 +10,32 @@
   -->
 
 <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:layout_height="24dp"
-        android:orientation="horizontal"
-        android:paddingBottom="5dp"
-        android:paddingTop="5dp"
-        tools:layout_editor_absoluteX="1dp"
-        tools:layout_editor_absoluteY="1dp">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="30dp"
+    android:orientation="horizontal"
+    tools:layout_editor_absoluteX="1dp"
+    tools:layout_editor_absoluteY="1dp">
 
-        <TextView
-            android:id="@+id/imported_databases_item_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="15sp"
-            android:layout_weight="1"/>
+    <Button
+        android:id="@+id/imported_databases_item_text"
+        android:layout_width="wrap_content"
+        android:layout_height="30dp"
+        android:textSize="14sp"
+        android:padding="1dp"
+        android:layout_weight="1"
+        android:textAlignment="textStart"
+        android:textAllCaps="false"
+        android:fontFamily="?android:attr/fontFamily"
+        style="?android:attr/borderlessButtonStyle"
+        android:textColor="?android:attr/textColorPrimary"/>
 
-        <ImageView
-            android:id="@+id/imported_databases_item_image"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_outline_delete_forever_24"/>
+    <ImageButton
+        android:id="@+id/imported_databases_item_image"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:padding="1dp"
+        android:src="@drawable/ic_outline_delete_forever_24"
+        style="?android:attr/borderlessButtonStyle" />
 </LinearLayout>
