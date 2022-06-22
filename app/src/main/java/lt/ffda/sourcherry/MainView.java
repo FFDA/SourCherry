@@ -11,6 +11,7 @@
 package lt.ffda.sourcherry;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -25,15 +26,13 @@ import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.SearchView;
 import android.widget.Toast;
 
-import lt.ffda.sourcherry.R;
-
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
@@ -56,11 +55,17 @@ public class MainView extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        this.currentNode = null; // This needs to be placed before restoring the instance if there was one
+
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)
                     .add(R.id.main_view_fragment, NodeContentFragment.class, null, "main")
                     .commit();
+        } else {
+            // Restoring some variable to make it possible restore content fragment after the screen rotation
+            this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
+            this.currentNode = savedInstanceState.getStringArray("currentNode");
         }
 
         // drawer layout instance to toggle the menu icon to open
@@ -99,7 +104,6 @@ public class MainView extends AppCompatActivity {
         }
 
         this.nodes = reader.getMainNodes();
-        this.currentNode = null;
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
         this.adapter = new MenuItemAdapter(this.nodes, this);
@@ -128,7 +132,9 @@ public class MainView extends AppCompatActivity {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                MainView.this.filterNodes(newText);
+                if (!searchView.isIconified()) { // This check fixes bug where all database's nodes were displayed after screen rotation
+                    MainView.this.filterNodes(newText);
+                }
                 return false;
             }
         });
@@ -163,6 +169,25 @@ public class MainView extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onSaveInstanceState(@Nullable Bundle outState) {
+        // Saving some variables to make it possible to restore the content after screen rotation
+        outState.putInt("currentNodePosition", this.currentNodePosition);
+        outState.putStringArray("currentNode", this.currentNode);
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onResume() {
+        // At this stage it is possible to load the content to the fragment after the screen rotation
+        // at earlier point app will crash
+        super.onResume();
+        if (this.currentNode != null) {
+            this.loadNodeContent();
+            this.resetMenuToCurrentNode();
+        }
     }
 
     private void openSubmenu() {
@@ -224,11 +249,6 @@ public class MainView extends AppCompatActivity {
         // Filters node list by the name of the node
         // Changes the node list that represents menu and updates it
         // Case insensitive
-
-        //// This would fix the issue that shows all nodes in menu after screen rotation, but not in all instances
-//        SearchView searchView = (SearchView) findViewById(R.id.navigation_drawer_search);
-//        if (!searchView.isIconified()) {
-        ////
         this.nodes.clear();
         this.adapter.markItemSelected(-1);
         this.nodes.addAll(this.reader.getAllNodes());
