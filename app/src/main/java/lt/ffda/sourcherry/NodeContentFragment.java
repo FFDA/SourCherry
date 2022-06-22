@@ -22,7 +22,6 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import lt.ffda.sourcherry.R;
@@ -34,32 +33,13 @@ public class NodeContentFragment extends Fragment {
     private ArrayList<ArrayList<CharSequence[]>> nodeContent;
 
     @Override
-    public void onSaveInstanceState(@Nullable Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (this.nodeContent != null) {
-            this.loadContent();
-        }
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
         View rootView = inflater.inflate(R.layout.node_content_fragment, container, false);
 
         this.contentFragmentLinearLayout = (LinearLayout) rootView.findViewById(R.id.content_fragment_linearlayout);
 
         return rootView;
-    }
-
-    @Override
-    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
-        if (this.nodeContent != null) {
-            this.loadContent();
-        }
     }
 
     public void loadContent() {
@@ -76,8 +56,8 @@ public class NodeContentFragment extends Fragment {
                 TextView tv = new TextView(getActivity());
                 tv.setTextSize(16);
                 tv.setTextIsSelectable(true);
-                tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
                 tv.setMovementMethod(LinkMovementMethod.getInstance());
+                tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
                 this.contentFragmentLinearLayout.addView(tv);
             }
             if (type[0].equals("table")) {

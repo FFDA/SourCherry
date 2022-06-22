@@ -59,7 +59,8 @@
                     android:id="@+id/navigation_drawer_search"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:layout_gravity="top" />
+                    android:layout_gravity="top"
+                    android:imeOptions="flagNoExtractUi"/>
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
