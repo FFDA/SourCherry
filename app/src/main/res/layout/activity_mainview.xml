@@ -36,6 +36,17 @@
                 android:orientation="horizontal">
 
                 <ImageButton
+                    android:id="@+id/navigation_drawer_button_back"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:layout_gravity="top"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:onClick="goBack"
+                    android:visibility="gone"
+                    android:src="@drawable/ic_baseline_arrow_back_24" />
+
+                <ImageButton
                     android:id="@+id/navigation_drawer_button_up"
                     android:layout_width="50dp"
                     android:layout_height="50dp"
@@ -54,6 +65,16 @@
                     android:clickable="true"
                     android:onClick="goHome"
                     android:src="@drawable/ic_outline_home_24" />
+
+                <ImageButton
+                    android:id="@+id/navigation_drawer_button_bookmarks"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:layout_gravity="top"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:onClick="showBookmarks"
+                    android:src="@drawable/ic_outline_bookmarks_off_24" />
 
                 <SearchView
                     android:id="@+id/navigation_drawer_search"

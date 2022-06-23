@@ -26,9 +26,9 @@ import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.SearchView;
 import android.widget.Toast;
 
@@ -46,6 +46,9 @@ public class MainView extends AppCompatActivity {
     private MenuItemAdapter adapter;
     private String[] currentNode;
     private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
+    private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
+    private ArrayList<String[]> tempNodes; // Needed to save node menu when user opens bookmarks
+    private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +59,8 @@ public class MainView extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         this.currentNode = null; // This needs to be placed before restoring the instance if there was one
+        this.bookmarksToggle = false;
+        this.currentNodePosition = -1;
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -116,6 +121,10 @@ public class MainView extends AppCompatActivity {
                 } else {
                     MainView.this.currentNodePosition = position;
                 }
+                if (bookmarksToggle) {
+                    MainView.this.closeBookmarks();
+                    MainView.this.resetMenuToCurrentNode();
+                }
                 MainView.this.resetSearchView();
                 MainView.this.loadNodeContent();
             }
@@ -140,6 +149,7 @@ public class MainView extends AppCompatActivity {
         });
 
         searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+            // When the user closes search view without selecting a node
             @Override
             public boolean onClose() {
                 if (MainView.this.currentNode != null) {
@@ -148,8 +158,29 @@ public class MainView extends AppCompatActivity {
                     } else {
                         MainView.this.resetMenuToCurrentNode();
                     }
+                } else {
+                    // If there were no node selected that means that main menu has to be loaded
+                    MainView.this.nodes.clear();
+                    MainView.this.nodes.addAll(MainView.this.reader.getMainNodes());
                 }
+                MainView.this.hideNavigation(false);
                 return false;
+            }
+        });
+
+        searchView.setOnSearchClickListener(new SearchView.OnClickListener() {
+            // When user taps search icon
+            @Override
+            public void onClick(View v) {
+                if (bookmarksToggle) {
+                    // If bookmarks was showed at the time
+                    MainView.this.navigationNormalMode();
+                }
+                MainView.this.hideNavigation(true);
+                // Clears all items from the menu
+                // Previously it showed menu from which search view was opened
+                MainView.this.nodes.clear();
+                MainView.this.adapter.notifyDataSetChanged();
             }
         });
 
@@ -164,7 +195,6 @@ public class MainView extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-
         if (actionBarDrawerToggle.onOptionsItemSelected(item)) {
             return true;
         }
@@ -198,6 +228,10 @@ public class MainView extends AppCompatActivity {
         this.adapter.notifyDataSetChanged();
     }
 
+    public void goBack(View view) {
+        this.closeBookmarks();
+    }
+
     public void goNodeUp(View view) {
         ArrayList<String[]> nodes = this.reader.getParentWithSubnodes(this.nodes.get(0)[1]);
         if (nodes != null) {
@@ -214,6 +248,9 @@ public class MainView extends AppCompatActivity {
 
     public void goHome(View view) {
         // Reloads drawer menu to show main menu
+        if (bookmarksToggle) {
+            this.navigationNormalMode();
+        }
         this.nodes.clear();
         this.nodes.addAll(this.reader.getMainNodes());
         this.currentNodePosition = -1;
@@ -279,6 +316,7 @@ public class MainView extends AppCompatActivity {
 
             this.adapter.notifyDataSetChanged();
         }
+        this.hideNavigation(false);
     }
 
     public void resetSearchView() {
@@ -308,5 +346,88 @@ public class MainView extends AppCompatActivity {
             this.resetMenuToCurrentNode();
         }
         this.loadNodeContent();
+    }
+
+    public void showBookmarks(View view) {
+        // Displays bookmarks instead of normal navigation menu in navigation drawer
+        ArrayList<String[]> bookmarkedNodes = this.reader.getBookmarkedNodes();
+
+        // Check if there are any bookmarks
+        // If no bookmarks were found a message is displayed
+        // No other action is taken
+        if (bookmarkedNodes == null) {
+            Toast.makeText(this, R.string.toast_no_bookmarks_message, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (this.bookmarksToggle) {
+            // Showing normal menu
+            this.closeBookmarks();
+        } else {
+            // Displaying bookmarks
+            ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
+            ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
+            ImageButton goUpButton = findViewById(R.id.navigation_drawer_button_up);
+            goBackButton.setVisibility(View.VISIBLE);
+            goUpButton.setVisibility(View.GONE);
+            bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_baseline_bookmarks_on_24));
+            // Saving current state of the menu
+            this.tempNodes = new ArrayList<>();
+            this.tempNodes.addAll(this.nodes);
+            this.tempCurrentNodePosition = this.currentNodePosition;
+
+            // Displaying bookmarks
+            this.nodes.clear();
+            this.nodes.addAll(bookmarkedNodes);
+            this.adapter.markItemSelected(-1);
+            this.adapter.notifyDataSetChanged();
+            this.bookmarksToggle = true;
+        }
+    }
+
+    public void closeBookmarks() {
+        // Restoring saved node status
+        this.nodes.clear();
+        this.nodes.addAll(this.tempNodes);
+        this.currentNodePosition = this.tempCurrentNodePosition;
+        this.adapter.markItemSelected(this.currentNodePosition);
+        this.adapter.notifyDataSetChanged();
+        this.navigationNormalMode();
+    }
+
+    public void navigationNormalMode() {
+        // This function restores navigation buttons to the normal state
+        // as opposite to Bookmark navigation mode
+        // it also does sets some variables to default values
+        ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
+        ImageButton goUpButton = findViewById(R.id.navigation_drawer_button_up);
+        ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
+        goBackButton.setVisibility(View.GONE);
+        goUpButton.setVisibility(View.VISIBLE);
+        bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_outline_bookmarks_off_24));
+        this.tempNodes = null;
+        this.tempCurrentNodePosition = -1;
+        this.bookmarksToggle = false;
+    }
+
+    public void hideNavigation(boolean status) {
+        // Hides or displays navigation buttons at the top of drawer menu
+        // Used when user taps on search icon to make the search field bigger
+        ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
+        ImageButton upButton = findViewById(R.id.navigation_drawer_button_up);
+        ImageButton homeButton = findViewById(R.id.navigation_drawer_button_home);
+        ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
+
+        if (status == true) {
+            goBackButton.setVisibility(View.GONE);
+            upButton.setVisibility(View.GONE);
+            homeButton.setVisibility(View.GONE);
+            bookmarksButton.setVisibility(View.GONE);
+        } else {
+            goBackButton.setVisibility(View.GONE);
+            upButton.setVisibility(View.VISIBLE);
+            homeButton.setVisibility(View.VISIBLE);
+            bookmarksButton.setVisibility(View.VISIBLE);
+        }
     }
 }

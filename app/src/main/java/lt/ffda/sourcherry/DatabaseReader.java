@@ -26,6 +26,10 @@ public interface DatabaseReader {
     // Returns main nodes from the database
     // Used to display menu when app starts
 
+    ArrayList<String[]> getBookmarkedNodes();
+    // Returns bookmarked nodes from the document
+    // Returns null if there aren't any
+
     ArrayList<String[]> getSubnodes(String uniqueID);
     // Returns Subnodes of the node which uniqueID is provided
 
