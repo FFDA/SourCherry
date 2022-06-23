@@ -96,6 +96,23 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
+    public ArrayList<String[]> getBookmarkedNodes() {
+        // Returns bookmarked nodes from the document
+        // Returns null if there aren't any
+        ArrayList<String[]> nodes = new ArrayList<>();
+
+        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN bookmark ON node.node_id=bookmark.node_id ORDER BY bookmark.sequence ASC", null);
+        if(cursor.getCount() == 0) {
+            cursor.close();
+            return null;
+        }
+        nodes = returnSubnodeArrayList(cursor, "false");
+
+        cursor.close();
+        return nodes;
+    }
+
+    @Override
     public ArrayList<String[]> getSubnodes(String uniqueID) {
         // Returns Subnodes of the node which uniqueID is provided
         ArrayList<String[]> nodes = new ArrayList<>();

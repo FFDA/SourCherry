@@ -58,6 +58,8 @@ import org.xml.sax.InputSource;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -102,6 +104,37 @@ public class XMLReader implements DatabaseReader{
 
         nodes = returnSubnodeArrayList(mainNodeList, "false");
 
+        return nodes;
+    }
+
+    @Override
+    public ArrayList<String[]> getBookmarkedNodes() {
+        // Returns bookmarked nodes from the document
+        // Returns null if there aren't any
+        ArrayList<String[]> nodes = new ArrayList<>();
+        NodeList nodeBookmarkNode = this.doc.getElementsByTagName("bookmarks");
+        if (nodeBookmarkNode == null) {
+            return null;
+        } else {
+            List<String> uniqueIDArray = Arrays.asList(nodeBookmarkNode.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
+            NodeList nodeList = this.doc.getElementsByTagName("node");
+            int counter = 0; // Counter to check if all bookmarked nodes were found
+            for (int i=0; i < nodeList.getLength(); i++) {
+                if (counter < nodeList.getLength()) {
+                    Node node = nodeList.item(i);
+                    if (uniqueIDArray.contains(node.getAttributes().getNamedItem("unique_id").getNodeValue())) {
+                        String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+                        String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                        String hasSubnode = String.valueOf(hasSubnodes(node));
+                        String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
+                        String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, "false"};
+                        nodes.add(currentNodeArray);
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
         return nodes;
     }
 
