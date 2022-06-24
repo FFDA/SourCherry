@@ -10,6 +10,7 @@
 
 package lt.ffda.sourcherry;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -26,6 +27,8 @@ import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
@@ -49,6 +52,7 @@ public class MainView extends AppCompatActivity {
     private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
     private ArrayList<String[]> tempNodes; // Needed to save node menu when user opens bookmarks
     private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
+    private boolean backToExit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +65,7 @@ public class MainView extends AppCompatActivity {
         this.currentNode = null; // This needs to be placed before restoring the instance if there was one
         this.bookmarksToggle = false;
         this.currentNodePosition = -1;
+        this.backToExit = false;
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -191,6 +196,8 @@ public class MainView extends AppCompatActivity {
 
         // to make the Navigation drawer icon always appear on the action bar
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        // Registers listener for back button clicks
+        getOnBackPressedDispatcher().addCallback(this, callbackDisplayToastBeforeExit);
     }
 
     @Override
@@ -219,6 +226,29 @@ public class MainView extends AppCompatActivity {
             this.resetMenuToCurrentNode();
         }
     }
+
+    OnBackPressedCallback callbackDisplayToastBeforeExit = new OnBackPressedCallback(true /* enabled by default */) {
+        @Override
+        public void handleOnBackPressed() {
+
+            if (backToExit) { // If button back was already pressed once
+                MainView.this.finish();
+                return;
+            }
+
+            backToExit = true; // Marks that back button was pressed once
+            Toast.makeText(MainView.this, R.string.toast_confirm_mainview_exit, Toast.LENGTH_SHORT).show();
+
+
+            new Handler().postDelayed(new Runnable() {
+                // Reverts boolean that marks if user pressed back button once after 2 seconds
+                @Override
+                public void run() {
+                    backToExit = false;
+                }
+            }, 2000);
+        }
+    };
 
     private void openSubmenu() {
         // Clears existing menu and recreate with submenu of the currentNode

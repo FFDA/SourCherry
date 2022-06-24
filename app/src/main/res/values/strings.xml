@@ -24,4 +24,5 @@
     <string name="main_activity_imported_databases_delete_dialog_message">Dababase imported to app-specific storage will be deleted</string>
     <string name="button_delete">Delete</string>
     <string name="toast_no_bookmarks_message">There are no bookmarks</string>
+    <string name="toast_confirm_mainview_exit">Tab BACK again to leave this screen</string>
 </resources>
