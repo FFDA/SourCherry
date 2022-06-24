@@ -26,11 +26,14 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -143,11 +146,10 @@ public class MainActivity extends AppCompatActivity {
                 // Inflates database list item view
                 LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.imported_databases_item, null);
 
-                TextView databaseFilenameTextView = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
-                databaseFilenameTextView.setText(databaseFilename); // Adds database filename do be displayed for the current database
-
-                databaseFilenameTextView.setOnClickListener(new View.OnClickListener() {
-                    // If user taps on database filename
+                Button databaseFilenameButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
+                databaseFilenameButton.setText(databaseFilename); // Adds database filename do be displayed for the current database
+                // If user taps on database filename
+                databaseFilenameButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
@@ -156,9 +158,22 @@ public class MainActivity extends AppCompatActivity {
                         setMessageWithDatabaseName();
                     }
                 });
+                // If user long presses database filename
+                databaseFilenameButton.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
+                        // Saves selected database's information to the settings
+                        MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
+                        MainActivity.this.setMessageWithDatabaseName();
+                        // Opens database
+                        MainActivity.this.openDatabase();
+                        return true;
+                    }
+                });
 
                 //// Delete icon/button
-                ImageView removeDatabaseIcon = importedDatabaseItem.findViewById(R.id.imported_databases_item_image);
+                ImageButton removeDatabaseIcon = importedDatabaseItem.findViewById(R.id.imported_databases_item_image);
                 removeDatabaseIcon.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
