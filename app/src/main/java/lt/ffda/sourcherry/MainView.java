@@ -262,8 +262,12 @@ public class MainView extends AppCompatActivity {
     }
 
     public void goNodeUp(View view) {
+        // Moves navigation menu one node up
+        // If menu is already at the top it shows a message to the user
         ArrayList<String[]> nodes = this.reader.getParentWithSubnodes(this.nodes.get(0)[1]);
         if (nodes != null && nodes.size() != this.nodes.size()) {
+            // If retrieved nodes are not null and array size do not match the one displayed
+            // it is definitely not the same node so it can go up
             this.currentNode = nodes.get(0);
             this.nodes.clear();
             this.nodes.addAll(nodes);
@@ -271,6 +275,8 @@ public class MainView extends AppCompatActivity {
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyDataSetChanged();
         } else {
+            // If both node arrays matches in size it might be the same node (especially main/top)
+            // This part checks if first and last nodes in arrays matches by comparing uniqueID of both
             if (nodes.get(0)[1].equals(this.nodes.get(0)[1]) && nodes.get(nodes.size() -1 )[1].equals(this.nodes.get(this.nodes.size() -1 )[1])) {
                 Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
@@ -286,14 +292,24 @@ public class MainView extends AppCompatActivity {
 
     public void goHome(View view) {
         // Reloads drawer menu to show main menu
+        // if it is not at the top yet
+        // otherwise shows a message to the user that the top was already reached
         if (bookmarksToggle) {
             this.navigationNormalMode();
         }
-        this.nodes.clear();
-        this.nodes.addAll(this.reader.getMainNodes());
-        this.currentNodePosition = -1;
-        this.adapter.markItemSelected(this.currentNodePosition);
-        this.adapter.notifyDataSetChanged();
+
+        ArrayList<String[]> tempMainNodes = this.reader.getMainNodes();
+
+        // Compares node sizes, first and last node's uniqueIDs in both arrays
+        if (tempMainNodes.size() == this.nodes.size() && tempMainNodes.get(0)[1].equals(this.nodes.get(0)[1]) && tempMainNodes.get(nodes.size() -1 )[1].equals(this.nodes.get(this.nodes.size() -1 )[1])) {
+            Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
+        } else {
+            this.nodes.clear();
+            this.nodes.addAll(tempMainNodes);
+            this.currentNodePosition = -1;
+            this.adapter.markItemSelected(this.currentNodePosition);
+            this.adapter.notifyDataSetChanged();
+        }
     }
 
     public void loadNodeContent() {
