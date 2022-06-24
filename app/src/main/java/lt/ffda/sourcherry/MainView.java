@@ -234,7 +234,7 @@ public class MainView extends AppCompatActivity {
 
     public void goNodeUp(View view) {
         ArrayList<String[]> nodes = this.reader.getParentWithSubnodes(this.nodes.get(0)[1]);
-        if (nodes != null) {
+        if (nodes != null && nodes.size() != this.nodes.size()) {
             this.currentNode = nodes.get(0);
             this.nodes.clear();
             this.nodes.addAll(nodes);
@@ -242,7 +242,16 @@ public class MainView extends AppCompatActivity {
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyDataSetChanged();
         } else {
-            Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
+            if (nodes.get(0)[1].equals(this.nodes.get(0)[1]) && nodes.get(nodes.size() -1 )[1].equals(this.nodes.get(this.nodes.size() -1 )[1])) {
+                Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
+            } else {
+                this.currentNode = nodes.get(0);
+                this.nodes.clear();
+                this.nodes.addAll(nodes);
+                this.currentNodePosition = -1;
+                this.adapter.markItemSelected(this.currentNodePosition);
+                this.adapter.notifyDataSetChanged();
+            }
         }
     }
 
