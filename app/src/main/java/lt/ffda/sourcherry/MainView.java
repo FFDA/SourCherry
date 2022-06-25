@@ -359,7 +359,7 @@ public class MainView extends AppCompatActivity {
 
         if (this.currentNode != null) {
             this.nodes.clear();
-            this.nodes.addAll(this.reader.getParentWithSubnodes(this.currentNode[1]));
+            this.nodes.addAll(this.reader.getSubnodes(this.currentNode[1]));
 
             for (int index = 0; index < this.nodes.size(); index++) {
                 if (this.nodes.get(index)[1].equals(this.currentNode[1])) {
