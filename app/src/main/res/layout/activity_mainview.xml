@@ -73,7 +73,7 @@
                     android:layout_gravity="top"
                     android:background="?selectableItemBackground"
                     android:clickable="true"
-                    android:onClick="showBookmarks"
+                    android:onClick="openCloseBookmarks"
                     android:src="@drawable/ic_outline_bookmarks_off_24" />
 
                 <SearchView

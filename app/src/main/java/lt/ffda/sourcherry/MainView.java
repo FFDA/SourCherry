@@ -75,6 +75,7 @@ public class MainView extends AppCompatActivity {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
             this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
             this.currentNode = savedInstanceState.getStringArray("currentNode");
+            this.bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
         }
 
         // drawer layout instance to toggle the menu icon to open
@@ -145,7 +146,8 @@ public class MainView extends AppCompatActivity {
                     MainView.this.adapter.notifyDataSetChanged();
                 }
                 if (bookmarksToggle) {
-                    MainView.this.navigationNormalMode();
+                    MainView.this.navigationNormalMode(true);
+                    MainView.this.bookmarkVariablesReset();
                 }
                 MainView.this.loadNodeContent();
             }
@@ -190,7 +192,8 @@ public class MainView extends AppCompatActivity {
             public void onClick(View v) {
                 if (bookmarksToggle) {
                     // If bookmarks was showed at the time
-                    MainView.this.navigationNormalMode();
+                    MainView.this.navigationNormalMode(true);
+                    MainView.this.bookmarkVariablesReset();
                 }
                 MainView.this.hideNavigation(true);
                 // Clears all items from the menu
@@ -224,6 +227,7 @@ public class MainView extends AppCompatActivity {
         // Saving some variables to make it possible to restore the content after screen rotation
         outState.putInt("currentNodePosition", this.currentNodePosition);
         outState.putStringArray("currentNode", this.currentNode);
+        outState.putBoolean("bookmarksToggle", this.bookmarksToggle);
         super.onSaveInstanceState(outState);
     }
 
@@ -235,6 +239,10 @@ public class MainView extends AppCompatActivity {
         if (this.currentNode != null) {
             this.loadNodeContent();
             this.resetMenuToCurrentNode();
+        }
+        if (bookmarksToggle) {
+            this.navigationNormalMode(false);
+            this.showBookmarks();
         }
     }
 
@@ -322,7 +330,8 @@ public class MainView extends AppCompatActivity {
         // if it is not at the top yet
         // otherwise shows a message to the user that the top was already reached
         if (bookmarksToggle) {
-            this.navigationNormalMode();
+            this.navigationNormalMode(true);
+            this.bookmarkVariablesReset();
         }
 
         ArrayList<String[]> tempMainNodes = this.reader.getMainNodes();
@@ -417,8 +426,19 @@ public class MainView extends AppCompatActivity {
         this.loadNodeContent();
     }
 
-    public void showBookmarks(View view) {
+    public void openCloseBookmarks(View view) {
+        // Toggles between displaying and hiding of bookmarks
+        if (this.bookmarksToggle) {
+            // Showing normal menu
+            this.closeBookmarks();
+        } else {
+            showBookmarks();
+        }
+    }
+
+    private void showBookmarks() {
         // Displays bookmarks instead of normal navigation menu in navigation drawer
+
         ArrayList<String[]> bookmarkedNodes = this.reader.getBookmarkedNodes();
 
         // Check if there are any bookmarks
@@ -426,20 +446,10 @@ public class MainView extends AppCompatActivity {
         // No other action is taken
         if (bookmarkedNodes == null) {
             Toast.makeText(this, R.string.toast_no_bookmarks_message, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (this.bookmarksToggle) {
-            // Showing normal menu
-            this.closeBookmarks();
         } else {
             // Displaying bookmarks
-            ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
-            ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
-            ImageButton goUpButton = findViewById(R.id.navigation_drawer_button_up);
-            goBackButton.setVisibility(View.VISIBLE);
-            goUpButton.setVisibility(View.GONE);
-            bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_baseline_bookmarks_on_24));
+            this.navigationNormalMode(false);
+
             // Saving current state of the menu
             this.tempNodes = new ArrayList<>();
             this.tempNodes.addAll(this.nodes);
@@ -461,19 +471,32 @@ public class MainView extends AppCompatActivity {
         this.currentNodePosition = this.tempCurrentNodePosition;
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
-        this.navigationNormalMode();
+        this.navigationNormalMode(true);
+        this.bookmarkVariablesReset();
     }
 
-    private void navigationNormalMode() {
+    private void navigationNormalMode(boolean status) {
         // This function restores navigation buttons to the normal state
         // as opposite to Bookmark navigation mode
-        // it also does sets some variables to default values
+        // true - normal mode, false - bookmark mode
+
         ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
         ImageButton goUpButton = findViewById(R.id.navigation_drawer_button_up);
         ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
-        goBackButton.setVisibility(View.GONE);
-        goUpButton.setVisibility(View.VISIBLE);
-        bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_outline_bookmarks_off_24));
+
+        if (status) {
+            goBackButton.setVisibility(View.GONE);
+            goUpButton.setVisibility(View.VISIBLE);
+            bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_outline_bookmarks_off_24));
+        } else {
+            goBackButton.setVisibility(View.VISIBLE);
+            goUpButton.setVisibility(View.GONE);
+            bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_baseline_bookmarks_on_24));
+        }
+    }
+
+    private void bookmarkVariablesReset() {
+        // Sets variables that were used to display bookmarks to they default values
         this.tempNodes = null;
         this.tempCurrentNodePosition = -1;
         this.bookmarksToggle = false;
