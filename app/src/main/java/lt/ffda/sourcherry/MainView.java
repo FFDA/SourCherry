@@ -41,8 +41,8 @@ import java.util.stream.Collectors;
 
 public class MainView extends AppCompatActivity {
 
-    public DrawerLayout drawerLayout;
-    public ActionBarDrawerToggle actionBarDrawerToggle;
+    private DrawerLayout drawerLayout;
+    private ActionBarDrawerToggle actionBarDrawerToggle;
     private ArrayList<String[]> nodes;
     private DatabaseReader reader;
     private MenuItemAdapter adapter;
@@ -81,6 +81,7 @@ public class MainView extends AppCompatActivity {
         // drawer and back button to close drawer
         drawerLayout = findViewById(R.id.drawer_layout);
         actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.nav_open, R.string.nav_close);
+        SearchView searchView = findViewById(R.id.navigation_drawer_search);
 
         SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
         String databaseString = sharedPref.getString("databaseUri", null);
@@ -116,27 +117,39 @@ public class MainView extends AppCompatActivity {
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
         this.adapter = new MenuItemAdapter(this.nodes, this);
-        adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
+        this.adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
                 MainView.this.currentNode = nodes.get(position);
                 if (nodes.get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
+                    // In this case it does not matter if node was selected from normal menu, bookmarks or search
                     MainView.this.openSubmenu();
                 } else {
-                    MainView.this.currentNodePosition = position;
+                    if (bookmarksToggle) {
+                        // If node was selected from bookmarks
+                        MainView.this.setClickedItemInSubmenu();
+                    } else if (!searchView.isIconified()) {
+                        // Node selected from the search
+                        searchView.setQuery("", false);
+                        searchView.clearFocus();
+                        searchView.setIconified(true);
+                        MainView.this.setClickedItemInSubmenu();
+                    } else {
+                        // Node selected from normal menu
+                        MainView.this.currentNodePosition = position;
+                        MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
+                    }
+                    MainView.this.adapter.notifyDataSetChanged();
                 }
                 if (bookmarksToggle) {
-                    MainView.this.closeBookmarks();
-                    MainView.this.resetMenuToCurrentNode();
+                    MainView.this.navigationNormalMode();
                 }
-                MainView.this.resetSearchView();
                 MainView.this.loadNodeContent();
             }
         });
-        rvMenu.setAdapter(adapter);
+        rvMenu.setAdapter(this.adapter);
         rvMenu.setLayoutManager(new LinearLayoutManager(this));
 
-        SearchView searchView = findViewById(R.id.navigation_drawer_search);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -157,13 +170,9 @@ public class MainView extends AppCompatActivity {
             @Override
             public boolean onClose() {
                 if (MainView.this.currentNode != null) {
-                    if (MainView.this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
-                        MainView.this.openSubmenu();
-                    } else {
-                        MainView.this.resetMenuToCurrentNode();
-                    }
+                    MainView.this.resetMenuToCurrentNode();
                 } else {
-                    // If there were no node selected that means that main menu has to be loaded
+                    // If there is no node selected that means that main menu has to be loaded
                     MainView.this.nodes.clear();
                     MainView.this.nodes.addAll(MainView.this.reader.getMainNodes());
                 }
@@ -254,7 +263,22 @@ public class MainView extends AppCompatActivity {
         this.nodes.clear();
         this.nodes.addAll(this.reader.getSubnodes(this.currentNode[1]));
         this.currentNodePosition = 0;
+        this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
+    }
+
+    private void setClickedItemInSubmenu() {
+        // When user chooses to open bookmarked or search provided node
+        // it's not always clear where said node is in menu.
+        // This function gets the new menu and marks node as opened
+        this.nodes.clear();
+        this.nodes.addAll(this.reader.getParentWithSubnodes(this.currentNode[1]));
+        for (int index = 0; index < this.nodes.size(); index++) {
+            if (this.nodes.get(index)[1].equals(this.currentNode[1])) {
+                this.currentNodePosition = index;
+                this.adapter.markItemSelected(this.currentNodePosition);
+            }
+        }
     }
 
     public void goBack(View view) {
@@ -312,7 +336,7 @@ public class MainView extends AppCompatActivity {
         }
     }
 
-    public void loadNodeContent() {
+    private void loadNodeContent() {
 
         FragmentManager fragmentManager = getSupportFragmentManager();
 
@@ -328,15 +352,13 @@ public class MainView extends AppCompatActivity {
         // Sends ArrayList to fragment to be added added to view
         nodeContentFragment.setNodeContent(this.reader.getNodeContent(this.currentNode[1]));
 
-        this.adapter.markItemSelected(this.currentNodePosition);
-        this.adapter.notifyDataSetChanged();
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle(this.currentNode[0]);
 
         nodeContentFragment.loadContent();
     }
 
-    public void filterNodes(String query) {
+    private void filterNodes(String query) {
         // Filters node list by the name of the node
         // Changes the node list that represents menu and updates it
         // Case insensitive
@@ -353,33 +375,27 @@ public class MainView extends AppCompatActivity {
         this.adapter.notifyDataSetChanged();
     }
 
-    public void resetMenuToCurrentNode() {
-        // Restores drawer menu to current selection after user search
-        // when no node was selected
+    private void resetMenuToCurrentNode() {
+        // Restores drawer menu selected item to currently opened node
 
         if (this.currentNode != null) {
             this.nodes.clear();
-            this.nodes.addAll(this.reader.getSubnodes(this.currentNode[1]));
 
-            for (int index = 0; index < this.nodes.size(); index++) {
-                if (this.nodes.get(index)[1].equals(this.currentNode[1])) {
-                    this.currentNodePosition = index;
-                    this.adapter.markItemSelected(this.currentNodePosition);
+            if (MainView.this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
+                this.nodes.addAll(this.reader.getSubnodes(this.currentNode[1]));
+                this.currentNodePosition = 0;
+                this.adapter.markItemSelected(this.currentNodePosition);
+            } else {
+                this.nodes.addAll(this.reader.getParentWithSubnodes(this.currentNode[1]));
+                for (int index = 0; index < this.nodes.size(); index++) {
+                    if (this.nodes.get(index)[1].equals(this.currentNode[1])) {
+                        this.currentNodePosition = index;
+                        this.adapter.markItemSelected(this.currentNodePosition);
+                    }
                 }
             }
 
             this.adapter.notifyDataSetChanged();
-        }
-        this.hideNavigation(false);
-    }
-
-    public void resetSearchView() {
-        // Deflates search field
-        SearchView searchView = (SearchView) findViewById(R.id.navigation_drawer_search);
-        if (!searchView.isIconified()) {
-            searchView.setQuery("", false);
-            searchView.clearFocus();
-            searchView.setIconified(true);
         }
     }
 
@@ -394,11 +410,7 @@ public class MainView extends AppCompatActivity {
     public void openAnchorLink(String[] nodeArray) {
         this.currentNode = nodeArray;
         this.nodes.clear();
-        if (this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
-            this.openSubmenu();
-        } else {
-            this.resetMenuToCurrentNode();
-        }
+        this.resetMenuToCurrentNode();
         this.loadNodeContent();
     }
 
@@ -439,7 +451,7 @@ public class MainView extends AppCompatActivity {
         }
     }
 
-    public void closeBookmarks() {
+    private void closeBookmarks() {
         // Restoring saved node status
         this.nodes.clear();
         this.nodes.addAll(this.tempNodes);
@@ -449,7 +461,7 @@ public class MainView extends AppCompatActivity {
         this.navigationNormalMode();
     }
 
-    public void navigationNormalMode() {
+    private void navigationNormalMode() {
         // This function restores navigation buttons to the normal state
         // as opposite to Bookmark navigation mode
         // it also does sets some variables to default values
@@ -464,7 +476,7 @@ public class MainView extends AppCompatActivity {
         this.bookmarksToggle = false;
     }
 
-    public void hideNavigation(boolean status) {
+    private void hideNavigation(boolean status) {
         // Hides or displays navigation buttons at the top of drawer menu
         // Used when user taps on search icon to make the search field bigger
         ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
