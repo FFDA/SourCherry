@@ -123,6 +123,10 @@ public class MainView extends AppCompatActivity {
                 MainView.this.currentNode = nodes.get(position);
                 if (nodes.get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
                     // In this case it does not matter if node was selected from normal menu, bookmarks or search
+                    if (!searchView.isIconified()) {
+                        searchView.onActionViewCollapsed();
+                        MainView.this.hideNavigation(false);
+                    }
                     MainView.this.openSubmenu();
                 } else {
                     if (bookmarksToggle) {
