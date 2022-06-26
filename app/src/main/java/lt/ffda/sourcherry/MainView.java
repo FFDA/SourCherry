@@ -130,9 +130,8 @@ public class MainView extends AppCompatActivity {
                         MainView.this.setClickedItemInSubmenu();
                     } else if (!searchView.isIconified()) {
                         // Node selected from the search
-                        searchView.setQuery("", false);
-                        searchView.clearFocus();
-                        searchView.setIconified(true);
+                        searchView.onActionViewCollapsed();
+                        MainView.this.hideNavigation(false);
                         MainView.this.setClickedItemInSubmenu();
                     } else {
                         // Node selected from normal menu
