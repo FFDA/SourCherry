@@ -12,7 +12,6 @@ package lt.ffda.sourcherry;
 
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
-import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,6 +37,11 @@ public class NodeContentFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.node_content_fragment, container, false);
 
         this.contentFragmentLinearLayout = (LinearLayout) rootView.findViewById(R.id.content_fragment_linearlayout);
+
+        // This check is needed to load content when coming back from to this fragment from the stack
+        if (this.nodeContent != null) {
+            this.loadContent();
+        }
 
         return rootView;
     }

@@ -18,6 +18,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import lt.ffda.sourcherry.R;
@@ -25,6 +27,13 @@ import lt.ffda.sourcherry.R;
 public class NodeImageFragment extends Fragment {
     public NodeImageFragment() {
         super(R.layout.node_image_fragment);
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        requireActivity().getOnBackPressedDispatcher().addCallback(this, callbackExitImageView);
     }
 
     @Override
@@ -41,4 +50,12 @@ public class NodeImageFragment extends Fragment {
 
         return rootView;
     }
+
+    OnBackPressedCallback callbackExitImageView = new OnBackPressedCallback(true /* enabled by default */) {
+        @Override
+        public void handleOnBackPressed() {
+
+        getParentFragmentManager().popBackStack();
+        }
+    };
 }

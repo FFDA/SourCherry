@@ -70,6 +70,7 @@ public class MainView extends AppCompatActivity {
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)
                     .add(R.id.main_view_fragment, NodeContentFragment.class, null, "main")
+//                    .addToBackStack("main")
                     .commit();
         } else {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
