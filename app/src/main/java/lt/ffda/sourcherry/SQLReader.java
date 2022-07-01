@@ -31,6 +31,7 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
+import android.text.style.LeadingMarginSpan;
 import android.text.style.LineBackgroundSpan;
 import android.text.style.MetricAffectingSpan;
 import android.text.style.QuoteSpan;
@@ -500,6 +501,10 @@ public class SQLReader implements DatabaseReader {
                         formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         break;
                 }
+            } else if (attribute.equals("indent")) {
+                int indent = Integer.valueOf(nodeAttributes.item(i).getTextContent()) * 40;
+                LeadingMarginSpan.Standard lmss = new LeadingMarginSpan.Standard(indent);
+                formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
         return formattedNodeText;
