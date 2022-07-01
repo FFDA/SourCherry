@@ -70,7 +70,6 @@ public class MainView extends AppCompatActivity {
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)
                     .add(R.id.main_view_fragment, NodeContentFragment.class, null, "main")
-//                    .addToBackStack("main")
                     .commit();
         } else {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
@@ -150,6 +149,14 @@ public class MainView extends AppCompatActivity {
                     MainView.this.navigationNormalMode(true);
                     MainView.this.bookmarkVariablesReset();
                 }
+
+                // Checks if there is more than 0 fragment in backStack and removes it if there is
+                // because right now there is only one possible other fragment in backStack - image
+                // it's not needed if use want's to see another node.
+                if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                    getSupportFragmentManager().popBackStack();
+                }
+
                 MainView.this.loadNodeContent();
             }
         });
@@ -352,13 +359,6 @@ public class MainView extends AppCompatActivity {
     private void loadNodeContent() {
 
         FragmentManager fragmentManager = getSupportFragmentManager();
-
-        // Checks if there is more than 0 fragment in backStack and removes it if there is
-        // because right now there is only one possible other fragment in backStack - image
-        // it's not needed if use want's to see another node.
-        if (fragmentManager.getBackStackEntryCount() > 0) {
-            fragmentManager.popBackStack();
-        }
 
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
