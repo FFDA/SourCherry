@@ -8,10 +8,6 @@ App is targeted for sdk 31 (Android 12) with min version of 24 (Android 7).
 
 This project is for Android/Java/Git learning purposes and is not official CherryTree android app or are associated with CherryTree project or it's creator.
 
-## Beta
-
-At this point app can open all types of databases and has most needed features to read and navigate CherryTree database. App will be placed to app stores soon. Beta version can be consider as RC for release. Bug reports are appreciated.
-
 ## Installation / Download
 
 I plan to add SourCherry to Play Store when it has more features and can open and read all types of CherryTree databases.
@@ -21,7 +17,7 @@ Right now anyone can download this repository and build the apk file using Andro
 ## Limitations
 
 * Right now it can only open databases in read only mode.
-* There is a possibility that not all text will be displayed. 
+* There is a possibility that not all text will be displayed.
 * Some text most definitely will be missing some formatting and it will look differently compared to how it looks in CherryTree.
 * Password protected databases can be opened only on phones with Android 8 or later.
 
@@ -37,3 +33,11 @@ So to open password protected database app needs to copy file to app-specific st
 ## SQL databases
 
 For the same reason (SAF) that prevents file extraction without saving files inside app-specific storage SQL based databases have to be copied to it before opening. There will be a performance hit. Should be noticeable when opening a SQL database for the first time.
+
+## Privacy Policy
+
+Generated privacy policy using https://privacypolicytemplate.net, because it is required for apps published on Google Play Store.
+
+**Personal note:** I DO NOT collect any data from the users of this app (even crash reports). It comes free of charge and as is.
+
+You can read full privacy policy [here](https://htmlpreview.github.io/?https://github.com/FFDA/ffda.github.storage/blob/main/misc/SourCherry-PrivacyPolicy.html).
