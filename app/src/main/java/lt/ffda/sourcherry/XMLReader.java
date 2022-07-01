@@ -19,11 +19,13 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 
 import android.text.TextPaint;
+import android.text.style.AlignmentSpan;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
@@ -439,7 +441,6 @@ public class XMLReader implements DatabaseReader{
                 formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (attribute.equals("scale")) {
                 String scaleValue = nodeAttributes.item(i).getTextContent();
-                MetricAffectingSpan mas = null;
                 switch (scaleValue) {
                     case "h1": formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         break;
@@ -468,6 +469,14 @@ public class XMLReader implements DatabaseReader{
                 } else if (attributeValue[0].equals("node")) {
                     // Making links to open other nodes (Anchors)
                     formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+            } else if (attribute.equals("justification")) {
+                String justification = nodeAttributes.item(i).getTextContent();
+                switch (justification) {
+                    case "right":   formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                    break;
+                    case "center":  formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                    break;
                 }
             }
         }
