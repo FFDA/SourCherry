@@ -598,7 +598,7 @@ public class SQLReader implements DatabaseReader {
                 SQLReader.this.fragmentManager
                         .beginTransaction()
                         .setCustomAnimations(R.anim.pop_in, R.anim.fade_out, R.anim.fade_in, R.anim.pop_out)
-                        .replace(R.id.main_view_fragment, NodeImageFragment.class, bundle)
+                        .replace(R.id.main_view_fragment, NodeImageFragment.class, bundle, "image")
                         .setReorderingAllowed(true)
                         .addToBackStack("image")
                         .commit();

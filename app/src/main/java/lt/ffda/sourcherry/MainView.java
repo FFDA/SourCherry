@@ -70,7 +70,9 @@ public class MainView extends AppCompatActivity {
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)
                     .add(R.id.main_view_fragment, NodeContentFragment.class, null, "main")
+                    .addToBackStack("main")
                     .commit();
+            getSupportFragmentManager().executePendingTransactions();
         } else {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
             this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
@@ -153,7 +155,7 @@ public class MainView extends AppCompatActivity {
                 // Checks if there is more than 0 fragment in backStack and removes it if there is
                 // because right now there is only one possible other fragment in backStack - image
                 // it's not needed if use want's to see another node.
-                if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                if (getSupportFragmentManager().findFragmentByTag("image") != null) {
                     getSupportFragmentManager().popBackStack();
                 }
 
@@ -245,9 +247,13 @@ public class MainView extends AppCompatActivity {
         // at earlier point app will crash
         super.onResume();
         if (this.currentNode != null) {
-            this.loadNodeContent();
+            if (getSupportFragmentManager().findFragmentByTag("image") == null) {
+                this.loadNodeContent();
+            }
+            this.setToolbarTitle();
             this.resetMenuToCurrentNode();
         }
+
         if (bookmarksToggle) {
             this.navigationNormalMode(false);
             this.showBookmarks();
@@ -365,10 +371,15 @@ public class MainView extends AppCompatActivity {
         // Sends ArrayList to fragment to be added added to view
         nodeContentFragment.setNodeContent(this.reader.getNodeContent(this.currentNode[1]));
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        toolbar.setTitle(this.currentNode[0]);
+        this.setToolbarTitle();
 
         nodeContentFragment.loadContent();
+    }
+
+    private void setToolbarTitle() {
+        // Sets toolbar title to the current node name
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle(this.currentNode[0]);
     }
 
     private void filterNodes(String query) {

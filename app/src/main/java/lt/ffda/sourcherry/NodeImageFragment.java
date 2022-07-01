@@ -32,8 +32,6 @@ public class NodeImageFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        requireActivity().getOnBackPressedDispatcher().addCallback(this, callbackExitImageView);
     }
 
     @Override
@@ -50,6 +48,13 @@ public class NodeImageFragment extends Fragment {
 
         return rootView;
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        requireActivity().getOnBackPressedDispatcher().addCallback(this, callbackExitImageView);
+    }
+
 
     OnBackPressedCallback callbackExitImageView = new OnBackPressedCallback(true /* enabled by default */) {
         @Override
