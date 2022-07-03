@@ -316,7 +316,7 @@ public class MainView extends AppCompatActivity {
         } else {
             // If both node arrays matches in size it might be the same node (especially main/top)
             // This part checks if first and last nodes in arrays matches by comparing uniqueID of both
-            if (nodes.get(0)[1].equals(this.mainViewModel.getNodes().get(0)[1]) && this.mainViewModel.getNodes().get(nodes.size() -1 )[1].equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 )[1])) {
+            if (nodes.get(0)[1].equals(this.mainViewModel.getNodes().get(0)[1]) && nodes.get(nodes.size() -1 )[1].equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 )[1])) {
                 Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
                 this.currentNode = nodes.get(0);
