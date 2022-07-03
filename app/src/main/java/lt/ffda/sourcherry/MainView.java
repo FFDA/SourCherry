@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -43,15 +44,14 @@ public class MainView extends AppCompatActivity {
 
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle actionBarDrawerToggle;
-    private ArrayList<String[]> nodes;
     private DatabaseReader reader;
     private MenuItemAdapter adapter;
     private String[] currentNode;
     private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
     private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
-    private ArrayList<String[]> tempNodes; // Needed to save node menu when user opens bookmarks
     private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
     private boolean backToExit;
+    private MainViewModel mainViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,24 +61,12 @@ public class MainView extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        this.mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+
         this.currentNode = null; // This needs to be placed before restoring the instance if there was one
         this.bookmarksToggle = false;
         this.currentNodePosition = -1;
         this.backToExit = false;
-
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .setReorderingAllowed(true)
-                    .add(R.id.main_view_fragment, NodeContentFragment.class, null, "main")
-                    .addToBackStack("main")
-                    .commit();
-            getSupportFragmentManager().executePendingTransactions();
-        } else {
-            // Restoring some variable to make it possible restore content fragment after the screen rotation
-            this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
-            this.currentNode = savedInstanceState.getStringArray("currentNode");
-            this.bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
-        }
 
         // drawer layout instance to toggle the menu icon to open
         // drawer and back button to close drawer
@@ -116,15 +104,28 @@ public class MainView extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        this.nodes = reader.getMainNodes();
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .setReorderingAllowed(true).setReorderingAllowed(true)
+                    .add(R.id.main_view_fragment, NodeContentFragment.class, null, "main")
+                    .addToBackStack("main")
+                    .commit();
+            getSupportFragmentManager().executePendingTransactions();
+            this.mainViewModel.setNodes(this.reader.getMainNodes());
+        } else {
+            // Restoring some variable to make it possible restore content fragment after the screen rotation
+            this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
+            this.currentNode = savedInstanceState.getStringArray("currentNode");
+            this.bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
+        }
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
-        this.adapter = new MenuItemAdapter(this.nodes, this);
+        this.adapter = new MenuItemAdapter(this.mainViewModel.getNodes(), this);
         this.adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
-                MainView.this.currentNode = nodes.get(position);
-                if (nodes.get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
+                MainView.this.currentNode = MainView.this.mainViewModel.getNodes().get(position);
+                if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
                     // In this case it does not matter if node was selected from normal menu, bookmarks or search
                     if (!searchView.isIconified()) {
                         searchView.onActionViewCollapsed();
@@ -150,13 +151,6 @@ public class MainView extends AppCompatActivity {
                 if (bookmarksToggle) {
                     MainView.this.navigationNormalMode(true);
                     MainView.this.bookmarkVariablesReset();
-                }
-
-                // Checks if there is more than 0 fragment in backStack and removes it if there is
-                // because right now there is only one possible other fragment in backStack - image
-                // it's not needed if use want's to see another node.
-                if (getSupportFragmentManager().findFragmentByTag("image") != null) {
-                    getSupportFragmentManager().popBackStack();
                 }
 
                 MainView.this.loadNodeContent();
@@ -188,8 +182,7 @@ public class MainView extends AppCompatActivity {
                     MainView.this.resetMenuToCurrentNode();
                 } else {
                     // If there is no node selected that means that main menu has to be loaded
-                    MainView.this.nodes.clear();
-                    MainView.this.nodes.addAll(MainView.this.reader.getMainNodes());
+                    MainView.this.mainViewModel.setNodes(MainView.this.reader.getMainNodes());
                 }
                 MainView.this.hideNavigation(false);
                 return false;
@@ -208,7 +201,6 @@ public class MainView extends AppCompatActivity {
                 MainView.this.hideNavigation(true);
                 // Clears all items from the menu
                 // Previously it showed menu from which search view was opened
-                MainView.this.nodes.clear();
                 MainView.this.adapter.notifyDataSetChanged();
             }
         });
@@ -247,16 +239,16 @@ public class MainView extends AppCompatActivity {
         // at earlier point app will crash
         super.onResume();
         if (this.currentNode != null) {
+            this.setToolbarTitle();
+            this.adapter.markItemSelected(this.currentNodePosition);
+            this.adapter.notifyItemChanged(this.currentNodePosition);
             if (getSupportFragmentManager().findFragmentByTag("image") == null) {
                 this.loadNodeContent();
             }
-            this.setToolbarTitle();
-            this.resetMenuToCurrentNode();
         }
 
         if (bookmarksToggle) {
             this.navigationNormalMode(false);
-            this.showBookmarks();
         }
     }
 
@@ -285,21 +277,20 @@ public class MainView extends AppCompatActivity {
 
     private void openSubmenu() {
         // Clears existing menu and recreate with submenu of the currentNode
-        this.nodes.clear();
-        this.nodes.addAll(this.reader.getSubnodes(this.currentNode[1]));
+        this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
         this.currentNodePosition = 0;
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
+
     }
 
     private void setClickedItemInSubmenu() {
         // When user chooses to open bookmarked or search provided node
         // it's not always clear where said node is in menu.
         // This function gets the new menu and marks node as opened
-        this.nodes.clear();
-        this.nodes.addAll(this.reader.getParentWithSubnodes(this.currentNode[1]));
-        for (int index = 0; index < this.nodes.size(); index++) {
-            if (this.nodes.get(index)[1].equals(this.currentNode[1])) {
+        this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+        for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
+            if (this.mainViewModel.getNodes().get(index)[1].equals(this.currentNode[1])) {
                 this.currentNodePosition = index;
                 this.adapter.markItemSelected(this.currentNodePosition);
             }
@@ -313,25 +304,23 @@ public class MainView extends AppCompatActivity {
     public void goNodeUp(View view) {
         // Moves navigation menu one node up
         // If menu is already at the top it shows a message to the user
-        ArrayList<String[]> nodes = this.reader.getParentWithSubnodes(this.nodes.get(0)[1]);
-        if (nodes != null && nodes.size() != this.nodes.size()) {
+        ArrayList<String[]> nodes = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0)[1]);
+        if (nodes != null && nodes.size() != this.mainViewModel.getNodes().size()) {
             // If retrieved nodes are not null and array size do not match the one displayed
             // it is definitely not the same node so it can go up
-            this.currentNode = nodes.get(0);
-            this.nodes.clear();
-            this.nodes.addAll(nodes);
+            this.currentNode = this.mainViewModel.getNodes().get(0);
+            this.mainViewModel.setNodes(nodes);
             this.currentNodePosition = -1;
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyDataSetChanged();
         } else {
             // If both node arrays matches in size it might be the same node (especially main/top)
             // This part checks if first and last nodes in arrays matches by comparing uniqueID of both
-            if (nodes.get(0)[1].equals(this.nodes.get(0)[1]) && nodes.get(nodes.size() -1 )[1].equals(this.nodes.get(this.nodes.size() -1 )[1])) {
+            if (nodes.get(0)[1].equals(this.mainViewModel.getNodes().get(0)[1]) && this.mainViewModel.getNodes().get(nodes.size() -1 )[1].equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 )[1])) {
                 Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
                 this.currentNode = nodes.get(0);
-                this.nodes.clear();
-                this.nodes.addAll(nodes);
+                this.mainViewModel.setNodes(nodes);
                 this.currentNodePosition = -1;
                 this.adapter.markItemSelected(this.currentNodePosition);
                 this.adapter.notifyDataSetChanged();
@@ -351,11 +340,10 @@ public class MainView extends AppCompatActivity {
         ArrayList<String[]> tempMainNodes = this.reader.getMainNodes();
 
         // Compares node sizes, first and last node's uniqueIDs in both arrays
-        if (tempMainNodes.size() == this.nodes.size() && tempMainNodes.get(0)[1].equals(this.nodes.get(0)[1]) && tempMainNodes.get(nodes.size() -1 )[1].equals(this.nodes.get(this.nodes.size() -1 )[1])) {
+        if (tempMainNodes.size() == this.mainViewModel.getNodes().size() && tempMainNodes.get(0)[1].equals(this.mainViewModel.getNodes().get(0)[1]) && tempMainNodes.get(this.mainViewModel.getNodes().size() -1 )[1].equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 )[1])) {
             Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
         } else {
-            this.nodes.clear();
-            this.nodes.addAll(tempMainNodes);
+            this.mainViewModel.setNodes(tempMainNodes);
             this.currentNodePosition = -1;
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyDataSetChanged();
@@ -365,11 +353,19 @@ public class MainView extends AppCompatActivity {
     private void loadNodeContent() {
 
         FragmentManager fragmentManager = getSupportFragmentManager();
+        // Checks if there is fragment with tag "image" in backStack and removes it if there it
+        // it's not needed if user want's to see another content node.
+        if (fragmentManager.findFragmentByTag("image") != null) {
+            fragmentManager.beginTransaction()
+                    .remove(fragmentManager.findFragmentByTag("image"))
+                    .commit();
+            fragmentManager.popBackStack();
+        }
 
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
         // Sends ArrayList to fragment to be added added to view
-        nodeContentFragment.setNodeContent(this.reader.getNodeContent(this.currentNode[1]));
+        mainViewModel.setNodeContent(this.reader.getNodeContent(this.currentNode[1]));
 
         this.setToolbarTitle();
 
@@ -386,16 +382,14 @@ public class MainView extends AppCompatActivity {
         // Filters node list by the name of the node
         // Changes the node list that represents menu and updates it
         // Case insensitive
-        this.nodes.clear();
         this.adapter.markItemSelected(-1);
-        this.nodes.addAll(this.reader.getAllNodes());
+        this.mainViewModel.setNodes(this.reader.getAllNodes());
 
-        ArrayList<String[]> filteredNodes = this.nodes.stream()
+        ArrayList<String[]> filteredNodes = this.mainViewModel.getNodes().stream()
                 .filter(node -> node[0].toLowerCase().contains(query.toLowerCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        this.nodes.clear();
-        this.nodes.addAll(filteredNodes);
+        this.mainViewModel.setNodes(filteredNodes);
         this.adapter.notifyDataSetChanged();
     }
 
@@ -403,16 +397,15 @@ public class MainView extends AppCompatActivity {
         // Restores drawer menu selected item to currently opened node
 
         if (this.currentNode != null) {
-            this.nodes.clear();
 
             if (MainView.this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
-                this.nodes.addAll(this.reader.getSubnodes(this.currentNode[1]));
+                this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
                 this.currentNodePosition = 0;
                 this.adapter.markItemSelected(this.currentNodePosition);
             } else {
-                this.nodes.addAll(this.reader.getParentWithSubnodes(this.currentNode[1]));
-                for (int index = 0; index < this.nodes.size(); index++) {
-                    if (this.nodes.get(index)[1].equals(this.currentNode[1])) {
+                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+                for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
+                    if (this.mainViewModel.getNodes().get(index)[1].equals(this.currentNode[1])) {
                         this.currentNodePosition = index;
                         this.adapter.markItemSelected(this.currentNodePosition);
                     }
@@ -433,7 +426,6 @@ public class MainView extends AppCompatActivity {
 
     public void openAnchorLink(String[] nodeArray) {
         this.currentNode = nodeArray;
-        this.nodes.clear();
         this.resetMenuToCurrentNode();
         this.loadNodeContent();
     }
@@ -461,15 +453,12 @@ public class MainView extends AppCompatActivity {
         } else {
             // Displaying bookmarks
             this.navigationNormalMode(false);
-
             // Saving current state of the menu
-            this.tempNodes = new ArrayList<>();
-            this.tempNodes.addAll(this.nodes);
+            this.mainViewModel.setTempNodes(this.mainViewModel.getNodes());
             this.tempCurrentNodePosition = this.currentNodePosition;
 
             // Displaying bookmarks
-            this.nodes.clear();
-            this.nodes.addAll(bookmarkedNodes);
+            this.mainViewModel.setNodes(bookmarkedNodes);
             this.adapter.markItemSelected(-1);
             this.adapter.notifyDataSetChanged();
             this.bookmarksToggle = true;
@@ -478,8 +467,7 @@ public class MainView extends AppCompatActivity {
 
     private void closeBookmarks() {
         // Restoring saved node status
-        this.nodes.clear();
-        this.nodes.addAll(this.tempNodes);
+        this.mainViewModel.setNodes(this.mainViewModel.getTempNodes());
         this.currentNodePosition = this.tempCurrentNodePosition;
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
@@ -509,7 +497,7 @@ public class MainView extends AppCompatActivity {
 
     private void bookmarkVariablesReset() {
         // Sets variables that were used to display bookmarks to they default values
-        this.tempNodes = null;
+        this.mainViewModel.resetTempNodes();
         this.tempCurrentNodePosition = -1;
         this.bookmarksToggle = false;
     }

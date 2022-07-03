@@ -40,6 +40,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview-selection:1.1.0'
     implementation 'androidx.activity:activity:1.4.0'
     implementation 'androidx.fragment:fragment:1.4.1'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.5.0'
     implementation 'org.apache.commons:commons-compress:1.21'
     implementation 'org.tukaani:xz:1.9'
     testImplementation 'junit:junit:4.13.2'

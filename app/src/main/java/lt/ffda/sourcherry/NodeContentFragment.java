@@ -22,6 +22,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import lt.ffda.sourcherry.R;
 
@@ -29,29 +30,40 @@ import java.util.ArrayList;
 
 public class NodeContentFragment extends Fragment {
     private LinearLayout contentFragmentLinearLayout;
-    private ArrayList<ArrayList<CharSequence[]>> nodeContent;
+    private MainViewModel mainViewModel;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View rootView = inflater.inflate(R.layout.node_content_fragment, container, false);
 
+        this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.contentFragmentLinearLayout = (LinearLayout) rootView.findViewById(R.id.content_fragment_linearlayout);
 
-        // This check is needed to load content when coming back from to this fragment from the stack
-        if (this.nodeContent != null) {
+        if (mainViewModel.getNodeContent() != null) {
             this.loadContent();
         }
 
         return rootView;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // This check is needed to load content when coming back from to this fragment from the stack
+        if (mainViewModel.getNodeContent() != null) {
+            this.loadContent();
+        }
+    }
+
     public void loadContent() {
 
         // Clears layout just in case. Most of the time it is needed
-        this.contentFragmentLinearLayout.removeAllViews();
+        if (this.contentFragmentLinearLayout != null) {
+            this.contentFragmentLinearLayout.removeAllViews();
+        }
 
-        for (ArrayList part: this.nodeContent) {
+        for (ArrayList part: mainViewModel.getNodeContent()) {
             CharSequence[] type = (CharSequence[]) part.get(0);
             if (type[0].equals("text")) {
                 // This adds not only text, but images, codeboxes
@@ -118,9 +130,5 @@ public class NodeContentFragment extends Fragment {
                 this.contentFragmentLinearLayout.addView(tableScrollView);
             }
         }
-    }
-
-    public void setNodeContent(ArrayList<ArrayList<CharSequence[]>> nodeContent) {
-        this.nodeContent = nodeContent;
     }
 }

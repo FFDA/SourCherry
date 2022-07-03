@@ -60,7 +60,12 @@ public class NodeImageFragment extends Fragment {
         @Override
         public void handleOnBackPressed() {
 
-        getParentFragmentManager().popBackStack();
+
+            getParentFragmentManager().beginTransaction()
+                    .setReorderingAllowed(true)
+                    .remove(getParentFragmentManager().findFragmentByTag("image"))
+                    .commit();
+            getParentFragmentManager().popBackStack();
         }
     };
 }
