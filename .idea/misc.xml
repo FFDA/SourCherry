@@ -42,6 +42,7 @@
         <entry key="app/src/main/res/drawable/table_data_cell.xml" value="0.299" />
         <entry key="app/src/main/res/drawable/table_header_cell.xml" value="0.299" />
         <entry key="app/src/main/res/drawable/tt.xml" value="0.299" />
+        <entry key="app/src/main/res/layout/activity_image_view.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.3421875" />
         <entry key="app/src/main/res/layout/activity_main_drawer.xml" value="0.18229166666666666" />
         <entry key="app/src/main/res/layout/activity_mainview.xml" value="0.33" />
@@ -59,6 +60,7 @@
         <entry key="app/src/main/res/layout/node_view_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/table_cell_textview.xml" value="0.2515625" />
         <entry key="app/src/main/res/menu/activity_main_drawer.xml" value="0.35572916666666665" />
+        <entry key="app/src/main/res/menu/back_button.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/menu/drawer_content_resolver_menu.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/menu/group.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/menu/header.xml" value="0.3572916666666667" />

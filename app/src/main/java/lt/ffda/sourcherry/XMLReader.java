@@ -11,6 +11,7 @@
 package lt.ffda.sourcherry;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -32,7 +33,6 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
 import android.text.style.LeadingMarginSpan;
 import android.text.style.LineBackgroundSpan;
-import android.text.style.MetricAffectingSpan;
 import android.text.style.QuoteSpan;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
@@ -562,35 +562,27 @@ public class XMLReader implements DatabaseReader{
             image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
             ImageSpan is = new ImageSpan(image);
             formattedImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            //// Detects image touches/clicks
+            ClickableSpan imageClickableSpan = new ClickableSpan() {
+                @Override
+                public void onClick(@NonNull View widget) {
+                    TextView nodeContent = (TextView) widget; // This is all TextView that is being displayed for the user
+                    Spannable nodeContentSpan = (Spannable) nodeContent.getText(); // Getting all node content as a span
+                    int start = nodeContentSpan.getSpanStart(this); // Getting start position of the clicked span (this)
+                    int end = nodeContentSpan.getSpanEnd(this); // Getting end position of the clicked span (this)
+
+                    // Starting activity to view enlarged  zoomable image
+                    Intent displayImage = new Intent(context, ImageViewActivity.class);
+                    displayImage.putExtra("imageByteArray", decodedString);
+                    context.startActivity(displayImage);
+                }
+            };
+            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+            ////
         } catch (Exception e) {
             Toast.makeText(this.context, "Failed to load image", Toast.LENGTH_SHORT).show();
         }
-        ////
-
-        //// Detects image touches/clicks
-        ClickableSpan imageClickableSpan = new ClickableSpan() {
-            @Override
-            public void onClick(@NonNull View widget) {
-                TextView nodeContent = (TextView) widget; // This is all TextView that is being displayed for the user
-                Spannable nodeContentSpan = (Spannable) nodeContent.getText(); // Getting all node content as a span
-                int start = nodeContentSpan.getSpanStart(this); // Getting start position of the clicked span (this)
-                int end = nodeContentSpan.getSpanEnd(this); // Getting end position of the clicked span (this)
-
-                /// Setting up to send click span to fragment
-                Bundle bundle = new Bundle();
-                bundle.putCharSequence("image", nodeContentSpan.subSequence(start, end));
-                ///
-
-                XMLReader.this.fragmentManager
-                        .beginTransaction()
-                        .setCustomAnimations(R.anim.pop_in, R.anim.fade_out, R.anim.fade_in, R.anim.pop_out)
-                        .replace(R.id.main_view_fragment, NodeImageFragment.class, bundle, "image")
-                        .setReorderingAllowed(true)
-                        .addToBackStack("image")
-                        .commit();
-            }
-        };
-        formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
         ////
 
         return formattedImage;
