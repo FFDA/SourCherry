@@ -34,23 +34,25 @@ public class MainViewModel extends ViewModel {
         } else {
             this.nodes = nodes;
         }
-
     }
     public ArrayList<String[]> getNodes() {
         return this.nodes;
-    }
-
-    public void setTempNodes(ArrayList<String[]> tempNodes) {
-        this.tempNodes = new ArrayList<>();
-        this.tempNodes.addAll(tempNodes);
-    }
-
-    public ArrayList<String[]> getTempNodes() {
-        return this.tempNodes;
     }
 
     public void resetTempNodes() {
         this.tempNodes = null;
     }
 
+    public void saveCurrentNodes() {
+        // Saves current menu items while using bookmarks and search
+        this.tempNodes = new ArrayList<>();
+        this.tempNodes.addAll(this.nodes);
+    }
+
+    public void restoreSavedCurrentNodes() {
+        // Restores saved menu items and destroys saved
+        this.nodes.clear();
+        this.nodes.addAll(this.tempNodes);
+        this.tempNodes = null;
+    }
 }

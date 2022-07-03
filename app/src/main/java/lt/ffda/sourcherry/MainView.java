@@ -454,7 +454,7 @@ public class MainView extends AppCompatActivity {
             // Displaying bookmarks
             this.navigationNormalMode(false);
             // Saving current state of the menu
-            this.mainViewModel.setTempNodes(this.mainViewModel.getNodes());
+            this.mainViewModel.saveCurrentNodes();
             this.tempCurrentNodePosition = this.currentNodePosition;
 
             // Displaying bookmarks
@@ -467,7 +467,7 @@ public class MainView extends AppCompatActivity {
 
     private void closeBookmarks() {
         // Restoring saved node status
-        this.mainViewModel.setNodes(this.mainViewModel.getTempNodes());
+        this.mainViewModel.restoreSavedCurrentNodes();
         this.currentNodePosition = this.tempCurrentNodePosition;
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
