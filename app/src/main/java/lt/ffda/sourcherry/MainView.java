@@ -115,6 +115,7 @@ public class MainView extends AppCompatActivity {
         } else {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
             this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
+            this.tempCurrentNodePosition = savedInstanceState.getInt("tempCurrentNodePosition");
             this.currentNode = savedInstanceState.getStringArray("currentNode");
             this.bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
         }
@@ -179,12 +180,16 @@ public class MainView extends AppCompatActivity {
             @Override
             public boolean onClose() {
                 if (MainView.this.currentNode != null) {
-                    MainView.this.resetMenuToCurrentNode();
+                    MainView.this.mainViewModel.restoreSavedCurrentNodes();
+                    MainView.this.currentNodePosition = MainView.this.tempCurrentNodePosition;
+                    MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
+                    MainView.this.adapter.notifyDataSetChanged();
                 } else {
                     // If there is no node selected that means that main menu has to be loaded
                     MainView.this.mainViewModel.setNodes(MainView.this.reader.getMainNodes());
                 }
                 MainView.this.hideNavigation(false);
+                MainView.this.mainViewModel.tempSearchNodesToggle(false);
                 return false;
             }
         });
@@ -194,12 +199,20 @@ public class MainView extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (bookmarksToggle) {
-                    // If bookmarks was showed at the time
+                    // If bookmark menu was showed at the time of selecting search
+                    // There is less things to change in menu
                     MainView.this.navigationNormalMode(true);
-                    MainView.this.bookmarkVariablesReset();
+                    MainView.this.bookmarksToggle = false;
+                } else {
+                    // If search was selected from normal menu current menu items, selected item have to be saved
+                    MainView.this.mainViewModel.saveCurrentNodes();
+                    MainView.this.tempCurrentNodePosition = MainView.this.currentNodePosition;
+                    MainView.this.currentNodePosition = -1;
+                    MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition); // Removing selection from menu item
                 }
                 MainView.this.hideNavigation(true);
-                // Clears all items from the menu
+                MainView.this.mainViewModel.setNodes(MainView.this.reader.getAllNodes());
+                MainView.this.mainViewModel.tempSearchNodesToggle(true);
                 // Previously it showed menu from which search view was opened
                 MainView.this.adapter.notifyDataSetChanged();
             }
@@ -228,6 +241,7 @@ public class MainView extends AppCompatActivity {
     public void onSaveInstanceState(@Nullable Bundle outState) {
         // Saving some variables to make it possible to restore the content after screen rotation
         outState.putInt("currentNodePosition", this.currentNodePosition);
+        outState.putInt("tempCurrentNodePosition", this.tempCurrentNodePosition);
         outState.putStringArray("currentNode", this.currentNode);
         outState.putBoolean("bookmarksToggle", this.bookmarksToggle);
         super.onSaveInstanceState(outState);
@@ -382,8 +396,7 @@ public class MainView extends AppCompatActivity {
         // Filters node list by the name of the node
         // Changes the node list that represents menu and updates it
         // Case insensitive
-        this.adapter.markItemSelected(-1);
-        this.mainViewModel.setNodes(this.reader.getAllNodes());
+        this.mainViewModel.setNodes(this.mainViewModel.getTempSearchNodes());
 
         ArrayList<String[]> filteredNodes = this.mainViewModel.getNodes().stream()
                 .filter(node -> node[0].toLowerCase().contains(query.toLowerCase()))

@@ -19,6 +19,7 @@ public class MainViewModel extends ViewModel {
     private ArrayList<ArrayList<CharSequence[]>> nodeContent;
     private ArrayList<String[]> nodes;
     private ArrayList<String[]> tempNodes;
+    private ArrayList<String[]> tempSearchNodes;
 
     public void setNodeContent(ArrayList<ArrayList<CharSequence[]>> nodeContent) {
         this.nodeContent = nodeContent;
@@ -54,5 +55,20 @@ public class MainViewModel extends ViewModel {
         this.nodes.clear();
         this.nodes.addAll(this.tempNodes);
         this.tempNodes = null;
+    }
+
+    public void tempSearchNodesToggle(Boolean status) {
+        // Saves or removes tempSearchNodes depending on passed boolean
+        // true - saves, false - removes
+        if (status) {
+            this.tempSearchNodes = new ArrayList<>();
+            this.tempSearchNodes.addAll(this.nodes);
+        } else {
+            this.tempSearchNodes = null;
+        }
+    }
+
+    public ArrayList<String[]> getTempSearchNodes() {
+        return this.tempSearchNodes;
     }
 }
