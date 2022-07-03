@@ -40,20 +40,7 @@ public class NodeContentFragment extends Fragment {
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.contentFragmentLinearLayout = (LinearLayout) rootView.findViewById(R.id.content_fragment_linearlayout);
 
-        if (mainViewModel.getNodeContent() != null) {
-            this.loadContent();
-        }
-
         return rootView;
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        // This check is needed to load content when coming back from to this fragment from the stack
-        if (mainViewModel.getNodeContent() != null) {
-            this.loadContent();
-        }
     }
 
     public void loadContent() {
