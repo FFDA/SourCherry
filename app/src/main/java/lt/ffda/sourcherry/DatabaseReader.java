@@ -83,6 +83,10 @@ public interface DatabaseReader {
     // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
     // As in CherryTree it's foreground color #07841B
 
+    ClickableSpan makeFileFolderLinkSpan(String type, String base64Filename);
+    // Creates and returns a span for a link to external file or folder
+    // When user clicks on the link snackbar displays a path to the file that was saved in the original system
+
     CharSequence[] getTableRow(Node row);
     // Returns CharSequence[] of the node's "cell" element text
 

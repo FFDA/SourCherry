@@ -44,12 +44,15 @@ import android.text.style.SuperscriptSpan;
 import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
+import android.util.Base64;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -498,6 +501,10 @@ public class SQLReader implements DatabaseReader {
                     } else if (attributeValue[0].equals("node")) {
                         // Making links to open other nodes (Anchors)
                         formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (attributeValue[0].equals("file") || attributeValue[0].equals("fold")) {
+                        // Making links to the file or folder
+                        // It will not try to open the file, but just mark it, and display path to it on original system
+                        formattedNodeText.setSpan(this.makeFileFolderLinkSpan(attributeValue[0], attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                     break;
                 case "justification":
@@ -682,7 +689,7 @@ public class SQLReader implements DatabaseReader {
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
 
-        ClickableSpan AnchorLinkSpan = new ClickableSpan() {
+        ClickableSpan anchorLinkSpan = new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
                 ((MainView) SQLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
@@ -691,12 +698,46 @@ public class SQLReader implements DatabaseReader {
             @Override
             public void updateDrawState(TextPaint ds) {
                 // Formatting of span text
-                ds.setColor(context.getColor(R.color.anchor_link));
+                ds.setColor(context.getColor(R.color.link_anchor));
                 ds.setUnderlineText(true);
             }
         };
 
-        return AnchorLinkSpan;
+        return anchorLinkSpan;
+    }
+
+    @Override
+    public ClickableSpan makeFileFolderLinkSpan(String type, String base64Filename) {
+        // Creates and returns a span for a link to external file or folder
+        // When user clicks on the link snackbar displays a path to the file that was saved in the original system
+
+        ClickableSpan fileFolderLinkSpan = new ClickableSpan() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                // Decoding of Base64 is done here
+                Snackbar.make(((MainView) SQLReader.this.context).findViewById(R.id.content_fragment_linearlayout), new String(Base64.decode(base64Filename, Base64.DEFAULT)), Snackbar.LENGTH_LONG)
+                        .setAction(R.string.snackbar_dismiss_action, new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+
+                            }
+                        })
+                        .show();
+            }
+
+            @Override
+            public void updateDrawState(TextPaint ds) {
+                // Formatting of span text
+                if (type.equals("file")) {
+                    ds.setColor(context.getColor(R.color.link_file));
+                } else {
+                    ds.setColor(context.getColor(R.color.link_folder));
+                }
+                ds.setUnderlineText(true);
+            }
+        };
+
+        return fileFolderLinkSpan;
     }
 
     @Override

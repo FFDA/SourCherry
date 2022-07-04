@@ -50,6 +50,8 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import lt.ffda.sourcherry.R;
 
 import org.w3c.dom.Document;
@@ -60,6 +62,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -318,12 +321,18 @@ public class XMLReader implements DatabaseReader{
                             nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
                             totalCharOffset += codeboxText.length() - 1;
                         } else if (currentNodeType.equals("encoded_png")) {
+                            // "encoded_png" might actually be image, attached files or anchors (just images that mark the position)
                             int charOffset = getCharOffset(currentNode);
 
                             if (currentNode.getAttributes().getNamedItem("filename") != null) {
-                                SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode);
-                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
-                                totalCharOffset += attachedFileSpan.length() - 1;
+                                if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
+                                    // For Latex boxes
+                                } else {
+                                    // For actual attached files
+                                    SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode);
+                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                    totalCharOffset += attachedFileSpan.length() - 1;
+                                }
                             } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
                                 // It doesn't need node to be passed to it,
                                 // because there isn't any relevant information embedded into it
@@ -331,6 +340,7 @@ public class XMLReader implements DatabaseReader{
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
                                 totalCharOffset += anchorImageSpan.length() - 1;
                             } else {
+                                // Images
                                 SpannableStringBuilder imageSpan = makeImageSpan(currentNode);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                                 totalCharOffset += imageSpan.length() - 1;
@@ -478,6 +488,10 @@ public class XMLReader implements DatabaseReader{
                     } else if (attributeValue[0].equals("node")) {
                         // Making links to open other nodes (Anchors)
                         formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (attributeValue[0].equals("file") || attributeValue[0].equals("fold")) {
+                        // Making links to the file or folder
+                        // It will not try to open the file, but just mark it, and display path to it on original system
+                        formattedNodeText.setSpan(this.makeFileFolderLinkSpan(attributeValue[0], attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                     break;
                 case "justification":
@@ -667,7 +681,7 @@ public class XMLReader implements DatabaseReader{
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
 
-        ClickableSpan AnchorLinkSpan = new ClickableSpan() {
+        ClickableSpan anchorLinkSpan = new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
                 ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
@@ -676,12 +690,46 @@ public class XMLReader implements DatabaseReader{
             @Override
             public void updateDrawState(TextPaint ds) {
                 // Formatting of span text
-                ds.setColor(context.getColor(R.color.anchor_link));
+                ds.setColor(context.getColor(R.color.link_anchor));
                 ds.setUnderlineText(true);
             }
         };
 
-        return AnchorLinkSpan;
+        return anchorLinkSpan;
+    }
+
+    @Override
+    public ClickableSpan makeFileFolderLinkSpan(String type, String base64Filename) {
+        // Creates and returns a span for a link to external file or folder
+        // When user clicks on the link snackbar displays a path to the file that was saved in the original system
+
+        ClickableSpan fileFolderLinkSpan = new ClickableSpan() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                // Decoding of Base64 is done here
+                Snackbar.make(((MainView) XMLReader.this.context).findViewById(R.id.content_fragment_linearlayout), new String(Base64.decode(base64Filename, Base64.DEFAULT)), Snackbar.LENGTH_LONG)
+                        .setAction(R.string.snackbar_dismiss_action, new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+
+                            }
+                        })
+                        .show();
+            }
+
+            @Override
+            public void updateDrawState(TextPaint ds) {
+                // Formatting of span text
+                if (type.equals("file")) {
+                    ds.setColor(context.getColor(R.color.link_file));
+                } else {
+                    ds.setColor(context.getColor(R.color.link_folder));
+                }
+                ds.setUnderlineText(true);
+            }
+        };
+
+        return fileFolderLinkSpan;
     }
 
     @Override

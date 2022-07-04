@@ -11,6 +11,8 @@
     <color name="cherry_blue_200">#58A5F0</color>
     <color name="cherry_blue_500">#0277BD</color>
     <color name="cherry_blue_700">#004C8C</color>
-    <color name="anchor_link">#07841B</color>
+    <color name="link_anchor">#07841B</color>
+    <color name="link_file">#8B691C</color>
+    <color name="link_folder">#7F7F8D</color>
     <color name="night_theme_windowBackground">#535353</color>
 </resources>

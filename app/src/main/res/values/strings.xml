@@ -25,4 +25,5 @@
     <string name="button_delete">Delete</string>
     <string name="toast_no_bookmarks_message">There are no bookmarks</string>
     <string name="toast_confirm_mainview_exit">Press BACK again to leave this screen</string>
+    <string name="snackbar_dismiss_action">Dismiss</string>
 </resources>
