@@ -154,7 +154,6 @@ public class MainView extends AppCompatActivity {
                     MainView.this.navigationNormalMode(true);
                     MainView.this.bookmarkVariablesReset();
                 }
-
                 MainView.this.loadNodeContent();
             }
         });
@@ -191,7 +190,7 @@ public class MainView extends AppCompatActivity {
                 }
                 MainView.this.hideNavigation(false);
                 MainView.this.mainViewModel.tempSearchNodesToggle(false);
-                MainView.this.filterNodeToggle = true;
+                MainView.this.filterNodeToggle = false;
                 return false;
             }
         });
