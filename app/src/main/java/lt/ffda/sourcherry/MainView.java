@@ -49,6 +49,7 @@ public class MainView extends AppCompatActivity {
     private String[] currentNode;
     private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
     private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
+    private boolean filterNodeToggle;
     private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
     private boolean backToExit;
     private MainViewModel mainViewModel;
@@ -62,10 +63,6 @@ public class MainView extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         this.mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
-
-        this.currentNode = null; // This needs to be placed before restoring the instance if there was one
-        this.bookmarksToggle = false;
-        this.currentNodePosition = -1;
         this.backToExit = false;
 
         // drawer layout instance to toggle the menu icon to open
@@ -111,6 +108,10 @@ public class MainView extends AppCompatActivity {
                     .addToBackStack("main")
                     .commit();
             getSupportFragmentManager().executePendingTransactions();
+            this.currentNode = null; // This needs to be placed before restoring the instance if there was one
+            this.bookmarksToggle = false;
+            this.filterNodeToggle = false;
+            this.currentNodePosition = -1;
             this.mainViewModel.setNodes(this.reader.getMainNodes());
         } else {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
@@ -118,6 +119,7 @@ public class MainView extends AppCompatActivity {
             this.tempCurrentNodePosition = savedInstanceState.getInt("tempCurrentNodePosition");
             this.currentNode = savedInstanceState.getStringArray("currentNode");
             this.bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
+            this.filterNodeToggle = savedInstanceState.getBoolean("filterNodeToggle");
         }
 
         RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
@@ -128,7 +130,7 @@ public class MainView extends AppCompatActivity {
                 MainView.this.currentNode = MainView.this.mainViewModel.getNodes().get(position);
                 if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
                     // In this case it does not matter if node was selected from normal menu, bookmarks or search
-                    if (!searchView.isIconified()) {
+                    if (MainView.this.filterNodeToggle) {
                         searchView.onActionViewCollapsed();
                         MainView.this.hideNavigation(false);
                     }
@@ -137,7 +139,7 @@ public class MainView extends AppCompatActivity {
                     if (bookmarksToggle) {
                         // If node was selected from bookmarks
                         MainView.this.setClickedItemInSubmenu();
-                    } else if (!searchView.isIconified()) {
+                    } else if (MainView.this.filterNodeToggle) {
                         // Node selected from the search
                         searchView.onActionViewCollapsed();
                         MainView.this.hideNavigation(false);
@@ -168,7 +170,7 @@ public class MainView extends AppCompatActivity {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                if (!searchView.isIconified()) { // This check fixes bug where all database's nodes were displayed after screen rotation
+                if (MainView.this.filterNodeToggle) { // This check fixes bug where all database's nodes were displayed after screen rotation
                     MainView.this.filterNodes(newText);
                 }
                 return false;
@@ -190,6 +192,7 @@ public class MainView extends AppCompatActivity {
                 }
                 MainView.this.hideNavigation(false);
                 MainView.this.mainViewModel.tempSearchNodesToggle(false);
+                MainView.this.filterNodeToggle = true;
                 return false;
             }
         });
@@ -213,7 +216,7 @@ public class MainView extends AppCompatActivity {
                 MainView.this.hideNavigation(true);
                 MainView.this.mainViewModel.setNodes(MainView.this.reader.getAllNodes());
                 MainView.this.mainViewModel.tempSearchNodesToggle(true);
-                // Previously it showed menu from which search view was opened
+                MainView.this.filterNodeToggle = true;
                 MainView.this.adapter.notifyDataSetChanged();
             }
         });
@@ -244,6 +247,7 @@ public class MainView extends AppCompatActivity {
         outState.putInt("tempCurrentNodePosition", this.tempCurrentNodePosition);
         outState.putStringArray("currentNode", this.currentNode);
         outState.putBoolean("bookmarksToggle", this.bookmarksToggle);
+        outState.putBoolean("filterNodeToggle", this.filterNodeToggle);
         super.onSaveInstanceState(outState);
     }
 
@@ -261,7 +265,11 @@ public class MainView extends AppCompatActivity {
             }
         }
 
-        if (bookmarksToggle) {
+        if (this.filterNodeToggle) {
+            this.hideNavigation(true);
+        }
+
+        if (this.bookmarksToggle) {
             this.navigationNormalMode(false);
         }
     }
