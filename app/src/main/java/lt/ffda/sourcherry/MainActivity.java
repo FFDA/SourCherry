@@ -26,8 +26,10 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -82,6 +84,20 @@ public class MainActivity extends AppCompatActivity {
         Button createDatabaseButton = (Button) findViewById(R.id.button_create_database);
         createDatabaseButton.setEnabled(false);
         ////
+
+        // Listens when user presses "Done" (bottom right) button while typing password and opens database
+        EditText editTextPassword = findViewById(R.id.passwordField);
+        editTextPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                boolean handle = false;
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    handle = true;
+                    MainActivity.this.openDatabase();
+                }
+                return handle;
+            }
+        });
     }
 
     @Override

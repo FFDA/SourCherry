@@ -74,7 +74,8 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toEndOf="@+id/textViewPassword"
-            app:layout_constraintTop_toBottomOf="@+id/textViewMessage" />
+            app:layout_constraintTop_toBottomOf="@+id/textViewMessage"
+            android:imeOptions="actionDone"/>
 
         <TextView
             android:id="@+id/textViewPassword"
