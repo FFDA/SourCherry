@@ -420,69 +420,80 @@ public class XMLReader implements DatabaseReader{
         for (int i = 0; i < nodeAttributes.getLength(); i++) {
             String attribute = nodeAttributes.item(i).getNodeName();
 
-            if (attribute.equals("strikethrough")) {
+            switch (attribute) {
+                case "strikethrough":
                     StrikethroughSpan sts = new StrikethroughSpan();
                     formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            } else if (attribute.equals("foreground")) {
-                String foregroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting foreground color code from the tag
-                ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(foregroundColorOriginal));
-                formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            } else if (attribute.equals("background")) {
-                String backgroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting background color code from the tag
-                BackgroundColorSpan bcs = new BackgroundColorSpan(Color.parseColor(backgroundColorOriginal));
-                formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            } else if (attribute.equals("weight")) {
-                StyleSpan boldStyleSpan = new StyleSpan(Typeface.BOLD);
-                formattedNodeText.setSpan(boldStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            } else if (attribute.equals("style")) {
-                StyleSpan italicStyleSpan = new StyleSpan(Typeface.ITALIC);
-                formattedNodeText.setSpan(italicStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            } else if (attribute.equals("underline")) {
-                UnderlineSpan us = new UnderlineSpan();
-                formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            } else if (attribute.equals("scale")) {
-                String scaleValue = nodeAttributes.item(i).getTextContent();
-                switch (scaleValue) {
-                    case "h1": formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        break;
-                    case "h2": formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        break;
-                    case "h3": formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        break;
-                    case "small": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        break;
-                    case "sup": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                                formattedNodeText.setSpan(new SuperscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        break;
-                    case "sub": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                                formattedNodeText.setSpan(new SubscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        break;
-                }
-            } else if (attribute.equals("family")) {
-                TypefaceSpan tf = new TypefaceSpan("monospace");
-                formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            } else if (attribute.equals("link")) {
-                String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
-                if (attributeValue[0].equals("webs")) {
-                    // Making links to open websites
-                    URLSpan us = new URLSpan(attributeValue[1]);
-                    formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                } else if (attributeValue[0].equals("node")) {
-                    // Making links to open other nodes (Anchors)
-                    formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                }
-            } else if (attribute.equals("justification")) {
-                String justification = nodeAttributes.item(i).getTextContent();
-                switch (justification) {
-                    case "right":   formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                                    break;
-                    case "center":  formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                                    break;
-                }
-            } else if (attribute.equals("indent")) {
-                int indent = Integer.valueOf(nodeAttributes.item(i).getTextContent()) * 40;
-                LeadingMarginSpan.Standard lmss = new LeadingMarginSpan.Standard(indent);
-                formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    break;
+                case "foreground":
+                    String foregroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting foreground color code from the tag
+                    ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(foregroundColorOriginal));
+                    formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    break;
+                case "background":
+                    String backgroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting background color code from the tag
+                    BackgroundColorSpan bcs = new BackgroundColorSpan(Color.parseColor(backgroundColorOriginal));
+                    formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    break;
+                case "weight":
+                    StyleSpan boldStyleSpan = new StyleSpan(Typeface.BOLD);
+                    formattedNodeText.setSpan(boldStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    break;
+                case "style":
+                    StyleSpan italicStyleSpan = new StyleSpan(Typeface.ITALIC);
+                    formattedNodeText.setSpan(italicStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    break;
+                case "underline":
+                    formattedNodeText.setSpan(new UnderlineSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    break;
+                case "scale":
+                    String scaleValue = nodeAttributes.item(i).getTextContent();
+                    switch (scaleValue) {
+                        case "h1": formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                        case "h2": formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                        case "h3": formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                        case "small": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                        case "sup": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            formattedNodeText.setSpan(new SuperscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                        case "sub": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            formattedNodeText.setSpan(new SubscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                    }
+                    break;
+                case "family":
+                    TypefaceSpan tf = new TypefaceSpan("monospace");
+                    formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    break;
+                case "link":
+                    String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
+                    if (attributeValue[0].equals("webs")) {
+                        // Making links to open websites
+                        URLSpan us = new URLSpan(attributeValue[1]);
+                        formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (attributeValue[0].equals("node")) {
+                        // Making links to open other nodes (Anchors)
+                        formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    break;
+                case "justification":
+                    String justification = nodeAttributes.item(i).getTextContent();
+                    switch (justification) {
+                        case "right":   formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                        case "center":  formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                    }
+                    break;
+                case "indent":
+                    int indent = Integer.valueOf(nodeAttributes.item(i).getTextContent()) * 40;
+                    LeadingMarginSpan.Standard lmss = new LeadingMarginSpan.Standard(indent);
+                    formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    break;
             }
         }
         return formattedNodeText;
