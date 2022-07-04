@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
 
 public class MainView extends AppCompatActivity {
 
-    private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle actionBarDrawerToggle;
     private DatabaseReader reader;
     private MenuItemAdapter adapter;
@@ -67,7 +66,7 @@ public class MainView extends AppCompatActivity {
 
         // drawer layout instance to toggle the menu icon to open
         // drawer and back button to close drawer
-        drawerLayout = findViewById(R.id.drawer_layout);
+        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
         actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.nav_open, R.string.nav_close);
         SearchView searchView = findViewById(R.id.navigation_drawer_search);
 
