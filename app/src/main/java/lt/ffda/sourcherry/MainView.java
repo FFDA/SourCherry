@@ -352,10 +352,6 @@ public class MainView extends AppCompatActivity {
         // Reloads drawer menu to show main menu
         // if it is not at the top yet
         // otherwise shows a message to the user that the top was already reached
-        if (bookmarksToggle) {
-            this.navigationNormalMode(true);
-            this.bookmarkVariablesReset();
-        }
 
         ArrayList<String[]> tempMainNodes = this.reader.getMainNodes();
 
@@ -365,8 +361,25 @@ public class MainView extends AppCompatActivity {
         } else {
             this.mainViewModel.setNodes(tempMainNodes);
             this.currentNodePosition = -1;
+            if (bookmarksToggle && this.currentNode != null) {
+                // Just in case user chose to come back from bookmarks to home and a node is selected
+                // it might me that selected node is in main menu
+                // this part checks for that and marks the node if it finds it
+                for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
+                    // Checks uniqueID of current node against node in main menu
+                    if (this.mainViewModel.getNodes().get(i)[1].equals(this.currentNode[1])) {
+                        this.currentNodePosition = i;
+                        break;
+                    }
+                }
+            }
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyDataSetChanged();
+        }
+
+        if (bookmarksToggle) {
+            this.navigationNormalMode(true);
+            this.bookmarkVariablesReset();
         }
     }
 
@@ -478,7 +491,8 @@ public class MainView extends AppCompatActivity {
 
             // Displaying bookmarks
             this.mainViewModel.setNodes(bookmarkedNodes);
-            this.adapter.markItemSelected(-1);
+            this.currentNodePosition = -1;
+            this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyDataSetChanged();
             this.bookmarksToggle = true;
         }
