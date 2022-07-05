@@ -334,11 +334,14 @@ public class SQLReader implements DatabaseReader {
                                 continue;
                             }
                             if (!codeboxTableImageCursor.getString(5).isEmpty()) {
-                                // Text in column 5 means that this line is for file
-                                SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(codeboxTableImageCursor.getString(5), String.valueOf(codeboxTableImageCursor.getDouble(7)));
-                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
-                                totalCharOffset += attachedFileSpan.length() - 1;
-                                continue;
+                                // Text in column 5 means that this line is for file OR LaTeX formula box
+                                if (!codeboxTableImageCursor.getString(5).equals("__ct_special.tex")) {
+                                    // If it is not LaTex file
+                                    SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(codeboxTableImageCursor.getString(5), String.valueOf(codeboxTableImageCursor.getDouble(7)));
+                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                    totalCharOffset += attachedFileSpan.length() - 1;
+                                    continue;
+                                }
                             } else {
                                 // Any other line should be an image
                                 SpannableStringBuilder imageSpan = makeImageSpan(codeboxTableImageCursor.getBlob(4)); // Blob is the image in byte[] form

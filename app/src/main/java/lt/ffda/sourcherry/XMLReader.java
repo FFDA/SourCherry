@@ -24,7 +24,6 @@ import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
-
 import android.text.TextPaint;
 import android.text.style.AlignmentSpan;
 import android.text.style.BackgroundColorSpan;
@@ -52,8 +51,6 @@ import androidx.fragment.app.FragmentManager;
 
 import com.google.android.material.snackbar.Snackbar;
 
-import lt.ffda.sourcherry.R;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -62,7 +59,6 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -327,6 +323,8 @@ public class XMLReader implements DatabaseReader{
                             if (currentNode.getAttributes().getNamedItem("filename") != null) {
                                 if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
                                     // For Latex boxes
+                                    // Right now it is not possible to render LaTeX
+                                    continue;
                                 } else {
                                     // For actual attached files
                                     SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode);
