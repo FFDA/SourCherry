@@ -200,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
                                     public void onClick(DialogInterface dialog, int which) {
                                         File selectedDatabaseToDelete = new File(databaseDir, databaseFilename);
                                         selectedDatabaseToDelete.delete(); // Deletes database file
-                                        checkIfDeleteDatabaseisBeingUsed(databaseFilename);
+                                        checkIfDeleteDatabaseIsBeingUsed(databaseFilename);
                                         listImportedDatabases(); // Launches this function to make a new list of imported databases
                                     }
                                 })
@@ -225,9 +225,9 @@ public class MainActivity extends AppCompatActivity {
         deleteTempFiles();
     }
 
-    private void checkIfDeleteDatabaseisBeingUsed(String databaseFilename) {
+    private void checkIfDeleteDatabaseIsBeingUsed(String databaseFilename) {
         // Checks if user deletes the database that is set to be opened when user presses on Open button
-        // And sett everything to null in (database) settings if it's true
+        // And set everything to null in (database) settings if it's true
         if (sharedPref.getString("databaseStorageType", null).equals("internal") && sharedPref.getString("databaseFilename", null).equals(databaseFilename)) {
             saveDatabaseToPrefs(null, null, null, null); // Setting database info as null that correct message for user will be displayed
             setMessageWithDatabaseName();
@@ -273,6 +273,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openDatabase() {
+        if (this.sharedPref.getString("databaseStorageType", null).equals("shared")) {
+            // A check for external databases (XML password not protected) that they still exists and program still able to read it
+            // If the check fails message for user is displayed and MainView activity will not open
+            Uri databaseUri = Uri.parse(this.sharedPref.getString("databaseUri", null));
+            DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, databaseUri);
+            if (!databaseDocumentFile.exists()) {
+                Toast.makeText(this, R.string.toast_error_database_does_not_exists, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!databaseDocumentFile.canRead()) {
+                Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
         String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
         Intent openDatabase = new Intent(this, MainView.class);
 

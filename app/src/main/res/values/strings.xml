@@ -26,4 +26,6 @@
     <string name="toast_no_bookmarks_message">There are no bookmarks</string>
     <string name="toast_confirm_mainview_exit">Press BACK again to leave this screen</string>
     <string name="snackbar_dismiss_action">Dismiss</string>
+    <string name="toast_error_database_does_not_exists">Database does not exists</string>
+    <string name="toast_error_cant_read_database">Can\'t read database file. Try select it again.</string>
 </resources>
