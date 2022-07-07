@@ -71,11 +71,11 @@
             android:ems="10"
             android:inputType="textPassword"
             android:minHeight="48dp"
+            android:imeOptions="actionDone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toEndOf="@+id/textViewPassword"
-            app:layout_constraintTop_toBottomOf="@+id/textViewMessage"
-            android:imeOptions="actionDone"/>
+            app:layout_constraintTop_toBottomOf="@+id/textViewMessage" />
 
         <TextView
             android:id="@+id/textViewPassword"

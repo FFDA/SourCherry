@@ -21,11 +21,16 @@
     <string name="toast_error_minimum_android_version_8">Only Android 8 or later supported</string>
     <string name="main_activity_imported_databases">Imported Databases</string>
     <string name="main_activity_imported_databases_delete_dialog_title">Delete</string>
-    <string name="main_activity_imported_databases_delete_dialog_message">Dababase imported to app-specific storage will be deleted</string>
+    <string name="main_activity_imported_databases_delete_dialog_message">Database imported to app-specific storage will be deleted</string>
     <string name="button_delete">Delete</string>
     <string name="toast_no_bookmarks_message">There are no bookmarks</string>
     <string name="toast_confirm_mainview_exit">Press BACK again to leave this screen</string>
     <string name="snackbar_dismiss_action">Dismiss</string>
     <string name="toast_error_database_does_not_exists">Database does not exists</string>
     <string name="toast_error_cant_read_database">Can\'t read database file. Try select it again.</string>
+    <string name="toast_error_failed_to_open_database">Failed to open the database!</string>
+    <string name="toast_error_could_not_open_a_file_to_copy_the_database">Could not open a file to copy the database</string>
+    <string name="toast_error_could_not_copy_the_database">Could not copy the database</string>
+    <string name="toast_error_does_not_look_like_a_cherrytree_database">Does not look like a CherryTree database</string>
+    <string name="toast_message_please_enter_password">Please enter the password</string>
 </resources>

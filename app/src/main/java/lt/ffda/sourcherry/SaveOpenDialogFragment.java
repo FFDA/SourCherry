@@ -101,7 +101,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
         AlertDialog alertDialog = (AlertDialog) getDialog();
         //// Save button
-        // This is needed to make keep activity alive while file is being written
+        // This is needed to keep activity alive while file is being written
         Button saveButton = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override

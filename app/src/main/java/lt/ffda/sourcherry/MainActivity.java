@@ -273,8 +273,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openDatabase() {
+        String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
+
         if (this.sharedPref.getString("databaseStorageType", null).equals("shared")) {
-            // A check for external databases (XML password not protected) that they still exists and program still able to read it
+            // A check for external databases that they still exists and app still able to read it
             // If the check fails message for user is displayed and MainView activity will not open
             Uri databaseUri = Uri.parse(this.sharedPref.getString("databaseUri", null));
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, databaseUri);
@@ -286,37 +288,36 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
                 return;
             }
-        }
 
-        String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
-        Intent openDatabase = new Intent(this, MainView.class);
-
-        if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
-            // Password protected databases
-            // Checks if there is a password in the password field before opening database
-            EditText passwordField = (EditText) findViewById(R.id.passwordField);
-            if (passwordField.getText().length() <= 0) {
-                Toast.makeText(this, "Please enter password", Toast.LENGTH_SHORT).show();
-            } else {
-                this.extractDatabase();
-                startActivity(openDatabase);
-            }
-        } else if (databaseFileExtension.equals("ctd")) {
-            // XML database file
-            try {
-                startActivity(openDatabase);
-            } catch (Exception e) {
-                Toast.makeText(this, "Failed to open database!", Toast.LENGTH_SHORT).show();
-            }
-        } else if (databaseFileExtension.equals("ctb")) {
-            // SQLite database
-            // Needs to be moved to app-specific storage to open it using SQLiteDatabase
-            if (this.sharedPref.getString("databaseStorageType", null).equals("shared")) {
+            if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
+                // Password protected databases
+                // Checks if there is a password in the password field before opening database
+                EditText passwordField = (EditText) findViewById(R.id.passwordField);
+                if (passwordField.getText().length() <= 0) {
+                    Toast.makeText(this, R.string.toast_message_please_enter_password, Toast.LENGTH_SHORT).show();
+                } else {
+                    this.extractDatabase();
+                    this.startMainViewActivity();
+                }
+            } else if (databaseFileExtension.equals("ctd")) {
+                // XML database file
+                try {
+                    this.startMainViewActivity();
+                } catch (Exception e) {
+                    Toast.makeText(this, R.string.toast_error_failed_to_open_database, Toast.LENGTH_SHORT).show();
+                }
+            } else if (databaseFileExtension.equals("ctb")) {
+                // SQLite database
+                // Needs to be moved to app-specific storage to open it using SQLiteDatabase
                 this.copyDatabaseToAppSpecificStorage();
+                this.startMainViewActivity();
+            } else {
+                Toast.makeText(this,R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
             }
-            startActivity(openDatabase);
-        }else {
-            Toast.makeText(this,"Doesn't look like a CherryTree database", Toast.LENGTH_SHORT).show();
+
+        } else {
+            // If database is in app-specific storage there is no need for any processing
+            this.startMainViewActivity();
         }
     }
 
@@ -383,7 +384,7 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         } else {
-            Toast.makeText(this, "Only versions SDK 26 or later supported", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.toast_error_minimum_android_version_8, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -413,10 +414,10 @@ public class MainActivity extends AppCompatActivity {
             databaseOutputStream.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Could not open a file to copy database", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.toast_error_could_not_open_a_file_to_copy_the_database, Toast.LENGTH_LONG).show();
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Could not copy database", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.toast_error_could_not_copy_the_database, Toast.LENGTH_LONG).show();
         }
 
         //// Creating new settings
@@ -430,7 +431,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
         // Saves passed information about database to preferences
-        SharedPreferences.Editor sharedPrefEditor = MainActivity.this.sharedPref.edit();
+        SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
         sharedPrefEditor.putString("databaseStorageType", databaseStorageType);
         sharedPrefEditor.putString("databaseFilename", databaseFilename);
         sharedPrefEditor.putString("databaseFileExtension", databaseFileExtension);
@@ -447,5 +448,11 @@ public class MainActivity extends AppCompatActivity {
                 new File(cachedFileDir, filename).delete();
             }
         }
+    }
+
+    private void startMainViewActivity() {
+        // Starts MainView activity with current settings/database
+        Intent openDatabase = new Intent(this, MainView.class);
+        startActivity(openDatabase);
     }
 }
