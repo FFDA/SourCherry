@@ -132,10 +132,11 @@ public class MainView extends AppCompatActivity {
                     if (MainView.this.filterNodeToggle) {
                         searchView.onActionViewCollapsed();
                         MainView.this.hideNavigation(false);
+                        MainView.this.filterNodeToggle = false;
                     }
                     MainView.this.openSubmenu();
                 } else {
-                    if (bookmarksToggle) {
+                    if (MainView.this.bookmarksToggle) {
                         // If node was selected from bookmarks
                         MainView.this.setClickedItemInSubmenu();
                     } else if (MainView.this.filterNodeToggle) {
@@ -143,6 +144,7 @@ public class MainView extends AppCompatActivity {
                         searchView.onActionViewCollapsed();
                         MainView.this.hideNavigation(false);
                         MainView.this.setClickedItemInSubmenu();
+                        MainView.this.filterNodeToggle = false;
                     } else {
                         // Node selected from normal menu
                         MainView.this.currentNodePosition = position;
@@ -150,7 +152,7 @@ public class MainView extends AppCompatActivity {
                     }
                     MainView.this.adapter.notifyDataSetChanged();
                 }
-                if (bookmarksToggle) {
+                if (MainView.this.bookmarksToggle) {
                     MainView.this.navigationNormalMode(true);
                     MainView.this.bookmarkVariablesReset();
                 }
