@@ -369,7 +369,7 @@ public class MainActivity extends AppCompatActivity {
                 // Saved Uri is not a real Uri, so don't try to use it.
                 // The only reason to save it here is, because I'm using it to check if database should be opened automatically
                 String[] splitExtension = tmpDatabaseFilename.split("\\."); // Splitting the path to extract the file extension.
-                saveDatabaseToPrefs("internal", tmpDatabaseFilename, splitExtension[splitExtension.length - 1], databaseDir.getPath() + "/" + tmpDatabaseFilename);
+                this.saveDatabaseToPrefs("internal", tmpDatabaseFilename, splitExtension[splitExtension.length - 1], databaseDir.getPath() + "/" + tmpDatabaseFilename);
                 ////
 
                 //// Cleaning up
