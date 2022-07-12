@@ -79,12 +79,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        //// Disables button Create Database
-        // Function isn't implemented yet
-        Button createDatabaseButton = (Button) findViewById(R.id.button_create_database);
-        createDatabaseButton.setEnabled(false);
-        ////
-
         // Listens when user presses "Done" (bottom right) button while typing password and opens database
         EditText editTextPassword = findViewById(R.id.passwordField);
         editTextPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
