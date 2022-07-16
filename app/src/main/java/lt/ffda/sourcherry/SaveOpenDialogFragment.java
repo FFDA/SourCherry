@@ -147,7 +147,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
             startActivity(intent);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Toast.makeText(getContext(), R.string.toast_error_failed_to_open_file, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -160,7 +160,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
                 outputStream.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));
                 outputStream.close();
             } catch (Exception e) {
-                e.printStackTrace();
+                Toast.makeText(getContext(), R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
             }
         }
         dismiss(); // Closes dialog fragment after writing to file (hopefully)

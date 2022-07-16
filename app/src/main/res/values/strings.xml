@@ -25,11 +25,13 @@
     <string name="snackbar_dismiss_action">Dismiss</string>
     <string name="toast_error_database_does_not_exists">Database does not exists</string>
     <string name="toast_error_cant_read_database">Can\'t read database file. Try select it again.</string>
-    <string name="toast_error_failed_to_open_database">Failed to open the database!</string>
+    <string name="toast_error_failed_to_open_database">Failed to open the database</string>
     <string name="toast_error_could_not_open_a_file_to_copy_the_database">Could not open a file to copy the database</string>
     <string name="toast_error_could_not_copy_the_database">Could not copy the database</string>
     <string name="toast_error_does_not_look_like_a_cherrytree_database">Does not look like a CherryTree database</string>
     <string name="toast_message_please_enter_password">Please enter the password</string>
     <string name="open_database_fragment_copying_database_message">Copying database to app-specific storage</string>
     <string name="open_database_fragment_extracting_database_message">Extracting database</string>
+    <string name="toast_error_failed_to_save_file">Failed to save the file</string>
+    <string name="toast_error_failed_to_open_file">Failed to open the file</string>
 </resources>
