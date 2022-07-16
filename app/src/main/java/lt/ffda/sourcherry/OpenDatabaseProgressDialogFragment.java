@@ -78,15 +78,21 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
 
         if (databaseFileExtension.equals("ctb")) {
             this.message.setText(R.string.open_database_fragment_copying_database_message);
-            executor.execute(() -> {
-                this.copyDatabaseToAppSpecificStorage();
-                getDialog().cancel();
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    OpenDatabaseProgressDialogFragment.this.copyDatabaseToAppSpecificStorage();
+                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
+                }
             });
         }
         if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
-            executor.execute(() -> {
-                this.extractDatabase();
-                getDialog().cancel();
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    OpenDatabaseProgressDialogFragment.this.extractDatabase();
+                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
+                }
             });
         }
     }
@@ -131,18 +137,33 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                 databaseOutputStream.write(buf, 0, len);
                 totalLen += len;
                 int percent = (int) (totalLen * 100 / fileSize);
-                handler.post(() -> this.progressBar.setProgress(percent));
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+                    }
+                });
             }
 
             databaseInputStream.close();
             databaseOutputStream.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-            handler.post(() -> Toast.makeText(getContext(), R.string.toast_error_could_not_open_a_file_to_copy_the_database, Toast.LENGTH_LONG).show());
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getContext(), R.string.toast_error_could_not_open_a_file_to_copy_the_database, Toast.LENGTH_LONG).show();
+                }
+            });
             getDialog().dismiss();
         } catch (IOException e) {
             e.printStackTrace();
-            handler.post(() -> Toast.makeText(getContext(), R.string.toast_error_could_not_copy_the_database, Toast.LENGTH_LONG).show());
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getContext(), R.string.toast_error_could_not_copy_the_database, Toast.LENGTH_LONG).show();
+                }
+            });
             getDialog().dismiss();
         }
 
@@ -171,7 +192,12 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
 
         try {
             //// Copying file to temporary internal apps storage (cache)
-            handler.post(() -> this.message.setText(R.string.open_database_fragment_copying_database_message));
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    OpenDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_copying_database_message);
+                }
+            });
 
             File tmpCompressedDatabase = File.createTempFile("tmpDatabaseFile", null);
             OutputStream os = new FileOutputStream(tmpCompressedDatabase, false);
@@ -184,16 +210,24 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                 os.write(buf, 0, len);
                 totalLen += len;
                 int percent = (int) (totalLen * 100 / fileSize);
-                handler.post(() -> this.progressBar.setProgress(percent));
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+                    }
+                });
             }
             ////
             is.close();
             os.close();
 
             //// Extracting file to permanent internal apps storage
-            handler.post(() -> {
-                this.message.setText(R.string.open_database_fragment_extracting_database_message);
-                this.progressBar.setProgress(0);
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    OpenDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_extracting_database_message);;
+                    OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(0);
+                }
             });
 
             SevenZFile sevenZFile = new SevenZFile(tmpCompressedDatabase, password.toCharArray());
@@ -211,7 +245,12 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                     out.write(buf, 0, len);
                     totalLen += len;
                     int percent = (int) (totalLen * 100 / fileSize);
-                    handler.post(() -> this.progressBar.setProgress(percent));
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+                        }
+                    });
                 }
                 out.close();
                 in.close();
@@ -230,11 +269,21 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             sevenZFile.close();
             ////
         } catch (FileNotFoundException e) {
-            handler.post(() -> Toast.makeText(getContext(), "Error FileNotFoundException (1a): " + e.getMessage(), Toast.LENGTH_LONG).show());
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getContext(), "Error FileNotFoundException (1a): " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            });
             e.printStackTrace();
             dismiss();
         } catch (IOException e) {
-            handler.post(() -> Toast.makeText(getContext(), "Error IOException (1b): " + e.getMessage(), Toast.LENGTH_LONG).show());
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getContext(), "Error IOException (1b): " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            });
             e.printStackTrace();
             dismiss();
         }
