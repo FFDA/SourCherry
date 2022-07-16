@@ -14,6 +14,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.documentfile.provider.DocumentFile;
 
@@ -27,6 +28,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
@@ -39,8 +43,6 @@ import android.widget.Toast;
 
 import java.io.File;
 
-import lt.ffda.sourcherry.R;
-
 public class MainActivity extends AppCompatActivity {
     private SharedPreferences sharedPref;
 
@@ -52,6 +54,9 @@ public class MainActivity extends AppCompatActivity {
         this.sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
 
         setMessageWithDatabaseName();
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         Button buttonOpen = (Button) findViewById(R.id.button_open);
         buttonOpen.setOnClickListener(new View.OnClickListener() {
@@ -88,6 +93,25 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         this.setMessageWithDatabaseName();
         this.listImportedDatabases(); // Displaying databases on this step because this is the step that app returns to from other Activity
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.options_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.main_activity_option_menu_about:
+                Intent openAboutPage = new Intent(this, AboutActivity.class);
+                startActivity(openAboutPage);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {

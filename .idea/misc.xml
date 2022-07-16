@@ -42,6 +42,7 @@
         <entry key="app/src/main/res/drawable/table_data_cell.xml" value="0.299" />
         <entry key="app/src/main/res/drawable/table_header_cell.xml" value="0.299" />
         <entry key="app/src/main/res/drawable/tt.xml" value="0.299" />
+        <entry key="app/src/main/res/layout/activity_about.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_image_view.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.3421875" />
         <entry key="app/src/main/res/layout/activity_main_drawer.xml" value="0.18229166666666666" />
@@ -67,6 +68,7 @@
         <entry key="app/src/main/res/menu/drawer_content_resolver_menu.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/menu/group.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/menu/header.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/menu/main_options_menu.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/menu/menu_item.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/menu/navigation_menu.xml" value="0.25" />
         <entry key="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.2" />

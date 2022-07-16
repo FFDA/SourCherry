@@ -29,6 +29,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
@@ -235,9 +237,19 @@ public class MainView extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (actionBarDrawerToggle.onOptionsItemSelected(item)) {
+            // Drawer menu items
             return true;
+        } else {
+            // Options menu items
+            switch (item.getItemId()) {
+                case (R.id.main_activity_option_menu_about):
+                    Intent openAboutPage = new Intent(this, AboutActivity.class);
+                    startActivity(openAboutPage);
+                    return true;
+                default:
+                    return super.onOptionsItemSelected(item);
+            }
         }
-        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -272,6 +284,13 @@ public class MainView extends AppCompatActivity {
         if (this.bookmarksToggle) {
             this.navigationNormalMode(false);
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.options_menu, menu);
+        return true;
     }
 
     OnBackPressedCallback callbackDisplayToastBeforeExit = new OnBackPressedCallback(true /* enabled by default */) {
