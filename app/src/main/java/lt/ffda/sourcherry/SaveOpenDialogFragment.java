@@ -40,6 +40,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
     private String nodeUniqueID;
     private String filename;
     private String time;
+    private String fileMimeType;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -53,6 +54,10 @@ public class SaveOpenDialogFragment extends DialogFragment {
         this.filename = getArguments().getString("filename", null); // Filename passed to fragment
         this.time = getArguments().getString("time");
         this.nodeUniqueID = ((MainView) getActivity()).getCurrentNodeUniqueID(); // Current node's unique_id retrieved from MainView
+
+        // Getting mime type of the file
+        FileNameMap fileNameMap  = URLConnection.getFileNameMap();
+        this.fileMimeType = fileNameMap.getContentTypeFor(filename);
 
         //// Dialog fragment layout
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
@@ -106,7 +111,10 @@ public class SaveOpenDialogFragment extends DialogFragment {
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                saveFile.launch(SaveOpenDialogFragment.this.filename);
+                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                intent.setType(SaveOpenDialogFragment.this.fileMimeType);
+                intent.putExtra(Intent.EXTRA_TITLE, SaveOpenDialogFragment.this.filename);
+                saveFile.launch(intent);
             }
         });
         ////
@@ -131,14 +139,10 @@ public class SaveOpenDialogFragment extends DialogFragment {
             // Getting Uri to share
             Uri tmpFileUri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", tmpAttachedFile);
 
-            // Getting mime type of the file. Without it files won't be opened
-            FileNameMap fileNameMap  = URLConnection.getFileNameMap();
-            String tmpFileMime = fileNameMap.getContentTypeFor(filename);
-
             // Intent to open file
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_VIEW);
-            intent.setDataAndType(tmpFileUri, tmpFileMime);
+            intent.setDataAndType(tmpFileUri, this.fileMimeType);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(intent);
 
@@ -147,16 +151,17 @@ public class SaveOpenDialogFragment extends DialogFragment {
         }
     }
 
+    ActivityResultLauncher<Intent> saveFile = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        // Saves attached file to the user selected file
+        if (result.getResultCode() == getActivity().RESULT_OK) {
 
-    ActivityResultLauncher<String> saveFile = registerForActivityResult(new ActivityResultContracts.CreateDocument(), result -> {
-        // Saves touched file to the user selected file
-        try {
-            OutputStream outputStream = getContext().getContentResolver().openOutputStream(result, "w"); // Output file
-            // Writes byte array converted from encoded string
-            outputStream.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));
-            outputStream.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+            try {
+                OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file
+                outputStream.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));
+                outputStream.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         dismiss(); // Closes dialog fragment after writing to file (hopefully)
     });
