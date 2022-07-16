@@ -49,6 +49,7 @@
         <entry key="app/src/main/res/layout/activity_xmlview.xml" value="0.33" />
         <entry key="app/src/main/res/layout/app_bar_main.xml" value="0.18229166666666666" />
         <entry key="app/src/main/res/layout/babab.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/layout/dialog_open_database_progress.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/dialog_open_database_progress_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/dialog_save_open_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/header_navigation_drawer.xml" value="0.3572916666666667" />
@@ -59,6 +60,7 @@
         <entry key="app/src/main/res/layout/node_content_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/node_image_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/node_view_fragment.xml" value="0.35572916666666665" />
+        <entry key="app/src/main/res/layout/open_database_progress_dialog_fragment_layout.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/table_cell_textview.xml" value="0.2515625" />
         <entry key="app/src/main/res/menu/activity_main_drawer.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/menu/back_button.xml" value="0.35572916666666665" />

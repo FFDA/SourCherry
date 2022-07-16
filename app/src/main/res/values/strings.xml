@@ -1,19 +1,16 @@
 <resources>
-    <string name="app_name">SourCherry</string>
+    <string name="app_name" translatable="false">SourCherry</string>
     <string name="button_create_database">Create database</string>
     <string name="button_select_database">Select database</string>
     <string name="button_open">Open</string>
     <string name="text_password_label">Password</string>
     <string name="text_message_no_database">Create or select a CherryTree database</string>
-    <string name="title_activity_xml_view">xml_view</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Android Studio</string>
-    <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
     <string name="nav_open">Open</string>
     <string name="nav_close">Close</string>
-    <string name="com.ffda.SourCherry.PREFERENCE_FILE_KEY">preference_file_key</string>
+    <string name="com.ffda.SourCherry.PREFERENCE_FILE_KEY" translatable="false">preference_file_key</string>
     <string name="checkbox_open_database_startup">Open this database on startup</string>
     <string name="save_open_dialog_fragment_title">Save or Open the File</string>
     <string name="button_save">Save</string>
@@ -33,4 +30,6 @@
     <string name="toast_error_could_not_copy_the_database">Could not copy the database</string>
     <string name="toast_error_does_not_look_like_a_cherrytree_database">Does not look like a CherryTree database</string>
     <string name="toast_message_please_enter_password">Please enter the password</string>
+    <string name="open_database_fragment_copying_database_message">Copying database to app-specific storage</string>
+    <string name="open_database_fragment_extracting_database_message">Extracting database</string>
 </resources>

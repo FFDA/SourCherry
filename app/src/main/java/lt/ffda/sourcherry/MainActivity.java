@@ -24,7 +24,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -38,17 +37,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
-import org.apache.commons.compress.archivers.sevenz.SevenZFile;
-
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 
 import lt.ffda.sourcherry.R;
 
@@ -268,7 +257,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void openDatabase() {
         String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
-
         if (this.sharedPref.getString("databaseStorageType", null).equals("shared")) {
             // A check for external databases that they still exists and app still able to read it
             // If the check fails message for user is displayed and MainView activity will not open
@@ -290,8 +278,11 @@ public class MainActivity extends AppCompatActivity {
                 if (passwordField.getText().length() <= 0) {
                     Toast.makeText(this, R.string.toast_message_please_enter_password, Toast.LENGTH_SHORT).show();
                 } else {
-                    this.extractDatabase();
-                    this.startMainViewActivity();
+                    Bundle bundle = new Bundle();
+                    bundle.putString("password", ((TextView) findViewById(R.id.passwordField)).getText().toString());
+                    OpenDatabaseProgressDialogFragment openDatabaseProgressDialogFragment = new OpenDatabaseProgressDialogFragment();
+                    openDatabaseProgressDialogFragment.setArguments(bundle);
+                    openDatabaseProgressDialogFragment.show(getSupportFragmentManager(), "progressDialog");
                 }
             } else if (databaseFileExtension.equals("ctd")) {
                 // XML database file
@@ -303,8 +294,8 @@ public class MainActivity extends AppCompatActivity {
             } else if (databaseFileExtension.equals("ctb")) {
                 // SQLite database
                 // Needs to be moved to app-specific storage to open it using SQLiteDatabase
-                this.copyDatabaseToAppSpecificStorage();
-                this.startMainViewActivity();
+                OpenDatabaseProgressDialogFragment openDatabaseProgressDialogFragment = new OpenDatabaseProgressDialogFragment();
+                openDatabaseProgressDialogFragment.show(getSupportFragmentManager(), "progressDialog");
             } else {
                 Toast.makeText(this,R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
             }
@@ -321,106 +312,6 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
         sharedPrefEditor.putBoolean("checkboxAutoOpen", checkBoxAutoOpen.isChecked());
         sharedPrefEditor.commit();
-    }
-
-    private void extractDatabase() {
-        String databaseString = sharedPref.getString("databaseUri", null);
-        EditText passwordField = findViewById(R.id.passwordField);
-        String password = passwordField.getText().toString();
-
-        File databaseDir = new File(getFilesDir(), "databases");
-        if (!databaseDir.exists()) {
-            // If directory does not exists - create it
-            databaseDir.mkdirs();
-        }
-
-        String tmpDatabaseFilename = "";
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                //// Copying file to temporary internal apps storage (cache)
-                File tmpCompressedDatabase = File.createTempFile("tmpDatabaseFile", null);
-                InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
-                Files.copy(is, tmpCompressedDatabase.toPath().toRealPath(), StandardCopyOption.REPLACE_EXISTING);
-                ////
-                is.close();
-
-                //// Extracting file to permanent internal apps storage
-                SevenZFile sevenZFile = new SevenZFile(tmpCompressedDatabase, password.toCharArray());
-                SevenZArchiveEntry entry = sevenZFile.getNextEntry();
-                tmpDatabaseFilename = entry.getName();
-                while (entry != null) {
-                    FileOutputStream out = new FileOutputStream(new File(databaseDir, tmpDatabaseFilename));
-                    byte[] content = new byte[(int) entry.getSize()];
-                    sevenZFile.read(content, 0, content.length);
-                    out.write(content);
-                    out.close();
-                    entry = sevenZFile.getNextEntry();
-                }
-                ////
-
-                //// Creating new settings
-                // Saved Uri is not a real Uri, so don't try to use it.
-                // The only reason to save it here is, because I'm using it to check if database should be opened automatically
-                String[] splitExtension = tmpDatabaseFilename.split("\\."); // Splitting the path to extract the file extension.
-                this.saveDatabaseToPrefs("internal", tmpDatabaseFilename, splitExtension[splitExtension.length - 1], databaseDir.getPath() + "/" + tmpDatabaseFilename);
-                ////
-
-                //// Cleaning up
-//                tmpCompressedDatabase.delete(); // Using deleteTempFile onDestroy
-                sevenZFile.close();
-                ////
-            } catch (FileNotFoundException e) {
-                Toast.makeText(this, "Error FileNotFoundException: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                e.printStackTrace();
-            } catch (IOException e) {
-                Toast.makeText(this, "Error IOException: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                e.printStackTrace();
-            }
-        } else {
-            Toast.makeText(this, R.string.toast_error_minimum_android_version_8, Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void copyDatabaseToAppSpecificStorage() {
-        File databaseDir = new File(getFilesDir(), "databases");
-
-        if (!databaseDir.exists()) {
-            // If directory does not exists - create it
-            databaseDir.mkdirs();
-        }
-
-        String databaseOutputFile = databaseDir.getPath() + "/" + this.sharedPref.getString("databaseFilename", null);
-        Uri databaseUri = Uri.parse(this.sharedPref.getString("databaseUri", null));
-
-        try {
-            InputStream databaseInputStream = getContentResolver().openInputStream(databaseUri);
-            OutputStream databaseOutputStream = new FileOutputStream(databaseOutputFile, false);
-
-            // Copying files
-            byte[] buf = new byte[1024];
-            int len;
-            while ((len = databaseInputStream.read(buf)) > 0) {
-                databaseOutputStream.write(buf, 0, len);
-            }
-
-            databaseInputStream.close();
-            databaseOutputStream.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            Toast.makeText(this, R.string.toast_error_could_not_open_a_file_to_copy_the_database, Toast.LENGTH_LONG).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, R.string.toast_error_could_not_copy_the_database, Toast.LENGTH_LONG).show();
-        }
-
-        //// Creating new settings
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
-        sharedPrefEditor.putString("databaseStorageType", "internal");
-        // This is not a real Uri, so don't try to use it, but I use it to check if database should be opened automatically
-        sharedPrefEditor.putString("databaseUri", databaseOutputFile);
-        sharedPrefEditor.apply();
-        ////
     }
 
     private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
@@ -444,7 +335,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void startMainViewActivity() {
+    public void startMainViewActivity() {
         // Starts MainView activity with current settings/database
         Intent openDatabase = new Intent(this, MainView.class);
         startActivity(openDatabase);
