@@ -13,6 +13,7 @@ package lt.ffda.sourcherry;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.widget.TextView;
 
 public class AboutActivity extends AppCompatActivity {
 
@@ -20,5 +21,8 @@ public class AboutActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_about);
+
+        TextView versionName = findViewById(R.id.about_activity_app_version_name);
+        versionName.setText(BuildConfig.VERSION_NAME);
     }
 }
