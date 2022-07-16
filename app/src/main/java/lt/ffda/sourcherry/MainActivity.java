@@ -86,7 +86,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        listImportedDatabases(); // Displaying databases on this step because this is the step that app returns to from other Activity
+        this.setMessageWithDatabaseName();
+        this.listImportedDatabases(); // Displaying databases on this step because this is the step that app returns to from other Activity
     }
 
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
@@ -246,6 +247,7 @@ public class MainActivity extends AppCompatActivity {
             buttonOpen.setEnabled(true);
             String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
             if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
+                editTextTextPassword.getText().clear();
                 editTextTextPassword.setVisibility(View.VISIBLE);
                 textViewPassword.setVisibility(View.VISIBLE);
             } else {
