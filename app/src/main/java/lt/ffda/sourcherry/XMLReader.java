@@ -637,18 +637,14 @@ public class XMLReader implements DatabaseReader{
             @Override
             public void onClick(@NonNull View widget) {
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    // Setting up to send arguments to Dialog Fragment
-                    Bundle bundle = new Bundle();
-                    bundle.putString("filename", attachedFileFilename);
-                    bundle.putString("time", time);
+                // Setting up to send arguments to Dialog Fragment
+                Bundle bundle = new Bundle();
+                bundle.putString("filename", attachedFileFilename);
+                bundle.putString("time", time);
 
-                    SaveOpenDialogFragment saveOpenDialogFragment = new SaveOpenDialogFragment();
-                    saveOpenDialogFragment.setArguments(bundle);
-                    saveOpenDialogFragment.show(XMLReader.this.fragmentManager, "saveOpenDialog");
-                } else {
-                    Toast.makeText(XMLReader.this.context, R.string.toast_error_minimum_android_version_8, Toast.LENGTH_SHORT).show();
-                }
+                SaveOpenDialogFragment saveOpenDialogFragment = new SaveOpenDialogFragment();
+                saveOpenDialogFragment.setArguments(bundle);
+                saveOpenDialogFragment.show(XMLReader.this.fragmentManager, "saveOpenDialog");
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image

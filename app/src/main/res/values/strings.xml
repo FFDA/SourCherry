@@ -15,7 +15,6 @@
     <string name="save_open_dialog_fragment_title">Save or Open the File</string>
     <string name="button_save">Save</string>
     <string name="button_cancel">Cancel</string>
-    <string name="toast_error_minimum_android_version_8">Only Android 8 or later supported</string>
     <string name="main_activity_imported_databases">Imported Databases</string>
     <string name="main_activity_imported_databases_delete_dialog_title">Delete</string>
     <string name="main_activity_imported_databases_delete_dialog_message">Database imported to app-specific storage will be deleted</string>

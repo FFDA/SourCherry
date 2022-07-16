@@ -30,6 +30,7 @@ import androidx.core.content.FileProvider;
 import androidx.fragment.app.DialogFragment;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
@@ -129,12 +130,9 @@ public class SaveOpenDialogFragment extends DialogFragment {
             File tmpAttachedFile = File.createTempFile(splitFilename[0], "." + splitFilename[splitFilename.length - 1]); // Temporary file that will shared
 
             // Writes Base64 encoded string to the temporary file
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Files.write(tmpAttachedFile.toPath(), reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));
-            } else {
-                // Android 8 is SDK 26
-                Toast.makeText(getContext(), R.string.toast_error_minimum_android_version_8, Toast.LENGTH_SHORT).show();
-            }
+            FileOutputStream out = new FileOutputStream(tmpAttachedFile);
+            out.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));
+            out.close();
 
             // Getting Uri to share
             Uri tmpFileUri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", tmpAttachedFile);
