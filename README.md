@@ -35,7 +35,12 @@ So to open password protected database app needs to copy file to app-specific st
 
 For the same reason (SAF) that prevents file extraction without saving files inside app-specific storage SQL based databases have to be copied to it before opening. There will be a performance hit. Should be noticeable when opening a SQL database for the first time.
 
-## Privacy Policy
+## Software used
+
+* XZ for Java - https://tukaani.org/xz/java.html
+* Apache Commons Compress - https://commons.apache.org/proper/commons-compress/
+
+## Privacy policy
 
 Generated privacy policy using https://privacypolicytemplate.net, because it is required for apps published on Google Play Store.
 
