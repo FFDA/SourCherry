@@ -23,6 +23,6 @@ public class AboutActivity extends AppCompatActivity {
         setContentView(R.layout.activity_about);
 
         TextView versionName = findViewById(R.id.about_activity_app_version_name);
-        versionName.setText(BuildConfig.VERSION_NAME);
+        versionName.setText(getString(R.string.options_menu_about_version_code, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE));
     }
 }
