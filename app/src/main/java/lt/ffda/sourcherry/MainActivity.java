@@ -16,6 +16,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.documentfile.provider.DocumentFile;
 
 import android.Manifest;
@@ -25,7 +27,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -33,6 +37,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -270,13 +275,32 @@ public class MainActivity extends AppCompatActivity {
             textViewMessage.setText(databaseFilename);
             buttonOpen.setEnabled(true);
             String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
+                // Password protected databases
                 editTextTextPassword.getText().clear();
                 editTextTextPassword.setVisibility(View.VISIBLE);
+                editTextTextPassword.requestFocus();
                 textViewPassword.setVisibility(View.VISIBLE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    // Shows keyboard on API 30 (Android 11) reliably
+                    WindowCompat.getInsetsController(getWindow(), editTextTextPassword).show(WindowInsetsCompat.Type.ime());
+                } else {
+                    new Handler().postDelayed(new Runnable() {
+                        // Delays to show soft keyboard by few milliseconds
+                        // Otherwise keyboard does not show up
+                        // It's a bit hacky (should be fixed)
+                        @Override
+                        public void run() {
+                            imm.showSoftInput(editTextTextPassword, InputMethodManager.SHOW_IMPLICIT);
+                        }
+                    }, 20);
+                }
             } else {
                 editTextTextPassword.setVisibility(View.GONE);
                 textViewPassword.setVisibility(View.GONE);
+                // Hides keyboard
+                imm.hideSoftInputFromWindow(editTextTextPassword.getWindowToken(), 0);
             }
         }
     }
