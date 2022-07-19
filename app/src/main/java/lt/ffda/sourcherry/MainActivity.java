@@ -104,13 +104,14 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.options_menu, menu);
+        menu.setGroupVisible(R.id.options_menu_mainview_group, false);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.main_activity_option_menu_about:
+            case R.id.options_menu_about:
                 Intent openAboutPage = new Intent(this, AboutActivity.class);
                 startActivity(openAboutPage);
                 return true;

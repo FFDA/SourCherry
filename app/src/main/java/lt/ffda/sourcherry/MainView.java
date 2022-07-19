@@ -19,6 +19,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -74,6 +75,7 @@ public class MainView extends AppCompatActivity {
 
         SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
         String databaseString = sharedPref.getString("databaseUri", null);
+        SharedPreferences sharedSettings = PreferenceManager.getDefaultSharedPreferences(this); // Preference values saved in settings
 
         try {
             if (sharedPref.getString("databaseStorageType", null).equals("shared")) {
@@ -138,6 +140,9 @@ public class MainView extends AppCompatActivity {
                     }
                     MainView.this.openSubmenu();
                 } else {
+                    if (sharedSettings.getBoolean("auto_open", false)) {
+                        drawerLayout.close();
+                    }
                     if (MainView.this.bookmarksToggle) {
                         // If node was selected from bookmarks
                         MainView.this.setClickedItemInSubmenu();
@@ -242,9 +247,13 @@ public class MainView extends AppCompatActivity {
         } else {
             // Options menu items
             switch (item.getItemId()) {
-                case (R.id.main_activity_option_menu_about):
-                    Intent openAboutPage = new Intent(this, AboutActivity.class);
-                    startActivity(openAboutPage);
+                case (R.id.options_menu_about):
+                    Intent openAboutActivity = new Intent(this, AboutActivity.class);
+                    startActivity(openAboutActivity);
+                    return true;
+                case (R.id.options_menu_settings):
+                    Intent openSettingsActivity = new Intent(this, PreferencesActivity.class);
+                    startActivity(openSettingsActivity);
                     return true;
                 default:
                     return super.onOptionsItemSelected(item);
