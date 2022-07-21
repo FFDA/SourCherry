@@ -14,11 +14,13 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.documentfile.provider.DocumentFile;
+import androidx.preference.PreferenceManager;
 
 import android.Manifest;
 import android.content.Context;
@@ -53,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        this.setNightMode();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -390,5 +393,21 @@ public class MainActivity extends AppCompatActivity {
         // Starts MainView activity with current settings/database
         Intent openDatabase = new Intent(this, MainView.class);
         startActivity(openDatabase);
+    }
+
+    private void setNightMode() {
+        // Sets theme depending on user selected setting
+        SharedPreferences sharedSettings = PreferenceManager.getDefaultSharedPreferences(this);
+        switch (sharedSettings.getString("preferences_category_dark_mode", "System")) {
+            case "System":
+                getDelegate().setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                break;
+            case "Light":
+                getDelegate().setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                break;
+            case "Dark":
+                getDelegate().setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                break;
+        }
     }
 }

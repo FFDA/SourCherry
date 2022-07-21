@@ -44,4 +44,5 @@
     <string name="options_menu_item_settings">Settings</string>
     <string name="preferences_auto_open_title">Automatically close drawer menu</string>
     <string name="preferences_auto_open_summary">Automatically close drawer menu when selected node does not have subnodes</string>
+    <string name="preferences_category_dark_mode_title">Dark mode</string>
 </resources>

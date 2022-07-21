@@ -9,11 +9,19 @@
   -->
 
 <PreferenceScreen
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <SwitchPreferenceCompat
         android:key="auto_open"
         android:title="@string/preferences_auto_open_title"
         android:summary="@string/preferences_auto_open_summary" />
 
+    <ListPreference
+        android:key="preferences_category_dark_mode"
+        android:title="@string/preferences_category_dark_mode_title"
+        app:useSimpleSummaryProvider="true"
+        android:entries="@array/dark_mode_entries"
+        android:entryValues="@array/dark_mode_entries"
+        android:defaultValue="System"/>
 </PreferenceScreen>
