@@ -375,6 +375,15 @@ public class MainActivity extends AppCompatActivity {
         sharedPreferencesEditor.putString("databaseFilename", databaseFilename);
         sharedPreferencesEditor.putString("databaseFileExtension", databaseFileExtension);
         sharedPreferencesEditor.putString("databaseUri", databaseUri);
+        if (this.sharedPreferences.getBoolean("restore_last_node", true) && this.sharedPreferences.getString("last_node_name", null) != null) {
+            // If last node from previous database was saved - resets values
+            sharedPreferencesEditor.putString("last_node_name", null);
+            sharedPreferencesEditor.putString("last_node_unique_id", null);
+            sharedPreferencesEditor.putString("last_node_has_subnodes", null);
+            sharedPreferencesEditor.putString("last_node_is_parent", null);
+            sharedPreferencesEditor.putString("last_node_is_subnode", null);
+            sharedPreferencesEditor.putInt("last_node_position", -1);
+        }
         sharedPreferencesEditor.apply();
     }
 

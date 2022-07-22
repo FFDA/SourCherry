@@ -15,7 +15,13 @@
     <SwitchPreferenceCompat
         android:key="auto_open"
         android:title="@string/preferences_auto_open_title"
-        android:summary="@string/preferences_auto_open_summary"/>
+        android:summary="@string/preferences_auto_open_summary"
+        android:defaultValue="false"/>
+
+    <SwitchPreferenceCompat
+        android:key="restore_last_node"
+        android:title="@string/preferences_restore_last_node_title"
+        android:defaultValue="false"/>
 
     <ListPreference
         android:defaultValue="System"

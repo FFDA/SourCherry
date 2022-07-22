@@ -110,11 +110,19 @@ public class MainView extends AppCompatActivity {
                     .addToBackStack("main")
                     .commit();
             getSupportFragmentManager().executePendingTransactions();
-            this.currentNode = null; // This needs to be placed before restoring the instance if there was one
             this.bookmarksToggle = false;
             this.filterNodeToggle = false;
-            this.currentNodePosition = -1;
-            this.mainViewModel.setNodes(this.reader.getMainNodes());
+            if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.sharedPreferences.getString("last_node_name", null) != null) {
+                // Restores node on startup if user set this in settings
+                this.currentNodePosition = this.sharedPreferences.getInt("last_node_position", -1);
+                this.currentNode = new String[]{this.sharedPreferences.getString("last_node_name", null), this.sharedPreferences.getString("last_node_unique_id", null), this.sharedPreferences.getString("last_node_has_subnodes", null), this.sharedPreferences.getString("last_node_is_parent", null), this.sharedPreferences.getString("last_node_is_subnode", null)};
+
+                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+            }  else {
+                this.currentNodePosition = -1;
+                this.currentNode = null; // This needs to be placed before restoring the instance if there was one
+                this.mainViewModel.setNodes(this.reader.getMainNodes());
+            }
         } else {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
             this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
@@ -291,6 +299,22 @@ public class MainView extends AppCompatActivity {
 
         if (this.bookmarksToggle) {
             this.navigationNormalMode(false);
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (this.sharedPreferences.getBoolean("restore_last_node", false)) {
+            // Saving current current node state to be able to load it on next startup
+            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+            sharedPreferencesEditor.putString("last_node_name", this.currentNode[0]);
+            sharedPreferencesEditor.putString("last_node_unique_id", this.currentNode[1]);
+            sharedPreferencesEditor.putString("last_node_has_subnodes", this.currentNode[2]);
+            sharedPreferencesEditor.putString("last_node_is_parent", this.currentNode[3]);
+            sharedPreferencesEditor.putString("last_node_is_subnode", this.currentNode[4]);
+            sharedPreferencesEditor.putInt("last_node_position", this.currentNodePosition);
+            sharedPreferencesEditor.apply();
         }
     }
 

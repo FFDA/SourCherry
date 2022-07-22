@@ -48,4 +48,5 @@
     <string name="preferences_category_padding_summary">Padding for node content in DP</string>
     <string name="preferences_category_padding_start_title">Left</string>
     <string name="preferences_category_padding_end_title">Right</string>
+    <string name="preferences_restore_last_node_title">Restore last node on startup</string>
 </resources>
