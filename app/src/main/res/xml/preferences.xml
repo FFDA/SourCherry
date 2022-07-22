@@ -15,13 +15,31 @@
     <SwitchPreferenceCompat
         android:key="auto_open"
         android:title="@string/preferences_auto_open_title"
-        android:summary="@string/preferences_auto_open_summary" />
+        android:summary="@string/preferences_auto_open_summary"/>
 
     <ListPreference
-        android:key="preferences_category_dark_mode"
-        android:title="@string/preferences_category_dark_mode_title"
-        app:useSimpleSummaryProvider="true"
+        android:defaultValue="System"
         android:entries="@array/dark_mode_entries"
         android:entryValues="@array/dark_mode_entries"
-        android:defaultValue="System"/>
+        android:key="preferences_dark_mode"
+        android:title="@string/preferences_dark_mode_title"
+        app:useSimpleSummaryProvider="true"/>
+
+    <PreferenceCategory
+        android:key="preferences_category_padding"
+        android:title="@string/preferences_category_padding_title"
+        android:summary="@string/preferences_category_padding_summary">
+        <SeekBarPreference
+            android:key="preferences_category_padding_start"
+            android:title="@string/preferences_category_padding_start_title"
+            android:max="25"
+            android:defaultValue="5"
+            app:showSeekBarValue="true"/>
+        <SeekBarPreference
+            android:key="preferences_category_padding_end"
+            android:title="@string/preferences_category_padding_end_title"
+            android:max="25"
+            android:defaultValue="5"
+            app:showSeekBarValue="true"/>
+    </PreferenceCategory>
 </PreferenceScreen>

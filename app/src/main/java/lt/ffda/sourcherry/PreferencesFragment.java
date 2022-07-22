@@ -12,6 +12,7 @@ package lt.ffda.sourcherry;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -19,15 +20,19 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.SeekBarPreference;
 
 public class PreferencesFragment extends PreferenceFragmentCompat {
+    SharedPreferences sharedPref;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.preferences, rootKey);
 
+        this.sharedPref = getContext().getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
+
         // Listener to detect when user changes theme to apply it
-        ListPreference darkModeListPreference = findPreference("preferences_category_dark_mode");
+        ListPreference darkModeListPreference = findPreference("preferences_dark_mode");
         darkModeListPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
@@ -49,14 +54,48 @@ public class PreferencesFragment extends PreferenceFragmentCompat {
                 }
             }
         });
+
+        // Listeners to detect when user changes paddings to save them in settings
+        SeekBarPreference paddingStartPreference = findPreference("preferences_category_padding_start");
+        paddingStartPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            @Override
+            public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
+                SharedPreferences.Editor sharedPrefEditor = PreferencesFragment.this.sharedPref.edit();
+                sharedPrefEditor.putInt("paddingStart", dpToPx((int) newValue));
+                sharedPrefEditor.commit();
+                return true;
+            }
+        });
+
+
+        SeekBarPreference paddingEndPreference = findPreference("preferences_category_padding_end");
+        paddingEndPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            @Override
+            public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
+                SharedPreferences.Editor sharedPrefEditor = PreferencesFragment.this.sharedPref.edit();
+                sharedPrefEditor.putInt("paddingEnd", dpToPx((int) newValue));
+                sharedPrefEditor.commit();
+                return true;
+            }
+        });
     }
 
     private void stopAutomaticallyOpeningDatabases() {
         // Stops opening databases automatically on start up
         // Needed because otherwise everytime user would change theme settings and mainview theme would be added to backstack
         // Moreover, setting would close and mainview would be loaded
-        SharedPreferences.Editor sharedPrefEditor = getContext().getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE).edit();
+        SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
         sharedPrefEditor.putBoolean("checkboxAutoOpen", false);
         sharedPrefEditor.commit();
+    }
+
+    private int pxToDp(int paddingInPX) {
+        // Converts provided PX value to DP and returns it
+        return (int) (paddingInPX / Resources.getSystem().getDisplayMetrics().density);
+    }
+
+    private int dpToPx(int paddingInDP) {
+        // Converts provided DP value to PX and returns it
+        return (int) (paddingInDP * Resources.getSystem().getDisplayMetrics().density);
     }
 }
