@@ -10,7 +10,6 @@
 
 package lt.ffda.sourcherry;
 
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
@@ -25,6 +24,7 @@ import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.preference.PreferenceManager;
 
 import lt.ffda.sourcherry.R;
 
@@ -48,9 +48,9 @@ public class NodeContentFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        SharedPreferences sharedPref = getContext().getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         // Top and bottom paddings are always the same: 14px (5dp)
-        this.contentFragmentLinearLayout.setPadding(sharedPref.getInt("paddingStart", 14), 14, sharedPref.getInt("paddingEnd", 14), 14);
+        this.contentFragmentLinearLayout.setPadding(sharedPreferences.getInt("paddingStart", 14), 14, sharedPreferences.getInt("paddingEnd", 14), 14);
     }
 
     public void loadContent() {

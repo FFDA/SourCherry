@@ -12,7 +12,6 @@ package lt.ffda.sourcherry;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -27,6 +26,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.DialogFragment;
+import androidx.preference.PreferenceManager;
 
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
 import org.apache.commons.compress.archivers.sevenz.SevenZFile;
@@ -41,7 +41,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class OpenDatabaseProgressDialogFragment extends DialogFragment {
-    private SharedPreferences sharedPref;
+    private SharedPreferences sharedPreferences;
     private ProgressBar progressBar;
     private TextView message;
     private ExecutorService executor;
@@ -65,7 +65,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         this.message = view.findViewById(R.id.progress_fragment_message);
         this.executor = Executors.newSingleThreadExecutor();
         this.handler = new Handler(Looper.getMainLooper());
-        this.sharedPref = getContext().getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         // Create the AlertDialog object and return it
         return builder.create();
@@ -74,7 +74,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
+        String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
 
         if (databaseFileExtension.equals("ctb")) {
             this.message.setText(R.string.open_database_fragment_copying_database_message);
@@ -121,8 +121,8 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             databaseDir.mkdirs();
         }
 
-        String databaseOutputFile = databaseDir.getPath() + "/" + this.sharedPref.getString("databaseFilename", null);
-        Uri databaseUri = Uri.parse(this.sharedPref.getString("databaseUri", null));
+        String databaseOutputFile = databaseDir.getPath() + "/" + this.sharedPreferences.getString("databaseFilename", null);
+        Uri databaseUri = Uri.parse(this.sharedPreferences.getString("databaseUri", null));
         long totalLen = 0;
 
         try {
@@ -168,7 +168,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         }
 
         //// Creating new settings
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
+        SharedPreferences.Editor sharedPrefEditor = this.sharedPreferences.edit();
         sharedPrefEditor.putString("databaseStorageType", "internal");
         // This is not a real Uri, so don't try to use it, but I use it to check if database should be opened automatically
         sharedPrefEditor.putString("databaseUri", databaseOutputFile);
@@ -177,7 +177,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
     }
 
     private void extractDatabase() {
-        String databaseString = sharedPref.getString("databaseUri", null);
+        String databaseString = sharedPreferences.getString("databaseUri", null);
 
         String password = getArguments().getString("password");
 
@@ -291,11 +291,11 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
 
     private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
         // Saves passed information about database to preferences
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
-        sharedPrefEditor.putString("databaseStorageType", databaseStorageType);
-        sharedPrefEditor.putString("databaseFilename", databaseFilename);
-        sharedPrefEditor.putString("databaseFileExtension", databaseFileExtension);
-        sharedPrefEditor.putString("databaseUri", databaseUri);
-        sharedPrefEditor.apply();
+        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        sharedPreferencesEditor.putString("databaseStorageType", databaseStorageType);
+        sharedPreferencesEditor.putString("databaseFilename", databaseFilename);
+        sharedPreferencesEditor.putString("databaseFileExtension", databaseFileExtension);
+        sharedPreferencesEditor.putString("databaseUri", databaseUri);
+        sharedPreferencesEditor.apply();
     }
 }

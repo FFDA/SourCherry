@@ -23,7 +23,6 @@ import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
@@ -55,6 +54,7 @@ public class MainView extends AppCompatActivity {
     private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
     private boolean backToExit;
     private MainViewModel mainViewModel;
+    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,15 +73,14 @@ public class MainView extends AppCompatActivity {
         actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.nav_open, R.string.nav_close);
         SearchView searchView = findViewById(R.id.navigation_drawer_search);
 
-        SharedPreferences sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
-        String databaseString = sharedPref.getString("databaseUri", null);
-        SharedPreferences sharedSettings = PreferenceManager.getDefaultSharedPreferences(this); // Preference values saved in settings
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String databaseString = sharedPreferences.getString("databaseUri", null);
 
         try {
-            if (sharedPref.getString("databaseStorageType", null).equals("shared")) {
+            if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
                 // If file is in external storage
                 getContentResolver().takePersistableUriPermission(Uri.parse(databaseString), Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                if (sharedPref.getString("databaseFileExtension", null).equals("ctd")) {
+                if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
                     this.reader = new XMLReader(is, this, getSupportFragmentManager());
@@ -89,9 +88,9 @@ public class MainView extends AppCompatActivity {
                 }
             } else {
                 // If file is in internal app storage
-                if (sharedPref.getString("databaseFileExtension", null).equals("ctd")) {
+                if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
-                    InputStream is = new FileInputStream(sharedPref.getString("databaseUri", null));
+                    InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
                     this.reader = new XMLReader(is, this, getSupportFragmentManager());
                     is.close();
                 } else {
@@ -140,7 +139,7 @@ public class MainView extends AppCompatActivity {
                     }
                     MainView.this.openSubmenu();
                 } else {
-                    if (sharedSettings.getBoolean("auto_open", false)) {
+                    if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
                         drawerLayout.close();
                     }
                     if (MainView.this.bookmarksToggle) {

@@ -15,7 +15,6 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,7 +33,6 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
-import java.nio.file.Files;
 
 public class SaveOpenDialogFragment extends DialogFragment {
     private DatabaseReader reader;

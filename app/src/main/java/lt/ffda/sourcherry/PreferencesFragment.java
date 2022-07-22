@@ -20,16 +20,17 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceManager;
 import androidx.preference.SeekBarPreference;
 
 public class PreferencesFragment extends PreferenceFragmentCompat {
-    SharedPreferences sharedPref;
+    SharedPreferences sharedPreferences;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.preferences, rootKey);
 
-        this.sharedPref = getContext().getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         // Listener to detect when user changes theme to apply it
         ListPreference darkModeListPreference = findPreference("preferences_dark_mode");
@@ -60,7 +61,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat {
         paddingStartPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
-                SharedPreferences.Editor sharedPrefEditor = PreferencesFragment.this.sharedPref.edit();
+                SharedPreferences.Editor sharedPrefEditor = PreferencesFragment.this.sharedPreferences.edit();
                 sharedPrefEditor.putInt("paddingStart", dpToPx((int) newValue));
                 sharedPrefEditor.commit();
                 return true;
@@ -72,7 +73,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat {
         paddingEndPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
-                SharedPreferences.Editor sharedPrefEditor = PreferencesFragment.this.sharedPref.edit();
+                SharedPreferences.Editor sharedPrefEditor = PreferencesFragment.this.sharedPreferences.edit();
                 sharedPrefEditor.putInt("paddingEnd", dpToPx((int) newValue));
                 sharedPrefEditor.commit();
                 return true;
@@ -84,7 +85,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat {
         // Stops opening databases automatically on start up
         // Needed because otherwise everytime user would change theme settings and mainview theme would be added to backstack
         // Moreover, setting would close and mainview would be loaded
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
+        SharedPreferences.Editor sharedPrefEditor = this.sharedPreferences.edit();
         sharedPrefEditor.putBoolean("checkboxAutoOpen", false);
         sharedPrefEditor.commit();
     }

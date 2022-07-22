@@ -51,7 +51,7 @@ import android.widget.Toast;
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
-    private SharedPreferences sharedPref;
+    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        this.sharedPref = getSharedPreferences(getString(R.string.com_ffda_SourCherry_PREFERENCE_FILE_KEY), Context.MODE_PRIVATE);
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
         setMessageWithDatabaseName();
 
@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
 
         CheckBox checkboxAutoOpen = (CheckBox) findViewById(R.id.checkBox_auto_open);
         if (checkboxAutoOpen.isChecked()) {
-            if (this.sharedPref.getString("databaseUri", null) != null) {
+            if (this.sharedPreferences.getString("databaseUri", null) != null) {
                 this.openDatabase();
             }
         }
@@ -245,7 +245,7 @@ public class MainActivity extends AppCompatActivity {
     private void checkIfDeleteDatabaseIsBeingUsed(String databaseFilename) {
         // Checks if user deletes the database that is set to be opened when user presses on Open button
         // And set everything to null in (database) settings if it's true
-        if (sharedPref.getString("databaseStorageType", null).equals("internal") && sharedPref.getString("databaseFilename", null).equals(databaseFilename)) {
+        if (this.sharedPreferences.getString("databaseStorageType", null).equals("internal") && this.sharedPreferences.getString("databaseFilename", null).equals(databaseFilename)) {
             saveDatabaseToPrefs(null, null, null, null); // Setting database info as null that correct message for user will be displayed
             setMessageWithDatabaseName();
         }
@@ -258,11 +258,11 @@ public class MainActivity extends AppCompatActivity {
         Button buttonOpen = findViewById(R.id.button_open);
         CheckBox checkboxAutoOpen = (CheckBox) findViewById(R.id.checkBox_auto_open);
 
-        checkboxAutoOpen.setChecked(this.sharedPref.getBoolean("checkboxAutoOpen", false));
+        checkboxAutoOpen.setChecked(this.sharedPreferences.getBoolean("checkboxAutoOpen", false));
 
         // Settings message for the user if there isn't a database selected to open
         // Otherwise displaying the name of the file
-        String databaseFilename = this.sharedPref.getString("databaseFilename", null);
+        String databaseFilename = this.sharedPreferences.getString("databaseFilename", null);
 
         if (databaseFilename == null) {
             // No file is selected
@@ -278,7 +278,7 @@ public class MainActivity extends AppCompatActivity {
             // Enabled Open button
             textViewMessage.setText(databaseFilename);
             buttonOpen.setEnabled(true);
-            String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
+            String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
                 // Password protected databases
@@ -310,11 +310,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openDatabase() {
-        String databaseFileExtension = this.sharedPref.getString("databaseFileExtension", null);
-        if (this.sharedPref.getString("databaseStorageType", null).equals("shared")) {
+        String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
+        if (this.sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
             // A check for external databases that they still exists and app still able to read it
             // If the check fails message for user is displayed and MainView activity will not open
-            Uri databaseUri = Uri.parse(this.sharedPref.getString("databaseUri", null));
+            Uri databaseUri = Uri.parse(this.sharedPreferences.getString("databaseUri", null));
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, databaseUri);
             if (!databaseDocumentFile.exists()) {
                 Toast.makeText(this, R.string.toast_error_database_does_not_exists, Toast.LENGTH_SHORT).show();
@@ -363,19 +363,19 @@ public class MainActivity extends AppCompatActivity {
     public void saveCheckboxStatus(View view) {
         CheckBox checkBoxAutoOpen = (CheckBox) findViewById(R.id.checkBox_auto_open);
 
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
-        sharedPrefEditor.putBoolean("checkboxAutoOpen", checkBoxAutoOpen.isChecked());
-        sharedPrefEditor.commit();
+        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        sharedPreferencesEditor.putBoolean("checkboxAutoOpen", checkBoxAutoOpen.isChecked());
+        sharedPreferencesEditor.commit();
     }
 
     private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
         // Saves passed information about database to preferences
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPref.edit();
-        sharedPrefEditor.putString("databaseStorageType", databaseStorageType);
-        sharedPrefEditor.putString("databaseFilename", databaseFilename);
-        sharedPrefEditor.putString("databaseFileExtension", databaseFileExtension);
-        sharedPrefEditor.putString("databaseUri", databaseUri);
-        sharedPrefEditor.apply();
+        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        sharedPreferencesEditor.putString("databaseStorageType", databaseStorageType);
+        sharedPreferencesEditor.putString("databaseFilename", databaseFilename);
+        sharedPreferencesEditor.putString("databaseFileExtension", databaseFileExtension);
+        sharedPreferencesEditor.putString("databaseUri", databaseUri);
+        sharedPreferencesEditor.apply();
     }
 
     private void deleteTempFiles() {
@@ -397,8 +397,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void setNightMode() {
         // Sets theme depending on user selected setting
-        SharedPreferences sharedSettings = PreferenceManager.getDefaultSharedPreferences(this);
-        switch (sharedSettings.getString("preferences_category_dark_mode", "System")) {
+        SharedPreferences sharedPreferencesEditor = PreferenceManager.getDefaultSharedPreferences(this);
+        switch (sharedPreferencesEditor.getString("preferences_category_dark_mode", "System")) {
             case "System":
                 getDelegate().setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
                 break;
