@@ -143,43 +143,77 @@ public class MainView extends AppCompatActivity {
         this.adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
-                MainView.this.currentNode = MainView.this.mainViewModel.getNodes().get(position);
-                MainView.this.loadNodeContent();
-                if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
-                    // In this case it does not matter if node was selected from normal menu, bookmarks or search
-                    if (MainView.this.filterNodeToggle) {
-                        searchView.onActionViewCollapsed();
-                        MainView.this.hideNavigation(false);
-                        MainView.this.filterNodeToggle = false;
+                if (MainView.this.currentNode == null || !MainView.this.mainViewModel.getNodes().get(position)[1].equals(MainView.this.currentNode[1])) {
+//                  If current node is null (empty/nothing opened yet) or selected not uniqueID is not the same as selected one
+                    MainView.this.currentNode = MainView.this.mainViewModel.getNodes().get(position);
+                    MainView.this.loadNodeContent();
+                    if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
+                        // In this case it does not matter if node was selected from normal menu, bookmarks or search
+                        if (MainView.this.filterNodeToggle) {
+                            searchView.onActionViewCollapsed();
+                            MainView.this.hideNavigation(false);
+                            MainView.this.filterNodeToggle = false;
+                        }
+                        MainView.this.openSubmenu();
+                    } else {
+                        if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
+                            drawerLayout.close();
+                        }
+                        if (MainView.this.bookmarksToggle) {
+                            // If node was selected from bookmarks
+                            MainView.this.setClickedItemInSubmenu();
+                            MainView.this.adapter.notifyDataSetChanged();
+                        } else if (MainView.this.filterNodeToggle) {
+                            // Node selected from the search
+                            searchView.onActionViewCollapsed();
+                            MainView.this.hideNavigation(false);
+                            MainView.this.setClickedItemInSubmenu();
+                            MainView.this.filterNodeToggle = false;
+                            MainView.this.adapter.notifyDataSetChanged();
+                        } else {
+                            // Node selected from normal menu
+                            int previousNodePosition = MainView.this.currentNodePosition;
+                            MainView.this.currentNodePosition = position;
+                            MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
+                            MainView.this.adapter.notifyItemChanged(previousNodePosition);
+                            MainView.this.adapter.notifyItemChanged(position);
+                        }
                     }
-                    MainView.this.openSubmenu();
+                    if (MainView.this.bookmarksToggle) {
+                        MainView.this.navigationNormalMode(true);
+                        MainView.this.bookmarkVariablesReset();
+                    }
                 } else {
+                    // If already opened node was selected by the user
+                    // Helps to save some reads from database and reloading of navigation menu
                     if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
                         drawerLayout.close();
                     }
-                    if (MainView.this.bookmarksToggle) {
-                        // If node was selected from bookmarks
-                        MainView.this.setClickedItemInSubmenu();
-                        MainView.this.adapter.notifyDataSetChanged();
-                    } else if (MainView.this.filterNodeToggle) {
-                        // Node selected from the search
-                        searchView.onActionViewCollapsed();
-                        MainView.this.hideNavigation(false);
-                        MainView.this.setClickedItemInSubmenu();
-                        MainView.this.filterNodeToggle = false;
-                        MainView.this.adapter.notifyDataSetChanged();
+                    if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked as having subnodes
+                        if (MainView.this.filterNodeToggle) {
+                            searchView.onActionViewCollapsed();
+                            MainView.this.hideNavigation(false);
+                            MainView.this.filterNodeToggle = false;
+                        }
+                        MainView.this.openSubmenu();
                     } else {
-                        // Node selected from normal menu
-                        int previousNodePosition = MainView.this.currentNodePosition;
-                        MainView.this.currentNodePosition = position;
-                        MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
-                        MainView.this.adapter.notifyItemChanged(previousNodePosition);
-                        MainView.this.adapter.notifyItemChanged(position);
+                        if (MainView.this.bookmarksToggle) {
+                            // If node was selected from bookmarks
+                            MainView.this.setClickedItemInSubmenu();
+                            MainView.this.adapter.notifyDataSetChanged();
+                        } else if (MainView.this.filterNodeToggle) {
+                            // Node selected from the search
+                            searchView.onActionViewCollapsed();
+                            MainView.this.hideNavigation(false);
+                            MainView.this.setClickedItemInSubmenu();
+                            MainView.this.filterNodeToggle = false;
+                            MainView.this.adapter.notifyDataSetChanged();
+                        }
                     }
-                }
-                if (MainView.this.bookmarksToggle) {
-                    MainView.this.navigationNormalMode(true);
-                    MainView.this.bookmarkVariablesReset();
+                    if (MainView.this.bookmarksToggle) {
+                        MainView.this.navigationNormalMode(true);
+                        MainView.this.bookmarkVariablesReset();
+                    }
                 }
             }
         });
