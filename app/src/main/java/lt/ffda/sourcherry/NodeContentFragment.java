@@ -12,6 +12,8 @@ package lt.ffda.sourcherry;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.SpannableStringBuilder;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,6 +35,7 @@ import java.util.ArrayList;
 public class NodeContentFragment extends Fragment {
     private LinearLayout contentFragmentLinearLayout;
     private MainViewModel mainViewModel;
+    private Handler handler;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -41,6 +44,7 @@ public class NodeContentFragment extends Fragment {
 
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.contentFragmentLinearLayout = (LinearLayout) rootView.findViewById(R.id.content_fragment_linearlayout);
+        this.handler = new Handler(Looper.getMainLooper());
 
         return rootView;
     }
@@ -57,7 +61,12 @@ public class NodeContentFragment extends Fragment {
 
         // Clears layout just in case. Most of the time it is needed
         if (this.contentFragmentLinearLayout != null) {
-            this.contentFragmentLinearLayout.removeAllViews();
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    NodeContentFragment.this.contentFragmentLinearLayout.removeAllViews();
+                }
+            });
         }
 
         for (ArrayList part: mainViewModel.getNodeContent()) {
@@ -71,7 +80,12 @@ public class NodeContentFragment extends Fragment {
                 tv.setTextIsSelectable(true);
                 tv.setMovementMethod(CustomMovementMethod.getInstance()); // Needed to detect click/open links
                 tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
-                this.contentFragmentLinearLayout.addView(tv);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        NodeContentFragment.this.contentFragmentLinearLayout.addView(tv);
+                    }
+                });
             }
             if (type[0].equals("table")) {
                 HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
@@ -124,7 +138,12 @@ public class NodeContentFragment extends Fragment {
 
                 table.setBackground(getActivity().getDrawable(R.drawable.table_border));
                 tableScrollView.addView(table);
-                this.contentFragmentLinearLayout.addView(tableScrollView);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        NodeContentFragment.this.contentFragmentLinearLayout.addView(tableScrollView);
+                    }
+                });
             }
         }
     }

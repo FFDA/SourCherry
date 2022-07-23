@@ -40,6 +40,8 @@ import android.widget.Toast;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class MainView extends AppCompatActivity {
@@ -55,6 +57,7 @@ public class MainView extends AppCompatActivity {
     private boolean backToExit;
     private MainViewModel mainViewModel;
     private SharedPreferences sharedPreferences;
+    private ExecutorService executor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,7 +69,7 @@ public class MainView extends AppCompatActivity {
 
         this.mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         this.backToExit = false;
-
+        this.executor = Executors.newSingleThreadExecutor();
         // drawer layout instance to toggle the menu icon to open
         // drawer and back button to close drawer
         DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
@@ -137,6 +140,7 @@ public class MainView extends AppCompatActivity {
             @Override
             public void onItemClick(View itemView, int position) {
                 MainView.this.currentNode = MainView.this.mainViewModel.getNodes().get(position);
+                MainView.this.loadNodeContent();
                 if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
                     // In this case it does not matter if node was selected from normal menu, bookmarks or search
                     if (MainView.this.filterNodeToggle) {
@@ -173,7 +177,6 @@ public class MainView extends AppCompatActivity {
                     MainView.this.navigationNormalMode(true);
                     MainView.this.bookmarkVariablesReset();
                 }
-                MainView.this.loadNodeContent();
             }
         });
         rvMenu.setAdapter(this.adapter);
@@ -443,11 +446,14 @@ public class MainView extends AppCompatActivity {
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
         // Sends ArrayList to fragment to be added added to view
-        mainViewModel.setNodeContent(this.reader.getNodeContent(this.currentNode[1]));
-
         this.setToolbarTitle();
-
-        nodeContentFragment.loadContent();
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mainViewModel.setNodeContent(MainView.this.reader.getNodeContent(MainView.this.currentNode[1]));
+                nodeContentFragment.loadContent();
+            }
+        });
     }
 
     private void setToolbarTitle() {
