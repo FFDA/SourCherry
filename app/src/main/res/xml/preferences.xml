@@ -24,12 +24,12 @@
         android:defaultValue="false"/>
 
     <ListPreference
-        android:defaultValue="System"
-        android:entries="@array/dark_mode_entries"
-        android:entryValues="@array/dark_mode_entries"
         android:key="preferences_dark_mode"
         android:title="@string/preferences_dark_mode_title"
-        app:useSimpleSummaryProvider="true"/>
+        app:useSimpleSummaryProvider="true"
+        android:defaultValue="System"
+        android:entries="@array/dark_mode_entries"
+        android:entryValues="@array/dark_mode_entries"/>
 
     <PreferenceCategory
         android:key="preferences_category_padding"

@@ -10,7 +10,6 @@
 
 package lt.ffda.sourcherry;
 
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.Bundle;
@@ -40,15 +39,12 @@ public class PreferencesFragment extends PreferenceFragmentCompat {
                 switch (newValue.toString()) {
                     case "System":
                         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-                        PreferencesFragment.this.stopAutomaticallyOpeningDatabases();
                         return true;
                     case "Light":
                         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-                        PreferencesFragment.this.stopAutomaticallyOpeningDatabases();
                         return true;
                     case "Dark":
                         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-                        PreferencesFragment.this.stopAutomaticallyOpeningDatabases();
                         return true;
                     default:
                         return false;
@@ -79,15 +75,6 @@ public class PreferencesFragment extends PreferenceFragmentCompat {
                 return true;
             }
         });
-    }
-
-    private void stopAutomaticallyOpeningDatabases() {
-        // Stops opening databases automatically on start up
-        // Needed because otherwise everytime user would change theme settings and mainview theme would be added to backstack
-        // Moreover, setting would close and mainview would be loaded
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPreferences.edit();
-        sharedPrefEditor.putBoolean("checkboxAutoOpen", false);
-        sharedPrefEditor.commit();
     }
 
     private int pxToDp(int paddingInPX) {

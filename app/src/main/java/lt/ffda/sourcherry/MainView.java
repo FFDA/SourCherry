@@ -116,7 +116,6 @@ public class MainView extends AppCompatActivity {
                 // Restores node on startup if user set this in settings
                 this.currentNodePosition = this.sharedPreferences.getInt("last_node_position", -1);
                 this.currentNode = new String[]{this.sharedPreferences.getString("last_node_name", null), this.sharedPreferences.getString("last_node_unique_id", null), this.sharedPreferences.getString("last_node_has_subnodes", null), this.sharedPreferences.getString("last_node_is_parent", null), this.sharedPreferences.getString("last_node_is_subnode", null)};
-
                 this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
             }  else {
                 this.currentNodePosition = -1;

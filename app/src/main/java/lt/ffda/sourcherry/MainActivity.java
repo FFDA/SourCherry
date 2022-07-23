@@ -63,10 +63,10 @@ public class MainActivity extends AppCompatActivity {
 
         setMessageWithDatabaseName();
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        Button buttonOpen = (Button) findViewById(R.id.button_open);
+        Button buttonOpen = findViewById(R.id.button_open);
         buttonOpen.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -74,8 +74,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        CheckBox checkboxAutoOpen = (CheckBox) findViewById(R.id.checkBox_auto_open);
-        if (checkboxAutoOpen.isChecked()) {
+        CheckBox checkboxAutoOpen = findViewById(R.id.checkBox_auto_open);
+        if (checkboxAutoOpen.isChecked() && !this.sharedPreferences.getBoolean("isChangingConfigurations", false)) {
             if (this.sharedPreferences.getString("databaseUri", null) != null) {
                 this.openDatabase();
             }
@@ -94,6 +94,10 @@ public class MainActivity extends AppCompatActivity {
                 return handle;
             }
         });
+
+        if (this.sharedPreferences.getBoolean("isChangingConfigurations", false)) {
+            this.resetIsChangingConfigurationsValue();
+        }
     }
 
     @Override
@@ -240,6 +244,11 @@ public class MainActivity extends AppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         deleteTempFiles();
+        if (isChangingConfigurations()) {
+            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+            sharedPreferencesEditor.putBoolean("isChangingConfigurations", true);
+            sharedPreferencesEditor.apply();
+        }
     }
 
     private void checkIfDeleteDatabaseIsBeingUsed(String databaseFilename) {
@@ -407,7 +416,7 @@ public class MainActivity extends AppCompatActivity {
     private void setNightMode() {
         // Sets theme depending on user selected setting
         SharedPreferences sharedPreferencesEditor = PreferenceManager.getDefaultSharedPreferences(this);
-        switch (sharedPreferencesEditor.getString("preferences_category_dark_mode", "System")) {
+        switch (sharedPreferencesEditor.getString("preferences_dark_mode", "System")) {
             case "System":
                 getDelegate().setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
                 break;
@@ -418,5 +427,11 @@ public class MainActivity extends AppCompatActivity {
                 getDelegate().setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
                 break;
         }
+    }
+
+    private void resetIsChangingConfigurationsValue() {
+        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        sharedPreferencesEditor.putBoolean("isChangingConfigurations", false);
+        sharedPreferencesEditor.commit();
     }
 }
