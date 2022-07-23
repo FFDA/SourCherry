@@ -19,6 +19,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
@@ -69,18 +70,24 @@ public class XMLReader implements DatabaseReader{
     private Document doc;
     private Context context;
     private FragmentManager fragmentManager;
+    private Handler handler;
 
-    public XMLReader(InputStream is, Context context, FragmentManager fragmentManager) {
+    public XMLReader(InputStream is, Context context, FragmentManager fragmentManager, Handler handler) {
         // Creates a document that can be used to read tags with provided InputStream
         this.context = context;
         this.fragmentManager = fragmentManager;
+        this.handler = handler;
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
             this.doc = db.parse(new InputSource(is));
         } catch (Exception e) {
-            Toast.makeText(this.context, "Failed to load database", Toast.LENGTH_SHORT).show();
-            System.out.println(e.getMessage());
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(XMLReader.this.context, "Failed to load database", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
     }
 
@@ -603,7 +610,12 @@ public class XMLReader implements DatabaseReader{
             formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             ////
         } catch (Exception e) {
-            Toast.makeText(this.context, "Failed to load image", Toast.LENGTH_SHORT).show();
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(XMLReader.this.context, "Failed to load image", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
         ////
 

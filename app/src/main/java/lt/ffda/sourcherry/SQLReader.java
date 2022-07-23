@@ -21,6 +21,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
@@ -68,11 +69,13 @@ public class SQLReader implements DatabaseReader {
     private SQLiteDatabase sqlite;
     private Context context;
     private FragmentManager fragmentManager;
+    private Handler handler;
 
-    public SQLReader(SQLiteDatabase sqlite, Context context, FragmentManager fragmentManager) {
+    public SQLReader(SQLiteDatabase sqlite, Context context, FragmentManager fragmentManager, Handler handler) {
         this.context = context;
         this.fragmentManager = fragmentManager;
         this.sqlite = sqlite;
+        this.handler = handler;
     }
 
     @Override
@@ -618,7 +621,12 @@ public class SQLReader implements DatabaseReader {
             ////
 
         } catch (Exception e) {
-            Toast.makeText(this.context, "Failed to load image", Toast.LENGTH_SHORT).show();
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(SQLReader.this.context, "Failed to load database", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
         ////
 
@@ -778,8 +786,12 @@ public class SQLReader implements DatabaseReader {
             // It seems that there is always just one tag (<node> or <table>), so returning just the first one in the NodeList
             return doc.getElementsByTagName(type).item(0).getChildNodes();
         } catch (Exception e) {
-            Toast.makeText(context, "Failed to convert String to NodeList", Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(SQLReader.this.context, "Failed to convert String to NodeList", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
 
         return null;
