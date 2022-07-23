@@ -13,7 +13,6 @@ package lt.ffda.sourcherry;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.text.SpannableStringBuilder;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -44,7 +43,7 @@ public class NodeContentFragment extends Fragment {
 
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.contentFragmentLinearLayout = (LinearLayout) rootView.findViewById(R.id.content_fragment_linearlayout);
-        this.handler = new Handler(Looper.getMainLooper());
+        this.handler = ((MainView) getActivity()).getHandler();
 
         return rootView;
     }

@@ -652,4 +652,8 @@ public class MainView extends AppCompatActivity {
             bookmarksButton.setVisibility(View.VISIBLE);
         }
     }
+
+    public Handler getHandler() {
+        return this.handler;
+    }
 }
