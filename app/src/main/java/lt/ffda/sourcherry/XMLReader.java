@@ -85,7 +85,7 @@ public class XMLReader implements DatabaseReader{
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(XMLReader.this.context, "Failed to load database", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(XMLReader.this.context, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -613,7 +613,7 @@ public class XMLReader implements DatabaseReader{
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(XMLReader.this.context, "Failed to load image", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(XMLReader.this.context, R.string.toast_error_failed_to_load_image, Toast.LENGTH_SHORT).show();
                 }
             });
         }

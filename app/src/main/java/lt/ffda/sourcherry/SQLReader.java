@@ -624,7 +624,7 @@ public class SQLReader implements DatabaseReader {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(SQLReader.this.context, "Failed to load database", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SQLReader.this.context, R.string.toast_error_failed_to_load_image, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -789,7 +789,7 @@ public class SQLReader implements DatabaseReader {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(SQLReader.this.context, "Failed to convert String to NodeList", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SQLReader.this.context, R.string.toast_error_failed_to_convert_string_to_nodelist, Toast.LENGTH_SHORT).show();
                 }
             });
         }

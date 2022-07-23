@@ -21,7 +21,7 @@
     <string name="toast_no_bookmarks_message">There are no bookmarks</string>
     <string name="toast_confirm_mainview_exit">Press BACK again to leave this screen</string>
     <string name="snackbar_dismiss_action">Dismiss</string>
-    <string name="toast_error_database_does_not_exists">Database does not exists</string>
+    <string name="toast_error_database_does_not_exists">Database does not exist</string>
     <string name="toast_error_cant_read_database">Can\'t read database file. Try select it again.</string>
     <string name="toast_error_failed_to_open_database">Failed to open the database</string>
     <string name="toast_error_could_not_open_a_file_to_copy_the_database">Could not open a file to copy the database</string>
@@ -32,6 +32,9 @@
     <string name="open_database_fragment_extracting_database_message">Extracting database</string>
     <string name="toast_error_failed_to_save_file">Failed to save the file</string>
     <string name="toast_error_failed_to_open_file">Failed to open the file</string>
+    <string name="toast_error_failed_to_load_image">Failed to load image</string>
+    <string name="toast_error_failed_to_read_database">Failed to read database</string>
+    <string name="toast_error_failed_to_convert_string_to_nodelist">Failed to convert String to NodeList</string>
     <string name="options_menu_item_about">About</string>
     <string name="options_menu_about_moto">Take your notes with you</string>
     <string name="options_menu_about_licence">Published under GPL v3</string>
