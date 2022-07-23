@@ -287,9 +287,7 @@ public class MainView extends AppCompatActivity {
             this.setToolbarTitle();
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyItemChanged(this.currentNodePosition);
-            if (getSupportFragmentManager().findFragmentByTag("image") == null) {
-                this.loadNodeContent();
-            }
+            this.loadNodeContent();
         }
 
         if (this.filterNodeToggle) {
@@ -438,14 +436,6 @@ public class MainView extends AppCompatActivity {
     private void loadNodeContent() {
 
         FragmentManager fragmentManager = getSupportFragmentManager();
-        // Checks if there is fragment with tag "image" in backStack and removes it if there it
-        // it's not needed if user want's to see another content node.
-        if (fragmentManager.findFragmentByTag("image") != null) {
-            fragmentManager.beginTransaction()
-                    .remove(fragmentManager.findFragmentByTag("image"))
-                    .commit();
-            fragmentManager.popBackStack();
-        }
 
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
