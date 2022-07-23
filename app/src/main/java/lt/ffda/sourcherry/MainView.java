@@ -119,7 +119,11 @@ public class MainView extends AppCompatActivity {
                 // Restores node on startup if user set this in settings
                 this.currentNodePosition = this.sharedPreferences.getInt("last_node_position", -1);
                 this.currentNode = new String[]{this.sharedPreferences.getString("last_node_name", null), this.sharedPreferences.getString("last_node_unique_id", null), this.sharedPreferences.getString("last_node_has_subnodes", null), this.sharedPreferences.getString("last_node_is_parent", null), this.sharedPreferences.getString("last_node_is_subnode", null)};
-                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+                if (this.currentNode[2].equals("true")) { // Checks if menu has subnodes and creates appropriate menu
+                    this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
+                } else {
+                    this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+                }
             }  else {
                 this.currentNodePosition = -1;
                 this.currentNode = null; // This needs to be placed before restoring the instance if there was one
@@ -317,7 +321,12 @@ public class MainView extends AppCompatActivity {
             sharedPreferencesEditor.putString("last_node_has_subnodes", this.currentNode[2]);
             sharedPreferencesEditor.putString("last_node_is_parent", this.currentNode[3]);
             sharedPreferencesEditor.putString("last_node_is_subnode", this.currentNode[4]);
-            sharedPreferencesEditor.putInt("last_node_position", this.currentNodePosition);
+            if (this.bookmarksToggle || this.filterNodeToggle) {
+                // If search or bookmarks were being show temporary node position needs to be saved
+                sharedPreferencesEditor.putInt("last_node_position", this.tempCurrentNodePosition);
+            } else {
+                sharedPreferencesEditor.putInt("last_node_position", this.currentNodePosition);
+            }
             sharedPreferencesEditor.apply();
         }
     }
