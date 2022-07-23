@@ -19,7 +19,6 @@ Right now anyone can download this repository and build the apk file using Andro
 * Right now it can only open databases in read only mode.
 * There is a possibility that not all text will be displayed.
 * Some text most definitely will be missing some formatting and it will look differently compared to how it looks in CherryTree.
-* Password protected databases can be opened only on phones with Android 8 or later.
 * Latex boxes will not be displayed (anyone affected by it please create an issue with suggestions. Right now the best I can think of is display a placeholder marking that there should be a latex box and/or display the latex text that is used to compile a formula image in CherryTree)
 
 ## Password protected databases
