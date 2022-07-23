@@ -152,18 +152,22 @@ public class MainView extends AppCompatActivity {
                     if (MainView.this.bookmarksToggle) {
                         // If node was selected from bookmarks
                         MainView.this.setClickedItemInSubmenu();
+                        MainView.this.adapter.notifyDataSetChanged();
                     } else if (MainView.this.filterNodeToggle) {
                         // Node selected from the search
                         searchView.onActionViewCollapsed();
                         MainView.this.hideNavigation(false);
                         MainView.this.setClickedItemInSubmenu();
                         MainView.this.filterNodeToggle = false;
+                        MainView.this.adapter.notifyDataSetChanged();
                     } else {
                         // Node selected from normal menu
+                        int previousNodePosition = MainView.this.currentNodePosition;
                         MainView.this.currentNodePosition = position;
                         MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
+                        MainView.this.adapter.notifyItemChanged(previousNodePosition);
+                        MainView.this.adapter.notifyItemChanged(position);
                     }
-                    MainView.this.adapter.notifyDataSetChanged();
                 }
                 if (MainView.this.bookmarksToggle) {
                     MainView.this.navigationNormalMode(true);
@@ -351,7 +355,6 @@ public class MainView extends AppCompatActivity {
         this.currentNodePosition = 0;
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
-
     }
 
     private void setClickedItemInSubmenu() {
