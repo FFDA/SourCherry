@@ -302,7 +302,7 @@ public class MainView extends AppCompatActivity {
     @Override
     public void onStop() {
         super.onStop();
-        if (this.sharedPreferences.getBoolean("restore_last_node", false)) {
+        if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.currentNode != null) {
             // Saving current current node state to be able to load it on next startup
             SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
             sharedPreferencesEditor.putString("last_node_name", this.currentNode[0]);
