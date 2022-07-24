@@ -225,7 +225,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_extracting_database_message);;
+                    OpenDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_extracting_database_message);
                     OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(0);
                 }
             });

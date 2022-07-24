@@ -10,6 +10,7 @@
 
 package lt.ffda.sourcherry;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -25,6 +26,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.DialogFragment;
 
@@ -41,6 +43,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
     private String time;
     private String fileMimeType;
 
+    @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // Use the Builder class for convenient dialog construction
@@ -149,7 +152,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
     ActivityResultLauncher<Intent> saveFile = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         // Saves attached file to the user selected file
-        if (result.getResultCode() == getActivity().RESULT_OK) {
+        if (result.getResultCode() == Activity.RESULT_OK) {
 
             try {
                 OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file

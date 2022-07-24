@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -42,8 +42,10 @@
                     android:layout_gravity="top"
                     android:background="?selectableItemBackground"
                     android:clickable="true"
+                    android:focusable="true"
                     android:onClick="goBack"
                     android:visibility="gone"
+                    android:contentDescription="@string/navigation_drawer_button_back_content_description"
                     android:src="@drawable/ic_baseline_arrow_back_24" />
 
                 <ImageButton
@@ -53,7 +55,9 @@
                     android:layout_gravity="top"
                     android:background="?selectableItemBackground"
                     android:clickable="true"
+                    android:focusable="true"
                     android:onClick="goNodeUp"
+                    android:contentDescription="@string/navigation_drawer_button_up_content_description"
                     android:src="@drawable/ic_baseline_arrow_node_up_24" />
 
                 <ImageButton
@@ -63,7 +67,9 @@
                     android:layout_gravity="top"
                     android:background="?selectableItemBackground"
                     android:clickable="true"
+                    android:focusable="true"
                     android:onClick="goHome"
+                    android:contentDescription="@string/navigation_drawer_button_home_content_description"
                     android:src="@drawable/ic_outline_home_24" />
 
                 <ImageButton
@@ -73,7 +79,9 @@
                     android:layout_gravity="top"
                     android:background="?selectableItemBackground"
                     android:clickable="true"
+                    android:focusable="true"
                     android:onClick="openCloseBookmarks"
+                    android:contentDescription="@string/navigation_drawer_button_bookmarks_content_description"
                     android:src="@drawable/ic_outline_bookmarks_off_24" />
 
                 <SearchView

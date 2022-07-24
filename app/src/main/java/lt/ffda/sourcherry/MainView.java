@@ -66,7 +66,7 @@ public class MainView extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mainview);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         this.mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
@@ -141,7 +141,7 @@ public class MainView extends AppCompatActivity {
             this.filterNodeToggle = savedInstanceState.getBoolean("filterNodeToggle");
         }
 
-        RecyclerView rvMenu = (RecyclerView) findViewById(R.id.recyclerView);
+        RecyclerView rvMenu = findViewById(R.id.recyclerView);
         this.adapter = new MenuItemAdapter(this.mainViewModel.getNodes(), this);
         this.adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
@@ -369,7 +369,7 @@ public class MainView extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean onCreateOptionsMenu(@NonNull Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.options_menu, menu);
         return true;
@@ -504,7 +504,7 @@ public class MainView extends AppCompatActivity {
 
     private void setToolbarTitle() {
         // Sets toolbar title to the current node name
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle(this.currentNode[0]);
     }
 

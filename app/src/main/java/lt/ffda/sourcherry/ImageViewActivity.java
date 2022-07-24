@@ -31,14 +31,14 @@ public class ImageViewActivity extends AppCompatActivity {
         setContentView(R.layout.activity_image_view);
 
         // Displays toolbar
-        Toolbar imageViewActivityToolbar = (Toolbar) findViewById(R.id.image_activity_toolbar);
+        Toolbar imageViewActivityToolbar = findViewById(R.id.image_activity_toolbar);
         setSupportActionBar(imageViewActivityToolbar);
         ActionBar toolbar = getSupportActionBar();
         toolbar.setDisplayHomeAsUpEnabled(true); // Enables home (arrow back button)
         toolbar.setDisplayShowTitleEnabled(false);
 
 
-        ZoomableImageView imageView = (ZoomableImageView) findViewById(R.id.image_activity_imageview);
+        ZoomableImageView imageView = findViewById(R.id.image_activity_imageview);
 
         // Closes ImageViewActivity on tap
         imageView.setOnClickListener(new View.OnClickListener() {

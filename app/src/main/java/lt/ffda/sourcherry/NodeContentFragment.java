@@ -23,6 +23,7 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
@@ -37,12 +38,12 @@ public class NodeContentFragment extends Fragment {
     private Handler handler;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View rootView = inflater.inflate(R.layout.node_content_fragment, container, false);
 
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
-        this.contentFragmentLinearLayout = (LinearLayout) rootView.findViewById(R.id.content_fragment_linearlayout);
+        this.contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
         this.handler = ((MainView) getActivity()).getHandler();
 
         return rootView;
@@ -68,11 +69,11 @@ public class NodeContentFragment extends Fragment {
             });
         }
 
-        for (ArrayList part: mainViewModel.getNodeContent()) {
-            CharSequence[] type = (CharSequence[]) part.get(0);
+        for (ArrayList<CharSequence[]> part: mainViewModel.getNodeContent()) {
+            CharSequence[] type = part.get(0);
             if (type[0].equals("text")) {
                 // This adds not only text, but images, codeboxes
-                CharSequence[] textContent = (CharSequence[]) part.get(1);
+                CharSequence[] textContent = part.get(1);
                 SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) textContent[0];
                 TextView tv = new TextView(getActivity());
                 tv.setTextSize(16);
@@ -93,15 +94,15 @@ public class NodeContentFragment extends Fragment {
                 //// Getting max and min column values from table
                 // Multiplying by arbitrary number to make it look better.
                 // For some reason table that looks good in PC version looks worse on android
-                int colMax = (int) (Integer.valueOf((String) type[1]) * 1.3);
-                int colMin = (int) (Integer.valueOf((String) type[2]) * 1.3);
+                int colMax = (int) (Integer.parseInt((String) type[1]) * 1.3);
+                int colMin = (int) (Integer.parseInt((String) type[2]) * 1.3);
                 ////
 
                 // Wraps content in cell correctly
                 TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
 
                 //// Creates and formats header for the table
-                CharSequence[] tableHeaderCells = (CharSequence[]) part.get(part.size() - 1);
+                CharSequence[] tableHeaderCells = part.get(part.size() - 1);
                 TableRow tableHeaderRow = new TableRow(getActivity());
 
                 for (CharSequence cell: tableHeaderCells) {
@@ -120,7 +121,7 @@ public class NodeContentFragment extends Fragment {
                 //// Creates and formats data for the table
                 for (int row = 1; row < part.size() - 1; row++) {
                     TableRow tableRow = new TableRow(getActivity());
-                    CharSequence[] tableRowCells = (CharSequence[]) part.get(row);
+                    CharSequence[] tableRowCells = part.get(row);
                     for (CharSequence cell: tableRowCells) {
                         TextView cellTextView = new TextView(getActivity());
                         cellTextView.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));

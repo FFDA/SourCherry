@@ -8,7 +8,7 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
@@ -30,7 +30,7 @@
             app:layout_constraintTop_toBottomOf="@+id/toolbar" />
 
         <Button
-            android:id="@+id/button_selenct_database"
+            android:id="@+id/button_select_database"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
@@ -49,7 +49,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.499"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/button_selenct_database" />
+            app:layout_constraintTop_toBottomOf="@+id/button_select_database" />
 
         <EditText
             android:id="@+id/passwordField"
@@ -60,6 +60,7 @@
             android:imeOptions="actionDone"
             android:inputType="textPassword"
             android:minHeight="48dp"
+            android:autofillHints="password"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toEndOf="@+id/textViewPassword"
@@ -70,6 +71,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/text_password_label"
+            android:labelFor="@id/passwordField"
             app:layout_constraintBaseline_toBaselineOf="@+id/passwordField"
             app:layout_constraintEnd_toStartOf="@+id/passwordField"
             app:layout_constraintHorizontal_bias="0.5"

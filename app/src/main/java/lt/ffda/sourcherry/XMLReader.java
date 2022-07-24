@@ -21,7 +21,6 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Layout;
-import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
@@ -43,7 +42,6 @@ import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -96,8 +94,7 @@ public class XMLReader implements DatabaseReader{
         // Returns all the node from the document
         // Used for the search/filter in the drawer menu
         NodeList nodeList = this.doc.getElementsByTagName("node");
-        ArrayList<String[]> nodes = returnSubnodeArrayList(nodeList, "false");
-        return nodes;
+        return returnSubnodeArrayList(nodeList, "false");
     }
 
     @Override
@@ -105,14 +102,10 @@ public class XMLReader implements DatabaseReader{
         // Returns main nodes from the document
         // Used to display menu when app starts
 
-        ArrayList<String[]> nodes = new ArrayList<>();
-
         NodeList nodeList = this.doc.getElementsByTagName("cherrytree"); // There is only one this type of tag in the database
         NodeList mainNodeList = nodeList.item(0).getChildNodes(); // So selecting all children of the first node is always safe
 
-        nodes = returnSubnodeArrayList(mainNodeList, "false");
-
-        return nodes;
+        return returnSubnodeArrayList(mainNodeList, "false");
     }
 
     @Override
@@ -211,8 +204,7 @@ public class XMLReader implements DatabaseReader{
         String parentNodeHasSubnode = String.valueOf(hasSubnodes(parentNode));
         String parentNodeIsParent = "true";
         String parentNodeIsSubnode = "false";
-        String[] node = {parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent, parentNodeIsSubnode};
-        return node;
+        return new String[]{parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent, parentNodeIsSubnode};
     }
 
     @Override
@@ -257,15 +249,13 @@ public class XMLReader implements DatabaseReader{
                         String hasSubnode = "true";
                         String isParent = "true";
                         String isSubnode = "false";
-                        String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
-                        return currentNodeArray;
+                        return new String[]{nameValue, uniqueID, hasSubnode, isParent, isSubnode};
                     } else {
                         // If node doesn't have subnodes, then it has to be opened as subnode of some other node
                         String hasSubnode = "false";
                         String isParent = "false";
                         String isSubnode = "true";
-                        String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
-                        return currentNodeArray;
+                        return new String[]{nameValue, uniqueID, hasSubnode, isParent, isSubnode};
                     }
                 }
             }
@@ -379,7 +369,7 @@ public class XMLReader implements DatabaseReader{
             for (ArrayList<CharSequence[]> table: nodeTables) {
                 // Getting table's char_offset that was embedded into CharArray
                 // It will be used to split the text in appropriate parts
-                int charOffset = Integer.valueOf((String) table.get(0)[1]);
+                int charOffset = Integer.parseInt((String) table.get(0)[1]);
                 //
 
                 // Creating text part of this iteration
@@ -508,7 +498,7 @@ public class XMLReader implements DatabaseReader{
                     }
                     break;
                 case "indent":
-                    int indent = Integer.valueOf(nodeAttributes.item(i).getTextContent()) * 40;
+                    int indent = Integer.parseInt(nodeAttributes.item(i).getTextContent()) * 40;
                     LeadingMarginSpan.Standard lmss = new LeadingMarginSpan.Standard(indent);
                     formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
@@ -596,11 +586,6 @@ public class XMLReader implements DatabaseReader{
             ClickableSpan imageClickableSpan = new ClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
-                    TextView nodeContent = (TextView) widget; // This is all TextView that is being displayed for the user
-                    Spannable nodeContentSpan = (Spannable) nodeContent.getText(); // Getting all node content as a span
-                    int start = nodeContentSpan.getSpanStart(this); // Getting start position of the clicked span (this)
-                    int end = nodeContentSpan.getSpanEnd(this); // Getting end position of the clicked span (this)
-
                     // Starting activity to view enlarged  zoomable image
                     Intent displayImage = new Intent(context, ImageViewActivity.class);
                     displayImage.putExtra("imageByteArray", decodedString);
@@ -686,7 +671,7 @@ public class XMLReader implements DatabaseReader{
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
 
-        ClickableSpan anchorLinkSpan = new ClickableSpan() {
+        return new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
                 ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
@@ -699,8 +684,6 @@ public class XMLReader implements DatabaseReader{
                 ds.setUnderlineText(true);
             }
         };
-
-        return anchorLinkSpan;
     }
 
     @Override
@@ -708,7 +691,7 @@ public class XMLReader implements DatabaseReader{
         // Creates and returns a span for a link to external file or folder
         // When user clicks on the link snackbar displays a path to the file that was saved in the original system
 
-        ClickableSpan fileFolderLinkSpan = new ClickableSpan() {
+        return new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
                 // Decoding of Base64 is done here
@@ -733,8 +716,6 @@ public class XMLReader implements DatabaseReader{
                 ds.setUnderlineText(true);
             }
         };
-
-        return fileFolderLinkSpan;
     }
 
     @Override
@@ -755,8 +736,7 @@ public class XMLReader implements DatabaseReader{
         // I don't have and idea why
 
         Element el = (Element) node;
-        int charOffset = Integer.valueOf(el.getAttribute("char_offset"));
-        return charOffset;
+        return Integer.parseInt(el.getAttribute("char_offset"));
     }
 
     public CharSequence[] getTableMaxMin(Node node) {
@@ -773,8 +753,8 @@ public class XMLReader implements DatabaseReader{
         // They will be used to guess what type of formatting to use
 
         Element el = (Element) node;
-        int frameHeight = Integer.valueOf(el.getAttribute("frame_height"));
-        int frameWidth = Integer.valueOf(el.getAttribute("frame_width"));
+        int frameHeight = Integer.parseInt(el.getAttribute("frame_height"));
+        int frameWidth = Integer.parseInt(el.getAttribute("frame_width"));
 
         return new int[] {frameHeight, frameWidth};
     }

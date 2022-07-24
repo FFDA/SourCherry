@@ -31,7 +31,7 @@ public class PreferencesActivity extends AppCompatActivity {
                 .commit();
 
         // Displays toolbar
-        Toolbar imageViewActivityToolbar = (Toolbar) findViewById(R.id.preferences_activity_toolbar);
+        Toolbar imageViewActivityToolbar = findViewById(R.id.preferences_activity_toolbar);
         setSupportActionBar(imageViewActivityToolbar);
         ActionBar toolbar = getSupportActionBar();
         toolbar.setDisplayHomeAsUpEnabled(true); // Enables home (arrow back button)

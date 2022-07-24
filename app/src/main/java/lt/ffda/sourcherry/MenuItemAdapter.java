@@ -19,6 +19,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import lt.ffda.sourcherry.R;
@@ -37,10 +38,10 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         public ViewHolder(View itemView) {
             super(itemView);
 
-            menuItemPadding = (ImageView) itemView.findViewById(R.id.menu_item_padding);
-            menuItemArrow = (ImageView) itemView.findViewById(R.id.menu_item_arrow);
-            menuItemText = (TextView) itemView.findViewById(R.id.menu_item_name);
-            menuItemLinearLayout = (LinearLayout) itemView.findViewById(R.id.menu_linear_layout);
+            menuItemPadding = itemView.findViewById(R.id.menu_item_padding);
+            menuItemArrow = itemView.findViewById(R.id.menu_item_arrow);
+            menuItemText = itemView.findViewById(R.id.menu_item_name);
+            menuItemLinearLayout = itemView.findViewById(R.id.menu_linear_layout);
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -81,6 +82,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         this.listener = listener;
     }
 
+    @NonNull
     @Override
     public MenuItemAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         Context context = parent.getContext();
@@ -88,8 +90,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
 
         View menuView = inflater.inflate(R.layout.menu_item, parent, false);
 
-        ViewHolder viewHolder = new ViewHolder(menuView);
-        return viewHolder;
+        return new ViewHolder(menuView);
     }
 
     @Override

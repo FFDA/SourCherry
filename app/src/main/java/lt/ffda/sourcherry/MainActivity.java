@@ -117,13 +117,12 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.options_menu_about:
+        if (item.getItemId() == R.id.options_menu_about) {
                 Intent openAboutPage = new Intent(this, AboutActivity.class);
                 startActivity(openAboutPage);
                 return true;
-            default:
-                return super.onOptionsItemSelected(item);
+        } else {
+            return super.onOptionsItemSelected(item);
         }
     }
 
@@ -265,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
         TextView textViewMessage = findViewById(R.id.textViewMessage);
         TextView textViewPassword = findViewById(R.id.textViewPassword);
         Button buttonOpen = findViewById(R.id.button_open);
-        CheckBox checkboxAutoOpen = (CheckBox) findViewById(R.id.checkBox_auto_open);
+        CheckBox checkboxAutoOpen = findViewById(R.id.checkBox_auto_open);
 
         checkboxAutoOpen.setChecked(this.sharedPreferences.getBoolean("checkboxAutoOpen", false));
 
@@ -337,7 +336,7 @@ public class MainActivity extends AppCompatActivity {
             if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
                 // Password protected databases
                 // Checks if there is a password in the password field before opening database
-                EditText passwordField = (EditText) findViewById(R.id.passwordField);
+                EditText passwordField = findViewById(R.id.passwordField);
                 if (passwordField.getText().length() <= 0) {
                     Toast.makeText(this, R.string.toast_message_please_enter_password, Toast.LENGTH_SHORT).show();
                 } else {
@@ -370,7 +369,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void saveCheckboxStatus(View view) {
-        CheckBox checkBoxAutoOpen = (CheckBox) findViewById(R.id.checkBox_auto_open);
+        CheckBox checkBoxAutoOpen = findViewById(R.id.checkBox_auto_open);
 
         SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
         sharedPreferencesEditor.putBoolean("checkboxAutoOpen", checkBoxAutoOpen.isChecked());
@@ -418,13 +417,13 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPreferencesEditor = PreferenceManager.getDefaultSharedPreferences(this);
         switch (sharedPreferencesEditor.getString("preferences_dark_mode", "System")) {
             case "System":
-                getDelegate().setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
                 break;
             case "Light":
-                getDelegate().setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
                 break;
             case "Dark":
-                getDelegate().setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
                 break;
         }
     }

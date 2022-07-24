@@ -52,4 +52,11 @@
     <string name="preferences_category_padding_start_title">Left</string>
     <string name="preferences_category_padding_end_title">Right</string>
     <string name="preferences_restore_last_node_title">Restore last node on startup</string>
+    <string name="navigation_drawer_button_back_content_description">Button BACK. Displayed when bookmarks are being showed to the user. When pressed - returns to menu that was displayed before user tapped bookmarks button.</string>
+    <string name="navigation_drawer_button_up_content_description">Button UP. Displayed in normal navigation mode. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>
+    <string name="navigation_drawer_button_home_content_description">Button HOME. Displayed in normal navigation and bookmark modes. When pressed - loads home menu (top of the tree).</string>
+    <string name="navigation_drawer_button_bookmarks_content_description">Button BOOKMARKS. Displayed in normal and bookmark modes. When pressed - switch menu between normal and bookmark menus.</string>
+    <string name="imported_databases_item_image_content_description">Button DELETE DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to confirm deletion.</string>
+    <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
+    <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>
 </resources>

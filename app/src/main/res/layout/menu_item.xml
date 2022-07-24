@@ -15,13 +15,15 @@
         android:id="@+id/menu_item_padding"
         android:visibility="gone"
         android:layout_width="24dp"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/menu_item_padding_content_description"/>
 
     <ImageView
         android:id="@+id/menu_item_arrow"
         android:visibility="visible"
         android:layout_width="24dp"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/menu_item_arrow_content_description"/>
 
     <TextView
         android:id="@+id/menu_item_name"

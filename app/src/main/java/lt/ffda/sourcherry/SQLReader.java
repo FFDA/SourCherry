@@ -23,7 +23,6 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Layout;
-import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
@@ -45,7 +44,6 @@ import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -94,10 +92,8 @@ public class SQLReader implements DatabaseReader {
     public ArrayList<String[]> getMainNodes() {
         // Returns main nodes from the database
         // Used to display menu when app starts
-        ArrayList<String[]> nodes = new ArrayList<>();
-
         Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
-        nodes = returnSubnodeArrayList(cursor, "false");
+        ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "false");
 
         cursor.close();
         return nodes;
@@ -107,14 +103,12 @@ public class SQLReader implements DatabaseReader {
     public ArrayList<String[]> getBookmarkedNodes() {
         // Returns bookmarked nodes from the document
         // Returns null if there aren't any
-        ArrayList<String[]> nodes = new ArrayList<>();
-
         Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN bookmark ON node.node_id=bookmark.node_id ORDER BY bookmark.sequence ASC", null);
         if(cursor.getCount() == 0) {
             cursor.close();
             return null;
         }
-        nodes = returnSubnodeArrayList(cursor, "false");
+        ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "false");
 
         cursor.close();
         return nodes;
@@ -123,10 +117,8 @@ public class SQLReader implements DatabaseReader {
     @Override
     public ArrayList<String[]> getSubnodes(String uniqueID) {
         // Returns Subnodes of the node which uniqueID is provided
-        ArrayList<String[]> nodes = new ArrayList<>();
-
         Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{uniqueID});
-        nodes = returnSubnodeArrayList(cursor, "true");
+        ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "true");
 
         nodes.add(0, createParentNode(uniqueID));
 
@@ -213,7 +205,7 @@ public class SQLReader implements DatabaseReader {
     @Override
     public String[] getSingleMenuItem(String uniqueNodeID) {
         // Returns single menu item to be used when opening anchor links
-
+        String[] currentNodeArray = null;
         Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueNodeID}, null, null,null);
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // Node name and unique_id always the same for the node
@@ -223,19 +215,17 @@ public class SQLReader implements DatabaseReader {
                 String hasSubnode = "true";
                 String isParent = "true";
                 String isSubnode = "false";
-                String[] currentNodeArray = {nameValue, uniqueNodeID, hasSubnode, isParent, isSubnode};
-                return currentNodeArray;
+                currentNodeArray = new String[]{nameValue, uniqueNodeID, hasSubnode, isParent, isSubnode};
             } else {
                 // If node doesn't have subnodes, then it has to be opened as subnode of some other node
                 String hasSubnode = "false";
                 String isParent = "false";
                 String isSubnode = "true";
-                String[] currentNodeArray = {nameValue, uniqueNodeID, hasSubnode, isParent, isSubnode};
-                return currentNodeArray;
+                currentNodeArray = new String[]{nameValue, uniqueNodeID, hasSubnode, isParent, isSubnode};
             }
         }
         cursor.close();
-        return null;
+        return currentNodeArray;
     }
 
     @Override
@@ -332,7 +322,7 @@ public class SQLReader implements DatabaseReader {
                                 SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan();
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
                                 totalCharOffset += anchorImageSpan.length() - 1;
-                                continue;
+                                continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                             }
                             if (!codeboxTableImageCursor.getString(5).isEmpty()) {
                                 // Text in column 5 means that this line is for file OR LaTeX formula box
@@ -341,14 +331,14 @@ public class SQLReader implements DatabaseReader {
                                     SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(codeboxTableImageCursor.getString(5), String.valueOf(codeboxTableImageCursor.getDouble(7)));
                                     nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                     totalCharOffset += attachedFileSpan.length() - 1;
-                                    continue;
+                                    continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                                 }
                             } else {
                                 // Any other line should be an image
                                 SpannableStringBuilder imageSpan = makeImageSpan(codeboxTableImageCursor.getBlob(4)); // Blob is the image in byte[] form
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                                 totalCharOffset += imageSpan.length() - 1;
-                                continue;
+                                continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                             }
                         } else if (codeboxTableImageCursor.getInt(10) == 7) {
                             // codebox row
@@ -392,7 +382,7 @@ public class SQLReader implements DatabaseReader {
             for (ArrayList<CharSequence[]> table: nodeTables) {
                 // Getting table's char_offset that was embedded into CharArray
                 // It will be used to split the text in appropriate parts
-                int charOffset = Integer.valueOf((String) table.get(0)[1]);
+                int charOffset = Integer.parseInt((String) table.get(0)[1]);
                 //
 
                 // Creating text part of this iteration
@@ -521,7 +511,7 @@ public class SQLReader implements DatabaseReader {
                     }
                     break;
                 case "indent":
-                    int indent = Integer.valueOf(nodeAttributes.item(i).getTextContent()) * 40;
+                    int indent = Integer.parseInt(nodeAttributes.item(i).getTextContent()) * 40;
                     LeadingMarginSpan.Standard lmss = new LeadingMarginSpan.Standard(indent);
                     formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
@@ -606,11 +596,6 @@ public class SQLReader implements DatabaseReader {
             ClickableSpan imageClickableSpan = new ClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
-                    TextView nodeContent = (TextView) widget; // This is all TextView that is being displayed for the user
-                    Spannable nodeContentSpan = (Spannable) nodeContent.getText(); // Getting all node content as a span
-                    int start = nodeContentSpan.getSpanStart(this); // Getting start position of the clicked span (this)
-                    int end = nodeContentSpan.getSpanEnd(this); // Getting end position of the clicked span (this)
-
                     // Starting activity to view enlarged  zoomable image
                     Intent displayImage = new Intent(context, ImageViewActivity.class);
                     displayImage.putExtra("imageByteArray", imageBlob);
@@ -694,7 +679,7 @@ public class SQLReader implements DatabaseReader {
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
 
-        ClickableSpan anchorLinkSpan = new ClickableSpan() {
+        return new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
                 ((MainView) SQLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
@@ -707,8 +692,6 @@ public class SQLReader implements DatabaseReader {
                 ds.setUnderlineText(true);
             }
         };
-
-        return anchorLinkSpan;
     }
 
     @Override
@@ -716,7 +699,7 @@ public class SQLReader implements DatabaseReader {
         // Creates and returns a span for a link to external file or folder
         // When user clicks on the link snackbar displays a path to the file that was saved in the original system
 
-        ClickableSpan fileFolderLinkSpan = new ClickableSpan() {
+        return new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
                 // Decoding of Base64 is done here
@@ -741,8 +724,6 @@ public class SQLReader implements DatabaseReader {
                 ds.setUnderlineText(true);
             }
         };
-
-        return fileFolderLinkSpan;
     }
 
     @Override
