@@ -77,7 +77,7 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> getAllNodes() {
+    public ArrayList<String[]> getAllNodes(boolean noSearch) {
         // Returns all the node from the document
         // Used for the search/filter in the drawer menu
         Cursor cursor = this.sqlite.query("node", new String[]{"name", "node_id"}, null, null, null, null, null);

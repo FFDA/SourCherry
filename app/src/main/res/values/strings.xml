@@ -11,6 +11,7 @@
     <string name="nav_open">Open</string>
     <string name="nav_close">Close</string>
     <string name="checkbox_open_database_startup">Open this database on startup</string>
+    <string name="navigation_drawer_checkbox_omit_marked_to_exclude">Omit marked to exclude</string>
     <string name="save_open_dialog_fragment_title">Save or Open the File</string>
     <string name="button_save">Save</string>
     <string name="button_cancel">Cancel</string>

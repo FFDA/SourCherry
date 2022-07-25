@@ -90,11 +90,33 @@ public class XMLReader implements DatabaseReader{
     }
 
     @Override
-    public ArrayList<String[]> getAllNodes() {
+    public ArrayList<String[]> getAllNodes(boolean noSearch) {
         // Returns all the node from the document
         // Used for the search/filter in the drawer menu
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        return returnSubnodeArrayList(nodeList, "false");
+        if (noSearch) {
+            // If user marked that filter should omit nodes and/or node children from filter results
+            NodeList nodeList = this.doc.getFirstChild().getChildNodes();
+            ArrayList<String[]> nodes = new ArrayList<>();
+
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                if (nodeList.item(i).getNodeName().equals("node")) {
+                    // If node is a "node" and not some other tag
+                    if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
+                        // if user haven't marked to filter current node - creates a menu item
+                        nodes.add(returnMenuItem(nodeList.item(i)));
+                    }
+                    if (nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
+                        // if user haven't selected not to search subnodes if current node
+                        // node list of current node is passed to another function that returns ArrayList with all menu items from that list
+                        nodes.addAll(returnSubnodeSearchArrayListList(nodeList.item(i).getChildNodes()));
+                    }
+                }
+            }
+            return nodes;
+        } else {
+            NodeList nodeList = this.doc.getElementsByTagName("node");
+            return returnSubnodeArrayList(nodeList, "false");
+        }
     }
 
     @Override
@@ -185,6 +207,29 @@ public class XMLReader implements DatabaseReader{
         return nodes;
     }
 
+    public ArrayList<String[]> returnSubnodeSearchArrayListList(NodeList nodeList) {
+        // This function scans provided NodeList and
+        // returns ArrayList with nested String Arrays that
+        // holds individual menu items
+        // It skips all the nodes, that are marked as to be excluded from search
+
+        ArrayList<String[]> nodes = new ArrayList<>();
+
+        for (int i=0; i < nodeList.getLength(); i++) {
+
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("node")) {
+                if (node.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
+                    nodes.add(returnMenuItem(node));
+                }
+                if (node.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
+                    nodes.addAll(returnSubnodeSearchArrayListList(node.getChildNodes()));
+                }
+            }
+        }
+        return nodes;
+    }
+
     public boolean hasSubnodes(Node node) {
         // Checks if provided node has nested "node" tag
         NodeList subNodes = node.getChildNodes();
@@ -195,6 +240,15 @@ public class XMLReader implements DatabaseReader{
             }
         }
         return false;
+    }
+
+    private String[] returnMenuItem(Node node) {
+        // Creates and returns single menu item from provided node
+        String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+        String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+        String hasSubnode = String.valueOf(hasSubnodes(node));
+        String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
+        return new String[]{nameValue, uniqueID, hasSubnode, isParent, "false"};
     }
 
     public String[] createParentNode(Node parentNode) {

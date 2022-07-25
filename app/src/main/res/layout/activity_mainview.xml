@@ -33,71 +33,83 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
-                <ImageButton
-                    android:id="@+id/navigation_drawer_button_back"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_gravity="top"
-                    android:background="?selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:onClick="goBack"
-                    android:visibility="gone"
-                    android:contentDescription="@string/navigation_drawer_button_back_content_description"
-                    android:src="@drawable/ic_baseline_arrow_back_24" />
-
-                <ImageButton
-                    android:id="@+id/navigation_drawer_button_up"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_gravity="top"
-                    android:background="?selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:onClick="goNodeUp"
-                    android:contentDescription="@string/navigation_drawer_button_up_content_description"
-                    android:src="@drawable/ic_baseline_arrow_node_up_24" />
-
-                <ImageButton
-                    android:id="@+id/navigation_drawer_button_home"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_gravity="top"
-                    android:background="?selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:onClick="goHome"
-                    android:contentDescription="@string/navigation_drawer_button_home_content_description"
-                    android:src="@drawable/ic_outline_home_24" />
-
-                <ImageButton
-                    android:id="@+id/navigation_drawer_button_bookmarks"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_gravity="top"
-                    android:background="?selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:onClick="openCloseBookmarks"
-                    android:contentDescription="@string/navigation_drawer_button_bookmarks_content_description"
-                    android:src="@drawable/ic_outline_bookmarks_off_24" />
-
-                <SearchView
-                    android:id="@+id/navigation_drawer_search"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:layout_gravity="top"
-                    android:imeOptions="flagNoExtractUi"/>
-            </LinearLayout>
+                    android:orientation="horizontal">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerView"
-                android:layout_width="fill_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="bottom"
-                android:layout_marginTop="50dp" />
+                    <ImageButton
+                        android:id="@+id/navigation_drawer_button_back"
+                        android:layout_width="50dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="top"
+                        android:background="?selectableItemBackground"
+                        android:clickable="true"
+                        android:contentDescription="@string/navigation_drawer_button_back_content_description"
+                        android:focusable="true"
+                        android:onClick="goBack"
+                        android:src="@drawable/ic_baseline_arrow_back_24"
+                        android:visibility="gone" />
+
+                    <ImageButton
+                        android:id="@+id/navigation_drawer_button_up"
+                        android:layout_width="50dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="top"
+                        android:background="?selectableItemBackground"
+                        android:clickable="true"
+                        android:contentDescription="@string/navigation_drawer_button_up_content_description"
+                        android:focusable="true"
+                        android:onClick="goNodeUp"
+                        android:src="@drawable/ic_baseline_arrow_node_up_24" />
+
+                    <ImageButton
+                        android:id="@+id/navigation_drawer_button_home"
+                        android:layout_width="50dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="top"
+                        android:background="?selectableItemBackground"
+                        android:clickable="true"
+                        android:contentDescription="@string/navigation_drawer_button_home_content_description"
+                        android:focusable="true"
+                        android:onClick="goHome"
+                        android:src="@drawable/ic_outline_home_24" />
+
+                    <ImageButton
+                        android:id="@+id/navigation_drawer_button_bookmarks"
+                        android:layout_width="50dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="top"
+                        android:background="?selectableItemBackground"
+                        android:clickable="true"
+                        android:contentDescription="@string/navigation_drawer_button_bookmarks_content_description"
+                        android:focusable="true"
+                        android:onClick="openCloseBookmarks"
+                        android:src="@drawable/ic_outline_bookmarks_off_24" />
+
+                    <SearchView
+                        android:id="@+id/navigation_drawer_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="top"
+                        android:imeOptions="flagNoExtractUi" />
+                </LinearLayout>
+
+                <CheckBox
+                    android:id="@+id/navigation_drawer_omit_marked_to_exclude"
+                    android:layout_width="wrap_content"
+                    android:layout_height="50dp"
+                    android:text="@string/navigation_drawer_checkbox_omit_marked_to_exclude"
+                    android:visibility="gone" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerView"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent" />
+
+            </LinearLayout>
         </com.google.android.material.navigation.NavigationView>
 
     </androidx.drawerlayout.widget.DrawerLayout>
