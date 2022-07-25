@@ -71,4 +71,9 @@ public class MainViewModel extends ViewModel {
     public ArrayList<String[]> getTempSearchNodes() {
         return this.tempSearchNodes;
     }
+
+    public void setTempSearchNodes(ArrayList<String[]> nodes) {
+        this.tempSearchNodes.clear();
+        this.tempSearchNodes.addAll(nodes);
+    }
 }

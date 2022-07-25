@@ -34,6 +34,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.SearchView;
 import android.widget.Toast;
@@ -147,7 +149,7 @@ public class MainView extends AppCompatActivity {
             @Override
             public void onItemClick(View itemView, int position) {
                 if (MainView.this.currentNode == null || !MainView.this.mainViewModel.getNodes().get(position)[1].equals(MainView.this.currentNode[1])) {
-//                  If current node is null (empty/nothing opened yet) or selected not uniqueID is not the same as selected one
+                    //If current node is null (empty/nothing opened yet) or selected not uniqueID is not the same as selected one
                     MainView.this.currentNode = MainView.this.mainViewModel.getNodes().get(position);
                     MainView.this.loadNodeContent();
                     if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
@@ -223,6 +225,20 @@ public class MainView extends AppCompatActivity {
         rvMenu.setAdapter(this.adapter);
         rvMenu.setLayoutManager(new LinearLayoutManager(this));
 
+        CheckBox checkBoxExcludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
+        checkBoxExcludeFromSearch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (MainView.this.filterNodeToggle) {
+                    // Gets new menu list only if filter mode is activated
+                    MainView.this.mainViewModel.setTempSearchNodes(MainView.this.reader.getAllNodes(isChecked));
+                    MainView.this.adapter.notifyDataSetChanged();
+                    searchView.setQuery("", false);
+                    searchView.requestFocus();
+                }
+            }
+        });
+
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -275,7 +291,7 @@ public class MainView extends AppCompatActivity {
                     MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition); // Removing selection from menu item
                 }
                 MainView.this.hideNavigation(true);
-                MainView.this.mainViewModel.setNodes(MainView.this.reader.getAllNodes());
+                MainView.this.mainViewModel.setNodes(MainView.this.reader.getAllNodes(checkBoxExcludeFromSearch.isChecked()));
                 MainView.this.mainViewModel.tempSearchNodesToggle(true);
                 MainView.this.filterNodeToggle = true;
                 MainView.this.adapter.notifyDataSetChanged();
@@ -639,17 +655,20 @@ public class MainView extends AppCompatActivity {
         ImageButton upButton = findViewById(R.id.navigation_drawer_button_up);
         ImageButton homeButton = findViewById(R.id.navigation_drawer_button_home);
         ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
+        CheckBox excludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
 
         if (status == true) {
             goBackButton.setVisibility(View.GONE);
             upButton.setVisibility(View.GONE);
             homeButton.setVisibility(View.GONE);
             bookmarksButton.setVisibility(View.GONE);
+            excludeFromSearch.setVisibility(View.VISIBLE);
         } else {
             goBackButton.setVisibility(View.GONE);
             upButton.setVisibility(View.VISIBLE);
             homeButton.setVisibility(View.VISIBLE);
             bookmarksButton.setVisibility(View.VISIBLE);
+            excludeFromSearch.setVisibility(View.GONE);
         }
     }
 

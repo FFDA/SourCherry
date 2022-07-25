@@ -18,7 +18,7 @@ import org.w3c.dom.Node;
 import java.util.ArrayList;
 
 public interface DatabaseReader {
-    ArrayList<String[]> getAllNodes();
+    ArrayList<String[]> getAllNodes(boolean noSearch);
     // Returns all the node from the document
     // Used for the search/filter in the drawer menu
 
