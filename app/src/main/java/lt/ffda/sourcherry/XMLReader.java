@@ -103,7 +103,7 @@ public class XMLReader implements DatabaseReader{
                     // If node is a "node" and not some other tag
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
                         // if user haven't marked to filter current node - creates a menu item
-                        nodes.add(returnMenuItem(nodeList.item(i)));
+                        nodes.add(returnSearchMenuItem(nodeList.item(i)));
                     }
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
                         // if user haven't selected not to search subnodes if current node
@@ -220,7 +220,7 @@ public class XMLReader implements DatabaseReader{
             Node node = nodeList.item(i);
             if (node.getNodeName().equals("node")) {
                 if (node.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
-                    nodes.add(returnMenuItem(node));
+                    nodes.add(returnSearchMenuItem(node));
                 }
                 if (node.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
                     nodes.addAll(returnSubnodeSearchArrayListList(node.getChildNodes()));
@@ -242,7 +242,7 @@ public class XMLReader implements DatabaseReader{
         return false;
     }
 
-    private String[] returnMenuItem(Node node) {
+    private String[] returnSearchMenuItem(Node node) {
         // Creates and returns single menu item from provided node
         String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
         String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();

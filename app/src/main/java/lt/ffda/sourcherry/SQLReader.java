@@ -80,12 +80,23 @@ public class SQLReader implements DatabaseReader {
     public ArrayList<String[]> getAllNodes(boolean noSearch) {
         // Returns all the node from the document
         // Used for the search/filter in the drawer menu
-        Cursor cursor = this.sqlite.query("node", new String[]{"name", "node_id"}, null, null, null, null, null);
+        if (noSearch) {
+            // If user marked that filter should omit nodes and/or node children from filter results
+            ArrayList<String[]> nodes = new ArrayList<>();
 
-        ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "false");
+            Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
+            nodes.addAll(returnSubnodeSearchArrayListList(cursor));
+            cursor.close();
 
-        cursor.close();
-        return nodes;
+            return nodes;
+        } else {
+            Cursor cursor = this.sqlite.query("node", new String[]{"name", "node_id"}, null, null, null, null, null);
+
+            ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "false");
+
+            cursor.close();
+            return nodes;
+        }
     }
 
     @Override
@@ -135,7 +146,7 @@ public class SQLReader implements DatabaseReader {
         while (cursor.moveToNext()) {
             String nameValue = cursor.getString(0);
             String uniqueID = String.valueOf(cursor.getInt(1));
-            String hasSubnode = String.valueOf(hasSubnodes(uniqueID));
+            String hasSubnode = hasSubnodes(uniqueID);
             String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
             String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
             nodes.add(currentNodeArray);
@@ -144,16 +155,58 @@ public class SQLReader implements DatabaseReader {
         return nodes;
     }
 
-    public boolean hasSubnodes(String uniqueNodeID) {
+    public ArrayList<String[]> returnSubnodeSearchArrayListList(Cursor cursor) {
+        // This function scans provided NodeList and
+        // based on node.level value (to exclude node/subnodes from search)
+        // returns ArrayList with nested String Arrays that
+        // holds individual menu items
+        ArrayList<String[]> nodes = new ArrayList<>();
+
+        while (cursor.moveToNext()) {
+            if (cursor.getInt(2) == 0) {
+                // If node and subnodes are not selected to be excluded from search
+                String nameValue = cursor.getString(0);
+                String uniqueID = String.valueOf(cursor.getInt(1));
+                String hasSubnode = hasSubnodes(uniqueID);
+                String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
+                nodes.add(new String[]{nameValue, uniqueID, hasSubnode, isParent, "false"});
+                if (hasSubnode.equals("true")) {
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{uniqueID});
+                    nodes.addAll(returnSubnodeSearchArrayListList(subCursor));
+                    subCursor.close();
+                }
+            } else if (cursor.getInt(2) == 1) {
+                // If only node is selected to be excluded from search
+                String uniqueID = String.valueOf(cursor.getInt(1));
+                String hasSubnode = hasSubnodes(uniqueID);
+                if (hasSubnode.equals("true")) {
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{uniqueID});
+                    nodes.addAll(returnSubnodeSearchArrayListList(subCursor));
+                    subCursor.close();
+                }
+            } else if (cursor.getInt(2) == 2) {
+                // if only subnodes are selected to be excluded from search
+                String nameValue = cursor.getString(0);
+                String uniqueID = String.valueOf(cursor.getInt(1));
+                String hasSubnode = hasSubnodes(uniqueID);
+                String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
+                nodes.add(new String[]{nameValue, uniqueID, hasSubnode, isParent, "false"});
+            }
+        }
+
+        return nodes;
+    }
+
+    public String hasSubnodes(String uniqueNodeID) {
         // Checks if node with provided unique_id has subnodes
         Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{uniqueNodeID},null,null,null);
 
         if (cursor.getCount() > 0) {
             cursor.close();
-            return true;
+            return "true";
         } else {
             cursor.close();
-            return false;
+            return "false";
         }
     }
 
@@ -168,7 +221,7 @@ public class SQLReader implements DatabaseReader {
             return null;
         }
         String parentNodeUniqueID = uniqueNodeID;
-        String parentNodeHasSubnode = String.valueOf(hasSubnodes(parentNodeUniqueID));
+        String parentNodeHasSubnode = hasSubnodes(parentNodeUniqueID);
         String parentNodeIsParent = "true";
         String parentNodeIsSubnode = "false";
         String[] node = {parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent, parentNodeIsSubnode};
@@ -210,7 +263,7 @@ public class SQLReader implements DatabaseReader {
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // Node name and unique_id always the same for the node
             String nameValue = cursor.getString(0);
-            if (hasSubnodes(uniqueNodeID)) {
+            if (hasSubnodes(uniqueNodeID).equals("true")) {
                 // if node has subnodes, then it has to be opened as a parent node and displayed as such
                 String hasSubnode = "true";
                 String isParent = "true";
