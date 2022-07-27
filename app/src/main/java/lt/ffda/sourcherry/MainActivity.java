@@ -98,6 +98,21 @@ public class MainActivity extends AppCompatActivity {
         if (this.sharedPreferences.getBoolean("isChangingConfigurations", false)) {
             this.resetIsChangingConfigurationsValue();
         }
+
+        // If launched the app by opening a file from different app
+        Intent intent = getIntent();
+        if (intent.getAction() == Intent.ACTION_VIEW) {
+            DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, intent.getData());
+            saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], intent.getData().toString());
+
+            setMessageWithDatabaseName();
+
+            String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
+            if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {
+                // If database is not protected it can be opened without any user interaction
+                this.openDatabase();
+            }
+        }
     }
 
     @Override
@@ -133,6 +148,11 @@ public class MainActivity extends AppCompatActivity {
             // Saving filename and path to the file in the preferences
             saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], result.toString());
             //
+            if (databaseDocumentFile.getName().split("\\.")[1].equals("ctd")) {
+                // Only if user selects ctd (not protected xml database) permanent permission should be requested
+                // When uri is received from intent-filter app will crash
+                getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
             setMessageWithDatabaseName();
         }
     });
@@ -328,10 +348,12 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.toast_error_database_does_not_exists, Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (!databaseDocumentFile.canRead()) {
-                Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
-                return;
-            }
+            // Disabled because clashed with intent-filters
+            // Delete later if no issues arises
+//            if (!databaseDocumentFile.canRead()) {
+//                Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
+//                return;
+//            }
 
             if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
                 // Password protected databases
@@ -429,6 +451,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void resetIsChangingConfigurationsValue() {
+        // Used to reset preference variable that marks is activity/app is restarting for configuration change
         SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
         sharedPreferencesEditor.putBoolean("isChangingConfigurations", false);
         sharedPreferencesEditor.commit();

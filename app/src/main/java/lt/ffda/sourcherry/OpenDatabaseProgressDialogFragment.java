@@ -157,13 +157,15 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             });
             getDialog().dismiss();
         } catch (IOException e) {
-            e.printStackTrace();
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(getContext(), R.string.toast_error_could_not_copy_the_database, Toast.LENGTH_LONG).show();
-                }
-            });
+            // Disabled because clashed with intent-filters
+            // Delete later if no issues arises
+//            e.printStackTrace();
+//            handler.post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    Toast.makeText(getContext(), R.string.toast_error_could_not_copy_the_database, Toast.LENGTH_LONG).show();
+//                }
+//            });
             getDialog().dismiss();
         }
 

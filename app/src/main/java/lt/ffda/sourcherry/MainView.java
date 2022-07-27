@@ -87,7 +87,6 @@ public class MainView extends AppCompatActivity {
         try {
             if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
                 // If file is in external storage
-                getContentResolver().takePersistableUriPermission(Uri.parse(databaseString), Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
