@@ -16,6 +16,8 @@
     <string name="button_save">Save</string>
     <string name="button_cancel">Cancel</string>
     <string name="main_activity_imported_databases">Imported Databases</string>
+    <string name="main_activity_imported_databases_item_internal">(int) %1$s</string>
+    <string name="main_activity_imported_databases_item_external">(ext) %1$s</string>
     <string name="main_activity_imported_databases_delete_dialog_title">Delete</string>
     <string name="main_activity_imported_databases_delete_dialog_message">Database imported to app-specific storage will be deleted</string>
     <string name="button_delete">Delete</string>
@@ -42,6 +44,7 @@
     <string name="options_menu_about_libraries_content" translatable="false">XZ for Java - https://tukaani.org/xz/java.html \nApache Commons Compress - https://commons.apache.org/proper/commons-compress/</string>
     <string name="options_menu_about_activity_github" translatable="false">GitHub - https://github.com/FFDA/SourCherry</string>
     <string name="options_menu_about_version_code">%1$s (%2$d)</string>
+    <string name="options_menu_item_external_storage">Use external storage</string>
     <string name="options_menu_item_search">Search</string>
     <string name="options_menu_item_settings">Settings</string>
     <string name="preferences_auto_open_title">Automatically close drawer menu</string>

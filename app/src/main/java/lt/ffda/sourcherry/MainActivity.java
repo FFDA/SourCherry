@@ -113,6 +113,12 @@ public class MainActivity extends AppCompatActivity {
                 this.openDatabase();
             }
         }
+
+        // Creates internal and external folders for databases
+        if (!(new File (getFilesDir(), "databases")).exists()) {
+            (new File (getFilesDir(), "databases")).mkdirs();
+            (new File (getExternalFilesDir(null), "databases")).mkdirs();
+        }
     }
 
     @Override
@@ -126,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.options_menu, menu);
+        menu.findItem(R.id.options_menu_external_storage).setChecked(sharedPreferences.getBoolean("preferences_external_storage", false));
         menu.setGroupVisible(R.id.options_menu_mainview_group, false);
         return true;
     }
@@ -133,9 +140,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.options_menu_about) {
-                Intent openAboutPage = new Intent(this, AboutActivity.class);
-                startActivity(openAboutPage);
-                return true;
+            Intent openAboutPage = new Intent(this, AboutActivity.class);
+            startActivity(openAboutPage);
+            return true;
+        } else if (item.getItemId() == R.id.options_menu_external_storage) {
+            item.setChecked(!item.isChecked());
+            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
+            sharedPreferencesEditor.putBoolean("preferences_external_storage", item.isChecked());
+            sharedPreferencesEditor.commit();
+            return true;
         } else {
             return super.onOptionsItemSelected(item);
         }
@@ -178,19 +191,11 @@ public class MainActivity extends AppCompatActivity {
         importedDatabases.removeAllViews(); // Everytime all the items are removed and re-added just in case user deleted something
 
         TextView importedDatabasesTitle = findViewById(R.id.imported_databases_title);
-        importedDatabasesTitle.setVisibility(View.INVISIBLE); // Hides "Imported Databases" title if there a no
 
         File databaseDir = new File(getFilesDir(), "databases");
 
-        if (!databaseDir.exists()) {
-            // If directory does not exists (when app is launched first time)
-            // There this no need to continue
-            // It will cause crash otherwise
-            return;
-        }
-
+        // If there are any databases in app-specific storage
         if (databaseDir.list().length > 0) {
-            // If there are any databases in app-specific storage
             importedDatabasesTitle.setVisibility(View.VISIBLE);
 
             LayoutInflater layoutInflater = this.getLayoutInflater();
@@ -200,7 +205,77 @@ public class MainActivity extends AppCompatActivity {
                 LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.imported_databases_item, null);
 
                 Button databaseFilenameButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
-                databaseFilenameButton.setText(databaseFilename); // Adds database filename do be displayed for the current database
+                databaseFilenameButton.setText(getString(R.string.main_activity_imported_databases_item_internal,  databaseFilename)); // Adds database filename do be displayed for the current database
+                // If user taps on database filename
+                databaseFilenameButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
+                        // Saves selected database's information to the settings
+                        saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
+                        setMessageWithDatabaseName();
+                    }
+                });
+                // If user long presses database filename
+                databaseFilenameButton.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
+                        // Saves selected database's information to the settings
+                        MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
+                        MainActivity.this.setMessageWithDatabaseName();
+                        // Opens database
+                        MainActivity.this.openDatabase();
+                        return true;
+                    }
+                });
+
+                //// Delete icon/button
+                ImageButton removeDatabaseIcon = importedDatabaseItem.findViewById(R.id.imported_databases_item_image);
+                removeDatabaseIcon.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        // If user taps on delete (trashcan image) icon
+                        // confirmation dialog window for deletion is displayed
+                        AlertDialog.Builder confirmDeletion = new AlertDialog.Builder(MainActivity.this)
+                                .setTitle(databaseFilename)
+                                .setMessage(R.string.main_activity_imported_databases_delete_dialog_message)
+                                .setPositiveButton(R.string.button_delete, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        File selectedDatabaseToDelete = new File(databaseDir, databaseFilename);
+                                        selectedDatabaseToDelete.delete(); // Deletes database file
+                                        checkIfDeleteDatabaseIsBeingUsed(databaseFilename);
+                                        listImportedDatabases(); // Launches this function to make a new list of imported databases
+                                    }
+                                })
+                                .setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.cancel();
+                                    }
+                                });
+                        confirmDeletion.show();
+                    }
+                });
+                ////
+                importedDatabases.addView(importedDatabaseItem);
+            }
+        }
+
+        // If there are any databases in external storage
+        File externalDatabaseDir = new File(getExternalFilesDir(null), "databases");
+        if (externalDatabaseDir.list().length > 0) {
+            importedDatabasesTitle.setVisibility(View.VISIBLE);
+
+            LayoutInflater layoutInflater = this.getLayoutInflater();
+
+            for (String databaseFilename: externalDatabaseDir.list()) {
+                // Inflates database list item view
+                LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.imported_databases_item, null);
+
+                Button databaseFilenameButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
+                databaseFilenameButton.setText(getString(R.string.main_activity_imported_databases_item_external,  databaseFilename)); // Adds database filename do be displayed for the current database
                 // If user taps on database filename
                 databaseFilenameButton.setOnClickListener(new View.OnClickListener() {
                     @Override

@@ -96,6 +96,7 @@
             android:layout_marginTop="16dp"
             android:text="@string/main_activity_imported_databases"
             android:textAlignment="center"
+            android:visibility="invisible"
             android:textColor="?android:attr/textColorPrimary"
             android:textSize="15sp"
             app:layout_constraintEnd_toEndOf="parent"

@@ -387,6 +387,7 @@ public class MainView extends AppCompatActivity {
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.options_menu, menu);
+        menu.setGroupVisible(R.id.options_menu_main_activity_group, false);
         return true;
     }
 
