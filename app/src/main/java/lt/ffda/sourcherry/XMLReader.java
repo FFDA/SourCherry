@@ -102,11 +102,11 @@ public class XMLReader implements DatabaseReader{
                 if (nodeList.item(i).getNodeName().equals("node")) {
                     // If node is a "node" and not some other tag
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
-                        // if user haven't marked to filter current node - creates a menu item
+                        // if user haven't marked to skip current node - creates a menu item
                         nodes.add(returnSearchMenuItem(nodeList.item(i)));
                     }
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
-                        // if user haven't selected not to search subnodes if current node
+                        // if user haven't selected not to search subnodes of current node
                         // node list of current node is passed to another function that returns ArrayList with all menu items from that list
                         nodes.addAll(returnSubnodeSearchArrayListList(nodeList.item(i).getChildNodes()));
                     }

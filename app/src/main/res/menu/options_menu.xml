@@ -11,9 +11,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <group
         android:id="@+id/options_menu_mainview_group">
-<!--        <item-->
-<!--            android:id="@+id/option_menu_search"-->
-<!--            android:title="Search"/>-->
+        <item
+            android:id="@+id/options_menu_search"
+            android:title="@string/options_menu_item_search"/>
         <item
             android:id="@+id/options_menu_settings"
             android:title="@string/options_menu_item_settings"/>

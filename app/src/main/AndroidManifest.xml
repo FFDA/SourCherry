@@ -11,6 +11,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SourCherry">
         <activity
+            android:name=".SearchActivity"
+            android:exported="false" />
+        <activity
             android:name=".PreferencesActivity"
             android:exported="false" />
         <activity
@@ -27,19 +30,30 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:mimeType="application/octet-stream" android:scheme="content" />
+
+                <data
+                    android:mimeType="application/octet-stream"
+                    android:scheme="content" />
             </intent-filter>
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:mimeType="chemical/x-ctx" android:scheme="content" />
+
+                <data
+                    android:mimeType="chemical/x-ctx"
+                    android:scheme="content" />
             </intent-filter>
         </activity>
 

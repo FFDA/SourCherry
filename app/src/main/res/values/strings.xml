@@ -46,6 +46,10 @@
     <string name="options_menu_about_version_code">%1$s (%2$d)</string>
     <string name="options_menu_item_external_storage">Use external storage</string>
     <string name="options_menu_item_search">Search</string>
+    <string name="options_menu_search_checkbox_exclude">Skip nodes marked to exclude</string>
+    <string name="options_menu_search_item_title">Found &lt;b>%1$s&lt;/b> instance(s) of \"&lt;b>%2$s&lt;/b>\" in node:  &lt;b>%3$s&lt;/b></string>
+    <string name="options_menu_search_query_instances_node">%1$s and %2$d more&lt;br></string>
+    <string name="options_menu_search_result_count">Results: %1$d</string>
     <string name="options_menu_item_settings">Settings</string>
     <string name="preferences_auto_open_title">Automatically close drawer menu</string>
     <string name="preferences_auto_open_summary">Automatically close drawer menu when selected node does not have subnodes</string>

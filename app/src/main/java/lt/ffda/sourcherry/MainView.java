@@ -11,6 +11,10 @@
 package lt.ffda.sourcherry;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -23,6 +27,7 @@ import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
@@ -316,19 +321,38 @@ public class MainView extends AppCompatActivity {
         } else {
             // Options menu items
             switch (item.getItemId()) {
-                case (R.id.options_menu_about):
-                    Intent openAboutActivity = new Intent(this, AboutActivity.class);
-                    startActivity(openAboutActivity);
+                case (R.id.options_menu_search):
+                    Intent openSearchActivity = new Intent(this, SearchActivity.class);
+                    searchActivity.launch(openSearchActivity);
+//                    startActivity(openSearchActivity);
                     return true;
                 case (R.id.options_menu_settings):
                     Intent openSettingsActivity = new Intent(this, PreferencesActivity.class);
                     startActivity(openSettingsActivity);
+                    return true;
+                case (R.id.options_menu_about):
+                    Intent openAboutActivity = new Intent(this, AboutActivity.class);
+                    startActivity(openAboutActivity);
                     return true;
                 default:
                     return super.onOptionsItemSelected(item);
             }
         }
     }
+
+    private ActivityResultLauncher<Intent> searchActivity = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+        new ActivityResultCallback<ActivityResult>() {
+            @Override
+            public void onActivityResult(ActivityResult result) {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent selectedNode = result.getData();
+//                    String[] selectedNode = intent.getStringArrayExtra("selectedNode");
+                    MainView.this.currentNode = selectedNode.getStringArrayExtra("selectedNode");
+                    MainView.this.resetMenuToCurrentNode();
+                    MainView.this.loadNodeContent();
+                }
+            }
+        });
 
     @Override
     public void onSaveInstanceState(@Nullable Bundle outState) {
