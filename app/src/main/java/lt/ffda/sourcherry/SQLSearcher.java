@@ -212,7 +212,7 @@ public class SQLSearcher implements DatabaseSearcher{
                 int queryCounter = 0; // This is the counter for that
                 if (hasCodebox == 1) {
                     // Means that node has has codeboxes in it
-                    codeboxTableImageQueryString.append("SELECT *, 7 FROM codebox WHERE node_id=? ");
+                    codeboxTableImageQueryString.append("SELECT offset, txt, 1 FROM codebox WHERE node_id=? ");
                     queryCounter++;
                 }
                 if (hasTable == 1) {
@@ -220,15 +220,15 @@ public class SQLSearcher implements DatabaseSearcher{
                     if (hasCodebox == 1) {
                         codeboxTableImageQueryString.append("UNION ");
                     }
-                    codeboxTableImageQueryString.append("SELECT *, null, null, null, null, 8 FROM grid WHERE node_id=? ");
+                    codeboxTableImageQueryString.append("SELECT offset, txt, 2 FROM grid WHERE node_id=? ");
                     queryCounter++;
                 }
                 if (hasImage == 1) {
-                    // Means that node has has images (images, anchors or files) in it
+                    // Means that node has images (images, anchors or files) in it
                     if (hasCodebox == 1 || hasTable == 1) {
                         codeboxTableImageQueryString.append("UNION ");
                     }
-                    codeboxTableImageQueryString.append("SELECT *, null, null, 9 FROM image WHERE node_id=? ");
+                    codeboxTableImageQueryString.append("SELECT offset, filename, 3 FROM image WHERE node_id=? ");
                     queryCounter++;
                 }
                 codeboxTableImageQueryString.append("ORDER BY offset ASC");
@@ -242,28 +242,27 @@ public class SQLSearcher implements DatabaseSearcher{
                 Cursor codeboxTableImageCursor = this.sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
 
                 while (codeboxTableImageCursor.moveToNext()) {
-                    int charOffset = codeboxTableImageCursor.getInt(1);
-                    if (codeboxTableImageCursor.getInt(10) == 9) {
-                        // If 8th or 9th columns are null then this row is from image table;
-                        if (!codeboxTableImageCursor.getString(5).isEmpty()) {
+                    int charOffset = codeboxTableImageCursor.getInt(0);
+                    if (codeboxTableImageCursor.getInt(2) == 9) {
+                        if (!codeboxTableImageCursor.getString(1).isEmpty()) {
                             // Text in column 5 means that this line is for file OR LaTeX formula box
-                            if (!codeboxTableImageCursor.getString(5).equals("__ct_special.tex")) {
+                            if (!codeboxTableImageCursor.getString(1).equals("__ct_special.tex")) {
                                 // If it is not LaTex file
-                                String attachedFileFilename = " " + codeboxTableImageCursor.getString(5) + " ";
+                                String attachedFileFilename = " " + codeboxTableImageCursor.getString(1) + " ";
                                 nodeContent.insert(charOffset + totalCharOffset, attachedFileFilename);
                                 totalCharOffset += attachedFileFilename.length() - 1;
                                 continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                             }
                         }
-                    } else if (codeboxTableImageCursor.getInt(10) == 7) {
+                    } else if (codeboxTableImageCursor.getInt(2) == 7) {
                         // codebox row
-                        String codeboxText = codeboxTableImageCursor.getString(3);
+                        String codeboxText = codeboxTableImageCursor.getString(1);
                         nodeContent.insert(charOffset + totalCharOffset, codeboxText);
                         totalCharOffset += codeboxText.length() - 1;
-                    } else if (codeboxTableImageCursor.getInt(10) == 8) {
+                    } else if (codeboxTableImageCursor.getInt(2) == 8) {
                         StringBuilder tableContent = new StringBuilder();
                         // table row
-                        NodeList tableRows = getNodeFromString(codeboxTableImageCursor.getString(3), "table");
+                        NodeList tableRows = getNodeFromString(codeboxTableImageCursor.getString(1), "table");
 
                         // Adding all rows to arraylist
                         ArrayList<String> tableRowArray = new ArrayList<>();
