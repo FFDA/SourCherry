@@ -408,6 +408,12 @@ public class MainView extends AppCompatActivity {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        this.executor.shutdownNow();
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.options_menu, menu);

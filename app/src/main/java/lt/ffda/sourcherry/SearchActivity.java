@@ -138,6 +138,12 @@ public class SearchActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        this.executor.shutdownNow();
+    }
+
     private void search(Boolean noSearch, String query) {
         this.handler.post(new Runnable() {
             @Override
