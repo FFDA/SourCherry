@@ -26,7 +26,8 @@
         android:id="@+id/search_activity_search_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:iconifiedByDefault="false"/>
+        android:iconifiedByDefault="false"
+        android:imeOptions="flagNoExtractUi" />
 
     <CheckBox
         android:id="@+id/search_activity_checkbox_exclude"
