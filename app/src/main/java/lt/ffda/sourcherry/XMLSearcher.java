@@ -10,6 +10,8 @@
 
 package lt.ffda.sourcherry;
 
+import android.util.Log;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -21,7 +23,7 @@ import java.util.ArrayList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-public class XMLSearcher {
+public class XMLSearcher implements DatabaseSearcher{
     private Document doc;
 
     public XMLSearcher(InputStream is) throws Exception {
@@ -31,11 +33,12 @@ public class XMLSearcher {
         this.doc = db.parse(new InputSource(is));
     }
 
-    public ArrayList<String[]> searchNodes(Boolean noSearch, String search) {
+    @Override
+    public ArrayList<String[]> search(Boolean noSearch, String query) {
         NodeList nodeList = this.doc.getFirstChild().getChildNodes();
+        ArrayList<String[]> searchResult = new ArrayList<>();
         if (noSearch) {
             // If user marked that search should skip search "excluded" nodes
-            ArrayList<String[]> searchResult = new ArrayList<>();
 
             for (int i = 0; i < nodeList.getLength(); i++) {
                 if (nodeList.item(i).getNodeName().equals("node")) {
@@ -55,20 +58,19 @@ public class XMLSearcher {
                             isSubnode = "false";
                         }
 
-                        String[] result = this.findInNode(nodeList.item(i), search, hasSubnodes, isParent, isSubnode);
+                        String[] result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                         if (result != null) {
                             searchResult.add(result);
                         }
                     }
                     if (hasSubnodes.equals("true") && nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
                         // if user haven't selected not to search subnodes of current node
-                        searchResult.addAll(this.searchInNodeListSkippingExcluded(search, nodeList.item(i).getChildNodes()));
+                        searchResult.addAll(this.searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
                     }
                 }
             }
             return searchResult;
         } else {
-            ArrayList<String[]> searchResult = new ArrayList<>();
             for (int i = 0; i < nodeList.getLength(); i++) {
                 String hasSubnodes = String.valueOf(hasSubnodes(nodeList.item(i)));
                 if (nodeList.item(i).getNodeName().equals("node")) {
@@ -83,21 +85,54 @@ public class XMLSearcher {
                         isSubnode = "false";
                     }
 
-                    String[] result = this.findInNode(nodeList.item(i), search, hasSubnodes, isParent, isSubnode);
+                    String[] result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                     if (result != null) {
                         searchResult.add(result);
                     }
                 }
                 if (hasSubnodes.equals("true")) {
                     // If node has subnodes
-                    searchResult.addAll(this.searchInNodeList(search, nodeList.item(i).getChildNodes()));
+                    searchResult.addAll(this.searchAllNodes(query, nodeList.item(i).getChildNodes()));
                 }
             }
-            return searchResult;
         }
+        return searchResult;
     }
 
-    public ArrayList<String[]> searchInNodeListSkippingExcluded(String search, NodeList nodeList) {
+    public ArrayList<String[]> searchAllNodes(String query, NodeList nodeList) {
+        // Searches thought all nodes without skipping marked to exclude
+        // It actually just filters node and it's subnodes
+        // The search of the string is done in findInNode()
+
+        ArrayList<String[]> searchResult = new ArrayList<>();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            String hasSubnodes = String.valueOf(hasSubnodes(nodeList.item(i)));
+
+            if (nodeList.item(i).getNodeName().equals("node")) {
+                // If node is a "node" and not some other tag
+                String isParent = null;
+                String isSubnode = null;
+                if (hasSubnodes.equals("true")) {
+                    isParent = "true";
+                    isSubnode = "false";
+                } else {
+                    isParent = "false";
+                    isSubnode = "true";
+                }
+                String[] result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
+                if (result != null) {
+                    searchResult.add(result);
+                }
+            }
+            if (hasSubnodes.equals("true")) {
+                // If node has subnodes
+                searchResult.addAll(this.searchAllNodes(query, nodeList.item(i).getChildNodes()));
+            }
+        }
+        return searchResult;
+    }
+
+    public ArrayList<String[]> searchNodesSkippingExcluded(String query, NodeList nodeList) {
         // Searches thought nodes skipping marked to exclude
         // It actually just filters node and it's subnodes
         // The search of the string is done in findInNode()
@@ -119,54 +154,21 @@ public class XMLSearcher {
                         isParent = "false";
                         isSubnode = "true";
                     }
-                    String[] result = this.findInNode(nodeList.item(i), search, hasSubnodes, isParent, isSubnode);
+                    String[] result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                     if (result != null) {
                         searchResult.add(result);
                     }
                 }
                 if (hasSubnodes.equals("true") && nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
                     // If node has subnodes and user haven't selected not to search subnodes of current node
-                    searchResult.addAll(this.searchInNodeListSkippingExcluded(search, nodeList.item(i).getChildNodes()));
+                    searchResult.addAll(this.searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
                 }
             }
         }
         return searchResult;
     }
 
-    public ArrayList<String[]> searchInNodeList(String search, NodeList nodeList) {
-        // Searches thought all nodes without skipping marked to exclude
-        // It actually just filters node and it's subnodes
-        // The search of the string is done in findInNode()
-
-        ArrayList<String[]> searchResult = new ArrayList<>();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            String hasSubnodes = String.valueOf(hasSubnodes(nodeList.item(i)));
-
-            if (nodeList.item(i).getNodeName().equals("node")) {
-                // If node is a "node" and not some other tag
-                String isParent = null;
-                String isSubnode = null;
-                if (hasSubnodes.equals("true")) {
-                    isParent = "true";
-                    isSubnode = "false";
-                } else {
-                    isParent = "false";
-                    isSubnode = "true";
-                }
-                String[] result = this.findInNode(nodeList.item(i), search, hasSubnodes, isParent, isSubnode);
-                if (result != null) {
-                    searchResult.add(result);
-                }
-            }
-            if (hasSubnodes.equals("true")) {
-                // If node has subnodes
-                searchResult.addAll(this.searchInNodeList(search, nodeList.item(i).getChildNodes()));
-            }
-        }
-        return searchResult;
-    }
-
-    public String[] findInNode(Node node, String search, String hasSubnodes, String isParent, String isSubnode) {
+    public String[] findInNode(Node node, String query, String hasSubnodes, String isParent, String isSubnode) {
         // Searches thought node's content
 
         // This string builder will hold oll text content of the node
@@ -184,7 +186,7 @@ public class XMLSearcher {
             // Going through all the tags of the node
             // Skipping other "node" tags (subnodes).
             // To decide if these nodes have to be search are for a job for
-            // searchInNodeListSkippingExcluded() or searchInNodeList()
+            // searchNodesSkippingExcluded() or searchInNodeList()
             switch (nodeContentNodeList.item(i).getNodeName()) {
                 case "rich_text":
                     // All the text of the node
@@ -238,6 +240,7 @@ public class XMLSearcher {
                             int encodedPngContentCharOffset = Integer.parseInt(nodeContentNodeList.item(i).getAttributes().getNamedItem("char_offset").getNodeValue());
                             StringBuilder encodedPngContent = new StringBuilder();
                             encodedPngContent.append(filename.getNodeValue());
+                            encodedPngContent.append(" ");
                             nodeContent.insert(encodedPngContentCharOffset + totalCharOffset, encodedPngContent);
                             totalCharOffset += encodedPngContent.length() - 1;
                         }
@@ -247,7 +250,7 @@ public class XMLSearcher {
         }
 
         // Search
-        int searchLength = search.length();
+        int queryLength = query.length();
         int count = 0;
         int index = 0;
         String nodeName = null; // To display in results
@@ -258,7 +261,7 @@ public class XMLSearcher {
         String preparedNodeContent = nodeContent.toString().toLowerCase().replaceAll("\n", " ").replaceAll(" +", " ");
 
         while (index != -1) {
-            index = preparedNodeContent.indexOf(search, index);
+            index = preparedNodeContent.indexOf(query, index);
             if (index != -1) {
                 // if match to search query was found in the node's content
                 if (count < 1) {
@@ -281,11 +284,11 @@ public class XMLSearcher {
                         startIndex = index - 20;
                         sampleStart = "...";
                     }
-                    if ((index + searchLength + 20) < endIndex) {
+                    if ((index + queryLength + 20) < endIndex) {
                         // if index is more than 20 symbols from the end of the node content
                         // ... are added to the end of the sample
                         // and only 20 proceeding symbols before query match are showed
-                        endIndex = index + searchLength + 20;
+                        endIndex = index + queryLength + 20;
                         sampleEnd = "...";
                     }
 
@@ -299,13 +302,13 @@ public class XMLSearcher {
                 }
 
                 count++;
-                index += searchLength; // moving search start to the end of the last position that search query was found
+                index += queryLength; // moving search start to the end of the last position that search query was found
             }
         }
 
         if (nodeName != null) {
-            // if node name isn't null that a match of q query was found
-            return new String[]{nodeName, nodeUniqueID, search, String.valueOf(count), samples.toString(), hasSubnodes, isParent, isSubnode};
+            // if node name isn't null that means match for a query was found
+            return new String[]{nodeName, nodeUniqueID, query, String.valueOf(count), samples.toString(), hasSubnodes, isParent, isSubnode};
         } else {
             return null;
         }

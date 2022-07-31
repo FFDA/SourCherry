@@ -18,6 +18,7 @@ import androidx.preference.PreferenceManager;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -43,7 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class SearchActivity extends AppCompatActivity {
-    private XMLSearcher searcher;
+    private DatabaseSearcher searcher;
     private Handler handler;
     private ExecutorService executor;
     private LinearLayout searchResultLinearLayout;
@@ -82,6 +83,10 @@ public class SearchActivity extends AppCompatActivity {
                     InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
                     this.searcher = new XMLSearcher(is);
                     is.close();
+                } else {
+                    // If file is sql (password protected or not)
+                    SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
+                    this.searcher = new SQLSearcher(sqlite);
                 }
             }
         } catch (Exception e) {
@@ -150,7 +155,7 @@ public class SearchActivity extends AppCompatActivity {
             }
         });
 
-        ArrayList<String[]> searchResult = this.searcher.searchNodes(noSearch, query);
+        ArrayList<String[]> searchResult = this.searcher.search(noSearch, query);
 
         this.handler.post(new Runnable() {
             @Override
@@ -162,7 +167,7 @@ public class SearchActivity extends AppCompatActivity {
 
 
         if (searchResult != null) {
-            for (String[] result: this.searcher.searchNodes(noSearch, query)) {
+            for (String[] result: searchResult) {
                 LinearLayout searchResultItem = (LinearLayout) layoutInflater.inflate(R.layout.search_activity_result_item, null);
 
                 // Title of a search result
@@ -215,17 +220,17 @@ public class SearchActivity extends AppCompatActivity {
         });
     }
 
-    private SpannableStringBuilder markSearchQuery(String searchResult, String searchQuery) {
+    private SpannableStringBuilder markSearchQuery(String searchResult, String query) {
         // Changes background of the parts of the string (searchResult) that matches second string (searchQuery)
         // Used to mark search query string in in search result samples
 
         int index = 0; // index of start of the found substring
-        int searchLength = searchQuery.length();
+        int searchLength = query.length();
 
         SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
         spannedSearchQuery.append(searchResult);
         while (index != -1) {
-            index = searchResult.indexOf(searchQuery, index);
+            index = searchResult.indexOf(query, index);
             if (index != -1) {
                 int startIndex = index;
                 int endIndex = index + searchLength;

@@ -85,7 +85,7 @@ public class SQLReader implements DatabaseReader {
             ArrayList<String[]> nodes = new ArrayList<>();
 
             Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
-            nodes.addAll(returnSubnodeSearchArrayListList(cursor));
+            nodes.addAll(returnSubnodeSearchArrayList(cursor));
             cursor.close();
 
             return nodes;
@@ -155,7 +155,7 @@ public class SQLReader implements DatabaseReader {
         return nodes;
     }
 
-    public ArrayList<String[]> returnSubnodeSearchArrayListList(Cursor cursor) {
+    public ArrayList<String[]> returnSubnodeSearchArrayList(Cursor cursor) {
         // This function scans provided NodeList and
         // based on node.level value (to exclude node/subnodes from search)
         // returns ArrayList with nested String Arrays that
@@ -168,11 +168,11 @@ public class SQLReader implements DatabaseReader {
                 String nameValue = cursor.getString(0);
                 String uniqueID = String.valueOf(cursor.getInt(1));
                 String hasSubnode = hasSubnodes(uniqueID);
-                String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
+                String isParent = "false"; // There are no "parent" nodes in search. All nodes displayed without indentation
                 nodes.add(new String[]{nameValue, uniqueID, hasSubnode, isParent, "false"});
                 if (hasSubnode.equals("true")) {
                     Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{uniqueID});
-                    nodes.addAll(returnSubnodeSearchArrayListList(subCursor));
+                    nodes.addAll(returnSubnodeSearchArrayList(subCursor));
                     subCursor.close();
                 }
             } else if (cursor.getInt(2) == 1) {
@@ -181,7 +181,7 @@ public class SQLReader implements DatabaseReader {
                 String hasSubnode = hasSubnodes(uniqueID);
                 if (hasSubnode.equals("true")) {
                     Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{uniqueID});
-                    nodes.addAll(returnSubnodeSearchArrayListList(subCursor));
+                    nodes.addAll(returnSubnodeSearchArrayList(subCursor));
                     subCursor.close();
                 }
             } else if (cursor.getInt(2) == 2) {
@@ -322,7 +322,7 @@ public class SQLReader implements DatabaseReader {
                 int hasTable = cursor.getInt(8);
                 int hasImage = cursor.getInt(9);
                 
-                // If any it is marked that node has codebox, table or image
+                // If it is marked that node has codebox, table or image
                 if (hasCodebox == 1 || hasTable == 1 || hasImage == 1) {
                     //// Building string for SQLQuery
                     // Because every element is in it own table
