@@ -280,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
                 databaseFilenameButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
+                        File selectedDatabaseToOpen = new File(externalDatabaseDir, databaseFilename);
                         // Saves selected database's information to the settings
                         saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
                         setMessageWithDatabaseName();
@@ -290,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
                 databaseFilenameButton.setOnLongClickListener(new View.OnLongClickListener() {
                     @Override
                     public boolean onLongClick(View v) {
-                        File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
+                        File selectedDatabaseToOpen = new File(externalDatabaseDir, databaseFilename);
                         // Saves selected database's information to the settings
                         MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
                         MainActivity.this.setMessageWithDatabaseName();
@@ -313,7 +313,7 @@ public class MainActivity extends AppCompatActivity {
                                 .setPositiveButton(R.string.button_delete, new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
-                                        File selectedDatabaseToDelete = new File(databaseDir, databaseFilename);
+                                        File selectedDatabaseToDelete = new File(externalDatabaseDir, databaseFilename);
                                         selectedDatabaseToDelete.delete(); // Deletes database file
                                         checkIfDeleteDatabaseIsBeingUsed(databaseFilename);
                                         listImportedDatabases(); // Launches this function to make a new list of imported databases
