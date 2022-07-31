@@ -249,7 +249,7 @@ public class SQLSearcher implements DatabaseSearcher{
                             // Text in column 5 means that this line is for file OR LaTeX formula box
                             if (!codeboxTableImageCursor.getString(5).equals("__ct_special.tex")) {
                                 // If it is not LaTex file
-                                String attachedFileFilename = codeboxTableImageCursor.getString(5);
+                                String attachedFileFilename = " " + codeboxTableImageCursor.getString(5) + " ";
                                 nodeContent.insert(charOffset + totalCharOffset, attachedFileFilename);
                                 totalCharOffset += attachedFileFilename.length() - 1;
                                 continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
@@ -271,10 +271,14 @@ public class SQLSearcher implements DatabaseSearcher{
                             if (tableRows.item(row).getNodeName().equals("row")) {
                                 // For table content from SQL database spaces around each cell needs to be added
                                 // because there are any
+                                // All cells from one row has to be connected to one string that represents a row
+                                // Otherwise it might be not possible to put table header to the top of the table
+                                StringBuilder rowStringBuilder = new StringBuilder();
                                 NodeList cells = tableRows.item(row).getChildNodes();
                                 for (int cell = 0; cell < cells.getLength(); cell++) {
-                                    tableRowArray.add(" " + cells.item(cell).getTextContent() + " ");
+                                    rowStringBuilder.append(" " + cells.item(cell).getTextContent() + " ");
                                 }
+                                tableRowArray.add(rowStringBuilder.toString());
                             }
                         }
 
