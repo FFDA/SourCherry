@@ -19,10 +19,108 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/main_view_fragment"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/main_view_fragment"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:id="@+id/main_view_find_in_node_linear_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <ProgressBar
+                    android:id="@+id/find_in_node_progress_bar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/find_in_node_edit_text"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:inputType="textNoSuggestions|text"
+                        android:imeOptions="flagNoExtractUi|actionNext"
+                        android:ems="10" />
+
+                    <TextView
+                        android:id="@+id/find_in_node_edit_text_marked_index"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingEnd="5dp"
+                        android:paddingStart="5dp"
+                        android:text="@string/options_menu_item_find_in_node_counter_default_value"/>
+
+                    <TextView
+                        android:id="@+id/find_in_node_edit_text_marked_index_count_separator"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingEnd="5dp"
+                        android:paddingStart="5dp"
+                        android:text="@string/options_menu_item_find_in_node_marked_index_count_separator" />
+
+                    <TextView
+                        android:id="@+id/find_in_node_edit_text_result_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingEnd="5dp"
+                        android:paddingStart="5dp"
+                        android:text="@string/options_menu_item_find_in_node_counter_default_value"/>
+
+                    <ImageButton
+                        android:id="@+id/find_in_node_button_previous"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:paddingEnd="5dp"
+                        android:paddingStart="5dp"
+                        android:background="?selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="@string/find_in_node_view_previous_button_description"
+                        android:src="@drawable/ic_baseline_arrow_up_24" />
+
+                    <ImageButton
+                        android:id="@+id/find_in_node_button_next"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:paddingEnd="5dp"
+                        android:paddingStart="5dp"
+                        android:background="?selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:contentDescription="@string/find_in_node_view_next_button_description"
+                        android:src="@drawable/ic_baseline_arrow_is_parent_24" />
+
+                    <ImageButton
+                        android:id="@+id/find_in_node_button_close"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:paddingEnd="5dp"
+                        android:paddingStart="5dp"
+                        android:background="?selectableItemBackground"
+                        android:clickable="true"
+                        android:contentDescription="@string/find_in_node_view_close_button_description"
+                        android:focusable="true"
+                        android:src="@drawable/ic_outline_close_24" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
 
         <com.google.android.material.navigation.NavigationView
             android:id="@+id/navigationView"

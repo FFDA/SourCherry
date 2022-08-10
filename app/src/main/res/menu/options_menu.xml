@@ -12,6 +12,9 @@
     <group
         android:id="@+id/options_menu_mainview_group">
         <item
+            android:id="@+id/options_menu_find_in_node"
+            android:title="@string/options_menu_item_find_in_node"/>
+        <item
             android:id="@+id/options_menu_search"
             android:title="@string/options_menu_item_search"/>
         <item

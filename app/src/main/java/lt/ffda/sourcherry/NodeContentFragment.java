@@ -14,11 +14,14 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.BackgroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -58,7 +61,6 @@ public class NodeContentFragment extends Fragment {
     }
 
     public void loadContent() {
-
         // Clears layout just in case. Most of the time it is needed
         if (this.contentFragmentLinearLayout != null) {
             handler.post(new Runnable() {
@@ -144,6 +146,105 @@ public class NodeContentFragment extends Fragment {
                         NodeContentFragment.this.contentFragmentLinearLayout.addView(tableScrollView);
                     }
                 });
+            }
+        }
+    }
+
+    public void switchFindInNodeHighlight(int previouslyHighlightedViewIndex, int newResultIndex) {
+        // Removes highlighting from TextView which findInNodeStorage index is provided with previouslyHighlightedViewIndex
+        // And highlights findInNodeResultStorage item that is provided with newResultIndex
+
+        LinearLayout contentFragmentLinearLayout = getView().findViewById(R.id.content_fragment_linearlayout);
+        ScrollView contentFragmentScrollView = getView().findViewById(R.id.content_fragment_scrollview);
+        int lineCounter = 0; // Needed to calculate position where view will have to be scrolled to
+        int counter = 0; // Counts iteration over node layout. Counts every TextView
+
+        int viewCounter = this.mainViewModel.getFindInNodeResult(newResultIndex)[0]; // Saved findInNodeStorage view index
+        int startIndex = this.mainViewModel.getFindInNodeResult(newResultIndex)[1]; // Search result substring start index
+        int endIndex = this.mainViewModel.getFindInNodeResult(newResultIndex)[2]; // Search result substring end index
+
+        for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
+            View view = contentFragmentLinearLayout.getChildAt(i);
+            if (view instanceof TextView) {
+                TextView currentTextView = (TextView) view;
+                if (previouslyHighlightedViewIndex != viewCounter) {
+                    // If substring that has to be marked IS NOT IN the same view as previously marked substring
+                    if (previouslyHighlightedViewIndex == counter) {
+                        // If encountered the view that was previously marked view
+                        // It is restored to original state
+                        SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                        spannedSearchQuery.append(this.mainViewModel.getFindInNodeStorageItem(counter));
+                        currentTextView.setText(spannedSearchQuery);
+                    }
+                    if (viewCounter == counter) {
+                        // If encountered the view that has to be marked now
+                        SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                        spannedSearchQuery.append(this.mainViewModel.getFindInNodeStorageItem(counter));
+                        spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        currentTextView.setText(spannedSearchQuery);
+                        int line = currentTextView.getLayout().getLineForOffset(startIndex);
+                        int lineHeight = currentTextView.getLineHeight();
+                        contentFragmentScrollView.scrollTo(0, (line * lineHeight) + lineCounter - 100);
+                    }
+                } else {
+                    // If substring that has to be marked IS IN the same view as previously marked substring
+                    // Previous "highlight" will be removed while marking the current one
+                    if (viewCounter == counter) {
+                        SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                        spannedSearchQuery.append(this.mainViewModel.getFindInNodeStorageItem(counter));
+                        spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        currentTextView.setText(spannedSearchQuery);
+                        int line = currentTextView.getLayout().getLineForOffset(startIndex);
+                        int lineHeight = currentTextView.getLineHeight();
+                        contentFragmentScrollView.scrollTo(0, (line * lineHeight) + lineCounter - 100);
+                    }
+                }
+                lineCounter += currentTextView.getHeight();
+                counter++;
+            } else if (view instanceof HorizontalScrollView) {
+                // If encountered a table
+                TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                if (previouslyHighlightedViewIndex != viewCounter) {
+                    // If substring that has to be marked IS NOT IN the same view as previously marked substring
+                    for (int row = 0; row < tableLayout.getChildCount(); row++) {
+                        TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                        for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                            if (previouslyHighlightedViewIndex == counter) {
+                                // If encountered view that was previously highlighted
+                                SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                                spannedSearchQuery.append(this.mainViewModel.getFindInNodeStorageItem(counter));
+                                ((TextView) tableRow.getChildAt(cell)).setText(spannedSearchQuery);
+                            }
+                            if (viewCounter == counter) {
+                                // If encountered a view that has to be highlighted
+                                SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                                spannedSearchQuery.append(this.mainViewModel.getFindInNodeStorageItem(counter));
+                                spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                ((TextView) tableRow.getChildAt(cell)).setText(spannedSearchQuery);
+                                contentFragmentScrollView.scrollTo(0, lineCounter - 100);
+                            }
+                            counter++;
+                        }
+                        lineCounter += tableRow.getHeight();
+                    }
+                } else {
+                    // If substring that has to be marked IS IN the same view as previously marked substring
+                    for (int row = 0; row < tableLayout.getChildCount(); row++) {
+                        TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                        for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                            if (viewCounter == counter) {
+                                // If encountered a view that has to be marked
+                                SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                                spannedSearchQuery.append(this.mainViewModel.getFindInNodeStorageItem(counter));
+                                spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                ((TextView) tableRow.getChildAt(cell)).setText(spannedSearchQuery);
+                                contentFragmentScrollView.scrollTo(0, lineCounter - 100);
+                            }
+                            counter++;
+                        }
+                        lineCounter += tableRow.getHeight();
+                    }
+                }
             }
         }
     }

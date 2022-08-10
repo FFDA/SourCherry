@@ -10,6 +10,8 @@
 
 package lt.ffda.sourcherry;
 
+import android.text.SpannableStringBuilder;
+
 import androidx.lifecycle.ViewModel;
 
 import java.util.ArrayList;
@@ -20,6 +22,10 @@ public class MainViewModel extends ViewModel {
     private ArrayList<String[]> nodes;
     private ArrayList<String[]> tempNodes;
     private ArrayList<String[]> tempSearchNodes;
+    // String value of every TextView in node
+    private ArrayList<SpannableStringBuilder> findInNodeStorage;
+    // Stores results for FindInNode() int[textView index in findInNodeStorage, start index of matching substring, end index of matching substring]
+    private ArrayList<int[]> findInNodeResultStorage;
 
     public void setNodeContent(ArrayList<ArrayList<CharSequence[]>> nodeContent) {
         this.nodeContent = nodeContent;
@@ -75,5 +81,53 @@ public class MainViewModel extends ViewModel {
     public void setTempSearchNodes(ArrayList<String[]> nodes) {
         this.tempSearchNodes.clear();
         this.tempSearchNodes.addAll(nodes);
+    }
+
+    public void findInNodeStorageToggle(Boolean status) {
+        // Depending on boolean creates an array to store node content to search through
+        // or sets it to null to clear it
+        if (status) {
+            this.findInNodeStorage = new ArrayList<>();
+            this.findInNodeResultStorage = new ArrayList<>();
+        } else {
+            this.findInNodeStorage = null;
+            this.findInNodeResultStorage = null;
+        }
+    }
+
+    public SpannableStringBuilder getFindInNodeStorageItem(int index) {
+        // returns part of the content to search though it
+        return this.findInNodeStorage.get(index);
+    }
+
+    public void addFindInNodeStorage(SpannableStringBuilder contentPart) {
+        // Adds node content part to content storage for findInNode function
+        // Every TextView if the node is a separate SpannableStringBuilder
+        this.findInNodeStorage.add(contentPart);
+    }
+
+    public void addFindInNodeResult(int[] result) {
+        // Adds result to FindInNodeResultStorage
+        // Results is int array that consists of three int
+        // index of view that holds this result, start and end of substring that has to be highlighted
+        this.findInNodeResultStorage.add(result);
+    }
+
+    public int[] getFindInNodeResult(int resultIndex) {
+        // Returns result of the index in FindInNodeResultStorage
+        return this.findInNodeResultStorage.get(resultIndex);
+    }
+
+    public int getFindInNodeResultCount() {
+        // returns the size of FindInNode result ListArray
+        return this.findInNodeResultStorage.size();
+    }
+
+    public void resetFindInNodeResultStorage() {
+        // Clears FindInNode result ListArray
+        // Used when user types new query
+        if (this.findInNodeResultStorage != null) {
+            this.findInNodeResultStorage = new ArrayList<>();
+        }
     }
 }

@@ -20,6 +20,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
@@ -28,21 +30,39 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.TextWatcher;
+import android.text.style.BackgroundColorSpan;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.SearchView;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.FileInputStream;
@@ -61,12 +81,14 @@ public class MainView extends AppCompatActivity {
     private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
     private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
     private boolean filterNodeToggle;
+    private boolean findInNodeToggle; // Holds true when FindInNode view is initiated
     private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
     private boolean backToExit;
     private MainViewModel mainViewModel;
     private SharedPreferences sharedPreferences;
     private ExecutorService executor;
     private Handler handler;
+    private int currentFindInNodeMarked; // Index of the result that is marked from FindInNode results. -1 Means nothing is selected
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,6 +146,8 @@ public class MainView extends AppCompatActivity {
             getSupportFragmentManager().executePendingTransactions();
             this.bookmarksToggle = false;
             this.filterNodeToggle = false;
+            this.findInNodeToggle = false;
+            this.currentFindInNodeMarked = -1;
             if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.sharedPreferences.getString("last_node_name", null) != null) {
                 // Restores node on startup if user set this in settings
                 this.currentNodePosition = this.sharedPreferences.getInt("last_node_position", -1);
@@ -145,6 +169,8 @@ public class MainView extends AppCompatActivity {
             this.currentNode = savedInstanceState.getStringArray("currentNode");
             this.bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
             this.filterNodeToggle = savedInstanceState.getBoolean("filterNodeToggle");
+            this.findInNodeToggle = savedInstanceState.getBoolean("findInNodeToggle");
+            this.currentFindInNodeMarked = savedInstanceState.getInt("currentFindInNodeMarked");
         }
 
         RecyclerView rvMenu = findViewById(R.id.recyclerView);
@@ -311,6 +337,112 @@ public class MainView extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         // Registers listener for back button clicks
         getOnBackPressedDispatcher().addCallback(this, callbackDisplayToastBeforeExit);
+
+        // Button in findInView to close it
+        ImageButton findInNodeCloseButton = findViewById(R.id.find_in_node_button_close);
+        findInNodeCloseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MainView.this.closeFindInNode();
+            }
+        });
+
+        // Button in findInView to jump/show next result
+        ImageButton findInNodeButtonNext = findViewById(R.id.find_in_node_button_next);
+        findInNodeButtonNext.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Only if there are more than one result
+                if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
+                    MainView.this.findInNodeNext();
+                }
+
+            }
+        });
+
+        // Button in findInView to jump/show previous result
+        ImageButton findInNodeButtonPrevious = findViewById(R.id.find_in_node_button_previous);
+        findInNodeButtonPrevious.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Only if there are more than one result
+                if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
+                    MainView.this.findInNodePrevious();
+                }
+
+            }
+        });
+
+        // Listener for FindInNode search text change
+        EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
+        findInNodeEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // After user types the text in search field
+                // There is a delay of 400 milliseconds
+                // to start the search only when user stops typing
+                if (MainView.this.findInNodeToggle && findInNodeEditText.isFocused()) {
+                    MainView.this.handler.removeCallbacksAndMessages(null);
+                    MainView.this.handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            MainView.this.findInNode(s.toString());
+                        }
+                    }, 400);
+                }
+            }
+        });
+
+        // Listener for FindInNode "enter" button click
+        // Moves to the next findInNode result
+        findInNodeEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                boolean handled = false;
+                if (actionId == EditorInfo.IME_ACTION_NEXT) {
+                    MainView.this.findInNodeNext();
+                    handled = true;
+                }
+                return handled;
+            }
+        });
+
+        // Listener for drawerMenu states
+        drawerLayout.addDrawerListener(new DrawerLayout.DrawerListener() {
+            @Override
+            public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
+
+            }
+
+            @Override
+            public void onDrawerOpened(@NonNull View drawerView) {
+                // If FindInNode view is on when user opens a drawer menu
+                // Coses FindInNode view
+                // Otherwise when user preses findInNodeNext/findInNodePrevious button in new node
+                // content of the previous node will be loaded
+                if (MainView.this.findInNodeToggle) {
+                    MainView.this.closeFindInNode();
+                }
+            }
+
+            @Override
+            public void onDrawerClosed(@NonNull View drawerView) {
+
+            }
+
+            @Override
+            public void onDrawerStateChanged(int newState) {
+
+            }
+        });
     }
 
     @Override
@@ -321,10 +453,20 @@ public class MainView extends AppCompatActivity {
         } else {
             // Options menu items
             switch (item.getItemId()) {
+                case (R.id.options_menu_find_in_node):
+                    if (!findInNodeToggle) {
+                        // Opens findInNode (sets the variables) only if it hasn't been opened yet
+                        this.openFindInNode();
+                    }
+                    return true;
                 case (R.id.options_menu_search):
+                    if (findInNodeToggle) {
+                        // Closes findInNode if it was opened when searchActivity was selected to be opened
+                        // Otherwise it will prevent to displayed node content selected from search
+                        this.closeFindInNode();
+                    }
                     Intent openSearchActivity = new Intent(this, SearchActivity.class);
                     searchActivity.launch(openSearchActivity);
-//                    startActivity(openSearchActivity);
                     return true;
                 case (R.id.options_menu_settings):
                     Intent openSettingsActivity = new Intent(this, PreferencesActivity.class);
@@ -362,6 +504,8 @@ public class MainView extends AppCompatActivity {
         outState.putStringArray("currentNode", this.currentNode);
         outState.putBoolean("bookmarksToggle", this.bookmarksToggle);
         outState.putBoolean("filterNodeToggle", this.filterNodeToggle);
+        outState.putBoolean("findInNodeToggle", this.findInNodeToggle);
+        outState.putInt("currentFindInNodeMarked", this.currentFindInNodeMarked);
         super.onSaveInstanceState(outState);
     }
 
@@ -384,6 +528,24 @@ public class MainView extends AppCompatActivity {
         if (this.bookmarksToggle) {
             this.navigationNormalMode(false);
         }
+
+        // Restoring FindInNode view to previous state
+        if (this.findInNodeToggle) {
+            LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
+            findInNodeLinearLayout.setVisibility(View.VISIBLE);
+            EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
+            if (findInNodeEditText.getText().length() > 0) {
+                MainView.this.updateCounter(MainView.this.mainViewModel.getFindInNodeResultCount());
+                int index = MainView.this.currentFindInNodeMarked;
+                // Without delaying findInNodeResult won't be marked, because nodeContent isn't loaded at the time
+                this.handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        MainView.this.highlightFindInNodeResult(index);
+                    }
+                }, 200);
+            }
+        }
     }
 
     @Override
@@ -398,7 +560,7 @@ public class MainView extends AppCompatActivity {
             sharedPreferencesEditor.putString("last_node_is_parent", this.currentNode[3]);
             sharedPreferencesEditor.putString("last_node_is_subnode", this.currentNode[4]);
             if (this.bookmarksToggle || this.filterNodeToggle) {
-                // If search or bookmarks were being show temporary node position needs to be saved
+                // If search or bookmarks were being shown temporary node position needs to be saved
                 sharedPreferencesEditor.putInt("last_node_position", this.tempCurrentNodePosition);
             } else {
                 sharedPreferencesEditor.putInt("last_node_position", this.currentNodePosition);
@@ -532,17 +694,16 @@ public class MainView extends AppCompatActivity {
     }
 
     private void loadNodeContent() {
-
         FragmentManager fragmentManager = getSupportFragmentManager();
 
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
         // Sends ArrayList to fragment to be added added to view
         this.setToolbarTitle();
-        executor.execute(new Runnable() {
+        this.executor.execute(new Runnable() {
             @Override
             public void run() {
-                mainViewModel.setNodeContent(MainView.this.reader.getNodeContent(MainView.this.currentNode[1]));
+                MainView.this.mainViewModel.setNodeContent(MainView.this.reader.getNodeContent(MainView.this.currentNode[1]));
                 nodeContentFragment.loadContent();
             }
         });
@@ -687,7 +848,7 @@ public class MainView extends AppCompatActivity {
         ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
         CheckBox excludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
 
-        if (status == true) {
+        if (status) {
             goBackButton.setVisibility(View.GONE);
             upButton.setVisibility(View.GONE);
             homeButton.setVisibility(View.GONE);
@@ -704,5 +865,388 @@ public class MainView extends AppCompatActivity {
 
     public Handler getHandler() {
         return this.handler;
+    }
+
+    private void closeFindInNode() {
+        // Close findInNode view, keyboard and restores variables to initial values
+        // * This prevents crashes when user makes a sudden decision to close findInNode view while last search hasn't finished
+        MainView.this.handler.removeCallbacksAndMessages(null);
+        // *
+        this.findInNodeToggle = false;
+        EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
+        findInNodeEditText.setText("");
+        findInNodeEditText.clearFocus();
+
+        MainView.this.restoreHighlightedView();
+
+        // * Closing keyboard
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Shows keyboard on API 30 (Android 11) reliably
+            WindowCompat.getInsetsController(getWindow(), findInNodeEditText).hide(WindowInsetsCompat.Type.ime());
+        } else {
+            new Handler().postDelayed(new Runnable() {
+                // Delays to show soft keyboard by few milliseconds
+                // Otherwise keyboard does not show up
+                // It's a bit hacky (should be fixed)
+                @Override
+                public void run() {
+                    imm.hideSoftInputFromWindow(findInNodeEditText.getWindowToken(), InputMethodManager.HIDE_IMPLICIT_ONLY);
+                }
+            }, 50);
+        }
+        // *
+
+        // Clearing search field (restores content to original state too)
+        LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
+        findInNodeLinearLayout.setVisibility(View.GONE);
+        this.mainViewModel.findInNodeStorageToggle(false);
+    }
+
+    private void openFindInNode() {
+        // Searches through the node and highlights matches
+        this.findInNodeToggle = true;
+        MainView.this.mainViewModel.findInNodeStorageToggle(true); // Created an array to store nodeContent
+        LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
+        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
+        EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
+
+        findInNodeLinearLayout.setVisibility(View.VISIBLE); // Making findInView visible at the bottom if the window
+
+        // * Displaying / opening keyboard
+        findInNodeEditText.requestFocus();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Shows keyboard on API 30 (Android 11) reliably
+            WindowCompat.getInsetsController(getWindow(), findInNodeEditText).show(WindowInsetsCompat.Type.ime());
+        } else {
+            new Handler().postDelayed(new Runnable() {
+                // Delays to show soft keyboard by few milliseconds
+                // Otherwise keyboard does not show up
+                // It's a bit hacky (should be fixed)
+                @Override
+                public void run() {
+                    imm.showSoftInput(findInNodeEditText, InputMethodManager.SHOW_IMPLICIT);
+                }
+            }, 50);
+        }
+        // *
+
+        this.executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                // * Collecting all nodeContent in ArrayList
+                // Every TextView is added as a separate item (SpannableStringBuilder) in array list
+                // If node does not have tables, it's most likely is just one
+                // However, if node has table(s), every cell of the table is added as an item in array
+                for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
+                    View view = contentFragmentLinearLayout.getChildAt(i);
+                    if (view instanceof TextView) {
+                        MainView.this.mainViewModel.addFindInNodeStorage((SpannableStringBuilder) ((TextView) view).getText());
+                    } else if (view instanceof HorizontalScrollView) {
+                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                        for (int row = 0; row < tableLayout.getChildCount(); row++) {
+                            TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                            for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                                // Reaches cell and adds it's text to ArrayList
+                                TextView rowCell = (TextView) tableRow.getChildAt(cell);
+                                SpannableStringBuilder cellSpannableStringBuilder = new SpannableStringBuilder();
+                                cellSpannableStringBuilder.append(rowCell.getText());
+                                MainView.this.mainViewModel.addFindInNodeStorage(cellSpannableStringBuilder);
+                            }
+                        }
+                    }
+                }
+                // *
+            }
+        });
+    }
+
+    private void updateCounter(int counter) {
+        // Sets the count of the results
+        TextView findInNodeEditTextCount = findViewById(R.id.find_in_node_edit_text_result_count);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                findInNodeEditTextCount.setText(String.valueOf(counter));
+            }
+        });
+    }
+
+    private void updateMarkedIndex() {
+        // Sets/updates index of currently marked result
+        TextView findInNodeEditTextMarkedIndex = findViewById(R.id.find_in_node_edit_text_marked_index);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                findInNodeEditTextMarkedIndex.setText(String.valueOf(MainView.this.currentFindInNodeMarked + 1));
+            }
+        });
+    }
+
+    private void setFindInNodeProgressBar(Boolean status) {
+        // Depending on status starts (true) or stops (false) progress bar
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                ProgressBar progressBar = findViewById(R.id.find_in_node_progress_bar);
+                progressBar.setIndeterminate(status);
+            }
+        });
+    }
+
+    private void findInNode(String query) {
+        // Searches for query in nodeContent
+        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
+
+        if (query.length() > 0) {
+            // If new query is longer when one character
+            this.restoreHighlightedView();
+            MainView.this.executor.execute(new Runnable() {
+                @Override
+                public void run() {
+
+                    MainView.this.setFindInNodeProgressBar(true);
+                    int counter = 0; // To keep track of which item in the nodeContent array it is
+                    for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
+                        View view = contentFragmentLinearLayout.getChildAt(i);
+                        if (view instanceof TextView) {
+                            // if textview
+                            int searchLength = query.length();
+                            SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                            spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                            int index = 0;
+                            while ((index != -1)) {
+                                index = spannedSearchQuery.toString().toLowerCase().indexOf(query.toLowerCase(), index); // searches in case insensitive mode
+                                if (index != -1) {
+                                    // If there was a match
+                                    int startIndex = index;
+                                    int endIndex = index + searchLength; // End of the substring that has to be marked
+                                    MainView.this.mainViewModel.addFindInNodeResult(new int[] {counter, startIndex, endIndex});
+                                index += searchLength; // moves search to the end of the last found string
+                                }
+                            }
+                            counter++;
+                        } else if (view instanceof HorizontalScrollView) {
+                            // if it is a table
+                            // Has to go to the cell level to reach text
+                            // to be able to mark it at appropriate place
+                            int searchLength = query.length();
+
+                            TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                            for (int row = 0; row < tableLayout.getChildCount(); row++) {
+                                TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                                for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                                    SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                                    spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                                    int index = 0;
+                                    while ((index != -1)) {
+                                        index = spannedSearchQuery.toString().toLowerCase().indexOf(query.toLowerCase(), index); // searches in case insensitive mode
+                                        if (index != -1) {
+                                            int startIndex = index;
+                                            int endIndex = index + searchLength; // End of the substring that has to be marked
+                                            MainView.this.mainViewModel.addFindInNodeResult(new int[]{counter, startIndex, endIndex});
+                                            index += searchLength; // moves search to the end of the last found string
+                                        }
+                                    }
+                                    counter++;
+                                }
+                            }
+                        }
+                    }
+                    MainView.this.updateCounter(MainView.this.mainViewModel.getFindInNodeResultCount());
+                    if (MainView.this.mainViewModel.getFindInNodeResultCount() == 0) {
+                        // If user types until there are no matches left
+                        MainView.this.restoreHighlightedView();
+                    } else {
+                        // If there are matches for user query
+                        // First result has to be highlighter and scrolled too
+                        MainView.this.currentFindInNodeMarked = 0;
+                        MainView.this.highlightFindInNodeResult(MainView.this.currentFindInNodeMarked);
+                    }
+                    MainView.this.setFindInNodeProgressBar(false);
+                }
+            });
+        } else {
+            // If new query is 0 characters long, that means that user deleted everything and view should be reset to original
+            MainView.this.restoreHighlightedView();
+        }
+    }
+
+    private void highlightFindInNodeResult(int resultIndex) {
+        // Highlights result from findInNodeResultStorage (array list) that is identified by currentFindInNodeMarked
+        int viewCounter = this.mainViewModel.getFindInNodeResult(resultIndex)[0]; // Saved index for the view
+        int startIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[1];
+        int endIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[2];
+
+        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
+        ScrollView contentFragmentScrollView = findViewById(R.id.content_fragment_scrollview);
+        int lineCounter = 0; // Needed to calculate position where view will have to be scrolled to
+        int counter = 0; // Iterator of the all the saved views from node content
+
+        for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
+            View view = contentFragmentLinearLayout.getChildAt(i);
+            if (view instanceof TextView) {
+                TextView currentTextView = (TextView) view;
+                // If substring that has to be marked IS IN the same view as previously marked substring
+                // Previous "highlight" will be removed while marking the current one
+                if (viewCounter == counter) {
+                    SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                    spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                    spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    int line = currentTextView.getLayout().getLineForOffset(startIndex); // Gets the line of the current string in current view
+                    int lineHeight = currentTextView.getLineHeight(); // needed to calculate the amount of pixel screen has to be scrolled down
+                    int currentLineCounter = lineCounter;
+                    this.handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            currentTextView.setText(spannedSearchQuery);
+                            // Scrolls view down to the line of the marked substring (query)
+                            // -100 pixels are to make highlighted substring not to be at the top of the screen
+                            contentFragmentScrollView.scrollTo(0, (line * lineHeight) + currentLineCounter - 100);
+                        }
+                    });
+                    MainView.this.updateMarkedIndex();
+                }
+                // Adds all TextView height to lineCounter. Will be used to move screen to correct position if there are more views
+                lineCounter += currentTextView.getHeight();
+                counter++;
+            } else if (view instanceof HorizontalScrollView) {
+                // If encountered a table
+                TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                    // If substring that has to be marked IS IN the same view as previously marked substring
+                for (int row = 0; row < tableLayout.getChildCount(); row++) {
+                    TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                    for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                        if (viewCounter == counter) {
+                            // If encountered a view that has to be marked
+                            TextView currentCell = (TextView) tableRow.getChildAt(cell);
+                            SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                            spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                            spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            int currentLineCounter = lineCounter;
+                            this.handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    currentCell.setText(spannedSearchQuery);
+                                    // Scrolls view down to the line of the marked substring (query)
+                                    // -100 pixels are to make highlighted substring not to be at the top of the screen
+                                    contentFragmentScrollView.scrollTo(0, currentLineCounter - 100);
+                                }
+                            });
+                            MainView.this.updateMarkedIndex();
+                        }
+                        counter++;
+                    }
+                    // Adds row's height to lineCounter. Will be used to move screen to correct position if there are more views
+                    lineCounter += tableRow.getHeight();
+                }
+            }
+        }
+    }
+
+    private void restoreHighlightedView() {
+        // Restores TextView to original state that was change changed with highlightFindInNodeResult() function
+        // Uses index of the TextView in currentFindInNodeMarked
+        // At the end sets currentFindInNodeMarked to 0 (nothing marked)
+        // Resets counters and search result storage too
+        if (this.currentFindInNodeMarked != -1) {
+            int viewIndex = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked)[0];
+            int counter = 0;
+            LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
+            for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
+                View view = contentFragmentLinearLayout.getChildAt(i);
+                if (view instanceof TextView) {
+                    if (viewIndex == counter) {
+                        SpannableStringBuilder originalText = new SpannableStringBuilder();
+                        originalText.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                        this.handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                ((TextView) view).setText(originalText);
+                            }
+                        });
+                    }
+                    counter++;
+                } else if (view instanceof HorizontalScrollView) {
+                    TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                    for (int row = 0; row < tableLayout.getChildCount(); row++) {
+                        TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                        for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                            if (viewIndex == counter) {
+                                TextView currentCell = (TextView) tableRow.getChildAt(cell);
+                                SpannableStringBuilder originalText = new SpannableStringBuilder();
+                                originalText.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                                this.handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        currentCell.setText(originalText);
+                                    }
+                                });
+                            }
+                            counter++;
+                        }
+                    }
+                }
+            }
+            this.currentFindInNodeMarked = -1;
+            this.updateCounter(0);
+            this.updateMarkedIndex();
+            this.mainViewModel.resetFindInNodeResultStorage();
+        }
+    }
+
+    private void findInNodeNext() {
+        // Calculates next result that has to be highlighted
+        // and initiates switchFindInNodeHighlight
+        this.currentFindInNodeMarked++;
+        this.updateMarkedIndex();
+        if (this.currentFindInNodeMarked <= this.mainViewModel.getFindInNodeResultCount() - 1) {
+            int previouslyHighlightedFindInNode;
+            if (this.currentFindInNodeMarked == 0) {
+                // Current marked node is first in the array, so previous marked should be the last from array
+                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.mainViewModel.getFindInNodeResultCount() - 1)[0];
+            } else {
+                // Otherwise it should be previous one in array. However, it can be that it is out off array if array is made of one item.
+                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked - 1)[0];
+            }
+            // Gets instance of the fragment
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
+            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, this.currentFindInNodeMarked);
+        } else {
+            // Reached the last index of the result array
+            // currentFindInNodeMarked has to be reset to the first index if the result array and this function restarted
+            // If you want to though the result in a loop
+            this.currentFindInNodeMarked = -1;
+            this.findInNodeNext();
+        }
+    }
+
+    private void findInNodePrevious() {
+        // Calculates previous result that has to be highlighted
+        // and initiates switchFindInNodeHighlight
+        this.currentFindInNodeMarked--;
+        this.updateMarkedIndex();
+        if (this.currentFindInNodeMarked >= 0) {
+            int previouslyHighlightedFindInNode;
+            if (this.currentFindInNodeMarked == this.mainViewModel.getFindInNodeResultCount() - 1) {
+                // Current marked node is last, so previous marked node should be the first in result ArrayList
+                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(0)[0];
+            } else {
+                // Otherwise it should next one in array (index+1). However, it can be that it is out off array if array is made of one item
+                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked + 1)[0]; // Saved index for the view
+            }
+            // Gets instance of the fragment
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
+            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, this.currentFindInNodeMarked);
+        } else {
+            // Reached the first index of the result array
+            // currentFindInNodeMarked has to be reset to last index of the result array and this function restarted
+            // If you want to though the result in a loop
+            this.currentFindInNodeMarked =  this.mainViewModel.getFindInNodeResultCount();
+            this.findInNodePrevious();
+        }
     }
 }

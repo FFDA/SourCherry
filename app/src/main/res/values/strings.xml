@@ -51,6 +51,12 @@
     <string name="options_menu_search_query_instances_node">%1$s and %2$d more&lt;br></string>
     <string name="options_menu_search_result_count">Results: %1$d</string>
     <string name="options_menu_item_settings">Settings</string>
+    <string name="options_menu_item_find_in_node">Find in node</string>
+    <string name="options_menu_item_find_in_node_counter_default_value" translatable="false">0</string>
+    <string name="options_menu_item_find_in_node_marked_index_count_separator" translatable="false">/</string>
+    <string name="find_in_node_view_previous_button_description">Highlights and moves to the previous item of the find in node results</string>
+    <string name="find_in_node_view_next_button_description">Highlights and moves to the next item of the find in node results</string>
+    <string name="find_in_node_view_close_button_description">Closes the find in node view</string>
     <string name="preferences_auto_open_title">Automatically close drawer menu</string>
     <string name="preferences_auto_open_summary">Automatically close drawer menu when selected node does not have subnodes</string>
     <string name="preferences_dark_mode_title">Dark mode</string>
