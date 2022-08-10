@@ -761,6 +761,11 @@ public class MainView extends AppCompatActivity {
     }
 
     public void openAnchorLink(String[] nodeArray) {
+        if (this.findInNodeToggle) {
+            // Closes findInNode view to clear all variables
+            // Otherwise loaded node in some cases might display previous node's content
+            this.closeFindInNode();
+        }
         this.currentNode = nodeArray;
         this.resetMenuToCurrentNode();
         this.loadNodeContent();
@@ -870,14 +875,14 @@ public class MainView extends AppCompatActivity {
     private void closeFindInNode() {
         // Close findInNode view, keyboard and restores variables to initial values
         // * This prevents crashes when user makes a sudden decision to close findInNode view while last search hasn't finished
-        MainView.this.handler.removeCallbacksAndMessages(null);
+        this.handler.removeCallbacksAndMessages(null);
         // *
         this.findInNodeToggle = false;
         EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
         findInNodeEditText.setText("");
         findInNodeEditText.clearFocus();
 
-        MainView.this.restoreHighlightedView();
+        this.restoreHighlightedView();
 
         // * Closing keyboard
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
