@@ -12,6 +12,7 @@ package lt.ffda.sourcherry;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
@@ -642,6 +643,16 @@ public class SQLReader implements DatabaseReader {
             image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
             ImageSpan is = new ImageSpan(image);
             formattedImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+            if (image.getIntrinsicWidth() > width) {
+                // If image is wider than screen it is scaled down to fit the screen
+                // otherwise it will not load/be displayed
+                float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
+                int newWidth = (int) (image.getIntrinsicWidth() * scale);
+                int newHeight = (int) (image.getIntrinsicHeight() * scale);
+                image.setBounds(0, 0, newWidth, newHeight);
+            }
 
             //// Detects image touches/clicks
             ClickableSpan imageClickableSpan = new ClickableSpan() {

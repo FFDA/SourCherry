@@ -12,6 +12,7 @@ package lt.ffda.sourcherry;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -631,6 +632,17 @@ public class XMLReader implements DatabaseReader{
             Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
             Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
             image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
+
+            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+            if (image.getIntrinsicWidth() > width) {
+                // If image is wider than screen it is scaled down to fit the screen
+                // otherwise it will not load/be display
+                float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
+                int newWidth = (int) (image.getIntrinsicWidth() * scale);
+                int newHeight = (int) (image.getIntrinsicHeight() * scale);
+                image.setBounds(0, 0, newWidth, newHeight);
+            }
+
             ImageSpan is = new ImageSpan(image);
             formattedImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
