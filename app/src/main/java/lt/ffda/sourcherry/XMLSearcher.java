@@ -99,7 +99,7 @@ public class XMLSearcher implements DatabaseSearcher{
         return searchResult;
     }
 
-    public ArrayList<String[]> searchAllNodes(String query, NodeList nodeList) {
+    private ArrayList<String[]> searchAllNodes(String query, NodeList nodeList) {
         // Searches thought all nodes without skipping marked to exclude
         // It actually just filters node and it's subnodes
         // The search of the string is done in findInNode()
@@ -132,7 +132,7 @@ public class XMLSearcher implements DatabaseSearcher{
         return searchResult;
     }
 
-    public ArrayList<String[]> searchNodesSkippingExcluded(String query, NodeList nodeList) {
+    private ArrayList<String[]> searchNodesSkippingExcluded(String query, NodeList nodeList) {
         // Searches thought nodes skipping marked to exclude
         // It actually just filters node and it's subnodes
         // The search of the string is done in findInNode()
@@ -168,7 +168,7 @@ public class XMLSearcher implements DatabaseSearcher{
         return searchResult;
     }
 
-    public String[] findInNode(Node node, String query, String hasSubnodes, String isParent, String isSubnode) {
+    private String[] findInNode(Node node, String query, String hasSubnodes, String isParent, String isSubnode) {
         // Searches thought node's content
 
         // This string builder will hold oll text content of the node
@@ -314,7 +314,7 @@ public class XMLSearcher implements DatabaseSearcher{
         }
     }
 
-    public boolean hasSubnodes(Node node) {
+    private boolean hasSubnodes(Node node) {
         // Checks if provided node has nested "node" tag
         NodeList subNodes = node.getChildNodes();
 

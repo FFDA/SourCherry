@@ -94,7 +94,7 @@ public class SQLSearcher implements DatabaseSearcher{
         }
     }
 
-    public ArrayList<String[]> searchAllNodes(String parentUniqueID, String query) {
+    private ArrayList<String[]> searchAllNodes(String parentUniqueID, String query) {
         // Searches thought all nodes without skipping marked to exclude
         // It actually just filters node and it's subnodes
         // The search of the string is done in findInNode()
@@ -123,7 +123,7 @@ public class SQLSearcher implements DatabaseSearcher{
         return searchResult;
     }
 
-    public ArrayList<String[]> searchNodesSkippingExcluded(String parentUniqueID, String query) {
+    private ArrayList<String[]> searchNodesSkippingExcluded(String parentUniqueID, String query) {
         // If user marked that filter should omit nodes and/or node children from filter results
         ArrayList<String[]> searchResult = new ArrayList<>();
 
@@ -174,7 +174,7 @@ public class SQLSearcher implements DatabaseSearcher{
         return searchResult;
     }
 
-    public String[] findInNode(Cursor cursor, String query, String hasSubnodes, String isParent, String isSubnode) {
+    private String[] findInNode(Cursor cursor, String query, String hasSubnodes, String isParent, String isSubnode) {
         // Searches thought node's content
         // This string builder will hold oll text content of the node
         StringBuilder nodeContent = new StringBuilder();
@@ -361,7 +361,7 @@ public class SQLSearcher implements DatabaseSearcher{
         }
     }
 
-    public String hasSubnodes(String uniqueNodeID) {
+    private String hasSubnodes(String uniqueNodeID) {
         // Checks if node with provided unique_id has subnodes
         Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{uniqueNodeID},null,null,null);
 
@@ -374,7 +374,7 @@ public class SQLSearcher implements DatabaseSearcher{
         }
     }
 
-    public NodeList getNodeFromString(String nodeString, String type) {
+    private NodeList getNodeFromString(String nodeString, String type) {
         // SQL Database has a XML document inserted in to it
         // XML document is for node content formatting
         // So SQL document is just a XML document with extra steps
