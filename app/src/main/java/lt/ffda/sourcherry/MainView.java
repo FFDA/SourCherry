@@ -65,6 +65,8 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -769,6 +771,17 @@ public class MainView extends AppCompatActivity {
         this.currentNode = nodeArray;
         this.resetMenuToCurrentNode();
         this.loadNodeContent();
+    }
+
+    public void fileFolderLinkFilepath(String filename) {
+        Snackbar.make(findViewById(R.id.main_view_fragment), filename, Snackbar.LENGTH_LONG)
+        .setAction(R.string.snackbar_dismiss_action, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        })
+        .show();
     }
 
     public void openCloseBookmarks(View view) {

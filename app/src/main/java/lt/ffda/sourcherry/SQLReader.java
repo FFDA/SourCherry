@@ -49,8 +49,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 
-import com.google.android.material.snackbar.Snackbar;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -756,14 +754,7 @@ public class SQLReader implements DatabaseReader {
             @Override
             public void onClick(@NonNull View widget) {
                 // Decoding of Base64 is done here
-                Snackbar.make(((MainView) SQLReader.this.context).findViewById(R.id.content_fragment_linearlayout), new String(Base64.decode(base64Filename, Base64.DEFAULT)), Snackbar.LENGTH_LONG)
-                        .setAction(R.string.snackbar_dismiss_action, new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-
-                            }
-                        })
-                        .show();
+                ((MainView) SQLReader.this.context).fileFolderLinkFilepath(new String(Base64.decode(base64Filename, Base64.DEFAULT)));
             }
 
             @Override
