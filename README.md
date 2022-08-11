@@ -20,6 +20,7 @@ Right now anyone can download this repository and build the apk file using Andro
 * There is a possibility that not all text will be displayed.
 * Some text most definitely will be missing some formatting and it will look differently compared to how it looks in CherryTree.
 * Latex boxes will not be displayed (anyone affected by it please create an issue with suggestions. Right now the best I can think of is display a placeholder marking that there should be a latex box and/or display the latex text that is used to compile a formula image in CherryTree)
+* In some instances not all images will be displayed from SQL databases (if an image is too big to fit in SQL cursor)
 
 ## Password protected databases
 
