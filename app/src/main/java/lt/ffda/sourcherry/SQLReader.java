@@ -404,7 +404,7 @@ public class SQLReader implements DatabaseReader {
                                 this.handler.post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        Toast.makeText(SQLReader.this.context, "Failed to load image. Image was too large.", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(SQLReader.this.context, R.string.toast_error_failed_to_load_image_large, Toast.LENGTH_SHORT).show();
                                     }
                                 });
                             }
