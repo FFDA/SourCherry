@@ -388,7 +388,7 @@ public class XMLReader implements DatabaseReader{
                                 totalCharOffset += anchorImageSpan.length() - 1;
                             } else {
                                 // Images
-                                SpannableStringBuilder imageSpan = makeImageSpan(currentNode);
+                                SpannableStringBuilder imageSpan = makeImageSpan(currentNode, uniqueID, String.valueOf(charOffset));
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                                 totalCharOffset += imageSpan.length() - 1;
                             }
@@ -618,7 +618,7 @@ public class XMLReader implements DatabaseReader{
         return formattedCodeNode;
     }
 
-    public SpannableStringBuilder makeImageSpan(Node node) {
+    public SpannableStringBuilder makeImageSpan(Node node, String nodeUniqueID, String imageOffset) {
         // Returns SpannableStringBuilder that has spans with images in them
         // Images are decoded from Base64 string embedded in the tag
 
@@ -652,7 +652,8 @@ public class XMLReader implements DatabaseReader{
                 public void onClick(@NonNull View widget) {
                     // Starting activity to view enlarged  zoomable image
                     Intent displayImage = new Intent(context, ImageViewActivity.class);
-                    displayImage.putExtra("imageByteArray", decodedString);
+                    displayImage.putExtra("imageNodeUniqueID", nodeUniqueID);
+                    displayImage.putExtra("imageOffset", imageOffset);
                     context.startActivity(displayImage);
                 }
             };
@@ -838,6 +839,28 @@ public class XMLReader implements DatabaseReader{
             }
         }
 
+        return null;
+    }
+
+    @Override
+    public byte[] getImageByteArray(String nodeUniqueID, String offset) {
+        // Returns image byte array to be displayed in ImageViewActivity because some of the images are too big to pass in a bundle
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
+                NodeList encodedpngNodeList = ((Element) node).getElementsByTagName("encoded_png"); // Gets all nodes with tag <encoded_png> (images and files)
+                for (int x = 0; x < encodedpngNodeList.getLength(); x++) {
+                    Node currentNode = encodedpngNodeList.item(x);
+                    if (currentNode.getAttributes().getNamedItem("filename") == null) { // Checks if node has the attribute "filename". If it does - it's a file
+                        if (currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(offset)) { // If offset matches the one provided
+                            return Base64.decode(currentNode.getTextContent(), Base64.DEFAULT);
+                        }
+                    }
+                }
+            }
+        }
         return null;
     }
 

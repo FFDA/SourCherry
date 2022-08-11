@@ -106,6 +106,9 @@ public interface DatabaseReader {
     byte[] getFileByteArray(String nodeUniqueID, String filename, String time);
     // Returns byte array (stream) to be written to file or opened
 
+    byte[] getImageByteArray(String uniqueID, String offset);
+    // Returns image byte array to be displayed in ImageViewActivity because some of the images are too big to pass in a bundle
+
     String getValidColorCode(String originalColorCode);
     // Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
     // some colors can look like this #ffffffff0000 while other like this #ffff00 in the same file

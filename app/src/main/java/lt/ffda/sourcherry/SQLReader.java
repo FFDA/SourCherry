@@ -392,7 +392,7 @@ public class SQLReader implements DatabaseReader {
                                     }
                                     else {
                                         // Any other line should be an image
-                                        SpannableStringBuilder imageSpan = makeImageSpan(imageCursor.getBlob(1)); // Blob is the image in byte[] form
+                                        SpannableStringBuilder imageSpan = makeImageSpan(imageCursor.getBlob(1), uniqueID, String.valueOf(charOffset)); // Blob is the image in byte[] form
                                         imageCursor.close();
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                                         totalCharOffset += imageSpan.length() - 1;
@@ -404,6 +404,7 @@ public class SQLReader implements DatabaseReader {
                                 this.handler.post(new Runnable() {
                                     @Override
                                     public void run() {
+                                        imageCursor.close();
                                         Toast.makeText(SQLReader.this.context, R.string.toast_error_failed_to_load_image_large, Toast.LENGTH_SHORT).show();
                                     }
                                 });
@@ -654,7 +655,7 @@ public class SQLReader implements DatabaseReader {
         return formattedCodeNode;
     }
 
-    public SpannableStringBuilder makeImageSpan(byte[] imageBlob) {
+    public SpannableStringBuilder makeImageSpan(byte[] imageBlob, String nodeUniqueID, String imageOffset) {
         // Returns SpannableStringBuilder that has spans with images in them
         // Images are decoded from byte array that was passed to the function
 
@@ -686,7 +687,8 @@ public class SQLReader implements DatabaseReader {
                 public void onClick(@NonNull View widget) {
                     // Starting activity to view enlarged  zoomable image
                     Intent displayImage = new Intent(context, ImageViewActivity.class);
-                    displayImage.putExtra("imageByteArray", imageBlob);
+                    displayImage.putExtra("imageNodeUniqueID", nodeUniqueID);
+                    displayImage.putExtra("imageOffset", imageOffset);
                     context.startActivity(displayImage);
                 }
             };
@@ -823,6 +825,18 @@ public class SQLReader implements DatabaseReader {
         // Returns byte array (stream) to be written to file or opened
 
         Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=?", new String[]{uniqueID, filename, time}, null, null, null);
+        try {
+            // Try needed to close the cursor. Otherwise ofter return statement it won't be closed;
+            cursor.move(1);
+            return cursor.getBlob(0);
+        } finally {
+            cursor.close();
+        }
+    }
+    @Override
+    public byte[] getImageByteArray(String nodeUniqueID, String offset) {
+        // Returns image byte array to be displayed in ImageViewActivity because some of the images are too big to pass in a bundle
+        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, offset}, null, null, null);
         try {
             // Try needed to close the cursor. Otherwise ofter return statement it won't be closed;
             cursor.move(1);
