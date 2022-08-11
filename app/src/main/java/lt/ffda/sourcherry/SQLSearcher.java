@@ -200,11 +200,9 @@ public class SQLSearcher implements DatabaseSearcher{
             // If it is marked that node has codebox, table or image
             if (hasCodebox == 1 || hasTable == 1 || hasImage == 1) {
                 //// Building string for SQLQuery
-                // Because every element is in it own table
+                // Because every type of element (image, table, codeboxes) are in it's own table
                 // Only the ones that actually are in the node will be searched
-                // hopefully
-                // During the selection eleventh (index: 10) column will be added.
-                // That will have 7 (codebox), 8 (table) or 9 (image) written to it. It should make separating which line comes from this table easier
+                // For search only text is needed so only offset, and text (filenames too) will be selected
                 StringBuilder codeboxTableImageQueryString = new StringBuilder();
 
                 // Depending on how many tables will be searched
@@ -212,7 +210,7 @@ public class SQLSearcher implements DatabaseSearcher{
                 int queryCounter = 0; // This is the counter for that
                 if (hasCodebox == 1) {
                     // Means that node has has codeboxes in it
-                    codeboxTableImageQueryString.append("SELECT offset, txt, 1 FROM codebox WHERE node_id=? ");
+                    codeboxTableImageQueryString.append("SELECT offset, txt, 7 FROM codebox WHERE node_id=? ");
                     queryCounter++;
                 }
                 if (hasTable == 1) {
@@ -220,7 +218,7 @@ public class SQLSearcher implements DatabaseSearcher{
                     if (hasCodebox == 1) {
                         codeboxTableImageQueryString.append("UNION ");
                     }
-                    codeboxTableImageQueryString.append("SELECT offset, txt, 2 FROM grid WHERE node_id=? ");
+                    codeboxTableImageQueryString.append("SELECT offset, txt, 8 FROM grid WHERE node_id=? ");
                     queryCounter++;
                 }
                 if (hasImage == 1) {
@@ -228,7 +226,7 @@ public class SQLSearcher implements DatabaseSearcher{
                     if (hasCodebox == 1 || hasTable == 1) {
                         codeboxTableImageQueryString.append("UNION ");
                     }
-                    codeboxTableImageQueryString.append("SELECT offset, filename, 3 FROM image WHERE node_id=? ");
+                    codeboxTableImageQueryString.append("SELECT offset, filename, 9 FROM image WHERE node_id=? ");
                     queryCounter++;
                 }
                 codeboxTableImageQueryString.append("ORDER BY offset ASC");
@@ -269,7 +267,7 @@ public class SQLSearcher implements DatabaseSearcher{
                         for (int row = 0; row < tableRows.getLength(); row++) {
                             if (tableRows.item(row).getNodeName().equals("row")) {
                                 // For table content from SQL database spaces around each cell needs to be added
-                                // because there are any
+                                // because there aren't any
                                 // All cells from one row has to be connected to one string that represents a row
                                 // Otherwise it might be not possible to put table header to the top of the table
                                 StringBuilder rowStringBuilder = new StringBuilder();

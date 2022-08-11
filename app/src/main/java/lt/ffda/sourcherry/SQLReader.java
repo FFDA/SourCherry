@@ -325,10 +325,9 @@ public class SQLReader implements DatabaseReader {
                 if (hasCodebox == 1 || hasTable == 1 || hasImage == 1) {
                     //// Building string for SQLQuery
                     // Because every element is in it own table
-                    // Only the ones that actually are in the table will be searched
-                    // hopefully
-                    // During the selection eleventh (index: 10) column will be added.
-                    // That will have 7 (codebox), 8 (table) or 9 (image) written to it. It should make separating which line come from this table easier
+                    // Only the tables that are marked that node have assets will be search
+                    // Only offsets will be selected and second column will be created
+                    // That will have 7 (codebox), 8 (table) or 9 (image) written in it
                     StringBuilder codeboxTableImageQueryString = new StringBuilder();
 
                     // Depending on how many tables will be searched
@@ -336,7 +335,7 @@ public class SQLReader implements DatabaseReader {
                     int queryCounter = 0; // This is the counter for that
                     if (hasCodebox == 1) {
                         // Means that node has has codeboxes in it
-                        codeboxTableImageQueryString.append("SELECT *, 7 FROM codebox WHERE node_id=? ");
+                        codeboxTableImageQueryString.append("SELECT offset, 7 FROM codebox WHERE node_id=? ");
                         queryCounter++;
                     }
                     if (hasTable == 1) {
@@ -344,7 +343,7 @@ public class SQLReader implements DatabaseReader {
                         if (hasCodebox == 1) {
                             codeboxTableImageQueryString.append("UNION ");
                         }
-                        codeboxTableImageQueryString.append("SELECT *, null, null, null, null, 8 FROM grid WHERE node_id=? ");
+                        codeboxTableImageQueryString.append("SELECT offset, 8 FROM grid WHERE node_id=? ");
                         queryCounter++;
                     }
                     if (hasImage == 1) {
@@ -352,7 +351,7 @@ public class SQLReader implements DatabaseReader {
                         if (hasCodebox == 1 || hasTable == 1) {
                             codeboxTableImageQueryString.append("UNION ");
                         }
-                        codeboxTableImageQueryString.append("SELECT *, null, null, 9 FROM image WHERE node_id=? ");
+                        codeboxTableImageQueryString.append("SELECT offset, 9 FROM image WHERE node_id=? ");
                         queryCounter++;
                     }
                     codeboxTableImageQueryString.append("ORDER BY offset ASC");
@@ -362,54 +361,81 @@ public class SQLReader implements DatabaseReader {
                     Arrays.fill(queryArguments, uniqueID);
                     ///
                     ////
-                    
+
                     Cursor codeboxTableImageCursor = this.sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
-                    
+
                     while (codeboxTableImageCursor.moveToNext()) {
-                        int charOffset = codeboxTableImageCursor.getInt(1);
-                        if (codeboxTableImageCursor.getInt(10) == 9) {
-                            // If 8th or 9th columns are null then this row is from image table;
-                            if (!codeboxTableImageCursor.getString(3).isEmpty()) {
-                                // Text in column 3 means that this line is for anchor
-                                SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan();
-                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
-                                totalCharOffset += anchorImageSpan.length() - 1;
-                                continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
-                            }
-                            if (!codeboxTableImageCursor.getString(5).isEmpty()) {
-                                // Text in column 5 means that this line is for file OR LaTeX formula box
-                                if (!codeboxTableImageCursor.getString(5).equals("__ct_special.tex")) {
-                                    // If it is not LaTex file
-                                    SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(codeboxTableImageCursor.getString(5), String.valueOf(codeboxTableImageCursor.getDouble(7)));
-                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
-                                    totalCharOffset += attachedFileSpan.length() - 1;
-                                    continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                        int charOffset = codeboxTableImageCursor.getInt(0);
+                        if (codeboxTableImageCursor.getInt(1) == 9) {
+                            // Get image entry for current node_id and charOffset
+                            Cursor imageCursor = this.sqlite.query("image", new String[]{"anchor", "png", "filename", "time"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                            try {
+                                if (imageCursor.moveToFirst()) {
+                                    if (!imageCursor.getString(0).isEmpty()) {
+                                        // Text in column "anchor" (0) means that this line is for anchor
+                                        imageCursor.close();
+                                        SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan();
+                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
+                                        totalCharOffset += anchorImageSpan.length() - 1;
+                                        continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                    }
+                                    if (!imageCursor.getString(2).isEmpty()) {
+                                        // Text in column "filename" (2) means that this line is for file OR LaTeX formula box
+                                        if (!imageCursor.getString(2).equals("__ct_special.tex")) {
+                                            // If it is not LaTex file
+                                            SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(imageCursor.getString(2), String.valueOf(imageCursor.getDouble(3)));
+                                            imageCursor.close();
+                                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                            totalCharOffset += attachedFileSpan.length() - 1;
+                                            continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                        }
+                                    }
+                                    else {
+                                        // Any other line should be an image
+                                        SpannableStringBuilder imageSpan = makeImageSpan(imageCursor.getBlob(1)); // Blob is the image in byte[] form
+                                        imageCursor.close();
+                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
+                                        totalCharOffset += imageSpan.length() - 1;
+                                        continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                    }
                                 }
-                            } else {
-                                // Any other line should be an image
-                                SpannableStringBuilder imageSpan = makeImageSpan(codeboxTableImageCursor.getBlob(4)); // Blob is the image in byte[] form
-                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
-                                totalCharOffset += imageSpan.length() - 1;
-                                continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                            } catch (Exception SQLiteBlobTooBigException) {
+                                // If image blob was to big for SQL Toast error message will be displayed
+                                this.handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Toast.makeText(SQLReader.this.context, "Failed to load image. Image was too large.", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
                             }
-                        } else if (codeboxTableImageCursor.getInt(10) == 7) {
+                        } else if (codeboxTableImageCursor.getInt(1) == 7) {
                             // codebox row
-                            SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxTableImageCursor.getString(3), codeboxTableImageCursor.getInt(5), codeboxTableImageCursor.getInt(6));
-                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
-                            totalCharOffset += codeboxText.length() - 1;
-                        } else if (codeboxTableImageCursor.getInt(10) == 8) {
-                            // table row
-                            int tableCharOffset = charOffset + totalCharOffset; // Place where SpannableStringBuilder will be split
-                            String cellMax = codeboxTableImageCursor.getString(5);
-                            String cellMin = codeboxTableImageCursor.getString(4);
-                            nodeContentStringBuilder.insert(tableCharOffset, " "); // Adding space for formatting reason
-                            ArrayList<CharSequence[]> currentTable = new ArrayList<>(); // ArrayList with all the data from the table that will added to nodeTables
-                            currentTable.add(new CharSequence[]{"table", String.valueOf(tableCharOffset), cellMax, cellMin}); // Values of the table. There aren't any table data in this line
-                            NodeList tableRowsNodes = getNodeFromString(codeboxTableImageCursor.getString(3), "table"); // All the rows of the table. Not like in XML database, there are not any empty text nodes to be filtered out
-                            for (int row = 0; row < tableRowsNodes.getLength(); row++) {
-                                currentTable.add(getTableRow(tableRowsNodes.item(row)));
+                            // Get codebox entry for current node_id and charOffset
+                            Cursor codeboxCursor = this.sqlite.query("codebox", new String[]{"txt", "width", "height"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                            if (codeboxCursor.moveToFirst()) {
+                                SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxCursor.getString(0), codeboxCursor.getInt(1), codeboxCursor.getInt(2));
+                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
+                                codeboxCursor.close();
+                                totalCharOffset += codeboxText.length() - 1;
                             }
-                            nodeTables.add(currentTable);
+                        } else if (codeboxTableImageCursor.getInt(1) == 8) {
+                            // table row
+                            // Get table row entry for current node_id and charOffset
+                            Cursor tableCursor = this.sqlite.query("grid", new String[]{"txt", "col_min", "col_max"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                            if (tableCursor.moveToFirst()) {
+                                int tableCharOffset = charOffset + totalCharOffset; // Place where SpannableStringBuilder will be split
+                                String cellMax = tableCursor.getString(2);
+                                String cellMin = tableCursor.getString(1);
+                                nodeContentStringBuilder.insert(tableCharOffset, " "); // Adding space for formatting reason
+                                ArrayList<CharSequence[]> currentTable = new ArrayList<>(); // ArrayList with all the data from the table that will added to nodeTables
+                                currentTable.add(new CharSequence[]{"table", String.valueOf(tableCharOffset), cellMax, cellMin}); // Values of the table. There aren't any table data in this line
+                                NodeList tableRowsNodes = getNodeFromString(tableCursor.getString(0), "table"); // All the rows of the table. Not like in XML database, there are not any empty text nodes to be filtered out
+                                tableCursor.close();
+                                for (int row = 0; row < tableRowsNodes.getLength(); row++) {
+                                    currentTable.add(getTableRow(tableRowsNodes.item(row)));
+                                }
+                                nodeTables.add(currentTable);
+                            }
                         }
                     }
                     codeboxTableImageCursor.close();
