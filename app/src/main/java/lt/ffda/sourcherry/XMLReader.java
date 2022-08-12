@@ -19,7 +19,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.Bundle;
 import android.os.Handler;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
@@ -46,7 +45,6 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.fragment.app.FragmentManager;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -66,13 +64,11 @@ import javax.xml.parsers.DocumentBuilderFactory;
 public class XMLReader implements DatabaseReader{
     private Document doc;
     private Context context;
-    private FragmentManager fragmentManager;
     private Handler handler;
 
-    public XMLReader(InputStream is, Context context, FragmentManager fragmentManager, Handler handler) {
+    public XMLReader(InputStream is, Context context, Handler handler) {
         // Creates a document that can be used to read tags with provided InputStream
         this.context = context;
-        this.fragmentManager = fragmentManager;
         this.handler = handler;
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -376,7 +372,7 @@ public class XMLReader implements DatabaseReader{
                                     continue;
                                 } else {
                                     // For actual attached files
-                                    SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode);
+                                    SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode, uniqueID);
                                     nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                     totalCharOffset += attachedFileSpan.length() - 1;
                                 }
@@ -672,7 +668,7 @@ public class XMLReader implements DatabaseReader{
         return formattedImage;
     }
 
-    public SpannableStringBuilder makeAttachedFileSpan(Node node) {
+    public SpannableStringBuilder makeAttachedFileSpan(Node node, String uniqueID) {
         // Returns SpannableStringBuilder that has spans with images and filename
         // Files are decoded from Base64 string embedded in the tag
 
@@ -697,15 +693,8 @@ public class XMLReader implements DatabaseReader{
 
             @Override
             public void onClick(@NonNull View widget) {
-
-                // Setting up to send arguments to Dialog Fragment
-                Bundle bundle = new Bundle();
-                bundle.putString("filename", attachedFileFilename);
-                bundle.putString("time", time);
-
-                SaveOpenDialogFragment saveOpenDialogFragment = new SaveOpenDialogFragment();
-                saveOpenDialogFragment.setArguments(bundle);
-                saveOpenDialogFragment.show(XMLReader.this.fragmentManager, "saveOpenDialog");
+            // Launches function in MainView that checks if there is a default action in for attached files
+            ((MainView) XMLReader.this.context).saveOpenFile(uniqueID, attachedFileFilename, time);
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image

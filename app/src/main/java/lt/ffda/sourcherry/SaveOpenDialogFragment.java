@@ -15,12 +15,13 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
-import android.widget.LinearLayout;
+import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,12 +30,11 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.DialogFragment;
+import androidx.preference.PreferenceManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.net.FileNameMap;
-import java.net.URLConnection;
 
 public class SaveOpenDialogFragment extends DialogFragment {
     private DatabaseReader reader;
@@ -42,6 +42,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
     private String filename;
     private String time;
     private String fileMimeType;
+    private CheckBox rememberChoice;
 
     @NonNull
     @Override
@@ -53,13 +54,10 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
         this.reader = ((MainView) getActivity()).reader(); // reader from main MainView
 
+        this.nodeUniqueID = getArguments().getString("nodeUniqueID", null);
         this.filename = getArguments().getString("filename", null); // Filename passed to fragment
         this.time = getArguments().getString("time");
-        this.nodeUniqueID = ((MainView) getActivity()).getCurrentNodeUniqueID(); // Current node's unique_id retrieved from MainView
-
-        // Getting mime type of the file
-        FileNameMap fileNameMap  = URLConnection.getFileNameMap();
-        this.fileMimeType = fileNameMap.getContentTypeFor(filename);
+        this.fileMimeType = getArguments().getString("fileMimeType");
 
         //// Dialog fragment layout
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
@@ -71,6 +69,12 @@ public class SaveOpenDialogFragment extends DialogFragment {
             .setPositiveButton(R.string.button_open, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int id) {
+                    if (SaveOpenDialogFragment.this.rememberChoice.isChecked()) {
+                        // Saving preference if checkbox is checked
+                        SharedPreferences.Editor sharedPreferencesEditor = PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
+                        sharedPreferencesEditor.putString("preferences_save_open_file", "Open");
+                        sharedPreferencesEditor.commit();
+                    }
                     openFile();
                 }
             })
@@ -88,10 +92,9 @@ public class SaveOpenDialogFragment extends DialogFragment {
             });
 
         /// Part of layout that changes depending on how many files with same filename there are in node
-        LinearLayout dialogLayout = view.findViewById(R.id.dialog_save_open_fragment_layout);
-        TextView textViewFilename = new TextView(getContext());
+        this.rememberChoice = view.findViewById(R.id.dialog_save_open_fragment_remember_choice_checkBox);
+        TextView textViewFilename = view.findViewById(R.id.dialog_save_open_fragment_filename_textview);
         textViewFilename.setText(filename);
-        dialogLayout.addView(textViewFilename);
 
         // Create the AlertDialog object and return it
         return builder.create();
@@ -113,6 +116,12 @@ public class SaveOpenDialogFragment extends DialogFragment {
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (SaveOpenDialogFragment.this.rememberChoice.isChecked()) {
+                    // Saving preference if checkbox is checked
+                    SharedPreferences.Editor sharedPreferencesEditor = PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
+                    sharedPreferencesEditor.putString("preferences_save_open_file", "Save");
+                    sharedPreferencesEditor.commit();
+                }
                 Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.setType(SaveOpenDialogFragment.this.fileMimeType);
                 intent.putExtra(Intent.EXTRA_TITLE, SaveOpenDialogFragment.this.filename);

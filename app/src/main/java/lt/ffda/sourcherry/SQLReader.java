@@ -21,7 +21,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.Bundle;
 import android.os.Handler;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
@@ -48,7 +47,6 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.fragment.app.FragmentManager;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -65,12 +63,10 @@ import javax.xml.parsers.DocumentBuilderFactory;
 public class SQLReader implements DatabaseReader {
     private SQLiteDatabase sqlite;
     private Context context;
-    private FragmentManager fragmentManager;
     private Handler handler;
 
-    public SQLReader(SQLiteDatabase sqlite, Context context, FragmentManager fragmentManager, Handler handler) {
+    public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler) {
         this.context = context;
-        this.fragmentManager = fragmentManager;
         this.sqlite = sqlite;
         this.handler = handler;
     }
@@ -383,7 +379,7 @@ public class SQLReader implements DatabaseReader {
                                         // Text in column "filename" (2) means that this line is for file OR LaTeX formula box
                                         if (!imageCursor.getString(2).equals("__ct_special.tex")) {
                                             // If it is not LaTex file
-                                            SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(imageCursor.getString(2), String.valueOf(imageCursor.getDouble(3)));
+                                            SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(uniqueID, imageCursor.getString(2), String.valueOf(imageCursor.getDouble(3)));
                                             imageCursor.close();
                                             nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                             totalCharOffset += attachedFileSpan.length() - 1;
@@ -708,7 +704,7 @@ public class SQLReader implements DatabaseReader {
         return formattedImage;
     }
 
-    public SpannableStringBuilder makeAttachedFileSpan(String attachedFileFilename, String time) {
+    public SpannableStringBuilder makeAttachedFileSpan(String uniqueID, String attachedFileFilename, String time) {
         // Returns SpannableStringBuilder that has spans with images and filename
         // Files are decoded from Base64 string embedded in the tag
 
@@ -730,15 +726,8 @@ public class SQLReader implements DatabaseReader {
 
             @Override
             public void onClick(@NonNull View widget) {
-
-                // Setting up to send arguments to Dialog Fragment
-                Bundle bundle = new Bundle();
-                bundle.putString("filename", attachedFileFilename);
-                bundle.putString("time", time);
-
-                SaveOpenDialogFragment saveOpenDialogFragment = new SaveOpenDialogFragment();
-                saveOpenDialogFragment.setArguments(bundle);
-                saveOpenDialogFragment.show(SQLReader.this.fragmentManager, "saveOpenDialog");
+            // Launches function in MainView that checks if there is a default action in for attached files
+            ((MainView) SQLReader.this.context).saveOpenFile(uniqueID, attachedFileFilename, time);
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image

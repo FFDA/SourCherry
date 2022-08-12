@@ -20,6 +20,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -67,8 +68,13 @@ import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.FileNameMap;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -119,7 +125,7 @@ public class MainView extends AppCompatActivity {
                 if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
-                    this.reader = new XMLReader(is, this, getSupportFragmentManager(), this.handler);
+                    this.reader = new XMLReader(is, this, this.handler);
                     is.close();
                 }
             } else {
@@ -127,12 +133,12 @@ public class MainView extends AppCompatActivity {
                 if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
-                    this.reader = new XMLReader(is, this, getSupportFragmentManager(), this.handler);
+                    this.reader = new XMLReader(is, this, this.handler);
                     is.close();
                 } else {
                     // If file is sql (password protected or not)
                     SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
-                    this.reader = new SQLReader(sqlite, this, getSupportFragmentManager(), this.handler);
+                    this.reader = new SQLReader(sqlite, this, this.handler);
                 }
             }
         } catch (Exception e) {
@@ -1267,4 +1273,70 @@ public class MainView extends AppCompatActivity {
             this.findInNodePrevious();
         }
     }
+
+    public void saveOpenFile(String nodeUniqueID, String attachedFileFilename, String time) {
+        // Checks preferences if user choice default action for embedded files
+        FileNameMap fileNameMap  = URLConnection.getFileNameMap();
+        String fileMimeType = fileNameMap.getContentTypeFor(attachedFileFilename);
+
+        String saveOpenFilePreference = this.sharedPreferences.getString("preferences_save_open_file", "Ask");
+        if (saveOpenFilePreference.equals("Ask")) {
+            // Setting up to send arguments to Dialog Fragment
+            Bundle bundle = new Bundle();
+            bundle.putString("nodeUniqueID", nodeUniqueID);
+            bundle.putString("filename", attachedFileFilename);
+            bundle.putString("time", time);
+            bundle.putString("fileMimeType", fileMimeType);
+
+            // Opening dialog fragment to ask user for a choice
+            SaveOpenDialogFragment saveOpenDialogFragment = new SaveOpenDialogFragment();
+            saveOpenDialogFragment.setArguments(bundle);
+            saveOpenDialogFragment.show(getSupportFragmentManager(), "saveOpenDialog");
+        } else if (saveOpenFilePreference.equals("Save")) {
+            // Saving file
+            saveFile.launch(new String[]{fileMimeType, nodeUniqueID, attachedFileFilename, time});
+        } else {
+            // Opens file with intent for other apps
+            this.openFile(fileMimeType, nodeUniqueID, attachedFileFilename, time);
+        }
+    }
+
+    private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time) {
+        try {
+            String[] splitFilename = filename.split("\\.");
+            // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
+            // most important that it will have correct extension
+            File tmpAttachedFile = File.createTempFile(splitFilename[0], "." + splitFilename[splitFilename.length - 1]); // Temporary file that will shared
+
+            // Writes Base64 encoded string to the temporary file
+            FileOutputStream out = new FileOutputStream(tmpAttachedFile);
+            out.write(reader.getFileByteArray(nodeUniqueID, filename, time));
+            out.close();
+
+            // Getting Uri to share
+            Uri tmpFileUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", tmpAttachedFile);
+
+            // Intent to open file
+            Intent intent = new Intent();
+            intent.setAction(Intent.ACTION_VIEW);
+            intent.setDataAndType(tmpFileUri, fileMimeType);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intent);
+
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.toast_error_failed_to_open_file, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    ActivityResultLauncher<String[]> saveFile = registerForActivityResult(new ReturnSelectedFileUriForSaving(), result -> {
+        if (result != null) {
+            try {
+                OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w"); // Output file
+                outputStream.write(reader.getFileByteArray(result.getExtras().getString("uniqueNodeID"), result.getExtras().getString("filename"), result.getExtras().getString("time")));
+                outputStream.close();
+            } catch (Exception e) {
+                Toast.makeText(this, R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
+            }
+        }
+    });
 }

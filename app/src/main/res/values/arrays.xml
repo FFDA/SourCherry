@@ -15,4 +15,10 @@
         <item>Dark</item>
         <item>System</item>
     </string-array>
+
+    <string-array name="save_open_file_entries">
+        <item>Ask</item>
+        <item>Save</item>
+        <item>Open</item>
+    </string-array>
 </resources>

@@ -31,6 +31,14 @@
         android:entries="@array/dark_mode_entries"
         android:entryValues="@array/dark_mode_entries"/>
 
+    <ListPreference
+        android:key="preferences_save_open_file"
+        android:title="Default file action"
+        app:useSimpleSummaryProvider="true"
+        android:defaultValue="Ask"
+        android:entries="@array/save_open_file_entries"
+        android:entryValues="@array/save_open_file_entries"/>
+
     <PreferenceCategory
         android:key="preferences_category_padding"
         android:title="@string/preferences_category_padding_title"

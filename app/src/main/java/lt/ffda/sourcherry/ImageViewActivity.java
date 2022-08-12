@@ -60,7 +60,7 @@ public class ImageViewActivity extends AppCompatActivity {
                 if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
-                    this.reader = new XMLReader(is, this, getSupportFragmentManager(), this.handler);
+                    this.reader = new XMLReader(is, this, this.handler);
                     is.close();
                 }
             } else {
@@ -68,12 +68,12 @@ public class ImageViewActivity extends AppCompatActivity {
                 if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
-                    this.reader = new XMLReader(is, this, getSupportFragmentManager(), this.handler);
+                    this.reader = new XMLReader(is, this, this.handler);
                     is.close();
                 } else {
                     // If file is sql (password protected or not)
                     SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
-                    this.reader = new SQLReader(sqlite, this, getSupportFragmentManager(), this.handler);
+                    this.reader = new SQLReader(sqlite, this, this.handler);
                 }
             }
         } catch (Exception e) {
