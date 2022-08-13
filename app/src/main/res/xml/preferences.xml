@@ -42,9 +42,9 @@
     <SeekBarPreference
         android:key="preferences_text_size"
         android:title="@string/preferences_file_size_title"
-        app:min="12"
+        app:min="10"
         android:max="25"
-        android:defaultValue="16"
+        android:defaultValue="15"
         app:showSeekBarValue="true"/>
 
     <PreferenceCategory

@@ -85,7 +85,7 @@ public class NodeContentFragment extends Fragment {
                 tv.setTextIsSelectable(true);
                 tv.setMovementMethod(CustomMovementMethod.getInstance()); // Needed to detect click/open links
                 tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
-                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 16));
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -119,7 +119,7 @@ public class NodeContentFragment extends Fragment {
                     headerTextView.setPadding(10,10,10,10);
                     headerTextView.setLayoutParams(params);
                     headerTextView.setText(cell);
-                    headerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 16));
+                    headerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
                     tableHeaderRow.addView(headerTextView);
                 }
                 table.addView(tableHeaderRow);
@@ -137,7 +137,7 @@ public class NodeContentFragment extends Fragment {
                         cellTextView.setPadding(10,10,10,10);
                         cellTextView.setLayoutParams(params);
                         cellTextView.setText(cell);
-                        cellTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 16));
+                        cellTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
                         tableRow.addView(cellTextView);
                     }
                     table.addView(tableRow);
