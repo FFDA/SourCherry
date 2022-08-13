@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.BackgroundColorSpan;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +40,7 @@ public class NodeContentFragment extends Fragment {
     private LinearLayout contentFragmentLinearLayout;
     private MainViewModel mainViewModel;
     private Handler handler;
+    private SharedPreferences sharedPreferences;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -48,6 +50,7 @@ public class NodeContentFragment extends Fragment {
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
         this.handler = ((MainView) getActivity()).getHandler();
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         return rootView;
     }
@@ -55,9 +58,9 @@ public class NodeContentFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+
         // Top and bottom paddings are always the same: 14px (5dp)
-        this.contentFragmentLinearLayout.setPadding(sharedPreferences.getInt("paddingStart", 14), 14, sharedPreferences.getInt("paddingEnd", 14), 14);
+        this.contentFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
     }
 
     public void loadContent() {
@@ -82,6 +85,7 @@ public class NodeContentFragment extends Fragment {
                 tv.setTextIsSelectable(true);
                 tv.setMovementMethod(CustomMovementMethod.getInstance()); // Needed to detect click/open links
                 tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 16));
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -115,6 +119,7 @@ public class NodeContentFragment extends Fragment {
                     headerTextView.setPadding(10,10,10,10);
                     headerTextView.setLayoutParams(params);
                     headerTextView.setText(cell);
+                    headerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 16));
                     tableHeaderRow.addView(headerTextView);
                 }
                 table.addView(tableHeaderRow);
@@ -132,6 +137,7 @@ public class NodeContentFragment extends Fragment {
                         cellTextView.setPadding(10,10,10,10);
                         cellTextView.setLayoutParams(params);
                         cellTextView.setText(cell);
+                        cellTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 16));
                         tableRow.addView(cellTextView);
                     }
                     table.addView(tableRow);

@@ -33,11 +33,19 @@
 
     <ListPreference
         android:key="preferences_save_open_file"
-        android:title="Default file action"
+        android:title="@string/preferences_default_file_action_title"
         app:useSimpleSummaryProvider="true"
         android:defaultValue="Ask"
         android:entries="@array/save_open_file_entries"
         android:entryValues="@array/save_open_file_entries"/>
+
+    <SeekBarPreference
+        android:key="preferences_text_size"
+        android:title="@string/preferences_file_size_title"
+        app:min="12"
+        android:max="25"
+        android:defaultValue="16"
+        app:showSeekBarValue="true"/>
 
     <PreferenceCategory
         android:key="preferences_category_padding"
