@@ -178,7 +178,6 @@ public class MainView extends AppCompatActivity {
             this.bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
             this.filterNodeToggle = savedInstanceState.getBoolean("filterNodeToggle");
             this.findInNodeToggle = savedInstanceState.getBoolean("findInNodeToggle");
-            this.currentFindInNodeMarked = savedInstanceState.getInt("currentFindInNodeMarked");
         }
 
         RecyclerView rvMenu = findViewById(R.id.recyclerView);
@@ -513,7 +512,6 @@ public class MainView extends AppCompatActivity {
         outState.putBoolean("bookmarksToggle", this.bookmarksToggle);
         outState.putBoolean("filterNodeToggle", this.filterNodeToggle);
         outState.putBoolean("findInNodeToggle", this.findInNodeToggle);
-        outState.putInt("currentFindInNodeMarked", this.currentFindInNodeMarked);
         super.onSaveInstanceState(outState);
     }
 
@@ -537,22 +535,9 @@ public class MainView extends AppCompatActivity {
             this.navigationNormalMode(false);
         }
 
-        // Restoring FindInNode view to previous state
+        // Restoring FindInNode variables to original state
         if (this.findInNodeToggle) {
-            LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
-            findInNodeLinearLayout.setVisibility(View.VISIBLE);
-            EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
-            if (findInNodeEditText.getText().length() > 0) {
-                MainView.this.updateCounter(MainView.this.mainViewModel.getFindInNodeResultCount());
-                int index = MainView.this.currentFindInNodeMarked;
-                // Without delaying findInNodeResult won't be marked, because nodeContent isn't loaded at the time
-                this.handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        MainView.this.highlightFindInNodeResult(index);
-                    }
-                }, 200);
-            }
+            this.closeFindInNode();
         }
     }
 
@@ -1174,10 +1159,10 @@ public class MainView extends AppCompatActivity {
         // Uses index of the TextView in currentFindInNodeMarked
         // At the end sets currentFindInNodeMarked to 0 (nothing marked)
         // Resets counters and search result storage too
-        if (this.currentFindInNodeMarked != -1) {
+        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
+        if (this.currentFindInNodeMarked != -1 && contentFragmentLinearLayout != null) {
             int viewIndex = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked)[0];
             int counter = 0;
-            LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
             for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
                 View view = contentFragmentLinearLayout.getChildAt(i);
                 if (view instanceof TextView) {
