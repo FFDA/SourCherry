@@ -495,7 +495,6 @@ public class MainView extends AppCompatActivity {
             public void onActivityResult(ActivityResult result) {
                 if (result.getResultCode() == Activity.RESULT_OK) {
                     Intent selectedNode = result.getData();
-//                    String[] selectedNode = intent.getStringArrayExtra("selectedNode");
                     MainView.this.currentNode = selectedNode.getStringArrayExtra("selectedNode");
                     MainView.this.resetMenuToCurrentNode();
                     MainView.this.loadNodeContent();
@@ -745,10 +744,6 @@ public class MainView extends AppCompatActivity {
 
     public DatabaseReader reader() {
         return this.reader;
-    }
-
-    public String getCurrentNodeUniqueID() {
-        return this.currentNode[1];
     }
 
     public void openAnchorLink(String[] nodeArray) {
