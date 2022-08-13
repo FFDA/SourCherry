@@ -186,7 +186,7 @@ public class MainView extends AppCompatActivity {
             @Override
             public void onItemClick(View itemView, int position) {
                 if (MainView.this.currentNode == null || !MainView.this.mainViewModel.getNodes().get(position)[1].equals(MainView.this.currentNode[1])) {
-                    //If current node is null (empty/nothing opened yet) or selected not uniqueID is not the same as selected one
+                    // If current node is null (empty/nothing opened yet) or selected uniqueID is not the same as selected one
                     MainView.this.currentNode = MainView.this.mainViewModel.getNodes().get(position);
                     MainView.this.loadNodeContent();
                     if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
@@ -631,7 +631,6 @@ public class MainView extends AppCompatActivity {
         if (nodes != null && nodes.size() != this.mainViewModel.getNodes().size()) {
             // If retrieved nodes are not null and array size do not match the one displayed
             // it is definitely not the same node so it can go up
-            this.currentNode = this.mainViewModel.getNodes().get(0);
             this.mainViewModel.setNodes(nodes);
             this.currentNodePosition = -1;
             this.adapter.markItemSelected(this.currentNodePosition);
@@ -642,7 +641,6 @@ public class MainView extends AppCompatActivity {
             if (nodes.get(0)[1].equals(this.mainViewModel.getNodes().get(0)[1]) && nodes.get(nodes.size() -1 )[1].equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 )[1])) {
                 Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
-                this.currentNode = nodes.get(0);
                 this.mainViewModel.setNodes(nodes);
                 this.currentNodePosition = -1;
                 this.adapter.markItemSelected(this.currentNodePosition);
