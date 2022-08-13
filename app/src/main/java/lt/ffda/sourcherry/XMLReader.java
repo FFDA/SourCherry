@@ -577,7 +577,7 @@ public class XMLReader implements DatabaseReader{
             formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else {
             // Adds vertical line in front the paragraph, to make it stand out as quote
-            QuoteSpan qs = null;
+            QuoteSpan qs;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                 qs = new QuoteSpan(Color.parseColor("#AC1111"), 5, 30);
             } else {
@@ -853,6 +853,7 @@ public class XMLReader implements DatabaseReader{
         return null;
     }
 
+    @Override
     public String getValidColorCode(String originalColorCode) {
         // Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
         // some colors can look like this #ffffffff0000 while other like this #ffff00 in the same file

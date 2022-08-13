@@ -10,8 +10,6 @@
 
 package lt.ffda.sourcherry;
 
-import android.util.Log;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -48,12 +46,9 @@ public class XMLSearcher implements DatabaseSearcher{
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
                         // if user haven't marked to skip current node - searches through its content
                         // Because this is a start of the search all nodes never are "subnodes"
-                        String isParent = null;
-                        String isSubnode = null;
+                        String isParent = "true";
+                        String isSubnode = "false";
                         if (hasSubnodes.equals("true")) {
-                            isParent = "true";
-                            isSubnode = "false";
-                        } else {
                             isParent = "true";
                             isSubnode = "false";
                         }
@@ -75,12 +70,9 @@ public class XMLSearcher implements DatabaseSearcher{
                 String hasSubnodes = String.valueOf(hasSubnodes(nodeList.item(i)));
                 if (nodeList.item(i).getNodeName().equals("node")) {
 
-                    String isParent = null;
-                    String isSubnode = null;
+                    String isParent  = "true";
+                    String isSubnode  = "false";
                     if (hasSubnodes.equals("true")) {
-                        isParent = "true";
-                        isSubnode = "false";
-                    } else {
                         isParent = "true";
                         isSubnode = "false";
                     }
@@ -110,8 +102,8 @@ public class XMLSearcher implements DatabaseSearcher{
 
             if (nodeList.item(i).getNodeName().equals("node")) {
                 // If node is a "node" and not some other tag
-                String isParent = null;
-                String isSubnode = null;
+                String isParent;
+                String isSubnode;
                 if (hasSubnodes.equals("true")) {
                     isParent = "true";
                     isSubnode = "false";
@@ -145,8 +137,8 @@ public class XMLSearcher implements DatabaseSearcher{
 
                 if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
                     // If user haven't marked to skip current node - searches through its content
-                    String isParent = null;
-                    String isSubnode = null;
+                    String isParent;
+                    String isSubnode;
                     if (hasSubnodes.equals("true")) {
                         isParent = "true";
                         isSubnode = "false";

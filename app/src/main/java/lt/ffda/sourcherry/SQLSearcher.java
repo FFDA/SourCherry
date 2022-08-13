@@ -273,7 +273,7 @@ public class SQLSearcher implements DatabaseSearcher{
                                 StringBuilder rowStringBuilder = new StringBuilder();
                                 NodeList cells = tableRows.item(row).getChildNodes();
                                 for (int cell = 0; cell < cells.getLength(); cell++) {
-                                    rowStringBuilder.append(" " + cells.item(cell).getTextContent() + " ");
+                                    rowStringBuilder.append(" ").append(cells.item(cell).getTextContent()).append(" ");
                                 }
                                 tableRowArray.add(rowStringBuilder.toString());
                             }

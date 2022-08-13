@@ -34,8 +34,6 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 
 public class ImageViewActivity extends AppCompatActivity {
-    private SharedPreferences sharedPreferences;
-    private Handler handler;
     private DatabaseReader reader;
 
     @Override
@@ -50,9 +48,9 @@ public class ImageViewActivity extends AppCompatActivity {
         toolbar.setDisplayHomeAsUpEnabled(true); // Enables home (arrow back button)
         toolbar.setDisplayShowTitleEnabled(false);
 
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         String databaseString = sharedPreferences.getString("databaseUri", null);
-        this.handler = new Handler(Looper.getMainLooper());
+        Handler handler = new Handler(Looper.getMainLooper());
 
         try {
             if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
@@ -60,7 +58,7 @@ public class ImageViewActivity extends AppCompatActivity {
                 if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
-                    this.reader = new XMLReader(is, this, this.handler);
+                    this.reader = new XMLReader(is, this, handler);
                     is.close();
                 }
             } else {
@@ -68,12 +66,12 @@ public class ImageViewActivity extends AppCompatActivity {
                 if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
-                    this.reader = new XMLReader(is, this, this.handler);
+                    this.reader = new XMLReader(is, this, handler);
                     is.close();
                 } else {
                     // If file is sql (password protected or not)
                     SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
-                    this.reader = new SQLReader(sqlite, this, this.handler);
+                    this.reader = new SQLReader(sqlite, this, handler);
                 }
             }
         } catch (Exception e) {

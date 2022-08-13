@@ -424,7 +424,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             // Disabled because clashed with intent-filters
-            // Delete later if no issues arises
+            // Delete later if no issues arise
 //            if (!databaseDocumentFile.canRead()) {
 //                Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
 //                return;
