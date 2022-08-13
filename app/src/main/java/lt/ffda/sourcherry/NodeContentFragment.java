@@ -189,8 +189,11 @@ public class NodeContentFragment extends Fragment {
                         spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         currentTextView.setText(spannedSearchQuery);
                         int line = currentTextView.getLayout().getLineForOffset(startIndex);
-                        int lineHeight = currentTextView.getLineHeight();
-                        contentFragmentScrollView.scrollTo(0, (line * lineHeight) + lineCounter - 100);
+                        int scrollTo = currentTextView.getLayout().getLineTop(line) + lineCounter;
+                        if (scrollTo < (contentFragmentLinearLayout.getHeight() - contentFragmentScrollView.getHeight())) {
+                            scrollTo -= 100;
+                        }
+                        contentFragmentScrollView.scrollTo(0, scrollTo);
                     }
                 } else {
                     // If substring that has to be marked IS IN the same view as previously marked substring
@@ -201,8 +204,11 @@ public class NodeContentFragment extends Fragment {
                         spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         currentTextView.setText(spannedSearchQuery);
                         int line = currentTextView.getLayout().getLineForOffset(startIndex);
-                        int lineHeight = currentTextView.getLineHeight();
-                        contentFragmentScrollView.scrollTo(0, (line * lineHeight) + lineCounter - 100);
+                        int scrollTo = currentTextView.getLayout().getLineTop(line) + lineCounter;
+                        if (scrollTo < (contentFragmentLinearLayout.getHeight() - contentFragmentScrollView.getHeight())) {
+                           scrollTo -= 100;
+                        }
+                        contentFragmentScrollView.scrollTo(0, scrollTo);
                     }
                 }
                 lineCounter += currentTextView.getHeight();
