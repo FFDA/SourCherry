@@ -10,9 +10,9 @@ This project is for Android/Java/Git learning purposes and is not official Cherr
 
 ## Installation / Download
 
-I plan to add SourCherry to Play Store when it has more features and can open and read all types of CherryTree databases.
+[![](https://raw.githubusercontent.com/FFDA/ffda.github.storage/main/images/google-play-badge.png)](https://play.google.com/store/apps/details?id=lt.ffda.sourcherry)
 
-Right now anyone can download this repository and build the apk file using Android Studio or download and install apk built by me ([releases](https://github.com/FFDA/SourCherry/releases/)).
+Anyone can compile this app by cloning this repository or download an apk compiled by me from [releases](https://github.com/FFDA/SourCherry/releases/).
 
 ## Limitations
 
