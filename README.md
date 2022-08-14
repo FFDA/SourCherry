@@ -10,8 +10,6 @@ This project is for Android/Java/Git learning purposes and is not official Cherr
 
 ## Installation / Download
 
-[![](https://raw.githubusercontent.com/FFDA/ffda.github.storage/main/images/google-play-badge.png)](https://play.google.com/store/apps/details?id=lt.ffda.sourcherry)
-
 Anyone can compile this app by cloning this repository or download an apk compiled by me from [releases](https://github.com/FFDA/SourCherry/releases/).
 
 ## Limitations
