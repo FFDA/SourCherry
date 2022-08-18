@@ -33,6 +33,8 @@ import android.widget.Toast;
 import java.io.FileInputStream;
 import java.io.InputStream;
 
+import ru.noties.jlatexmath.JLatexMathDrawable;
+
 public class ImageViewActivity extends AppCompatActivity {
     private DatabaseReader reader;
 
@@ -49,38 +51,8 @@ public class ImageViewActivity extends AppCompatActivity {
         toolbar.setDisplayShowTitleEnabled(false);
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String databaseString = sharedPreferences.getString("databaseUri", null);
-        Handler handler = new Handler(Looper.getMainLooper());
-
-        try {
-            if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
-                // If file is in external storage
-                if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
-                    // If file is xml
-                    InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
-                    this.reader = new XMLReader(is, this, handler);
-                    is.close();
-                }
-            } else {
-                // If file is in internal app storage
-                if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
-                    // If file is xml
-                    InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
-                    this.reader = new XMLReader(is, this, handler);
-                    is.close();
-                } else {
-                    // If file is sql (password protected or not)
-                    SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
-                    this.reader = new SQLReader(sqlite, this, handler);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
 
         ZoomableImageView imageView = findViewById(R.id.image_activity_imageview);
-
         // Closes ImageViewActivity on tap
         imageView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -89,16 +61,58 @@ public class ImageViewActivity extends AppCompatActivity {
             }
         });
 
-        // Sets image to ImageView
-        byte[] imageByteArray = this.reader.getImageByteArray(getIntent().getExtras().getString("imageNodeUniqueID"), getIntent().getExtras().getString("imageOffset"));
-        if (imageByteArray != null) {
-            Bitmap decodedByte = BitmapFactory.decodeByteArray(imageByteArray, 0, imageByteArray.length);
-            Drawable image = new BitmapDrawable(this.getResources(),decodedByte);
-            imageView.setImageDrawable(image);
-        } else {
-            Toast.makeText(this, R.string.toast_error_failed_to_load_image, Toast.LENGTH_SHORT).show();
-        }
+        if (getIntent().getExtras().getString("type").equals("image")) {
+            String databaseString = sharedPreferences.getString("databaseUri", null);
+            Handler handler = new Handler(Looper.getMainLooper());
 
+            try {
+                if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
+                    // If file is in external storage
+                    if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
+                        // If file is xml
+                        InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
+                        this.reader = new XMLReader(is, this, handler);
+                        is.close();
+                    }
+                } else {
+                    // If file is in internal app storage
+                    if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
+                        // If file is xml
+                        InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
+                        this.reader = new XMLReader(is, this, handler);
+                        is.close();
+                    } else {
+                        // If file is sql (password protected or not)
+                        SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
+                        this.reader = new SQLReader(sqlite, this, handler);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            // Sets image to ImageView
+            byte[] imageByteArray = this.reader.getImageByteArray(getIntent().getExtras().getString("imageNodeUniqueID"), getIntent().getExtras().getString("imageOffset"));
+            if (imageByteArray != null) {
+                Bitmap decodedByte = BitmapFactory.decodeByteArray(imageByteArray, 0, imageByteArray.length);
+                Drawable image = new BitmapDrawable(this.getResources(),decodedByte);
+                imageView.setImageDrawable(image);
+            } else {
+                Toast.makeText(this, R.string.toast_error_failed_to_load_image, Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            try {
+                final JLatexMathDrawable latexDrawable = JLatexMathDrawable.builder(getIntent().getExtras().getString("latexString"))
+                        .textSize(40)
+                        .padding(8)
+                        .background(0xFFffffff)
+                        .align(JLatexMathDrawable.ALIGN_RIGHT)
+                        .build();
+                imageView.setImageDrawable(latexDrawable);
+            } catch (Exception e) {
+                Toast.makeText(this, R.string.toast_error_failed_to_compile_latex, Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     @Override

@@ -60,6 +60,8 @@ import java.util.Arrays;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import ru.noties.jlatexmath.JLatexMathDrawable;
+
 public class SQLReader implements DatabaseReader {
     private SQLiteDatabase sqlite;
     private Context context;
@@ -384,6 +386,13 @@ public class SQLReader implements DatabaseReader {
                                             nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                             totalCharOffset += attachedFileSpan.length() - 1;
                                             continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                        } else {
+                                            // For latex boxes
+                                            SpannableStringBuilder latexImageSpan = makeLatexImageSpan(imageCursor.getBlob(1));
+                                            imageCursor.close();
+                                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
+                                            totalCharOffset += latexImageSpan.length() - 1;
+                                            continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                                         }
                                     }
                                     else {
@@ -659,7 +668,7 @@ public class SQLReader implements DatabaseReader {
 
         formattedImage.append(" ");
 
-        //// Adds image to the span
+        //* Adds image to the span
         try {
             Bitmap decodedByte = BitmapFactory.decodeByteArray(imageBlob, 0, imageBlob.length);
             Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
@@ -677,19 +686,20 @@ public class SQLReader implements DatabaseReader {
                 image.setBounds(0, 0, newWidth, newHeight);
             }
 
-            //// Detects image touches/clicks
+            //** Detects image touches/clicks
             ClickableSpan imageClickableSpan = new ClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
-                    // Starting activity to view enlarged  zoomable image
+                    // Starting activity to view enlarged zoomable image
                     Intent displayImage = new Intent(context, ImageViewActivity.class);
+                    displayImage.putExtra("type", "image");
                     displayImage.putExtra("imageNodeUniqueID", nodeUniqueID);
                     displayImage.putExtra("imageOffset", imageOffset);
                     context.startActivity(displayImage);
                 }
             };
             formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
-            ////
+            //**
 
         } catch (Exception e) {
             handler.post(new Runnable() {
@@ -699,7 +709,74 @@ public class SQLReader implements DatabaseReader {
                 }
             });
         }
-        ////
+        //*
+
+        return formattedImage;
+    }
+
+    public SpannableStringBuilder makeLatexImageSpan(byte[] imageBlob) {
+        // Returns SpannableStringBuilder that has span with images in them
+        // Image is created from byte[] that is passed as an arguments
+
+        SpannableStringBuilder formattedImage = new SpannableStringBuilder();
+
+        formattedImage.append(" ");
+
+        //* Creates and adds image to the span
+        try {
+            String latexString = new String(imageBlob)
+                .replace("\\documentclass{article}\n" +
+                        "\\pagestyle{empty}\n" +
+                        "\\usepackage{amsmath}\n" +
+                        "\\begin{document}\n" +
+                        "\\begin{align*}", "")
+                .replace("\\end{align*}\n\\end{document}", "")
+                .replaceAll("&=", "="); // Removing & sing, otherwise latex image fails to compile
+
+            final JLatexMathDrawable latexDrawable = JLatexMathDrawable.builder(latexString)
+                    .textSize(40)
+                    .padding(8)
+                    .background(0xFFffffff)
+                    .align(JLatexMathDrawable.ALIGN_RIGHT)
+                    .build();
+
+            latexDrawable.setBounds(0, 0, latexDrawable.getIntrinsicWidth(), latexDrawable.getIntrinsicHeight());
+
+            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+            if (latexDrawable.getIntrinsicWidth() > width - 50) {
+                // If image is wider than screen-50 px it is scaled down to fit the screen
+                // otherwise it will not load/be display
+                float scale = ((float) width / latexDrawable.getIntrinsicWidth()) - (float) 0.2;
+                int newWidth = (int) (latexDrawable.getIntrinsicWidth() * scale);
+                int newHeight = (int) (latexDrawable.getIntrinsicHeight() * scale);
+                latexDrawable.setBounds(0, 0, newWidth, newHeight);
+            }
+
+            ImageSpan is = new ImageSpan(latexDrawable);
+            formattedImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            //** Detects image touches/clicks
+            ClickableSpan imageClickableSpan = new ClickableSpan() {
+                @Override
+                public void onClick(@NonNull View widget) {
+                    // Starting activity to view enlarged zoomable image
+                    Intent displayImage = new Intent(context, ImageViewActivity.class);
+                    displayImage.putExtra("type", "latex");
+                    displayImage.putExtra("latexString", latexString);
+                    context.startActivity(displayImage);
+                }
+            };
+            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+            //**
+        } catch (Exception e) {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(SQLReader.this.context, R.string.toast_error_failed_to_compile_latex, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+        //*
 
         return formattedImage;
     }
