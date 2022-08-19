@@ -64,7 +64,7 @@
     <string name="preferences_auto_open_summary">Automatically close drawer menu when selected node does not have subnodes</string>
     <string name="preferences_dark_mode_title">Dark mode</string>
     <string name="preferences_default_file_action_title">Default file action</string>
-    <string name="preferences_file_size_title">File size</string>
+    <string name="preferences_text_size_title">Text size</string>
     <string name="preferences_category_padding_title">Padding</string>
     <string name="preferences_category_padding_summary">Padding for node content in DP</string>
     <string name="preferences_category_padding_start_title">Left</string>
