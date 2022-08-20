@@ -35,6 +35,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -460,6 +463,9 @@ public class MainView extends AppCompatActivity {
         } else {
             // Options menu items
             switch (item.getItemId()) {
+                case (R.id.options_menu_export_to_pdf):
+                    this.exportPdfSetup();
+                    return true;
                 case (R.id.options_menu_find_in_node):
                     if (!findInNodeToggle) {
                         // Opens findInNode (sets the variables) only if it hasn't been opened yet
@@ -1317,4 +1323,82 @@ public class MainView extends AppCompatActivity {
             }
         }
     });
+
+    private void exportPdfSetup() {
+        // Sets the intent for asking user to choose a location where to save a file
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.setType("application/pdf");
+        intent.putExtra(Intent.EXTRA_TITLE, this.currentNode[0]);
+        exportPdf.launch(intent);
+    }
+
+    ActivityResultLauncher<Intent> exportPdf = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        if (result != null) {
+            // If user actually chose a location to save a file
+            try {
+                LinearLayout nodeContent = findViewById(R.id.content_fragment_linearlayout);
+                PdfDocument document = new PdfDocument();
+                int padding = 25; // It's used not only pad the document, but to calculate where title will be placed on the page
+                int top = padding * 4;
+                int width = nodeContent.getWidth(); // Width of the PDF page
+
+                for (int i= 0; i < nodeContent.getChildCount(); i++) {
+                    // Going through all the views in node to find if there is a table
+                    // Tables might be wider than screen
+                    View v = nodeContent.getChildAt(i);
+                    if (v instanceof HorizontalScrollView) {
+                        // If table was encountered
+                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) v).getChildAt(0);
+                        if (tableLayout.getWidth() > width) {
+                            // If table is wider than normal view
+                            width = tableLayout.getWidth();
+
+                        }
+                    }
+                }
+
+                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(width + (padding * 2), nodeContent.getHeight() + (padding * 4), 1).create();
+                PdfDocument.Page page = document.startPage(pageInfo);
+
+                //* Title of the node
+                Paint paint = new Paint();
+                paint.setColor(getColor(R.color.link_folder));
+                paint.setTextSize(50);
+                page.getCanvas().drawText(this.currentNode[0], 100, padding * 3, paint);
+                //*
+
+                Canvas canvas = page.getCanvas();
+
+                for (int i= 0; i < nodeContent.getChildCount(); i++) {
+                    View view = nodeContent.getChildAt(i);
+                    canvas.save(); // Saves current coordinates system
+                    canvas.translate(padding, top); // Moves coordinate system
+                    if (view instanceof HorizontalScrollView) {
+                        // If it is a table - TableLayout has to be drawn to canvas an not ScrollView
+                        // Otherwise only visible part of the table will be showed
+                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                        tableLayout.draw(canvas);
+                    } else {
+                        // TextView
+                        view.draw(canvas);
+                    }
+                    canvas.restore(); // Restores coordinates system to saved state
+                    top += view.getHeight();
+                }
+
+                document.finishPage(page);
+
+                // Saving to file
+                OutputStream outputStream = getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file
+                document.writeTo(outputStream);
+
+                // Cleaning up
+                outputStream.close();
+                document.close();
+            } catch (Exception e) {
+                Toast.makeText(this, R.string.toast_error_failed_to_export_node_to_pdf, Toast.LENGTH_SHORT).show();
+            }
+        }
+    });
+
 }

@@ -41,6 +41,7 @@
     <string name="toast_error_failed_to_compile_latex">Failed to compile latex code</string>
     <string name="toast_error_failed_to_read_database">Failed to read database</string>
     <string name="toast_error_failed_to_convert_string_to_nodelist">Failed to convert String to NodeList</string>
+    <string name="toast_error_failed_to_export_node_to_pdf">Failed to export node to PDF</string>
     <string name="options_menu_item_about">About</string>
     <string name="options_menu_about_licence">Published under GPL v3</string>
     <string name="options_menu_about_libraries_title">Software used</string>
@@ -57,6 +58,7 @@
     <string name="options_menu_item_find_in_node">Find in node</string>
     <string name="options_menu_item_find_in_node_counter_default_value" translatable="false">0</string>
     <string name="options_menu_item_find_in_node_marked_index_count_separator" translatable="false">/</string>
+    <string name="options_menu_item_export_to_pdf">Export to PDF</string>
     <string name="find_in_node_view_previous_button_description">Highlights and moves to the previous item of the find in node results</string>
     <string name="find_in_node_view_next_button_description">Highlights and moves to the next item of the find in node results</string>
     <string name="find_in_node_view_close_button_description">Closes the find in node view</string>
