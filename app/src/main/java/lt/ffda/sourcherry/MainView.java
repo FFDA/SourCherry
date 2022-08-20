@@ -20,6 +20,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -34,9 +35,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Build;
@@ -44,10 +45,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
+import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.StaticLayout;
+import android.text.TextPaint;
 import android.text.TextWatcher;
 import android.text.style.BackgroundColorSpan;
+import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -1333,13 +1338,13 @@ public class MainView extends AppCompatActivity {
     }
 
     ActivityResultLauncher<Intent> exportPdf = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-        if (result != null) {
+        if (result.getResultCode() == Activity.RESULT_OK) {
             // If user actually chose a location to save a file
             try {
                 LinearLayout nodeContent = findViewById(R.id.content_fragment_linearlayout);
                 PdfDocument document = new PdfDocument();
                 int padding = 25; // It's used not only pad the document, but to calculate where title will be placed on the page
-                int top = padding * 4;
+                int top = padding * 4; // This will used to move (translate) cursor where everything has to be drawn on canvas
                 int width = nodeContent.getWidth(); // Width of the PDF page
 
                 for (int i= 0; i < nodeContent.getChildCount(); i++) {
@@ -1357,17 +1362,39 @@ public class MainView extends AppCompatActivity {
                     }
                 }
 
-                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(width + (padding * 2), nodeContent.getHeight() + (padding * 4), 1).create();
-                PdfDocument.Page page = document.startPage(pageInfo);
-
-                //* Title of the node
-                Paint paint = new Paint();
-                paint.setColor(getColor(R.color.link_folder));
+                //* Creating a title view that will be drawn to PDF
+                //** textPrimaryColor for the theme
+                TypedValue typedValue = new TypedValue();
+                getTheme().resolveAttribute(android.R.attr.textColorPrimary, typedValue, true);
+                int color = ContextCompat.getColor(this, typedValue.resourceId);
+                //**
+                TextPaint paint = new TextPaint();
+                paint.setColor(color);
                 paint.setTextSize(50);
-                page.getCanvas().drawText(this.currentNode[0], 100, padding * 3, paint);
+
+                StaticLayout title = StaticLayout.Builder.obtain(this.currentNode[0], 0, this.currentNode[0].length(), paint, nodeContent.getWidth())
+                        .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                        .build();
                 //*
 
+                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(width + (padding * 2), nodeContent.getHeight() + (padding * 4) + title.getHeight(), 1).create();
+                PdfDocument.Page page = document.startPage(pageInfo);
+
                 Canvas canvas = page.getCanvas();
+
+                if ((getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
+                    // Changing background color of the canvas if drawing views from night mode
+                    // Otherwise text wont be visible
+                    canvas.drawColor(getColor(R.color.night_theme_windowBackground));
+                }
+
+                //* Drawing title to the canvas
+                canvas.save(); // Saves current coordinates system
+                canvas.translate(padding, padding * 2); // Moves coordinate system
+                title.draw(canvas);
+                top += title.getHeight();
+                canvas.restore();
+                //*
 
                 for (int i= 0; i < nodeContent.getChildCount(); i++) {
                     View view = nodeContent.getChildAt(i);
@@ -1400,5 +1427,4 @@ public class MainView extends AppCompatActivity {
             }
         }
     });
-
 }
