@@ -37,7 +37,7 @@
     <string name="toast_error_failed_to_save_file">Failed to save the file</string>
     <string name="toast_error_failed_to_open_file">Failed to open the file</string>
     <string name="toast_error_failed_to_load_image">Failed to load an image</string>
-    <string name="toast_error_failed_to_load_image_large">Failed to load an image. Image was too large.</string>
+    <string name="toast_error_failed_to_load_image_large">Embedded file/image was too big (>15mb)</string>
     <string name="toast_error_failed_to_compile_latex">Failed to compile latex code</string>
     <string name="toast_error_failed_to_read_database">Failed to read database</string>
     <string name="toast_error_failed_to_convert_string_to_nodelist">Failed to convert String to NodeList</string>

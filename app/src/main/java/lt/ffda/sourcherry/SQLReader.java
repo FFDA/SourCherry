@@ -14,6 +14,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.database.CursorWindow;
+import android.database.sqlite.SQLiteCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -21,6 +23,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Handler;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
@@ -367,6 +370,12 @@ public class SQLReader implements DatabaseReader {
                         if (codeboxTableImageCursor.getInt(1) == 9) {
                             // Get image entry for current node_id and charOffset
                             Cursor imageCursor = this.sqlite.query("image", new String[]{"anchor", "png", "filename", "time"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                // Expands cursor window for API 28 (Android 9) and greater
+                                // This allows to display bigger images and open/save bigger files
+                                // Right now limit is 15mb
+                                ((SQLiteCursor) imageCursor).setWindow(new CursorWindow(null, 1024 * 1024 * 15));
+                            }
                             try {
                                 if (imageCursor.moveToFirst()) {
                                     if (!imageCursor.getString(0).isEmpty()) {
@@ -893,6 +902,12 @@ public class SQLReader implements DatabaseReader {
         Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=?", new String[]{uniqueID, filename, time}, null, null, null);
         try {
             // Try needed to close the cursor. Otherwise ofter return statement it won't be closed;
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                // Expands cursor window for API 28 (Android 9) and greater
+                // This allows to save/open bigger files
+                // Right now limit is 15mb
+                ((SQLiteCursor) cursor).setWindow(new CursorWindow(null, 1024 * 1024 * 15));
+            }
             cursor.move(1);
             return cursor.getBlob(0);
         } finally {
@@ -904,7 +919,13 @@ public class SQLReader implements DatabaseReader {
         // Returns image byte array to be displayed in ImageViewActivity because some of the images are too big to pass in a bundle
         Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, offset}, null, null, null);
         try {
-            // Try needed to close the cursor. Otherwise ofter return statement it won't be closed;
+            // Try is needed to close the cursor. Otherwise after return statement it won't be closed;
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                // Expands cursor window for API 28 (Android 9) and greater
+                // This allows to display bigger images
+                // Right now limit is 15mb
+                ((SQLiteCursor) cursor).setWindow(new CursorWindow(null, 1024 * 1024 * 15));
+            }
             cursor.move(1);
             return cursor.getBlob(0);
         } finally {
