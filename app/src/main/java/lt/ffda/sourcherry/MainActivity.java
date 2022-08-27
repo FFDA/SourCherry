@@ -74,10 +74,25 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        CheckBox checkboxAutoOpen = findViewById(R.id.checkBox_auto_open);
-        if (checkboxAutoOpen.isChecked() && !this.sharedPreferences.getBoolean("isChangingConfigurations", false)) {
-            if (this.sharedPreferences.getString("databaseUri", null) != null) {
+        // If launched the app by opening a file from different app
+        Intent intent = getIntent();
+        if (intent.getAction() == Intent.ACTION_VIEW) {
+            DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, intent.getData());
+            saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], intent.getData().toString());
+
+            setMessageWithDatabaseName();
+
+            String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
+            if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {
+                // If database is not protected it can be opened without any user interaction
                 this.openDatabase();
+            }
+        } else {
+            CheckBox checkboxAutoOpen = findViewById(R.id.checkBox_auto_open);
+            if (checkboxAutoOpen.isChecked() && !this.sharedPreferences.getBoolean("isChangingConfigurations", false)) {
+                if (this.sharedPreferences.getString("databaseUri", null) != null) {
+                    this.openDatabase();
+                }
             }
         }
 
@@ -97,21 +112,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (this.sharedPreferences.getBoolean("isChangingConfigurations", false)) {
             this.resetIsChangingConfigurationsValue();
-        }
-
-        // If launched the app by opening a file from different app
-        Intent intent = getIntent();
-        if (intent.getAction() == Intent.ACTION_VIEW) {
-            DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, intent.getData());
-            saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], intent.getData().toString());
-
-            setMessageWithDatabaseName();
-
-            String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
-            if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {
-                // If database is not protected it can be opened without any user interaction
-                this.openDatabase();
-            }
         }
 
         // Creates internal and external folders for databases
