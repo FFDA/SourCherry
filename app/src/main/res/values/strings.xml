@@ -28,6 +28,7 @@
     <string name="toast_error_database_does_not_exists">Database does not exist</string>
     <string name="toast_error_cant_read_database">Can\'t read database file. Try select it again.</string>
     <string name="toast_error_failed_to_open_database">Failed to open the database</string>
+    <string name="toast_error_android_7_cannot_open_password_protected">Android 7 can\'t open password protected databases</string>
     <string name="toast_error_could_not_open_a_file_to_copy_the_database">Could not open a file to copy the database</string>
     <string name="toast_error_could_not_copy_the_database">Could not copy the database</string>
     <string name="toast_error_does_not_look_like_a_cherrytree_database">Does not look like a CherryTree database</string>
