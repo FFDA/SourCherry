@@ -1,0 +1,35 @@
+<!--
+  ~ This file is part of SourCherry.
+  ~
+  ~ SourCherry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ SourCherry is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M19,3L5,3c-1.1,0 -2,0.9 -2,2v14c0,1.1 0.9,2 2,2h14c1.1,0 2,-0.9 2,-2L21,5c0,-1.1 -0.9,-2 -2,-2zM19,19L5,19v-4.58l0.99,0.99 4,-4 4,4 4,-3.99L19,12.43L19,19zM19,9.59l-1.01,-1.01 -4,4.01 -4,-4 -4,4 -0.99,-1L5,5h14v4.59z"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="m9.9209436,18.853912 0.037543,-5.169207 0.7066904,0.0028 -0.01916,5.16009z"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="m10.85321,18.866924 0.503833,0.01627 0.262066,-1.684734 0.471664,1.163879 0.463076,-1.337653 0.252851,1.852254 0.549984,-0.04635 -0.547434,-2.989807 -0.427882,7.34e-4 -0.329004,1.264726 -0.382916,-1.234181 -0.441546,-0.0091z"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="m13.526858,18.817906 c 0.163182,-0.983394 0.282123,-1.963689 0.489545,-2.950182 l 0.982183,-0.02445 c 0.234268,0.96374 0.437948,1.942475 0.575863,2.917234 l -0.543885,-0.0079 -0.380677,-2.405765 -0.183676,0.0092 c -0.03537,0.295959 -0.200077,0.663068 -0.266546,1.135209 l 0.645114,0.02785 0.06529,0.509284 -0.7039,-0.11401 -0.176859,0.918758 -0.502452,-0.01523"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M17.458389,16.543246 17.394439,16.0831 17.134781,15.87223 16.156132,15.86222 15.83614,16.306764 c -0.05362,0.311464 -0.09093,-0.0047 -0.161731,0.96836 -0.03859,0.341507 0.112764,0.86567 0.171753,1.297573 l 0.477727,0.30039 0.669635,0.0013 0.467262,-0.228347 0.0245,-0.953812 -0.03543,-0.343079 -0.723582,-0.07742 -0.05074,0.447981 0.343954,0.08339 0.004,0.406131 -0.187003,0.193865 -0.374059,0.0037 -0.152382,-0.275742 -0.09106,-0.915959 0.05069,-0.629224 0.170589,-0.204008 v 0 l 0.456766,-0.01145 0.136992,0.260947 0.09706,0.297779 0.362004,-0.06799z"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="m17.708777,15.913605 0.01168,2.89912 1.083928,0.05171 -0.02082,-0.529851 -0.575679,-0.04678 -0.01037,-0.726524 0.572846,-0.02306 -0.01465,-0.517615 -0.552845,0.01244 -0.02421,-0.584948 0.549746,-0.0046 -0.01672,-0.553121z"/>
+</vector>

@@ -388,7 +388,7 @@ public class SQLSearcher implements DatabaseSearcher{
             // It seems that there is always just one tag (<node> or <table>), so returning just the first one in the NodeList
             return doc.getElementsByTagName(type).item(0).getChildNodes();
         } catch (Exception e) {
-            // To not have to create SQLSearcher with context and handler no error message will be diplayed to user.
+            // To not have to create SQLSearcher with context and handler no error message will be displayed to user.
             // Up until now I did not have any problems in a reader
         }
         return null;

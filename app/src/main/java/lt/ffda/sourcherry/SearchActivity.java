@@ -191,7 +191,7 @@ public class SearchActivity extends AppCompatActivity {
                 if (instanceCount > 3) {
                     String resultText = getString(R.string.options_menu_search_query_instances_node,result[4], instanceCount - 3);
                     Spanned styledResultText = Html.fromHtml(resultText, Html.FROM_HTML_MODE_LEGACY);
-                    // Because of how Html.fromHtml (removes spanned formattings) works it is not possible to mark string queries in searcher
+                    // Because of how Html.fromHtml (removes spanned formatting) works it is not possible to mark string queries in searcher
                     // it has to be done on this end
                     resultSearchSamples.setText(markSearchQuery(styledResultText.toString(), result[2]));
                 } else {

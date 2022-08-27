@@ -12,6 +12,7 @@ package lt.ffda.sourcherry;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.CursorWindow;
@@ -50,6 +51,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.preference.PreferenceManager;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -362,66 +364,78 @@ public class SQLReader implements DatabaseReader {
                     Arrays.fill(queryArguments, uniqueID);
                     ///
                     ////
-
+                    // Getting user choice how big the cursor window should be
+                    SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+                    long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
                     Cursor codeboxTableImageCursor = this.sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
 
                     while (codeboxTableImageCursor.moveToNext()) {
                         int charOffset = codeboxTableImageCursor.getInt(0);
                         if (codeboxTableImageCursor.getInt(1) == 9) {
                             // Get image entry for current node_id and charOffset
-                            Cursor imageCursor = this.sqlite.query("image", new String[]{"anchor", "png", "filename", "time"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
-                            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                // Expands cursor window for API 28 (Android 9) and greater
-                                // This allows to display bigger images and open/save bigger files
-                                // Right now limit is 15mb
-                                ((SQLiteCursor) imageCursor).setWindow(new CursorWindow(null, 1024 * 1024 * 15));
-                            }
-                            try {
-                                if (imageCursor.moveToFirst()) {
-                                    if (!imageCursor.getString(0).isEmpty()) {
-                                        // Text in column "anchor" (0) means that this line is for anchor
+                            Cursor imageCursor = this.sqlite.query("image", new String[]{"anchor", "filename", "time"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                            if (imageCursor.moveToFirst()) {
+                                if (!imageCursor.getString(0).isEmpty()) {
+                                    // Text in column "anchor" (0) means that this line is for anchor
+                                    imageCursor.close();
+                                    SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan();
+                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
+                                    totalCharOffset += anchorImageSpan.length() - 1;
+                                    continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                }
+                                if (!imageCursor.getString(1).isEmpty()) {
+                                    // Text in column "filename" (1) means that this line is for file OR LaTeX formula box
+                                    if (!imageCursor.getString(1).equals("__ct_special.tex")) {
+                                        // If it is not LaTex file
+                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(uniqueID, imageCursor.getString(1), String.valueOf(imageCursor.getDouble(2)));
                                         imageCursor.close();
-                                        SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan();
-                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
-                                        totalCharOffset += anchorImageSpan.length() - 1;
+                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                        totalCharOffset += attachedFileSpan.length() - 1;
                                         continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
-                                    }
-                                    if (!imageCursor.getString(2).isEmpty()) {
-                                        // Text in column "filename" (2) means that this line is for file OR LaTeX formula box
-                                        if (!imageCursor.getString(2).equals("__ct_special.tex")) {
-                                            // If it is not LaTex file
-                                            SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(uniqueID, imageCursor.getString(2), String.valueOf(imageCursor.getDouble(3)));
-                                            imageCursor.close();
-                                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
-                                            totalCharOffset += attachedFileSpan.length() - 1;
-                                            continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
-                                        } else {
-                                            // For latex boxes
-                                            SpannableStringBuilder latexImageSpan = makeLatexImageSpan(imageCursor.getBlob(1));
-                                            imageCursor.close();
-                                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
-                                            totalCharOffset += latexImageSpan.length() - 1;
-                                            continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
-                                        }
-                                    }
-                                    else {
-                                        // Any other line should be an image
-                                        SpannableStringBuilder imageSpan = makeImageSpan(imageCursor.getBlob(1), uniqueID, String.valueOf(charOffset)); // Blob is the image in byte[] form
+                                    } else {
+                                        // For latex boxes
                                         imageCursor.close();
-                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
-                                        totalCharOffset += imageSpan.length() - 1;
+                                        Cursor latexBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                                        latexBlobCursor.moveToFirst();
+                                        SpannableStringBuilder latexImageSpan = makeLatexImageSpan(latexBlobCursor.getBlob(0));
+                                        latexBlobCursor.close();
+                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
+                                        totalCharOffset += latexImageSpan.length() - 1;
                                         continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                                     }
                                 }
-                            } catch (Exception SQLiteBlobTooBigException) {
-                                // If image blob was to big for SQL Toast error message will be displayed
-                                this.handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        imageCursor.close();
-                                        Toast.makeText(SQLReader.this.context, R.string.toast_error_failed_to_load_image_large, Toast.LENGTH_SHORT).show();
+                                else {
+                                    // Any other line should be an image
+                                    imageCursor.close();
+                                    Cursor imageBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                                    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                        // Expands cursor window for API 28 (Android 9) and greater
+                                        // This allows to display bigger images and open/save bigger files
+                                        // Right now limit is 15mb
+                                        ((SQLiteCursor) imageBlobCursor).setWindow(new CursorWindow(null, 1024 * 1024 * cursorWindow));
+                                    }  else {
+                                        // Setting cursorWindow as to 2 (default android value)
+                                        // Android 8 and lower versions do not have this function
+                                        // It's only that error toast would show a correct size
+                                        cursorWindow = 2;
                                     }
-                                });
+                                    try {
+                                        // Tries to move to get image blob from DB. Might me too big.
+                                        imageBlobCursor.moveToFirst();
+                                        SpannableStringBuilder imageSpan = makeImageSpan(imageBlobCursor.getBlob(0), uniqueID, String.valueOf(charOffset)); // Blob is the image in byte[] form
+                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
+                                        totalCharOffset += imageSpan.length() - 1;
+                                    } catch (Exception SQLiteBlobTooBigException) {
+                                        // If image blob was to big for SQL Toast error message will be displayed
+                                        // And placeholder image is placed
+                                        SpannableStringBuilder brokenImageSpan = getBrokenImageSpan(0);
+                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, brokenImageSpan);
+                                        totalCharOffset += brokenImageSpan.length() - 1;
+                                        this.displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
+                                    }
+                                    imageBlobCursor.close();
+                                    continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                }
                             }
                         } else if (codeboxTableImageCursor.getInt(1) == 7) {
                             // codebox row
@@ -480,7 +494,7 @@ public class SQLReader implements DatabaseReader {
 
                 // Creating text part of this iteration
                 SpannableStringBuilder textPart = (SpannableStringBuilder) nodeContentStringBuilder.subSequence(subStringStart, charOffset);
-                subStringStart = charOffset; // Next stirng will be cut starting from this offset (previous end)
+                subStringStart = charOffset; // Next string will be cut starting from this offset (previous end)
                 ArrayList<CharSequence[]> nodeContentText = new ArrayList<>();
                 nodeContentText.add(new CharSequence[]{"text"});
                 nodeContentText.add(new CharSequence[]{textPart});
@@ -675,10 +689,9 @@ public class SQLReader implements DatabaseReader {
 
         SpannableStringBuilder formattedImage = new SpannableStringBuilder();
 
-        formattedImage.append(" ");
-
         //* Adds image to the span
         try {
+            formattedImage.append(" ");
             Bitmap decodedByte = BitmapFactory.decodeByteArray(imageBlob, 0, imageBlob.length);
             Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
             image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
@@ -711,12 +724,9 @@ public class SQLReader implements DatabaseReader {
             //**
 
         } catch (Exception e) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(SQLReader.this.context, R.string.toast_error_failed_to_load_image, Toast.LENGTH_SHORT).show();
-                }
-            });
+            // Displays a toast message and appends broken image span to display in node content
+            formattedImage.append(this.getBrokenImageSpan(0));
+            this.displayToast(context.getString(R.string.toast_error_failed_to_load_image));
         }
         //*
 
@@ -727,12 +737,11 @@ public class SQLReader implements DatabaseReader {
         // Returns SpannableStringBuilder that has span with images in them
         // Image is created from byte[] that is passed as an arguments
 
-        SpannableStringBuilder formattedImage = new SpannableStringBuilder();
-
-        formattedImage.append(" ");
+        SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
 
         //* Creates and adds image to the span
         try {
+            formattedLatexImage.append(" ");
             String latexString = new String(imageBlob)
                 .replace("\\documentclass{article}\n" +
                         "\\pagestyle{empty}\n" +
@@ -762,7 +771,7 @@ public class SQLReader implements DatabaseReader {
             }
 
             ImageSpan is = new ImageSpan(latexDrawable);
-            formattedImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            formattedLatexImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
             //** Detects image touches/clicks
             ClickableSpan imageClickableSpan = new ClickableSpan() {
@@ -775,19 +784,16 @@ public class SQLReader implements DatabaseReader {
                     context.startActivity(displayImage);
                 }
             };
-            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(SQLReader.this.context, R.string.toast_error_failed_to_compile_latex, Toast.LENGTH_SHORT).show();
-                }
-            });
+            // Displays a toast message and appends broken latex image span to display in node content
+            formattedLatexImage.append(this.getBrokenImageSpan(1));
+            this.displayToast(context.getString(R.string.toast_error_failed_to_compile_latex));
         }
         //*
 
-        return formattedImage;
+        return formattedLatexImage;
     }
 
     public SpannableStringBuilder makeAttachedFileSpan(String uniqueID, String attachedFileFilename, String time) {
@@ -900,17 +906,27 @@ public class SQLReader implements DatabaseReader {
         // Returns byte array (stream) to be written to file or opened
 
         Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=?", new String[]{uniqueID, filename, time}, null, null, null);
+        // Getting user choice how big the cursor window should be
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
         try {
             // Try needed to close the cursor. Otherwise ofter return statement it won't be closed;
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 // Expands cursor window for API 28 (Android 9) and greater
                 // This allows to save/open bigger files
-                // Right now limit is 15mb
-                ((SQLiteCursor) cursor).setWindow(new CursorWindow(null, 1024 * 1024 * 15));
+                ((SQLiteCursor) cursor).setWindow(new CursorWindow(null, 1024 * 1024 * cursorWindow));
+            } else {
+                // Setting cursorWindow as to 2 (default android value)
+                // Android 8 and lower versions do not have this function
+                // It's only that error toast would show a correct size
+                cursorWindow = 2;
             }
             cursor.move(1);
             return cursor.getBlob(0);
-        } finally {
+        } catch (Exception SQLiteBlobTooBigException) {
+            this.displayToast(context.getString(R.string.toast_error_failed_to_open_file_large, cursorWindow));
+            return null;
+        }finally {
             cursor.close();
         }
     }
@@ -918,16 +934,26 @@ public class SQLReader implements DatabaseReader {
     public byte[] getImageByteArray(String nodeUniqueID, String offset) {
         // Returns image byte array to be displayed in ImageViewActivity because some of the images are too big to pass in a bundle
         Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, offset}, null, null, null);
+        // Getting user choice how big the cursor window should be
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
         try {
             // Try is needed to close the cursor. Otherwise after return statement it won't be closed;
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 // Expands cursor window for API 28 (Android 9) and greater
                 // This allows to display bigger images
-                // Right now limit is 15mb
-                ((SQLiteCursor) cursor).setWindow(new CursorWindow(null, 1024 * 1024 * 15));
+                ((SQLiteCursor) cursor).setWindow(new CursorWindow(null, 1024 * 1024 * cursorWindow));
+            } else {
+                // Setting cursorWindow as to 2 (default android value)
+                // Android 8 and lower versions do not have this function
+                // It's only that error toast would show a correct size
+                cursorWindow = 2;
             }
             cursor.move(1);
             return cursor.getBlob(0);
+        } catch (Exception SQLiteBlobTooBigException) {
+            this.displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
+            return null;
         } finally {
             cursor.close();
         }
@@ -949,12 +975,7 @@ public class SQLReader implements DatabaseReader {
             // It seems that there is always just one tag (<node> or <table>), so returning just the first one in the NodeList
             return doc.getElementsByTagName(type).item(0).getChildNodes();
         } catch (Exception e) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(SQLReader.this.context, R.string.toast_error_failed_to_convert_string_to_nodelist, Toast.LENGTH_SHORT).show();
-                }
-            });
+            this.displayToast(context.getString(R.string.toast_error_failed_to_convert_string_to_nodelist));
         }
 
         return null;
@@ -979,5 +1000,39 @@ public class SQLReader implements DatabaseReader {
 
             return validColorCode.toString();
         }
+    }
+
+    @Override
+    public void displayToast(String message) {
+        // Displays a toast on main thread
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(SQLReader.this.context, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @Override
+    public SpannableStringBuilder getBrokenImageSpan(int type) {
+        // Returns an image span that is used to display as placeholder image
+        // used when cursor window is to small to get an image blob
+        // pass 0 to get broken image span, pass 1 to get broken latex span
+        SpannableStringBuilder brokenSpan = new SpannableStringBuilder();
+        brokenSpan.append(" ");
+        Drawable drawableBrokenImage;
+        if (type == 0) {
+            drawableBrokenImage = this.context.getDrawable(R.drawable.ic_outline_broken_image_48);
+        } else {
+            drawableBrokenImage = this.context.getDrawable(R.drawable.ic_outline_broken_latex_48);
+        }
+        //// Inserting image
+
+        drawableBrokenImage.setBounds(0,0, drawableBrokenImage.getIntrinsicWidth(), drawableBrokenImage.getIntrinsicHeight());
+        ImageSpan brokenImage = new ImageSpan(drawableBrokenImage, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        brokenSpan.setSpan(brokenImage,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ////
+
+        return brokenSpan;
     }
 }

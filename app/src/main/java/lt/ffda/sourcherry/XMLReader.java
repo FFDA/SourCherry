@@ -77,12 +77,7 @@ public class XMLReader implements DatabaseReader{
             DocumentBuilder db = dbf.newDocumentBuilder();
             this.doc = db.parse(new InputSource(is));
         } catch (Exception e) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(XMLReader.this.context, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
-                }
-            });
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_read_database));
         }
     }
 
@@ -562,7 +557,7 @@ public class XMLReader implements DatabaseReader{
 
     public SpannableStringBuilder makeFormattedCodebox(Node node) {
         // Returns SpannableStringBuilder that has spans marked for string formatting
-        // Formatting depends on Codebox'es height and width
+        // Formatting depends on Codeboxes height and width
         // It is retrieved from the tag using getCodeBoxHeightWidth()
         SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
         formattedCodebox.append(node.getTextContent());
@@ -624,10 +619,9 @@ public class XMLReader implements DatabaseReader{
 
         SpannableStringBuilder formattedImage = new SpannableStringBuilder();
 
-        formattedImage.append(" ");
-
         //* Adds image to the span
         try {
+            formattedImage.append(" ");
             byte[] decodedString = Base64.decode(node.getTextContent().trim(), Base64.DEFAULT);
             Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
             Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
@@ -661,12 +655,8 @@ public class XMLReader implements DatabaseReader{
             formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(XMLReader.this.context, R.string.toast_error_failed_to_load_image, Toast.LENGTH_SHORT).show();
-                }
-            });
+            // Displays a toast message and appends broken image span to display in node content
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
         }
         //*
 
@@ -677,14 +667,13 @@ public class XMLReader implements DatabaseReader{
         // Returns SpannableStringBuilder that has span with images in them
         // Image is created from latex code string embedded in the tag
 
-        SpannableStringBuilder formattedImage = new SpannableStringBuilder();
-
-        formattedImage.append(" ");
+        SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
 
         //* Creates and adds image to the span
         try {
             // Embedded latex code has tags/code that is not recognized by jlatexmath-android
             // It has to be removed
+            formattedLatexImage.append(" ");
             String latexString = node.getTextContent()
                 .replace("\\documentclass{article}\n" +
                 "\\pagestyle{empty}\n" +
@@ -714,7 +703,7 @@ public class XMLReader implements DatabaseReader{
             }
 
             ImageSpan is = new ImageSpan(latexDrawable);
-            formattedImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            formattedLatexImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
             //** Detects image touches/clicks
             ClickableSpan imageClickableSpan = new ClickableSpan() {
@@ -727,19 +716,16 @@ public class XMLReader implements DatabaseReader{
                     context.startActivity(displayImage);
                 }
             };
-            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(XMLReader.this.context, R.string.toast_error_failed_to_compile_latex, Toast.LENGTH_SHORT).show();
-                }
-            });
+            // Displays a toast message and appends broken latex image span to display in node content
+            formattedLatexImage.append(this.getBrokenImageSpan(1));
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_compile_latex));
         }
         //*
 
-        return formattedImage;
+        return formattedLatexImage;
     }
 
     public SpannableStringBuilder makeAttachedFileSpan(Node node, String uniqueID) {
@@ -894,6 +880,7 @@ public class XMLReader implements DatabaseReader{
                     if (currentNode.getAttributes().getNamedItem("filename") != null) { // Checks if node has the attribute, otherwise it's an image
                         if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals(filename)) { // If filename matches the one provided
                             if (currentNode.getAttributes().getNamedItem("time").getNodeValue().equals(time)) { // Checks if index of the file matches the counter
+                                // Will crash the app if file is big enough (11MB on my phone). No way to catch it as exception.
                                 return Base64.decode(currentNode.getTextContent(), Base64.DEFAULT);
                             }
                         }
@@ -946,5 +933,39 @@ public class XMLReader implements DatabaseReader{
 
             return validColorCode.toString();
         }
+    }
+
+    @Override
+    public void displayToast(String message) {
+        // Displays a toast on main thread
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(XMLReader.this.context, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @Override
+    public SpannableStringBuilder getBrokenImageSpan(int type) {
+        // Returns an image span that is used to display as placeholder image
+        // used when cursor window is to small to get an image blob
+        // pass 0 to get broken image span, pass 1 to get broken latex span
+        SpannableStringBuilder brokenSpan = new SpannableStringBuilder();
+        brokenSpan.append(" ");
+        Drawable drawableBrokenImage;
+        if (type == 0) {
+            drawableBrokenImage = this.context.getDrawable(R.drawable.ic_outline_broken_image_48);
+        } else {
+            drawableBrokenImage = this.context.getDrawable(R.drawable.ic_outline_broken_latex_48);
+        }
+        //// Inserting image
+
+        drawableBrokenImage.setBounds(0,0, drawableBrokenImage.getIntrinsicWidth(), drawableBrokenImage.getIntrinsicHeight());
+        ImageSpan brokenImage = new ImageSpan(drawableBrokenImage, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        brokenSpan.setSpan(brokenImage,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ////
+
+        return brokenSpan;
     }
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="ic_launcher_cherry_fill_color">#CA2A2A</color>
     <color name="codebox_background">#535353</color>
     <color name="link_anchor">#2FC848</color>
     <color name="link_file">#D3AD56</color>

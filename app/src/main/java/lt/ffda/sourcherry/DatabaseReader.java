@@ -61,7 +61,7 @@ public interface DatabaseReader {
 
 //    SpannableStringBuilder makeFormattedCodebox(Node node);
 //    // Returns SpannableStringBuilder that has spans marked for string formatting
-//    // Formatting isn't based on nodes attributes, because all codebox'es will look the same
+//    // Formatting isn't based on nodes attributes, because all codeboxes will look the same
 
 //    SpannableStringBuilder makeFormattedCodeNode(Node node);
 //    // Returns SpannableStringBuilder that has spans marked for string formatting
@@ -113,4 +113,12 @@ public interface DatabaseReader {
     // Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
     // some colors can look like this #ffffffff0000 while other like this #ffff00 in the same file
     // To always get normal color hash code (made from 7 symbols) is the purpose of this function
+
+    void displayToast(String message);
+    // Displays a toast on main thread
+
+    SpannableStringBuilder getBrokenImageSpan(int type);
+    // Returns an image span that is used to display as placeholder image
+    // used when cursor window is to small to get an image blob
+    // pass 0 to get broken image span, pass 1 to get broken latex span
 }

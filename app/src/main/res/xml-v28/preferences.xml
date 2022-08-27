@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ This file is part of SourCherry.
+  ~
+  ~ SourCherry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ SourCherry is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        android:key="auto_open"
+        android:title="@string/preferences_auto_open_title"
+        android:summary="@string/preferences_auto_open_summary"
+        android:defaultValue="false"/>
+
+    <SwitchPreferenceCompat
+        android:key="restore_last_node"
+        android:title="@string/preferences_restore_last_node_title"
+        android:defaultValue="false"/>
+
+    <ListPreference
+        android:key="preferences_dark_mode"
+        android:title="@string/preferences_dark_mode_title"
+        app:useSimpleSummaryProvider="true"
+        android:defaultValue="System"
+        android:entries="@array/dark_mode_entries"
+        android:entryValues="@array/dark_mode_entries"/>
+
+    <ListPreference
+        android:key="preferences_save_open_file"
+        android:title="@string/preferences_default_file_action_title"
+        app:useSimpleSummaryProvider="true"
+        android:defaultValue="Ask"
+        android:entries="@array/save_open_file_entries"
+        android:entryValues="@array/save_open_file_entries"/>
+
+    <SeekBarPreference
+        android:key="preferences_text_size"
+        android:title="@string/preferences_text_size_title"
+        app:min="10"
+        android:max="25"
+        android:defaultValue="15"
+        app:showSeekBarValue="true"/>
+
+    <PreferenceCategory
+        android:key="preferences_category_padding"
+        android:title="@string/preferences_category_padding_title"
+        android:summary="@string/preferences_category_padding_summary"
+        app:allowDividerBelow="true">
+        <SeekBarPreference
+            android:key="preferences_category_padding_start"
+            android:title="@string/preferences_category_padding_start_title"
+            android:max="25"
+            android:defaultValue="5"
+            app:showSeekBarValue="true"/>
+        <SeekBarPreference
+            android:key="preferences_category_padding_end"
+            android:title="@string/preferences_category_padding_end_title"
+            android:max="25"
+            android:defaultValue="5"
+            app:showSeekBarValue="true"/>
+    </PreferenceCategory>
+
+    <SeekBarPreference
+        android:key="preferences_cursor_window_size"
+        android:title="@string/preferences_cursor_window_size_title"
+        android:summary="@string/preferences_cursor_window_size_summary"
+        app:min="2"
+        android:max="500"
+        android:defaultValue="15"
+        app:showSeekBarValue="true"
+        app:allowDividerAbove="true"/>
+</PreferenceScreen>

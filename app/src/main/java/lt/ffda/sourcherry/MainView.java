@@ -769,6 +769,8 @@ public class MainView extends AppCompatActivity {
     }
 
     public void fileFolderLinkFilepath(String filename) {
+        // Displays Snackbar with string that was passed as an argument
+        // Used to display file path of link to file/folder
         Snackbar.make(findViewById(R.id.main_view_fragment), filename, Snackbar.LENGTH_LONG)
         .setAction(R.string.snackbar_dismiss_action, new View.OnClickListener() {
             @Override
@@ -1267,7 +1269,12 @@ public class MainView extends AppCompatActivity {
         // Checks preferences if user choice default action for embedded files
         FileNameMap fileNameMap  = URLConnection.getFileNameMap();
         String fileMimeType = fileNameMap.getContentTypeFor(attachedFileFilename);
-
+        if (fileMimeType == null) {
+            // Custom file extensions (like CherryTree database extensions) are not recognized by Android
+            // If mimeType for selected file can't be recognized. Catch all mimetype has to set
+            // Otherwise app will crash while trying to save the file
+            fileMimeType = "*/*";
+        }
         String saveOpenFilePreference = this.sharedPreferences.getString("preferences_save_open_file", "Ask");
         if (saveOpenFilePreference.equals("Ask")) {
             // Setting up to send arguments to Dialog Fragment
