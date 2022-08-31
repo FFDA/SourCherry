@@ -13,7 +13,6 @@ package lt.ffda.sourcherry;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -22,7 +21,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 public class XMLSearcher implements DatabaseSearcher{
-    private Document doc;
+    private final Document doc;
 
     public XMLSearcher(InputStream is) throws Exception {
         // Creates a document that can be used to read tags with provided InputStream

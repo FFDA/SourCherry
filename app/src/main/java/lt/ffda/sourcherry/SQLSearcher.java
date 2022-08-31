@@ -24,7 +24,7 @@ import java.util.Arrays;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 public class SQLSearcher implements DatabaseSearcher{
-    private SQLiteDatabase sqlite;
+    private final SQLiteDatabase sqlite;
 
     public SQLSearcher(SQLiteDatabase sqlite) {
         this.sqlite = sqlite;

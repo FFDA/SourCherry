@@ -51,12 +51,10 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -67,8 +65,8 @@ import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class XMLReader implements DatabaseReader{
     private Document doc;
-    private Context context;
-    private Handler handler;
+    private final Context context;
+    private final Handler handler;
 
     public XMLReader(InputStream is, Context context, Handler handler) {
         // Creates a document that can be used to read tags with provided InputStream
@@ -152,7 +150,7 @@ public class XMLReader implements DatabaseReader{
                 }
             }
         }
-        Collections.sort(nodes, new Comparator<String[]>() {
+        nodes.sort(new Comparator<String[]>() {
             @Override
             public int compare(String[] strings, String[] t1) {
                 return Integer.valueOf(strings[1]).compareTo(Integer.valueOf(t1[1]));

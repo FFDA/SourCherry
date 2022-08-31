@@ -502,7 +502,7 @@ public class MainView extends AppCompatActivity {
         }
     }
 
-    private ActivityResultLauncher<Intent> searchActivity = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+    private final ActivityResultLauncher<Intent> searchActivity = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
         new ActivityResultCallback<ActivityResult>() {
             @Override
             public void onActivityResult(ActivityResult result) {

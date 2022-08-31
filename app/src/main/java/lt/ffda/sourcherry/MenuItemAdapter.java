@@ -64,10 +64,10 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     }
 
     // nodeList has values in this order: {name, unique_id, has_subnodes, is_parent, is_subnode}
-    private ArrayList<String[]> nodeList;
+    private final ArrayList<String[]> nodeList;
     private OnItemClickListener listener;
     private int selectedPos = RecyclerView.NO_POSITION;
-    private Context context;
+    private final Context context;
 
     public MenuItemAdapter(ArrayList<String[]> nodeList, Context context) {
         this.nodeList = nodeList;

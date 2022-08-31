@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
 
         // If launched the app by opening a file from different app
         Intent intent = getIntent();
-        if (intent.getAction() == Intent.ACTION_VIEW) {
+        if (intent.getAction().equals(Intent.ACTION_VIEW)) {
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, intent.getData());
             saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], intent.getData().toString());
 

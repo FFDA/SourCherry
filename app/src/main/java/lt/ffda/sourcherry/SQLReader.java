@@ -68,9 +68,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class SQLReader implements DatabaseReader {
-    private SQLiteDatabase sqlite;
-    private Context context;
-    private Handler handler;
+    private final SQLiteDatabase sqlite;
+    private final Context context;
+    private final Handler handler;
 
     public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler) {
         this.context = context;
@@ -84,10 +84,9 @@ public class SQLReader implements DatabaseReader {
         // Used for the search/filter in the drawer menu
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
-            ArrayList<String[]> nodes = new ArrayList<>();
 
             Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
-            nodes.addAll(returnSubnodeSearchArrayList(cursor));
+            ArrayList<String[]> nodes = new ArrayList<>(returnSubnodeSearchArrayList(cursor));
             cursor.close();
 
             return nodes;
@@ -216,7 +215,7 @@ public class SQLReader implements DatabaseReader {
         // Creates and returns the node that will be added to the node array as parent node
         Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueNodeID}, null, null,null);
 
-        String parentNodeName = "";
+        String parentNodeName;
         if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
             parentNodeName = cursor.getString(0);
         } else {
@@ -239,7 +238,7 @@ public class SQLReader implements DatabaseReader {
         // Returns array with appropriate nodes
         ArrayList<String[]> nodes = null;
 
-        String nodeParentID = "-1";
+        String nodeParentID;
         Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{uniqueID}, null, null, null);
         if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
             nodeParentID = cursor.getString(0);
