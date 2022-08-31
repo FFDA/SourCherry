@@ -131,6 +131,12 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             InputStream databaseInputStream = getContext().getContentResolver().openInputStream(databaseUri);
             OutputStream databaseOutputStream = new FileOutputStream(databaseOutputFile, false);
             long fileSize = databaseInputStream.available();
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    OpenDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
+                }
+            });
 
             // Copying files
             byte[] buf = new byte[8 * 1024];
@@ -211,6 +217,12 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             File tmpCompressedDatabase = File.createTempFile("tmpDatabaseFile", null);
             OutputStream os = new FileOutputStream(tmpCompressedDatabase, false);
             InputStream is = getContext().getContentResolver().openInputStream(Uri.parse(databaseString));
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    OpenDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
+                }
+            });
             // Copying files
             long fileSize = is.available();
             byte[] buf = new byte[4 * 1024];
