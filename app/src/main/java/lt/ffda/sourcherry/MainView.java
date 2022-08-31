@@ -150,7 +150,9 @@ public class MainView extends AppCompatActivity {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Toast.makeText(this, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
+            this.finish();
+            return;
         }
 
         if (savedInstanceState == null) {
