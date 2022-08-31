@@ -56,6 +56,8 @@ import org.xml.sax.InputSource;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -150,6 +152,12 @@ public class XMLReader implements DatabaseReader{
                 }
             }
         }
+        Collections.sort(nodes, new Comparator<String[]>() {
+            @Override
+            public int compare(String[] strings, String[] t1) {
+                return Integer.valueOf(strings[1]).compareTo(Integer.valueOf(t1[1]));
+            }
+        });
         return nodes;
     }
 
