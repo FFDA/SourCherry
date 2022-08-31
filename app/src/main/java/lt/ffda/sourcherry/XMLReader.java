@@ -75,7 +75,7 @@ public class XMLReader implements DatabaseReader{
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
-            this.doc = db.parse(new InputSource(is));
+            this.doc = db.parse(is);
         } catch (Exception e) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_read_database));
         }

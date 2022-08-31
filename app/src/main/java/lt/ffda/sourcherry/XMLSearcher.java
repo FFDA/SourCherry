@@ -28,7 +28,7 @@ public class XMLSearcher implements DatabaseSearcher{
         // Creates a document that can be used to read tags with provided InputStream
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
-        this.doc = db.parse(new InputSource(is));
+        this.doc = db.parse(is);
     }
 
     @Override
