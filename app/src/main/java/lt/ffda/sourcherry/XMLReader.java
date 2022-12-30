@@ -83,8 +83,6 @@ public class XMLReader implements DatabaseReader{
 
     @Override
     public ArrayList<String[]> getAllNodes(boolean noSearch) {
-        // Returns all the node from the document
-        // Used for the search/filter in the drawer menu
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
             NodeList nodeList = this.doc.getFirstChild().getChildNodes();
@@ -183,11 +181,17 @@ public class XMLReader implements DatabaseReader{
         return nodes;
     }
 
+    /**
+     * This function scans provided NodeList to collect all the nodes from it to be displayed as subnodes in drawer menu
+     * Most of the time it is used to collect information about subnodes of the node that is being opened
+     * However, it can be used to create information Main menu items
+     * In that case isSubnode should passed as "false"
+     * If true this value will make node look indented
+     * @param nodeList NodeList object to collect information about nodes from
+     * @param isSubnode "true" - means that node is not a subnode and should not be displayed indented in the drawer menu. "false" - apposite of that
+     * @return ArrayList of node's subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     */
     public ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isSubnode) {
-        // This function scans provided NodeList and
-        // returns ArrayList with nested String Arrays that
-        // holds individual menu items
-
         ArrayList<String[]> nodes = new ArrayList<>();
 
         for (int i=0; i < nodeList.getLength(); i++) {
@@ -205,6 +209,11 @@ public class XMLReader implements DatabaseReader{
         return nodes;
     }
 
+    /**
+     * Creates an ArrayList of String[] that can be used to display nodes during drawer menu search/filter function
+     * @param nodeList NodeList object to collect information about node in it
+     * @return ArrayList<String[]> that contains all the nodes of the provided NodeList object
+     */
     public ArrayList<String[]> returnSubnodeSearchArrayListList(NodeList nodeList) {
         // This function scans provided NodeList and
         // returns ArrayList with nested String Arrays that
@@ -228,6 +237,11 @@ public class XMLReader implements DatabaseReader{
         return nodes;
     }
 
+    /**
+     * Checks if provided Node object has a subnode(s)
+     * @param node Node object to check if it has subnodes
+     * @return true if node is a subnode
+     */
     public boolean hasSubnodes(Node node) {
         // Checks if provided node has nested "node" tag
         NodeList subNodes = node.getChildNodes();
@@ -240,17 +254,27 @@ public class XMLReader implements DatabaseReader{
         return false;
     }
 
+    /**
+     * Used during creation of the all the node in the document for drawer menu search/filter function
+     * For that reason created node is never a parent node or a subnode
+     * @param node node to collect information from
+     * @return String[] with information about provided node. Information is as fallows: {name, unique_id, has_subnodes, is_parent, is_subnode}
+     */
     private String[] returnSearchMenuItem(Node node) {
-        // Creates and returns single menu item from provided node
         String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
         String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
         String hasSubnode = String.valueOf(hasSubnodes(node));
-        String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
+        String isParent = "false";
         return new String[]{nameValue, uniqueID, hasSubnode, isParent, "false"};
     }
 
+    /**
+     * Parent node (top) in the drawer menu
+     * Used when creating a drawer menu
+     * @param parentNode Node object of the parent node from which parent (top) node information has to be collected
+     * @return String[] with information about parent node. Information is as fallows: {name, unique_id, has_subnodes, is_parent, is_subnode}
+     */
     public String[] createParentNode(Node parentNode) {
-        // Creates and returns the node that will be added to the node array as parent node
         String parentNodeName = parentNode.getAttributes().getNamedItem("name").getNodeValue();
         String parentNodeUniqueID = parentNode.getAttributes().getNamedItem("unique_id").getNodeValue();
         String parentNodeHasSubnode = String.valueOf(hasSubnodes(parentNode));
@@ -317,9 +341,6 @@ public class XMLReader implements DatabaseReader{
 
     @Override
     public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String uniqueID) {
-        // Original XML document has newline characters marked
-        // Returns ArrayList of SpannableStringBuilder elements
-
         ArrayList<ArrayList<CharSequence[]>> nodeContent = new ArrayList<>(); // The one that will be returned
 
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
@@ -561,10 +582,16 @@ public class XMLReader implements DatabaseReader{
         return formattedNodeText;
     }
 
+    /**
+     * Creates a codebox span from the provided Node object
+     * Formatting depends on Codeboxes height and width
+     * It is retrieved from the tag using getCodeBoxHeightWidth()
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param node Node object that has codebox content
+     * @return SpannableStringBuilder that has spans marked for string formatting
+     */
     public SpannableStringBuilder makeFormattedCodebox(Node node) {
-        // Returns SpannableStringBuilder that has spans marked for string formatting
-        // Formatting depends on Codeboxes height and width
-        // It is retrieved from the tag using getCodeBoxHeightWidth()
         SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
         formattedCodebox.append(node.getTextContent());
 
@@ -599,10 +626,15 @@ public class XMLReader implements DatabaseReader{
         return formattedCodebox;
     }
 
+    /**
+     * Creates SpannableStringBuilder with the content of the CodeNode
+     * CodeNode is just a CodeBox that do not have height and width (dimensions)
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param node Node object that contains content of the node
+     * @return SpannableStringBuilder that has spans marked for string formatting
+     */
     public SpannableStringBuilder makeFormattedCodeNode(Node node) {
-        // Returns SpannableStringBuilder that has spans marked for string formatting
-        // CodeNode is just a CodeBox that do not have height and width (dimensions)
-
         SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
         formattedCodeNode.append(node.getTextContent());
 
@@ -619,10 +651,17 @@ public class XMLReader implements DatabaseReader{
         return formattedCodeNode;
     }
 
-    public SpannableStringBuilder makeImageSpan(Node node, String nodeUniqueID, String imageOffset) {
-        // Returns SpannableStringBuilder that has spans with images in them
-        // Images are decoded from Base64 string embedded in the tag
-
+    /**
+     * Creates a SpannableStringBuilder with image in it
+     * Image is created from Base64 string embedded in the tag
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param node Node object that has Image embedded in it
+     * @param uniqueID uniqueID of the node that has image embedded in it
+     * @param imageOffset image offset that can be extracted from the taf of the node
+     * @return SpannableStringBuilder that has spans with image in them
+     */
+    public SpannableStringBuilder makeImageSpan(Node node, String uniqueID, String imageOffset) {
         SpannableStringBuilder formattedImage = new SpannableStringBuilder();
 
         //* Adds image to the span
@@ -653,7 +692,7 @@ public class XMLReader implements DatabaseReader{
                     // Starting activity to view enlarged zoomable image
                     Intent displayImage = new Intent(context, ImageViewActivity.class);
                     displayImage.putExtra("type", "image");
-                    displayImage.putExtra("imageNodeUniqueID", nodeUniqueID);
+                    displayImage.putExtra("imageNodeUniqueID", uniqueID);
                     displayImage.putExtra("imageOffset", imageOffset);
                     context.startActivity(displayImage);
                 }
@@ -669,10 +708,15 @@ public class XMLReader implements DatabaseReader{
         return formattedImage;
     }
 
+    /**
+     * Creates a SpannableStringBuilder with image with drawn Latex formula
+     * Image is created from latex code string embedded in the tag
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param node Node object that has a Tatex code embedded in it
+     * @return SpannableStringBuilder that has span with Latex image in them
+     */
     public SpannableStringBuilder makeLatexImageSpan(Node node) {
-        // Returns SpannableStringBuilder that has span with images in them
-        // Image is created from latex code string embedded in the tag
-
         SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
 
         //* Creates and adds image to the span
@@ -734,9 +778,16 @@ public class XMLReader implements DatabaseReader{
         return formattedLatexImage;
     }
 
+    /**
+     * Creates a clickable span that initiates a context to open/save attached file
+     * Files are decoded from Base64 string embedded in the tag
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param node Node object that contains filename and datetime parameters
+     * @param uniqueID uniqueID of the node to which file was attached to
+     * @return SpannableStringBuilder that has spans with image and filename
+     */
     public SpannableStringBuilder makeAttachedFileSpan(Node node, String uniqueID) {
-        // Returns SpannableStringBuilder that has spans with images and filename
-        // Files are decoded from Base64 string embedded in the tag
 
         String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
         String time = node.getAttributes().getNamedItem("time").getNodeValue();
@@ -787,14 +838,14 @@ public class XMLReader implements DatabaseReader{
     }
 
     @Override
-    public ClickableSpan makeAnchorLinkSpan(String nodeUniqueID) {
+    public ClickableSpan makeAnchorLinkSpan(String uniqueID) {
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
 
         return new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
-                ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
+                ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(uniqueID));
             }
 
             @Override
@@ -854,10 +905,10 @@ public class XMLReader implements DatabaseReader{
 
     public CharSequence[] getTableMaxMin(Node node) {
         // They will be used to set min and max width for table cell
-
         Element el = (Element) node;
         String colMax = el.getAttribute("col_max");
         String colMin = el.getAttribute("col_min");
+
         return new CharSequence[] {colMax, colMin};
     }
 

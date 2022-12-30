@@ -80,11 +80,8 @@ public class SQLReader implements DatabaseReader {
 
     @Override
     public ArrayList<String[]> getAllNodes(boolean noSearch) {
-        // Returns all the node from the document
-        // Used for the search/filter in the drawer menu
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
-
             Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
             ArrayList<String[]> nodes = new ArrayList<>(returnSubnodeSearchArrayList(cursor));
             cursor.close();
@@ -138,6 +135,16 @@ public class SQLReader implements DatabaseReader {
         return nodes;
     }
 
+    /**
+     * This function scans provided Cursor to collect all the nodes from it to be displayed as subnodes in drawer menu
+     * Most of the time it is used to collect information about subnodes of the node that is being opened
+     * However, it can be used to create information Main menu items
+     * In that case isSubnode should passed as "false"
+     * If true this value will make node look indented
+     * @param cursor SQL Cursor object that contains nodes from which to make a node list
+     * @param isSubnode "true" - means that node is not a subnode and should not be displayed indented in the drawer menu. "false" - apposite of that
+     * @return ArrayList of node's subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     */
     public ArrayList<String[]> returnSubnodeArrayList(Cursor cursor, String isSubnode) {
         // This function scans provided NodeList and
         // returns ArrayList with nested String Arrays that
@@ -156,6 +163,11 @@ public class SQLReader implements DatabaseReader {
         return nodes;
     }
 
+    /**
+     * Creates an ArrayList of String[] that can be used to display nodes during drawer menu search/filter function
+     * @param cursor SQL Cursor object that contains nodes from which to make a node list
+     * @return ArrayList<String[]> that contains all the nodes of the provided cursor object
+     */
     public ArrayList<String[]> returnSubnodeSearchArrayList(Cursor cursor) {
         // This function scans provided NodeList and
         // based on node.level value (to exclude node/subnodes from search)
@@ -198,9 +210,14 @@ public class SQLReader implements DatabaseReader {
         return nodes;
     }
 
-    public String hasSubnodes(String uniqueNodeID) {
+    /**
+     * Checks if provided Node object has a subnode(s)
+     * @param uniqueID uniqueID of the node that is being checked for subnodes
+     * @return "true" (string) if node has a subnode, "false" - if not
+     */
+    public String hasSubnodes(String uniqueID) {
         // Checks if node with provided unique_id has subnodes
-        Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{uniqueNodeID},null,null,null);
+        Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{uniqueID},null,null,null);
 
         if (cursor.getCount() > 0) {
             cursor.close();
@@ -211,9 +228,15 @@ public class SQLReader implements DatabaseReader {
         }
     }
 
-    public String[] createParentNode(String uniqueNodeID) {
+    /**
+     * Parent node (top) in the drawer menu
+     * Used when creating a drawer menu
+     * @param uniqueID uniqueID of the node that is parent node
+     * @return String[] with information about provided node. Information is as fallows: {name, unique_id, has_subnodes, is_parent, is_subnode}
+     */
+    public String[] createParentNode(String uniqueID) {
         // Creates and returns the node that will be added to the node array as parent node
-        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueNodeID}, null, null,null);
+        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueID}, null, null,null);
 
         String parentNodeName;
         if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
@@ -221,7 +244,7 @@ public class SQLReader implements DatabaseReader {
         } else {
             return null;
         }
-        String parentNodeUniqueID = uniqueNodeID;
+        String parentNodeUniqueID = uniqueID;
         String parentNodeHasSubnode = hasSubnodes(parentNodeUniqueID);
         String parentNodeIsParent = "true";
         String parentNodeIsSubnode = "false";
@@ -257,25 +280,25 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] getSingleMenuItem(String uniqueNodeID) {
+    public String[] getSingleMenuItem(String uniqueID) {
         // Returns single menu item to be used when opening anchor links
         String[] currentNodeArray = null;
-        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueNodeID}, null, null,null);
+        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueID}, null, null,null);
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // Node name and unique_id always the same for the node
             String nameValue = cursor.getString(0);
-            if (hasSubnodes(uniqueNodeID).equals("true")) {
+            if (hasSubnodes(uniqueID).equals("true")) {
                 // if node has subnodes, then it has to be opened as a parent node and displayed as such
                 String hasSubnode = "true";
                 String isParent = "true";
                 String isSubnode = "false";
-                currentNodeArray = new String[]{nameValue, uniqueNodeID, hasSubnode, isParent, isSubnode};
+                currentNodeArray = new String[]{nameValue, uniqueID, hasSubnode, isParent, isSubnode};
             } else {
                 // If node doesn't have subnodes, then it has to be opened as subnode of some other node
                 String hasSubnode = "false";
                 String isParent = "false";
                 String isSubnode = "true";
-                currentNodeArray = new String[]{nameValue, uniqueNodeID, hasSubnode, isParent, isSubnode};
+                currentNodeArray = new String[]{nameValue, uniqueID, hasSubnode, isParent, isSubnode};
             }
         }
         cursor.close();
@@ -626,6 +649,16 @@ public class SQLReader implements DatabaseReader {
         return formattedNodeText;
     }
 
+    /**
+     * Creates a codebox span from the provided nodeContent string
+     * Formatting depends on Codeboxes height and width
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param nodeContent content of the codebox
+     * @param frameWidth Width of the codebox frame
+     * @param frameHeight Height of the codebox frame
+     * @return SpannableStringBuilder that has spans marked for string formatting
+     */
     public SpannableStringBuilder makeFormattedCodebox(String nodeContent, int frameWidth, int frameHeight ) {
         // Returns SpannableStringBuilder that has spans marked for string formatting
         // Formatting depends on Codebox'es height and width
@@ -662,10 +695,15 @@ public class SQLReader implements DatabaseReader {
         return formattedCodebox;
     }
 
+    /**
+     * Creates SpannableStringBuilder with the content of the CodeNode
+     * CodeNode is just a CodeBox that do not have height and width (dimensions)
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param nodeContent content of the code node
+     * @return SpannableStringBuilder that has spans marked for string formatting
+     */
     public SpannableStringBuilder makeFormattedCodeNode(String nodeContent) {
-        // Returns SpannableStringBuilder that has spans marked for string formatting
-        // CodeNode is just a CodeBox that do not have height and width (dimensions)
-
         SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
         formattedCodeNode.append(nodeContent);
 
@@ -682,7 +720,17 @@ public class SQLReader implements DatabaseReader {
         return formattedCodeNode;
     }
 
-    public SpannableStringBuilder makeImageSpan(byte[] imageBlob, String nodeUniqueID, String imageOffset) {
+    /**
+     * Creates a SpannableStringBuilder with image in it
+     * Image is created from byte[]
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param imageBlob byte[] that has data for the image
+     * @param uniqueID uniqueID of the node that has the image embedded
+     * @param imageOffset offset of the image in the node
+     * @return SpannableStringBuilder that has spans with image in them
+     */
+    public SpannableStringBuilder makeImageSpan(byte[] imageBlob, String uniqueID, String imageOffset) {
         // Returns SpannableStringBuilder that has spans with images in them
         // Images are decoded from byte array that was passed to the function
 
@@ -714,7 +762,7 @@ public class SQLReader implements DatabaseReader {
                     // Starting activity to view enlarged zoomable image
                     Intent displayImage = new Intent(context, ImageViewActivity.class);
                     displayImage.putExtra("type", "image");
-                    displayImage.putExtra("imageNodeUniqueID", nodeUniqueID);
+                    displayImage.putExtra("imageNodeUniqueID", uniqueID);
                     displayImage.putExtra("imageOffset", imageOffset);
                     context.startActivity(displayImage);
                 }
@@ -732,10 +780,15 @@ public class SQLReader implements DatabaseReader {
         return formattedImage;
     }
 
+    /**
+     * Creates a SpannableStringBuilder with image with drawn Latex formula in it
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param imageBlob byte[] that is actually a String that contains LaTex formula
+     * @return SpannableStringBuilder that has span with Latex image in them
+     */
     public SpannableStringBuilder makeLatexImageSpan(byte[] imageBlob) {
-        // Returns SpannableStringBuilder that has span with images in them
         // Image is created from byte[] that is passed as an arguments
-
         SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
 
         //* Creates and adds image to the span
@@ -748,7 +801,7 @@ public class SQLReader implements DatabaseReader {
                         "\\begin{document}\n" +
                         "\\begin{align*}", "")
                 .replace("\\end{align*}\n\\end{document}", "")
-                .replaceAll("&=", "="); // Removing & sing, otherwise latex image fails to compile
+                .replaceAll("&=", "="); // Removing & sign, otherwise latex image fails to compile
 
             final JLatexMathDrawable latexDrawable = JLatexMathDrawable.builder(latexString)
                     .textSize(40)
@@ -795,10 +848,17 @@ public class SQLReader implements DatabaseReader {
         return formattedLatexImage;
     }
 
+    /**
+     * Creates a clickable span that initiates a context to open/save attached file
+     * Arguments that a passed to this function has to be retrieved from the appropriate tables in the database
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param uniqueID uniqueID of the node that has file attached in it
+     * @param attachedFileFilename filename of the attached file
+     * @param time datetime of when file was attached to the node
+     * @return Clickable spannableStringBuilder that has spans with image and filename
+     */
     public SpannableStringBuilder makeAttachedFileSpan(String uniqueID, String attachedFileFilename, String time) {
-        // Returns SpannableStringBuilder that has spans with images and filename
-        // Files are decoded from Base64 string embedded in the tag
-
         SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
 
         formattedAttachedFile.append(" "); // Needed to insert image
@@ -845,14 +905,14 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ClickableSpan makeAnchorLinkSpan(String nodeUniqueID) {
+    public ClickableSpan makeAnchorLinkSpan(String uniqueID) {
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
 
         return new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
-                ((MainView) SQLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
+                ((MainView) SQLReader.this.context).openAnchorLink(getSingleMenuItem(uniqueID));
             }
 
             @Override
@@ -929,6 +989,7 @@ public class SQLReader implements DatabaseReader {
             cursor.close();
         }
     }
+
     @Override
     public byte[] getImageByteArray(String nodeUniqueID, String offset) {
         // Returns image byte array to be displayed in ImageViewActivity because some of the images are too big to pass in a bundle
@@ -958,13 +1019,15 @@ public class SQLReader implements DatabaseReader {
         }
     }
 
+    /**
+     * SQL Database has a XML document inserted in to it in a form of the String
+     * With all the tags an attributes the same way as in XML document
+     * So SQL document is just a XML document with extra steps
+     * @param nodeString String object with all the information of the node or it's table
+     * @param type node type to select ("node" or "table")
+     * @return NodeList object with content of the node
+     */
     public NodeList getNodeFromString(String nodeString, String type) {
-        // SQL Database has a XML document inserted in to it
-        // XML document is for node content formatting
-        // So SQL document is just a XML document with extra steps
-        // For that reason node with all the content has to be separated from other tags for processing
-        // Variable type is just node type to select (node or table values)
-
         try {
             Document doc = DocumentBuilderFactory
                     .newInstance()
