@@ -146,9 +146,6 @@ public class SQLReader implements DatabaseReader {
      * @return ArrayList of node's subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
      */
     public ArrayList<String[]> returnSubnodeArrayList(Cursor cursor, String isSubnode) {
-        // This function scans provided NodeList and
-        // returns ArrayList with nested String Arrays that
-        // holds individual menu items
         ArrayList<String[]> nodes = new ArrayList<>();
 
         while (cursor.moveToNext()) {
@@ -165,14 +162,11 @@ public class SQLReader implements DatabaseReader {
 
     /**
      * Creates an ArrayList of String[] that can be used to display nodes during drawer menu search/filter function
+     * ArrayList is creaded based on node.level value (to exclude node/subnodes from search)
      * @param cursor SQL Cursor object that contains nodes from which to make a node list
      * @return ArrayList<String[]> that contains all the nodes of the provided cursor object
      */
     public ArrayList<String[]> returnSubnodeSearchArrayList(Cursor cursor) {
-        // This function scans provided NodeList and
-        // based on node.level value (to exclude node/subnodes from search)
-        // returns ArrayList with nested String Arrays that
-        // holds individual menu items
         ArrayList<String[]> nodes = new ArrayList<>();
 
         while (cursor.moveToNext()) {
