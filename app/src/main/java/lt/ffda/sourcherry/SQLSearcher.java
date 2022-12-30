@@ -247,7 +247,13 @@ public class SQLSearcher implements DatabaseSearcher{
                             if (!codeboxTableImageCursor.getString(1).equals("__ct_special.tex")) {
                                 // If it is not LaTex file
                                 String attachedFileFilename = " " + codeboxTableImageCursor.getString(1) + " ";
-                                nodeContent.insert(charOffset + totalCharOffset, attachedFileFilename);
+                                if (nodeContent.length() < charOffset + totalCharOffset) {
+                                    // This check most likely needed in Searcher, but not in Reader
+                                    // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                                    nodeContent.append(attachedFileFilename);
+                                } else {
+                                    nodeContent.insert(charOffset + totalCharOffset, attachedFileFilename);
+                                }
                                 totalCharOffset += attachedFileFilename.length() - 1;
                                 continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                             }
@@ -255,7 +261,13 @@ public class SQLSearcher implements DatabaseSearcher{
                     } else if (codeboxTableImageCursor.getInt(2) == 7) {
                         // codebox row
                         String codeboxText = codeboxTableImageCursor.getString(1);
-                        nodeContent.insert(charOffset + totalCharOffset, codeboxText);
+                        if (nodeContent.length() < charOffset + totalCharOffset) {
+                            // This check most likely needed in Searcher, but not in Reader
+                            // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                            nodeContent.append(codeboxText);
+                        } else {
+                            nodeContent.insert(charOffset + totalCharOffset, codeboxText);
+                        }
                         totalCharOffset += codeboxText.length() - 1;
                     } else if (codeboxTableImageCursor.getInt(2) == 8) {
                         StringBuilder tableContent = new StringBuilder();
@@ -287,7 +299,13 @@ public class SQLSearcher implements DatabaseSearcher{
                         }
 
                         // Adding table's content to nodes content string builder
-                        nodeContent.insert(charOffset + totalCharOffset, tableContent);
+                        if (nodeContent.length() < charOffset + totalCharOffset) {
+                            // This check most likely needed in Searcher, but not in Reader
+                            // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                            nodeContent.append(tableContent);
+                        } else {
+                            nodeContent.insert(charOffset + totalCharOffset, tableContent);
+                        }
                         // Changing total offset value with a value of the table content, because CherryTree uses different GUI toolkit
                         // And without doing this the first element with offset would mess node content order (or maybe that's by design)
                         totalCharOffset += tableContent.length() - 1;
