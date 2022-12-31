@@ -258,6 +258,10 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
 
             while (entry != null) {
                 tmpDatabaseFilename = entry.getName(); // Getting the (current) name of the file inside the archive
+                // At some point filenames inside CherryTree password protected archives were changed to include a random(?) integer
+                // in the middle of the filename. To make it look normal again I had to remove it
+                String[] tmpDatabaseFilenameArray = tmpDatabaseFilename.split("\\."); // Splitting filename in to array at avery dot
+                tmpDatabaseFilename = tmpDatabaseFilenameArray[0] + "." + tmpDatabaseFilenameArray[tmpDatabaseFilenameArray.length -1]; // Joining first and last part of the filename array
                 totalLen = 0; // Resetting totalLen value
                 FileOutputStream out = new FileOutputStream(new File(databaseDir, tmpDatabaseFilename));
                 InputStream in = sevenZFile.getInputStream(entry);
