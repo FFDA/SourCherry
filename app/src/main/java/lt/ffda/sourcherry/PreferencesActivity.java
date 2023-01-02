@@ -14,11 +14,15 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+import androidx.preference.Preference;
+import androidx.preference.PreferenceFragmentCompat;
 
 import android.os.Bundle;
 import android.view.MenuItem;
 
-public class PreferencesActivity extends AppCompatActivity {
+public class PreferencesActivity extends AppCompatActivity implements
+        PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,9 +47,28 @@ public class PreferencesActivity extends AppCompatActivity {
         // Overrides default action for back button that reloaded MainView activity to blank screen
         int id = item.getItemId();
         if (id == android.R.id.home) {
-            finish();
-            return true;
+            if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
+                this.finish();
+            } else {
+                getSupportFragmentManager().popBackStack();
+            }
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onPreferenceStartFragment(@NonNull PreferenceFragmentCompat caller, @NonNull Preference pref) {
+        // Instantiate the new Fragment
+        final Bundle args = pref.getExtras();
+        final Fragment fragment = getSupportFragmentManager().getFragmentFactory().instantiate(
+                getClassLoader(),
+                pref.getFragment());
+        fragment.setArguments(args);
+        // Replace the existing Fragment with the new Fragment
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.preferences_activity_view, fragment)
+                .addToBackStack(null)
+                .commit();
+        return true;
     }
 }

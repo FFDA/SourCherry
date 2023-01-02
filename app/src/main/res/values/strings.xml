@@ -3,6 +3,7 @@
     <string name="button_create_database">Create database</string>
     <string name="button_select_database">Select database</string>
     <string name="button_open">Open</string>
+    <string name="button_ok">OK</string>
     <string name="text_password_label">Password</string>
     <string name="text_message_no_database">Create or select a CherryTree database</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
@@ -32,6 +33,7 @@
     <string name="toast_error_could_not_open_a_file_to_copy_the_database">Could not open a file to copy the database</string>
     <string name="toast_error_could_not_copy_the_database">Could not copy the database</string>
     <string name="toast_error_does_not_look_like_a_cherrytree_database">Does not look like a CherryTree database</string>
+    <string name="toast_error_xml_databases_are_not_supported">XML databases are not supported</string>
     <string name="toast_message_please_enter_password">Please enter the password</string>
     <string name="open_database_fragment_copying_database_message">Copying database to app-specific storage</string>
     <string name="open_database_fragment_extracting_database_message">Extracting database</string>
@@ -77,6 +79,17 @@
     <string name="preferences_restore_last_node_title">Restore last node on startup</string>
     <string name="preferences_cursor_window_size_title">SQL cursor window size</string>
     <string name="preferences_cursor_window_size_summary">Adjust if some images or attached files do not open in SQL database. Default Android value is 2. Increasing value might cause instabilities.</string>
+    <string name="preferences_screen_mirror_database_title">Mirror database</string>
+    <string name="preferences_screen_mirror_database_screen_summary">Copy database from external storage at launch</string>
+    <string name="preferences_screen_mirror_database_message_summary">Checks selected file at launch for changes. If any changes are detected new file will be copied to app\'s internal storage and old database overwritten</string>
+    <string name="preferences_screen_mirror_database_switch_summary">Turn databases mirroring on and off</string>
+    <string name="preferences_screen_mirror_database_mirror_database_folder_title">Mirror database folder</string>
+    <string name="preferences_screen_mirror_database_mirror_database_folder_summary">No mirror database folder selected</string>
+    <string name="preferences_screen_mirror_database_mirror_database_file_title">Mirror database file</string>
+    <string name="preferences_screen_mirror_database_mirror_database_file_summary">No mirror file selected</string>
+    <string name="preferences_screen_mirror_database_mirror_database_file_last_modified_title">Mirror database last time modified</string>
+    <string name="preferences_screen_mirror_database_mirror_database_more_info">More information on GitHub</string>
+    <string name="mirror_database_fragment_enter_password_message">Please enter the password</string>
     <string name="navigation_drawer_button_back_content_description">Button BACK. Displayed when bookmarks are being showed to the user. When pressed - returns to menu that was displayed before user tapped bookmarks button.</string>
     <string name="navigation_drawer_button_up_content_description">Button UP. Displayed in normal navigation mode. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>
     <string name="navigation_drawer_button_home_content_description">Button HOME. Displayed in normal navigation and bookmark modes. When pressed - loads home menu (top of the tree).</string>

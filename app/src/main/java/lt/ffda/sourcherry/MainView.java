@@ -166,7 +166,7 @@ public class MainView extends AppCompatActivity {
             this.filterNodeToggle = false;
             this.findInNodeToggle = false;
             this.currentFindInNodeMarked = -1;
-            if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.sharedPreferences.getString("last_node_name", null) != null) {
+            if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.sharedPreferences.getString("last_node_name", null) != null && this.reader.doesNodeExist(this.sharedPreferences.getString("last_node_unique_id", null))) {
                 // Restores node on startup if user set this in settings
                 this.currentNodePosition = this.sharedPreferences.getInt("last_node_position", -1);
                 this.currentNode = new String[]{this.sharedPreferences.getString("last_node_name", null), this.sharedPreferences.getString("last_node_unique_id", null), this.sharedPreferences.getString("last_node_has_subnodes", null), this.sharedPreferences.getString("last_node_is_parent", null), this.sharedPreferences.getString("last_node_is_subnode", null)};
@@ -175,7 +175,7 @@ public class MainView extends AppCompatActivity {
                 } else {
                     this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
                 }
-            }  else {
+            } else {
                 this.currentNodePosition = -1;
                 this.currentNode = null; // This needs to be placed before restoring the instance if there was one
                 this.mainViewModel.setNodes(this.reader.getMainNodes());

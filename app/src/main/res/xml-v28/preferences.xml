@@ -75,4 +75,10 @@
         android:defaultValue="15"
         app:showSeekBarValue="true"
         app:allowDividerAbove="true"/>
+
+    <Preference
+        android:key="preferences_screen_mirror_database"
+        android:title="@string/preferences_screen_mirror_database_title"
+        android:summary="@string/preferences_screen_mirror_database_screen_summary"
+        android:fragment="lt.ffda.sourcherry.PreferencesFragmentMirrorDatabase"/>
 </PreferenceScreen>

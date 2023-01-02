@@ -61,6 +61,7 @@
         <entry key="app/src/main/res/layout/activity_xmlview.xml" value="0.33" />
         <entry key="app/src/main/res/layout/app_bar_main.xml" value="0.18229166666666666" />
         <entry key="app/src/main/res/layout/babab.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/layout/dialog_mirror_database_progress.xml" value="0.35260416666666666" />
         <entry key="app/src/main/res/layout/dialog_open_database_progress.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/dialog_open_database_progress_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/dialog_save_open_fragment.xml" value="0.35572916666666665" />
@@ -89,8 +90,10 @@
         <entry key="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.2" />
         <entry key="app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" value="0.299" />
         <entry key="app/src/main/res/xml-v26/preferences.xml" value="0.18854166666666666" />
-        <entry key="app/src/main/res/xml-v28/preferences.xml" value="0.2909090909090909" />
+        <entry key="app/src/main/res/xml-v28/preferences.xml" value="0.33" />
         <entry key="app/src/main/res/xml/preferences.xml" value="0.3567708333333333" />
+        <entry key="app/src/main/res/xml/preferences_mirror_database.xml" value="0.35260416666666666" />
+        <entry key="app/src/main/res/xml/preferences_mirror_directory.xml" value="0.3515625" />
       </map>
     </option>
   </component>

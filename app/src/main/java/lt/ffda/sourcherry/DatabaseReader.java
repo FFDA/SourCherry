@@ -206,4 +206,11 @@ public interface DatabaseReader {
      * @return ImageSpan with broken image image
      */
     SpannableStringBuilder getBrokenImageSpan(int type);
+
+    /**
+     * Checks database if the node exists in it
+     * @param uniqueID uniqueID of the node to check existence of
+     * @return true - if node exists, false - if it doesn't
+     */
+    boolean doesNodeExist(String uniqueID);
 }

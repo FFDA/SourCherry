@@ -1025,4 +1025,16 @@ public class XMLReader implements DatabaseReader{
 
         return brokenSpan;
     }
+
+    @Override
+    public boolean doesNodeExist(String uniqueID) {
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
