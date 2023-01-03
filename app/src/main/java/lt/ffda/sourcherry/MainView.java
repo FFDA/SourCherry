@@ -166,15 +166,15 @@ public class MainView extends AppCompatActivity {
             this.filterNodeToggle = false;
             this.findInNodeToggle = false;
             this.currentFindInNodeMarked = -1;
-            if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.sharedPreferences.getString("last_node_name", null) != null && this.reader.doesNodeExist(this.sharedPreferences.getString("last_node_unique_id", null))) {
+            if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.reader.doesNodeExist(this.sharedPreferences.getString("last_node_unique_id", null))) {
                 // Restores node on startup if user set this in settings
-                this.currentNodePosition = this.sharedPreferences.getInt("last_node_position", -1);
                 this.currentNode = this.reader.getSingleMenuItem(this.sharedPreferences.getString("last_node_unique_id", null));
                 if (this.currentNode[2].equals("true")) { // Checks if menu has subnodes and creates appropriate menu
                     this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
                 } else {
                     this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
                 }
+                this.setCurrentNodePosition();
             } else {
                 this.currentNodePosition = -1;
                 this.currentNode = null; // This needs to be placed before restoring the instance if there was one
@@ -557,15 +557,9 @@ public class MainView extends AppCompatActivity {
     public void onStop() {
         super.onStop();
         if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.currentNode != null) {
-            // Saving current current node state to be able to load it on next startup
+            // Saving current current node uniqueID to be able to load it on next startup
             SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
             sharedPreferencesEditor.putString("last_node_unique_id", this.currentNode[1]);
-            if (this.bookmarksToggle || this.filterNodeToggle) {
-                // If search or bookmarks were being shown temporary node position needs to be saved
-                sharedPreferencesEditor.putInt("last_node_position", this.tempCurrentNodePosition);
-            } else {
-                sharedPreferencesEditor.putInt("last_node_position", this.currentNodePosition);
-            }
             sharedPreferencesEditor.apply();
         }
     }
@@ -624,6 +618,19 @@ public class MainView extends AppCompatActivity {
             if (this.mainViewModel.getNodes().get(index)[1].equals(this.currentNode[1])) {
                 this.currentNodePosition = index;
                 this.adapter.markItemSelected(this.currentNodePosition);
+            }
+        }
+    }
+
+    /**
+     * Sets current node as opened in drawer menu
+     * by finding it's uniqueID in drawer menu items
+     * and setting it's index as this.currentNodePosition
+     */
+    private void setCurrentNodePosition() {
+        for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
+            if (this.mainViewModel.getNodes().get(index)[1].equals(this.currentNode[1])) {
+                this.currentNodePosition = index;
             }
         }
     }
