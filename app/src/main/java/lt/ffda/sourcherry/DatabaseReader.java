@@ -57,15 +57,17 @@ public interface DatabaseReader {
 
     /**
      * Checks if it is possible to go up in document's node tree from given node's uniqueID
+     * Depending on result it will return ArrayList of subnodes of the parent node of given uniqueID
+     * or return main menu nodes
      * @param uniqueID uniqueID of the node which parent node with subnodes to return
      * @return ArrayList subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
      */
     ArrayList<String[]> getParentWithSubnodes(String uniqueID);
 
     /**
-     * Returns single menu item to be used when opening anchor links
+     * Returns single menu item with current information
      * @param uniqueID uniqueID of the node to find and return
-     * @return Singlge drawer menu item. It is represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return Single drawer menu item. It is represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
      */
     String[] getSingleMenuItem(String uniqueID);
 

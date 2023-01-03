@@ -169,7 +169,7 @@ public class MainView extends AppCompatActivity {
             if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.sharedPreferences.getString("last_node_name", null) != null && this.reader.doesNodeExist(this.sharedPreferences.getString("last_node_unique_id", null))) {
                 // Restores node on startup if user set this in settings
                 this.currentNodePosition = this.sharedPreferences.getInt("last_node_position", -1);
-                this.currentNode = new String[]{this.sharedPreferences.getString("last_node_name", null), this.sharedPreferences.getString("last_node_unique_id", null), this.sharedPreferences.getString("last_node_has_subnodes", null), this.sharedPreferences.getString("last_node_is_parent", null), this.sharedPreferences.getString("last_node_is_subnode", null)};
+                this.currentNode = this.reader.getSingleMenuItem(this.sharedPreferences.getString("last_node_unique_id", null));
                 if (this.currentNode[2].equals("true")) { // Checks if menu has subnodes and creates appropriate menu
                     this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
                 } else {
@@ -559,11 +559,7 @@ public class MainView extends AppCompatActivity {
         if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.currentNode != null) {
             // Saving current current node state to be able to load it on next startup
             SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-            sharedPreferencesEditor.putString("last_node_name", this.currentNode[0]);
             sharedPreferencesEditor.putString("last_node_unique_id", this.currentNode[1]);
-            sharedPreferencesEditor.putString("last_node_has_subnodes", this.currentNode[2]);
-            sharedPreferencesEditor.putString("last_node_is_parent", this.currentNode[3]);
-            sharedPreferencesEditor.putString("last_node_is_subnode", this.currentNode[4]);
             if (this.bookmarksToggle || this.filterNodeToggle) {
                 // If search or bookmarks were being shown temporary node position needs to be saved
                 sharedPreferencesEditor.putInt("last_node_position", this.tempCurrentNodePosition);
