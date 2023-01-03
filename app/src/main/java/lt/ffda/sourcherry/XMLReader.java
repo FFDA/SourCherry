@@ -584,8 +584,9 @@ public class XMLReader implements DatabaseReader{
 
     /**
      * Creates a codebox span from the provided Node object
-     * Formatting depends on Codeboxes height and width
-     * It is retrieved from the tag using getCodeBoxHeightWidth()
+     * Formatting depends on new line characters in Node object
+     * if codebox content has new line character it means that it has to span multiple lines
+     * if not it's a single line box
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
      * @param node Node object that has codebox content
@@ -599,15 +600,7 @@ public class XMLReader implements DatabaseReader{
         TypefaceSpan tf = new TypefaceSpan("monospace");
         formattedCodebox.setSpan(tf, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
-        int[] codeboxDimensions = this.getCodeBoxHeightWidth(node);
-
-        // This part of codebox formatting depends on size of the codebox
-        // Because if user made a small codebox it might have text in front or after it
-        // For this reason some of the formatting can't be spanned over all the line
-        if (codeboxDimensions[0] < 30 && codeboxDimensions [1] < 200) {
-            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
-            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else {
+        if (node.getTextContent().contains("\n")) {
             // Adds vertical line in front the paragraph, to make it stand out as quote
             QuoteSpan qs;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -621,6 +614,9 @@ public class XMLReader implements DatabaseReader{
                 LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
                 formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
+        } else {
+            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
+            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
         return formattedCodebox;
@@ -893,18 +889,26 @@ public class XMLReader implements DatabaseReader{
         return rowCells;
     }
 
+    /**
+     * Returns character offset value that is used in codebox and encoded_png tags
+     * It is needed to add text in the correct location
+     * One needs to -1 from the value to make it work
+     * I don't have any idea why
+     * @param node Node object to extract it's character offset
+     * @return offset of the node content
+     */
     public int getCharOffset(Node node) {
-        // Returns character offset value that is used in codebox and encoded_png tags
-        // It is needed to add text in the correct location
-        // One needs to -1 from the value to make it work
-        // I don't have and idea why
-
         Element el = (Element) node;
         return Integer.parseInt(el.getAttribute("char_offset"));
     }
 
+    /**
+     * Returns embedded table dimensions in the node
+     * Used to set min and max width for the table cell
+     * @param node table Node object
+     * @return CharSequence[] {colMax, colMin} of table dimensions
+     */
     public CharSequence[] getTableMaxMin(Node node) {
-        // They will be used to set min and max width for table cell
         Element el = (Element) node;
         String colMax = el.getAttribute("col_max");
         String colMin = el.getAttribute("col_min");
@@ -912,6 +916,12 @@ public class XMLReader implements DatabaseReader{
         return new CharSequence[] {colMax, colMin};
     }
 
+    /**
+     * Depreciated
+     * While function works it no longer used in creating codeboxes
+     * @param node codebox node from which extract codebox dimensions that are embedded into tags
+     * @return int[] {frameHeight, frameWidth} with codebox dimensions
+     */
     public int[] getCodeBoxHeightWidth(Node node) {
         // This returns int[] with in codebox tag embedded box dimensions
         // They will be used to guess what type of formatting to use

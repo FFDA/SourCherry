@@ -47,6 +47,7 @@ import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -456,9 +457,9 @@ public class SQLReader implements DatabaseReader {
                         } else if (codeboxTableImageCursor.getInt(1) == 7) {
                             // codebox row
                             // Get codebox entry for current node_id and charOffset
-                            Cursor codeboxCursor = this.sqlite.query("codebox", new String[]{"txt", "width", "height"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                            Cursor codeboxCursor = this.sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
                             if (codeboxCursor.moveToFirst()) {
-                                SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxCursor.getString(0), codeboxCursor.getInt(1), codeboxCursor.getInt(2));
+                                SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxCursor.getString(0));
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
                                 codeboxCursor.close();
                                 totalCharOffset += codeboxText.length() - 1;
@@ -645,18 +646,14 @@ public class SQLReader implements DatabaseReader {
 
     /**
      * Creates a codebox span from the provided nodeContent string
-     * Formatting depends on Codeboxes height and width
+     * Formatting depends on new line characters nodeContent string
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
      * @param nodeContent content of the codebox
-     * @param frameWidth Width of the codebox frame
-     * @param frameHeight Height of the codebox frame
      * @return SpannableStringBuilder that has spans marked for string formatting
      */
-    public SpannableStringBuilder makeFormattedCodebox(String nodeContent, int frameWidth, int frameHeight ) {
+    public SpannableStringBuilder makeFormattedCodebox(String nodeContent) {
         // Returns SpannableStringBuilder that has spans marked for string formatting
-        // Formatting depends on Codebox'es height and width
-        // They are passed as arguments
         SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
         formattedCodebox.append(nodeContent);
 
@@ -664,13 +661,7 @@ public class SQLReader implements DatabaseReader {
         TypefaceSpan tf = new TypefaceSpan("monospace");
         formattedCodebox.setSpan(tf, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
-        // This part of codebox formatting depends on size of the codebox
-        // Because if user made a small codebox it might have text in front or after it
-        // For this reason some of the formatting can't be spanned over all the line
-        if (frameWidth < 200 && frameHeight < 30) {
-            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
-            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else {
+        if (nodeContent.contains("\n")) {
             // Adds vertical line in front the paragraph, to make it stand out as quote
             QuoteSpan qs;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -684,6 +675,9 @@ public class SQLReader implements DatabaseReader {
                 LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
                 formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
+        } else {
+            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
+            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
         return formattedCodebox;
