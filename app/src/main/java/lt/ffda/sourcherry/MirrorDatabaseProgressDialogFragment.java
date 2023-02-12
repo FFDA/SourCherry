@@ -179,7 +179,7 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
     private void copyDatabaseToAppSpecificStorage() {
         // Set directory where database will be saved depending on user's choice in options menu
         String databaseOutputFile = this.sharedPreferences.getString("databaseUri", null);
-        Uri databaseUri = Uri.parse(getArguments().getString("mirrorDatabaseUri")); // Ši vieta lūžta
+        Uri databaseUri = Uri.parse(getArguments().getString("mirrorDatabaseUri"));
         long totalLen = 0;
 
         try {
