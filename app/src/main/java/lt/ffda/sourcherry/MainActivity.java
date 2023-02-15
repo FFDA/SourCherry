@@ -187,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
             if (databaseDocumentFile.getName().split("\\.")[1].equals("ctd")) {
                 // Only if user selects ctd (not protected xml database) permanent permission should be requested
                 // When uri is received from intent-filter app will crash
-                getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             }
             this.resetMirrorDatabasePreferences();
             this.setMessageWithDatabaseName();

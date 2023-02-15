@@ -215,4 +215,17 @@ public interface DatabaseReader {
      * @return true - if node exists, false - if it doesn't
      */
     boolean doesNodeExist(String uniqueID);
+
+    /**
+     * Creates new node and writes changes to the database
+     * @param databaseUri uri/path to the database
+     * @param uniqueID uniqueID of the node that new node will be created in relation with
+     * @param relation relation to the node. 0 - sibling, 1 - subnode
+     * @param name node name
+     * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
+     * @param noSearchMe 0 - marks that node should be searched, 1 - marks that node should be excluded from the search
+     * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
+     * @return created node's information in menu items format ({name, unique_id, has_subnodes, is_parent, is_subnode})
+     */
+    String[] createNewNode(String databaseUri, String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh);
 }

@@ -1097,4 +1097,10 @@ public class SQLReader implements DatabaseReader {
             return false;
         }
     }
+
+    @Override
+    public String[] createNewNode(String databaseUri, String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
+        //Place holder
+        return new String[]{};
+    };
 }

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ This file is part of SourCherry.
+  ~
+  ~ SourCherry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ SourCherry is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+    <Button
+        android:id="@+id/menu_item_action_menu_add_node"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/menu_item_action_menu_add_node"
+        style="?android:attr/borderlessButtonStyle"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textAlignment="viewStart"/>
+    <Button
+        android:id="@+id/menu_item_action_menu_add_subnode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/menu_item_action_menu_add_subnode"
+        style="?android:attr/borderlessButtonStyle"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textAlignment="viewStart"/>
+    <Button
+        android:id="@+id/menu_item_action_menu_add_to_bookmarks"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/menu_item_action_menu_add_to_bookmarks"
+        style="?android:attr/borderlessButtonStyle"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textAlignment="viewStart"/>
+    <Button
+        android:id="@+id/menu_item_action_menu_change_node_parent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/menu_item_action_menu_change_node_parent"
+        style="?android:attr/borderlessButtonStyle"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textAlignment="viewStart"/>
+    <Button
+        android:id="@+id/menu_item_action_menu_delete_node"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/menu_item_action_menu_delete_node"
+        style="?android:attr/borderlessButtonStyle"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textAlignment="viewStart"/>
+    <Button
+        android:id="@+id/menu_item_action_menu_properties"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/menu_item_action_menu_properties"
+        style="?android:attr/borderlessButtonStyle"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textAlignment="viewStart"/>
+</LinearLayout>

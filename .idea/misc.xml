@@ -28,6 +28,8 @@
         <entry key="app/src/main/res/drawable/ic_baseline_arrow_up_24.xml" value="0.2535" />
         <entry key="app/src/main/res/drawable/ic_baseline_bookmarks_on_24.xml" value="0.2535" />
         <entry key="app/src/main/res/drawable/ic_baseline_keyboard_arrow_is_parent_24.xml" value="0.3165" />
+        <entry key="app/src/main/res/drawable/ic_baseline_menu_item_action2_24.xml" value="0.2425" />
+        <entry key="app/src/main/res/drawable/ic_baseline_menu_item_action_24.xml" value="0.2425" />
         <entry key="app/src/main/res/drawable/ic_cherrytree3j.xml" value="0.2535" />
         <entry key="app/src/main/res/drawable/ic_launcher_background.xml" value="0.25" />
         <entry key="app/src/main/res/drawable/ic_launcher_foreground.xml" value="0.33" />
@@ -54,11 +56,12 @@
         <entry key="app/src/main/res/layout/activity_image_view.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.3421875" />
         <entry key="app/src/main/res/layout/activity_main_drawer.xml" value="0.18229166666666666" />
-        <entry key="app/src/main/res/layout/activity_mainview.xml" value="0.33" />
+        <entry key="app/src/main/res/layout/activity_mainview.xml" value="0.1151685393258427" />
         <entry key="app/src/main/res/layout/activity_preferences.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_search.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_settings.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_xmlview.xml" value="0.33" />
+        <entry key="app/src/main/res/layout/add_new_node_fragment.xml" value="0.5" />
         <entry key="app/src/main/res/layout/app_bar_main.xml" value="0.18229166666666666" />
         <entry key="app/src/main/res/layout/babab.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/dialog_mirror_database_progress.xml" value="0.35260416666666666" />
@@ -67,8 +70,10 @@
         <entry key="app/src/main/res/layout/dialog_save_open_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/header_navigation_drawer.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/header_navitation_drawer.xml" value="0.3572916666666667" />
-        <entry key="app/src/main/res/layout/imported_databases_item.xml" value="0.1" />
+        <entry key="app/src/main/res/layout/imported_databases_item.xml" value="0.33" />
         <entry key="app/src/main/res/layout/menu_item.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/layout/menu_item_action_dialog_fragment.xml" value="0.35260416666666666" />
+        <entry key="app/src/main/res/layout/menu_item_action_menu.xml" value="0.17916666666666667" />
         <entry key="app/src/main/res/layout/nav_drawer_header.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/node_content_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/node_image_fragment.xml" value="0.35572916666666665" />
@@ -85,6 +90,7 @@
         <entry key="app/src/main/res/menu/header.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/menu/main_options_menu.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/menu/menu_item.xml" value="0.3572916666666667" />
+        <entry key="app/src/main/res/menu/menu_item_action_menu.xml" value="0.3515625" />
         <entry key="app/src/main/res/menu/navigation_menu.xml" value="0.25" />
         <entry key="app/src/main/res/menu/options_menu.xml" value="0.33" />
         <entry key="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.2" />

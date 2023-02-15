@@ -17,6 +17,15 @@
     <string name="dialog_save_open_fragment_remember_choice_checkBox">Remember choice</string>
     <string name="button_save">Save</string>
     <string name="button_cancel">Cancel</string>
+    <string name="node_name">Node name</string>
+    <string name="node_type">Node type</string>
+    <string name="radio_button_rich_text">Rich text</string>
+    <string name="radio_button_plain_text">Plain text</string>
+    <string name="radio_button_automatic_syntax_highlighting">Automatic syntax highlighting</string>
+    <string name="exclude_from_searches">Exclude from searches</string>
+    <string name="exclude_from_searches_this_node">This node</string>
+    <string name="exclude_from_searches_subnodes">The subnodes</string>
+    <string name="button_create">Create</string>
     <string name="main_activity_imported_databases">Imported Databases</string>
     <string name="main_activity_imported_databases_item_internal">(int) %1$s</string>
     <string name="main_activity_imported_databases_item_external">(ext) %1$s</string>
@@ -47,6 +56,8 @@
     <string name="toast_error_failed_to_read_database">Failed to read database</string>
     <string name="toast_error_failed_to_convert_string_to_nodelist">Failed to convert String to NodeList</string>
     <string name="toast_error_failed_to_export_node_to_pdf">Failed to export node to PDF</string>
+    <string name="toast_error_failed_to_save_database_changes">Failed to save database changes</string>
+    <string name="toast_error_could_not_retrieve_database_uri">Could not retrieve database URI</string>
     <string name="options_menu_item_about">About</string>
     <string name="options_menu_about_licence">Published under GPL v3</string>
     <string name="options_menu_about_libraries_title">Software used</string>
@@ -97,4 +108,11 @@
     <string name="imported_databases_item_image_content_description">Button DELETE DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to confirm deletion.</string>
     <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
     <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>
+    <string name="menu_item_action_content_description">Drawer menu item preferences. Displays settings icon. When clicked opens contextual menu.</string>
+    <string name="menu_item_action_menu_add_node">Add sibling node</string>
+    <string name="menu_item_action_menu_add_subnode">Add subnode</string>
+    <string name="menu_item_action_menu_add_to_bookmarks">Add to bookmarks</string>
+    <string name="menu_item_action_menu_change_node_parent">Change node parent</string>
+    <string name="menu_item_action_menu_delete_node">Delete node</string>
+    <string name="menu_item_action_menu_properties">Properties</string>
 </resources>

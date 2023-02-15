@@ -22,8 +22,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import lt.ffda.sourcherry.R;
-
 import java.util.ArrayList;
 
 public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHolder> {
@@ -34,6 +32,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         public ImageView menuItemArrow;
         public TextView menuItemText;
         public LinearLayout menuItemLinearLayout;
+        public ImageView menuItemAction;
 
         public ViewHolder(View itemView) {
             super(itemView);
@@ -42,6 +41,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
             menuItemArrow = itemView.findViewById(R.id.menu_item_arrow);
             menuItemText = itemView.findViewById(R.id.menu_item_name);
             menuItemLinearLayout = itemView.findViewById(R.id.menu_linear_layout);
+            menuItemAction = itemView.findViewById(R.id.menu_item_action);
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -51,7 +51,32 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
                         if (position != RecyclerView.NO_POSITION) {
                             listener.onItemClick(itemView, position);
                         }
+                    }
+                }
+            });
 
+            itemView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (listener != null) {
+                        int position = getBindingAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION) {
+                            longClickListener.onLongClick(itemView, position);
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            });
+
+            menuItemAction.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (listener != null) {
+                        int position = getBindingAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION) {
+                            onActionIconClickListener.onActionIconClick(itemView, position);
+                        }
                     }
                 }
             });
@@ -66,6 +91,8 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     // nodeList has values in this order: {name, unique_id, has_subnodes, is_parent, is_subnode}
     private final ArrayList<String[]> nodeList;
     private OnItemClickListener listener;
+    private OnLongClickListener longClickListener;
+    private OnActionIconClickListener onActionIconClickListener;
     private int selectedPos = RecyclerView.NO_POSITION;
     private final Context context;
 
@@ -78,8 +105,24 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         void onItemClick(View itemView, int position);
     }
 
+    public interface OnLongClickListener {
+        void onLongClick(View itemView, int position);
+    }
+
+    public interface OnActionIconClickListener {
+        void onActionIconClick(View itemView, int position);
+    }
+
     public void setOnItemClickListener(OnItemClickListener listener) {
         this.listener = listener;
+    }
+
+    public void setOnLongClickListener(OnLongClickListener longClickListener) {
+        this.longClickListener = longClickListener;
+    }
+
+    public void setOnItemActionMenuClickListener(OnActionIconClickListener listener) {
+        this.onActionIconClickListener = listener;
     }
 
     @NonNull

@@ -19,6 +19,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Handler;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
@@ -52,7 +53,9 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -60,6 +63,11 @@ import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
@@ -1044,5 +1052,97 @@ public class XMLReader implements DatabaseReader{
             }
         }
         return false;
+    }
+
+    /**
+     * Returns biggest node unique ID of the document
+     * Used when creating a new node
+     * @return biggest node unique ID of the document
+     */
+    public int getNodeMaxID() {
+        int uniqueNodeID = -1;
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            int foundUniqueNodeID = Integer.parseInt(node.getAttributes().getNamedItem("unique_id").getNodeValue());
+            if (foundUniqueNodeID > uniqueNodeID) {
+                uniqueNodeID = foundUniqueNodeID;
+            }
+        }
+        return uniqueNodeID;
+    }
+
+    /**
+     * Write opened database to the file
+     * App cast to have the the permissions to write to said file
+     * @param databaseUri path or URI to the XML file to be overwritten
+     */
+    public void writeIntoDatabase(String databaseUri){
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = null;
+        try {
+            transformer = transformerFactory.newTransformer();
+            DOMSource dSource = new DOMSource(this.doc);
+
+            // To create Uri from the app-specific path to a file
+            // from app-specific storage adding a prefix
+            if (!databaseUri.startsWith("content://")) {
+                databaseUri = "file:" + databaseUri;
+            }
+            OutputStream fileOutputStream = context.getContentResolver().openOutputStream(Uri.parse(databaseUri));
+            StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
+            transformer.transform(dSource, result);
+        } catch (TransformerException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+        } catch (FileNotFoundException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_database_does_not_exists));
+        }
+    }
+
+    @Override
+    public String[] createNewNode(String databaseUri, String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
+        String[] newNodeMenuItem = null;
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) {
+                String newNodeUniqueID = String.valueOf(getNodeMaxID() + 1);
+                String timestamp = String.valueOf(System.currentTimeMillis());
+
+                // Creating new node with all necessary tags
+                Element newNode = this.doc.createElement("node");
+                newNode.setAttribute("name", name);
+                newNode.setAttribute("unique_id", newNodeUniqueID);
+                newNode.setAttribute("prog_lang", progLang);
+                newNode.setAttribute("tags", "");
+                newNode.setAttribute("readonly", "0");
+                newNode.setAttribute("nosearch_me", noSearchMe);
+                newNode.setAttribute("nosearch_ch", noSearchCh);
+                newNode.setAttribute("custom_icon_id", "0");
+                newNode.setAttribute("is_bold", "0");
+                newNode.setAttribute("foreground", "");
+                newNode.setAttribute("ts_creation", timestamp);
+                newNode.setAttribute("ts_lastsave", timestamp);
+
+                String isSubNode = "true";
+                // Adding node to document
+                if (relation == 0) {
+                    // As a sibling to selected node
+                    node.getParentNode().appendChild(newNode);
+                    // Checking if node is being created as MainMenu node
+                    // Needed to set correct indentation for the node in the menu
+                    if (node.getParentNode().getNodeName().equals("cherrytree")) {
+                        isSubNode = "false";
+                    }
+                } else {
+                    // As a subnode of selected node
+                    node.appendChild(newNode);
+                }
+
+                this.writeIntoDatabase(databaseUri);
+                newNodeMenuItem = new String[] {name, newNodeUniqueID, "false", "false", isSubNode};
+            }
+        }
+        return newNodeMenuItem;
     }
 }

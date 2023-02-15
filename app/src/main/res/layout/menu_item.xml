@@ -33,5 +33,12 @@
         android:paddingLeft="5dp"
         android:paddingTop="5dp"
         android:paddingRight="5dp"
-        android:paddingBottom="5dp" />
+        android:paddingBottom="5dp"/>
+
+    <ImageView
+        android:id="@+id/menu_item_action"
+        android:src="@drawable/ic_baseline_menu_item_action_24"
+        android:layout_width="24dp"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/menu_item_action_content_description"/>
 </LinearLayout>

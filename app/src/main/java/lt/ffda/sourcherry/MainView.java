@@ -25,7 +25,9 @@ import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -88,6 +90,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import lt.ffda.sourcherry.fragments.AddNewNodeFragment;
+import lt.ffda.sourcherry.utils.MenuItemAction;
+
 public class MainView extends AppCompatActivity {
 
     private ActionBarDrawerToggle actionBarDrawerToggle;
@@ -103,6 +108,7 @@ public class MainView extends AppCompatActivity {
     private MainViewModel mainViewModel;
     private SharedPreferences sharedPreferences;
     private ExecutorService executor;
+    private DrawerLayout drawerLayout;
     private Handler handler;
     private int currentFindInNodeMarked; // Index of the result that is marked from FindInNode results. -1 Means nothing is selected
 
@@ -120,13 +126,12 @@ public class MainView extends AppCompatActivity {
         this.handler = new Handler(Looper.getMainLooper());
         // drawer layout instance to toggle the menu icon to open
         // drawer and back button to close drawer
-        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
-        actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.nav_open, R.string.nav_close);
+        this.drawerLayout = findViewById(R.id.drawer_layout);
+        actionBarDrawerToggle = new ActionBarDrawerToggle(this, this.drawerLayout, R.string.nav_open, R.string.nav_close);
         SearchView searchView = findViewById(R.id.navigation_drawer_search);
 
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         String databaseString = sharedPreferences.getString("databaseUri", null);
-
         try {
             if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
                 // If file is in external storage
@@ -159,7 +164,7 @@ public class MainView extends AppCompatActivity {
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true).setReorderingAllowed(true)
                     .add(R.id.main_view_fragment, NodeContentFragment.class, null, "main")
-                    .addToBackStack("main")
+//                    .addToBackStack("main") // This not needed it seems. Clean up at the latter date
                     .commit();
             getSupportFragmentManager().executePendingTransactions();
             this.bookmarksToggle = false;
@@ -189,6 +194,31 @@ public class MainView extends AppCompatActivity {
             this.filterNodeToggle = savedInstanceState.getBoolean("filterNodeToggle");
             this.findInNodeToggle = savedInstanceState.getBoolean("findInNodeToggle");
         }
+
+        // Register with fragmentManager to get result from menuItemActionDialogFragment
+        getSupportFragmentManager().setFragmentResultListener("menuItemAction", this, new FragmentResultListener() {
+            @Override
+            public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
+                MenuItemAction menuItemAction = (MenuItemAction) result.getSerializable("menuItemActionCode");
+                String[] node = result.getStringArray("node");
+                switch (menuItemAction) {
+                    case ADD_SIBLING_NODE:
+                        launchCreateNewNodeFragment(node[1], 0);
+                        break;
+                    case ADD_SUBNODE:
+                        launchCreateNewNodeFragment(node[1], 1);
+                        break;
+                    case ADD_TO_BOOKMARKS:
+                        break;
+                    case CHANGE_NODE_PARENT:
+                        break;
+                    case DELETE_NODE:
+                        break;
+                    case PROPERTIES:
+                        break;
+                }
+            }
+        });
 
         RecyclerView rvMenu = findViewById(R.id.recyclerView);
         this.adapter = new MenuItemAdapter(this.mainViewModel.getNodes(), this);
@@ -269,6 +299,23 @@ public class MainView extends AppCompatActivity {
                 }
             }
         });
+
+        // Listener for long click on drawer menu item
+        this.adapter.setOnLongClickListener(new MenuItemAdapter.OnLongClickListener() {
+            @Override
+            public void onLongClick(View itemView, int position) {
+                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position));
+            }
+        });
+
+        // Listener for click on drawer menu item's action icon
+        this.adapter.setOnItemActionMenuClickListener(new MenuItemAdapter.OnActionIconClickListener() {
+            @Override
+            public void onActionIconClick(View itemView, int position) {
+                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position));
+            }
+        });
+
         rvMenu.setAdapter(this.adapter);
         rvMenu.setLayoutManager(new LinearLayoutManager(this));
 
@@ -373,7 +420,6 @@ public class MainView extends AppCompatActivity {
                 if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
                     MainView.this.findInNodeNext();
                 }
-
             }
         });
 
@@ -386,7 +432,6 @@ public class MainView extends AppCompatActivity {
                 if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
                     MainView.this.findInNodePrevious();
                 }
-
             }
         });
 
@@ -587,6 +632,13 @@ public class MainView extends AppCompatActivity {
                 return;
             }
 
+            if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                getSupportFragmentManager().popBackStack();
+                MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+                getSupportActionBar().show();
+                return;
+            }
+
             backToExit = true; // Marks that back button was pressed once
             Toast.makeText(MainView.this, R.string.toast_confirm_mainview_exit, Toast.LENGTH_SHORT).show();
 
@@ -635,6 +687,10 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Closes bookmarks in drawer menu
+     * @param view view needed to associated button with action
+     */
     public void goBack(View view) {
         this.closeBookmarks();
     }
@@ -1341,6 +1397,65 @@ public class MainView extends AppCompatActivity {
         }
     });
 
+    /**
+     * Activates node's action icon/right click dialog fragment
+     * @param node node which action menu should be shown
+     */
+    private void openMenuItemActionDialogFragment(String[] node) {
+        DialogFragment menuItemActionDialogFragment = new MenuItemActionDialogFragment();
+        Bundle bundle = new Bundle();
+        bundle.putStringArray("node", node);
+        menuItemActionDialogFragment.setArguments(bundle);
+        menuItemActionDialogFragment.setStyle(DialogFragment.STYLE_NORMAL, R.style.CustomDialogFragment);
+        menuItemActionDialogFragment.show(getSupportFragmentManager(), "menuItemActionDialogFragment");
+    }
+
+    /**
+     * Displays create new node fragment
+     */
+    private void launchCreateNewNodeFragment(String uniqueID, int relation) {
+        Bundle bundle = new Bundle();
+        bundle.putString("uniqueID", uniqueID);
+        bundle.putInt("relation", relation);
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true).setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, AddNewNodeFragment.class, bundle, "createNode")
+                .addToBackStack("createNode")
+                .commit();
+        getSupportFragmentManager().executePendingTransactions();
+        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        getSupportActionBar().hide(); // Hides action bar
+    }
+
+    /**
+     * Creates new node in the database with provided parameters
+     * @param uniqueID uniqueID of the node that new node will be created in relation with
+     * @param relation relation to the node. 0 - sibling, 1 - subnode
+     * @param name node name
+     * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
+     * @param noSearchMe 0 - marks that node should be searched, 1 - marks that node should be excluded from the search
+     * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
+     */
+    public void createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
+        String databaseURI = this.sharedPreferences.getString("databaseUri", null);
+        if (databaseURI != null) {
+            String[] newNodeMenuItem = this.reader.createNewNode(databaseURI, uniqueID, relation, name, progLang, noSearchMe, noSearchCh);
+            getSupportFragmentManager().popBackStack();
+            MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+            getSupportActionBar().show();
+            if (newNodeMenuItem != null) {
+                // If new node was added - load it
+                this.currentNode = newNodeMenuItem;
+                this.loadNodeContent();
+                this.setClickedItemInSubmenu();
+                this.adapter.notifyDataSetChanged();
+            }
+        } else {
+            Toast.makeText(this, R.string.toast_error_could_not_retrieve_database_uri, Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void exportPdfSetup() {
         // Sets the intent for asking user to choose a location where to save a file
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
@@ -1413,7 +1528,7 @@ public class MainView extends AppCompatActivity {
                     canvas.save(); // Saves current coordinates system
                     canvas.translate(padding, top); // Moves coordinate system
                     if (view instanceof HorizontalScrollView) {
-                        // If it is a table - TableLayout has to be drawn to canvas an not ScrollView
+                        // If it is a table - TableLayout has to be drawn to canvas and not ScrollView
                         // Otherwise only visible part of the table will be showed
                         TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
                         tableLayout.draw(canvas);
