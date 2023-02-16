@@ -126,35 +126,33 @@ public class XMLReader implements DatabaseReader{
         // Returns null if there aren't any
         ArrayList<String[]> nodes = new ArrayList<>();
         NodeList nodeBookmarkNode = this.doc.getElementsByTagName("bookmarks");
-        if (nodeBookmarkNode == null) {
-            return null;
-        } else {
-            List<String> uniqueIDArray = Arrays.asList(nodeBookmarkNode.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
-            NodeList nodeList = this.doc.getElementsByTagName("node");
-            int counter = 0; // Counter to check if all bookmarked nodes were found
-            for (int i=0; i < nodeList.getLength(); i++) {
-                if (counter < nodeList.getLength()) {
-                    Node node = nodeList.item(i);
-                    if (uniqueIDArray.contains(node.getAttributes().getNamedItem("unique_id").getNodeValue())) {
-                        String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                        String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                        String hasSubnode = String.valueOf(hasSubnodes(node));
-                        String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-                        String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, "false"};
-                        nodes.add(currentNodeArray);
-                    }
-                } else {
-                    break;
-                }
+        List<String> uniqueIDArray = Arrays.asList(nodeBookmarkNode.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+
+        for (int i=0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (uniqueIDArray.contains(node.getAttributes().getNamedItem("unique_id").getNodeValue())) {
+                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+                String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                String hasSubnode = String.valueOf(hasSubnodes(node));
+                String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
+                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, "false"};
+                nodes.add(currentNodeArray);
             }
         }
+
         nodes.sort(new Comparator<String[]>() {
             @Override
             public int compare(String[] strings, String[] t1) {
                 return Integer.valueOf(strings[1]).compareTo(Integer.valueOf(t1[1]));
             }
         });
-        return nodes;
+
+        if (nodes.size() == 0) {
+            return null;
+        } else {
+            return nodes;
+        }
     }
 
     @Override
