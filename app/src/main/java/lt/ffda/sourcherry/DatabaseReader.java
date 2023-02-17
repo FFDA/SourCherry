@@ -218,7 +218,6 @@ public interface DatabaseReader {
 
     /**
      * Creates new node and writes changes to the database
-     * @param databaseUri uri/path to the database
      * @param uniqueID uniqueID of the node that new node will be created in relation with
      * @param relation relation to the node. 0 - sibling, 1 - subnode
      * @param name node name
@@ -227,5 +226,24 @@ public interface DatabaseReader {
      * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
      * @return created node's information in menu items format ({name, unique_id, has_subnodes, is_parent, is_subnode})
      */
-    String[] createNewNode(String databaseUri, String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh);
+    String[] createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh);
+
+    /**
+     * Checks if node with provided unique ID is bookmarked
+     * @param nodeUniqueID node unique ID that need to be checked
+     * @return true - node is bookmarked, false - if node is not bookmarked
+     */
+    boolean isNodeBookmarked(String nodeUniqueID);
+
+    /**
+     * Adds node to the bookmarks
+     * @param nodeUniqueID node unique ID that has to be added to the bookmarks
+     */
+    void addNodeToBookmarks(String nodeUniqueID);
+
+    /**
+     * Removes node from the bookmarks
+     * @param nodeUniqueID node unique ID that has to be removed from the bookmarks
+     */
+    void removeNodeFromBookmarks(String nodeUniqueID);
 }

@@ -77,7 +77,7 @@ public class AddNewNodeFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 // Back button press programmatically
-                ((MainView) getActivity()).onBackPressed();
+                getActivity().onBackPressed();
             }
         });
 

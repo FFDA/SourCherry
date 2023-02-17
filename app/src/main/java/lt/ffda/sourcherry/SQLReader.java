@@ -72,8 +72,10 @@ public class SQLReader implements DatabaseReader {
     private final SQLiteDatabase sqlite;
     private final Context context;
     private final Handler handler;
+    private final String databaseUri;
 
-    public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler) {
+    public SQLReader(String databaseUri, SQLiteDatabase sqlite, Context context, Handler handler) {
+        this.databaseUri = databaseUri;
         this.context = context;
         this.sqlite = sqlite;
         this.handler = handler;
@@ -1099,8 +1101,23 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] createNewNode(String databaseUri, String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
+    public String[] createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
         //Place holder
         return new String[]{};
-    };
+    }
+
+    @Override
+    public boolean isNodeBookmarked(String nodeUniqueID) {
+        //Placeholder;
+        return false;
+    }
+
+    @Override
+    public void addNodeToBookmarks(String nodeUniqueID){
+        //Placeholder
+    }
+
+    @Override
+    public void removeNodeFromBookmarks(String nodeUniqueID) {
+    }
 }

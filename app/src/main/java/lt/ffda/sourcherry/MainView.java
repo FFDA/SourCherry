@@ -86,6 +86,7 @@ import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -138,7 +139,7 @@ public class MainView extends AppCompatActivity {
                 if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
-                    this.reader = new XMLReader(is, this, this.handler);
+                    this.reader = new XMLReader(databaseString, is, this, this.handler);
                     is.close();
                 }
             } else {
@@ -146,12 +147,12 @@ public class MainView extends AppCompatActivity {
                 if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                     // If file is xml
                     InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
-                    this.reader = new XMLReader(is, this, this.handler);
+                    this.reader = new XMLReader(databaseString, is, this, this.handler);
                     is.close();
                 } else {
                     // If file is sql (password protected or not)
                     SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
-                    this.reader = new SQLReader(sqlite, this, this.handler);
+                    this.reader = new SQLReader(databaseString, sqlite, this, this.handler);
                 }
             }
         } catch (Exception e) {
@@ -203,12 +204,16 @@ public class MainView extends AppCompatActivity {
                 String[] node = result.getStringArray("node");
                 switch (menuItemAction) {
                     case ADD_SIBLING_NODE:
-                        launchCreateNewNodeFragment(node[1], 0);
+                        MainView.this.launchCreateNewNodeFragment(node[1], 0);
                         break;
                     case ADD_SUBNODE:
-                        launchCreateNewNodeFragment(node[1], 1);
+                        MainView.this.launchCreateNewNodeFragment(node[1], 1);
                         break;
                     case ADD_TO_BOOKMARKS:
+                        MainView.this.addNodeToBookmarks(node[1]);
+                        break;
+                    case REMOVE_FROM_BOOKMARKS:
+                        MainView.this.removeNodeFromBookmarks(node[1], result.getInt("position"));
                         break;
                     case CHANGE_NODE_PARENT:
                         break;
@@ -304,7 +309,7 @@ public class MainView extends AppCompatActivity {
         this.adapter.setOnLongClickListener(new MenuItemAdapter.OnLongClickListener() {
             @Override
             public void onLongClick(View itemView, int position) {
-                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position));
+                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position), position);
             }
         });
 
@@ -312,7 +317,7 @@ public class MainView extends AppCompatActivity {
         this.adapter.setOnItemActionMenuClickListener(new MenuItemAdapter.OnActionIconClickListener() {
             @Override
             public void onActionIconClick(View itemView, int position) {
-                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position));
+                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position), position);
             }
         });
 
@@ -793,7 +798,6 @@ public class MainView extends AppCompatActivity {
 
     private void resetMenuToCurrentNode() {
         // Restores drawer menu selected item to currently opened node
-
         if (this.currentNode != null) {
 
             if (MainView.this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
@@ -854,7 +858,6 @@ public class MainView extends AppCompatActivity {
 
     private void showBookmarks() {
         // Displays bookmarks instead of normal navigation menu in navigation drawer
-
         ArrayList<String[]> bookmarkedNodes = this.reader.getBookmarkedNodes();
 
         // Check if there are any bookmarks
@@ -1400,11 +1403,14 @@ public class MainView extends AppCompatActivity {
     /**
      * Activates node's action icon/right click dialog fragment
      * @param node node which action menu should be shown
+     * @param position position of the node in drawer menu as reported by MenuItemAdapter
      */
-    private void openMenuItemActionDialogFragment(String[] node) {
+    private void openMenuItemActionDialogFragment(String[] node, int position) {
         DialogFragment menuItemActionDialogFragment = new MenuItemActionDialogFragment();
         Bundle bundle = new Bundle();
         bundle.putStringArray("node", node);
+        bundle.putInt("position", position);
+        bundle.putBoolean("bookmarked", this.reader.isNodeBookmarked(node[1]));
         menuItemActionDialogFragment.setArguments(bundle);
         menuItemActionDialogFragment.setStyle(DialogFragment.STYLE_NORMAL, R.style.CustomDialogFragment);
         menuItemActionDialogFragment.show(getSupportFragmentManager(), "menuItemActionDialogFragment");
@@ -1413,9 +1419,9 @@ public class MainView extends AppCompatActivity {
     /**
      * Displays create new node fragment
      */
-    private void launchCreateNewNodeFragment(String uniqueID, int relation) {
+    private void launchCreateNewNodeFragment(String nodeUniqueID, int relation) {
         Bundle bundle = new Bundle();
-        bundle.putString("uniqueID", uniqueID);
+        bundle.putString("uniqueID", nodeUniqueID);
         bundle.putInt("relation", relation);
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true).setReorderingAllowed(true)
@@ -1438,21 +1444,46 @@ public class MainView extends AppCompatActivity {
      * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
      */
     public void createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
-        String databaseURI = this.sharedPreferences.getString("databaseUri", null);
-        if (databaseURI != null) {
-            String[] newNodeMenuItem = this.reader.createNewNode(databaseURI, uniqueID, relation, name, progLang, noSearchMe, noSearchCh);
-            getSupportFragmentManager().popBackStack();
-            MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-            getSupportActionBar().show();
-            if (newNodeMenuItem != null) {
-                // If new node was added - load it
-                this.currentNode = newNodeMenuItem;
-                this.loadNodeContent();
-                this.setClickedItemInSubmenu();
-                this.adapter.notifyDataSetChanged();
+        String[] newNodeMenuItem = this.reader.createNewNode(uniqueID, relation, name, progLang, noSearchMe, noSearchCh);
+        getSupportFragmentManager().popBackStack();
+        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        getSupportActionBar().show();
+        if (newNodeMenuItem != null) {
+            // If new node was added - load it
+            this.currentNode = newNodeMenuItem;
+            this.loadNodeContent();
+            this.setClickedItemInSubmenu();
+            this.adapter.notifyDataSetChanged();
+        }
+    }
+
+    /**
+     * Adds node to bookmark list
+     * @param nodeUniqueID unique ID of the node which to add to bookmarks
+     */
+    private void addNodeToBookmarks(String nodeUniqueID) {
+        this.reader.addNodeToBookmarks(nodeUniqueID);
+    }
+
+    /**
+     * Removes node from bookmark list
+     * Updates drawer menu if bookmarks are being displayed
+     * @param nodeUniqueID unique ID of the node which to remove from bookmarks
+     * @param position position of the node in drawer menu as reported by MenuItemAdapter
+     */
+    private void removeNodeFromBookmarks(String nodeUniqueID, int position) {
+        this.reader.removeNodeFromBookmarks(nodeUniqueID);
+        if (this.bookmarksToggle) {
+            Iterator<String[]> iterator = this.mainViewModel.getNodes().iterator();
+
+            while(iterator.hasNext()) {
+                String[] node = iterator.next();
+                if (node[1].equals(nodeUniqueID)) {
+                    iterator.remove();
+                    this.adapter.notifyItemRemoved(position);
+                    break;
+                }
             }
-        } else {
-            Toast.makeText(this, R.string.toast_error_could_not_retrieve_database_uri, Toast.LENGTH_SHORT).show();
         }
     }
 

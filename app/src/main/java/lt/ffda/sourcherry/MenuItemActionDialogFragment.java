@@ -43,7 +43,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonAddSiblingNode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SIBLING_NODE, getArguments().getStringArray("node"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SIBLING_NODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
             }
         });
 
@@ -51,31 +51,37 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonAddSubnode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SUBNODE, getArguments().getStringArray("node"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SUBNODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
             }
         });
 
-        Button buttonAddToBookmarks = view.findViewById(R.id.menu_item_action_menu_add_to_bookmarks);
-        buttonAddToBookmarks.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_TO_BOOKMARKS, getArguments().getStringArray("node"));
-            }
-        });
-
-        Button buttonChangeNodeParent = view.findViewById(R.id.menu_item_action_menu_change_node_parent);
-        buttonChangeNodeParent.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.CHANGE_NODE_PARENT, getArguments().getStringArray("node"));
-            }
-        });
+        // Depending if node is bookmarked or not showing just one menu item
+        // and adding click listener just for it
+        if (getArguments().getBoolean("bookmarked")) {
+            Button buttonRemoveFromBookmarks = view.findViewById(R.id.menu_item_action_menu_remove_from_bookmarks);
+            buttonRemoveFromBookmarks.setVisibility(View.VISIBLE);
+            buttonRemoveFromBookmarks.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    MenuItemActionDialogFragment.this.sendResult(MenuItemAction.REMOVE_FROM_BOOKMARKS, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
+                }
+            });
+        } else {
+            Button buttonAddToBookmarks = view.findViewById(R.id.menu_item_action_menu_add_to_bookmarks);
+            buttonAddToBookmarks.setVisibility(View.VISIBLE);
+            buttonAddToBookmarks.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_TO_BOOKMARKS, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
+                }
+            });
+        }
 
         Button buttonDeleteNode = view.findViewById(R.id.menu_item_action_menu_delete_node);
         buttonDeleteNode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.DELETE_NODE, getArguments().getStringArray("node"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.DELETE_NODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
             }
         });
 
@@ -83,7 +89,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonProperties.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.PROPERTIES, getArguments().getStringArray("node"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.PROPERTIES, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
             }
         });
 
@@ -100,6 +106,21 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         Bundle result = new Bundle();
         result.putSerializable("menuItemActionCode", menuItemAction);
         result.putStringArray("node", node);
+        getParentFragmentManager().setFragmentResult("menuItemAction", result);
+        dismiss();
+    }
+
+    /**
+     * Sends option (result) that user chose back to MainView
+     * @param menuItemAction action code that user chose
+     * @param node node menu item information on which action was initiated
+     * @param position position of the node in drawer menu as reported by MenuItemAdapter
+     */
+    private void sendResult(MenuItemAction menuItemAction, String[] node, int position) {
+        Bundle result = new Bundle();
+        result.putSerializable("menuItemActionCode", menuItemAction);
+        result.putStringArray("node", node);
+        result.putInt("position", position);
         getParentFragmentManager().setFragmentResult("menuItemAction", result);
         dismiss();
     }

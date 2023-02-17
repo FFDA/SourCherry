@@ -35,7 +35,17 @@
         android:text="@string/menu_item_action_menu_add_to_bookmarks"
         style="?android:attr/borderlessButtonStyle"
         android:textColor="?android:attr/textColorPrimary"
-        android:textAlignment="viewStart"/>
+        android:textAlignment="viewStart"
+        android:visibility="gone"/>
+    <Button
+        android:id="@+id/menu_item_action_menu_remove_from_bookmarks"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/menu_item_action_menu_remove_from_bookmarks"
+        style="?android:attr/borderlessButtonStyle"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textAlignment="viewStart"
+        android:visibility="gone"/>
     <Button
         android:id="@+id/menu_item_action_menu_change_node_parent"
         android:layout_width="match_parent"

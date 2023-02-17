@@ -75,9 +75,11 @@ public class XMLReader implements DatabaseReader{
     private Document doc;
     private final Context context;
     private final Handler handler;
+    private final String databaseUri;
 
-    public XMLReader(InputStream is, Context context, Handler handler) {
+    public XMLReader(String databaseUri, InputStream is, Context context, Handler handler) {
         // Creates a document that can be used to read tags with provided InputStream
+        this.databaseUri = databaseUri;
         this.context = context;
         this.handler = handler;
         try {
@@ -1074,22 +1076,15 @@ public class XMLReader implements DatabaseReader{
 
     /**
      * Write opened database to the file
-     * App cast to have the the permissions to write to said file
-     * @param databaseUri path or URI to the XML file to be overwritten
+     * App has to have the the permissions to write to said file
      */
-    public void writeIntoDatabase(String databaseUri){
+    public void writeIntoDatabase(){
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         Transformer transformer = null;
         try {
             transformer = transformerFactory.newTransformer();
             DOMSource dSource = new DOMSource(this.doc);
-
-            // To create Uri from the app-specific path to a file
-            // from app-specific storage adding a prefix
-            if (!databaseUri.startsWith("content://")) {
-                databaseUri = "file:" + databaseUri;
-            }
-            OutputStream fileOutputStream = context.getContentResolver().openOutputStream(Uri.parse(databaseUri));
+            OutputStream fileOutputStream = context.getContentResolver().openOutputStream(Uri.parse(this.databaseUri), "wt");
             StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
             transformer.transform(dSource, result);
         } catch (TransformerException e) {
@@ -1100,7 +1095,7 @@ public class XMLReader implements DatabaseReader{
     }
 
     @Override
-    public String[] createNewNode(String databaseUri, String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
+    public String[] createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
         String[] newNodeMenuItem = null;
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
@@ -1139,10 +1134,43 @@ public class XMLReader implements DatabaseReader{
                     node.appendChild(newNode);
                 }
 
-                this.writeIntoDatabase(databaseUri);
+                this.writeIntoDatabase();
                 newNodeMenuItem = new String[] {name, newNodeUniqueID, "false", "false", isSubNode};
             }
         }
         return newNodeMenuItem;
+    }
+
+    @Override
+    public boolean isNodeBookmarked(String nodeUniqueID) {
+        NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
+        List<String> bookmarks = Arrays.asList(bookmarkTag.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
+        return bookmarks.contains(nodeUniqueID);
+    }
+
+    @Override
+    public void addNodeToBookmarks(String nodeUniqueID) {
+        NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
+        Node bookmarksNode = bookmarkTag.item(0);
+        String bookmarks = bookmarksNode.getAttributes().getNamedItem("list").getNodeValue(); // This is a string with all bookmark IDs separated by comma (,)
+
+        if (bookmarks.length() == 0) {
+            bookmarks = nodeUniqueID;
+        } else {
+            bookmarks += "," + nodeUniqueID;
+        }
+
+        bookmarksNode.getAttributes().getNamedItem("list").setTextContent(bookmarks);
+        writeIntoDatabase();
+    }
+
+    @Override
+    public void removeNodeFromBookmarks(String nodeUniqueID) {
+        NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
+        Node bookmarksNode = bookmarkTag.item(0);
+        ArrayList<String> bookmarks = new ArrayList<>(Arrays.asList(bookmarkTag.item(0).getAttributes().getNamedItem("list").getNodeValue().split(",")));
+        bookmarks.remove(nodeUniqueID);
+        bookmarksNode.getAttributes().getNamedItem("list").setTextContent(String.join(",", bookmarks));
+        writeIntoDatabase();
     }
 }
