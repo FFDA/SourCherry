@@ -47,10 +47,10 @@
         android:textAlignment="viewStart"
         android:visibility="gone"/>
     <Button
-        android:id="@+id/menu_item_action_menu_change_node_parent"
+        android:id="@+id/menu_item_action_menu_move_node"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/menu_item_action_menu_change_node_parent"
+        android:text="@string/menu_item_action_menu_move_node"
         style="?android:attr/borderlessButtonStyle"
         android:textColor="?android:attr/textColorPrimary"
         android:textAlignment="viewStart"/>

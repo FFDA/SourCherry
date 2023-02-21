@@ -246,4 +246,11 @@ public interface DatabaseReader {
      * @param nodeUniqueID node unique ID that has to be removed from the bookmarks
      */
     void removeNodeFromBookmarks(String nodeUniqueID);
+
+    /**
+     * Moves node to different location of the document tree
+     * @param targetNodeUniqueID unique ID of the node that user chose to move
+     * @param destinationNodeUniqueID unique ID of the node that has to be a parent of the target node
+     */
+    void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID);
 }

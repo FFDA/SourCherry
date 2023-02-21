@@ -17,6 +17,8 @@
     <string name="dialog_save_open_fragment_remember_choice_checkBox">Remember choice</string>
     <string name="button_save">Save</string>
     <string name="button_cancel">Cancel</string>
+    <string name="button_move">Move</string>
+    <string name="button_move_to_main_menu">Move to main menu</string>
     <string name="node_name">Node name</string>
     <string name="node_type">Node type</string>
     <string name="radio_button_rich_text">Rich text</string>
@@ -57,6 +59,7 @@
     <string name="toast_error_failed_to_convert_string_to_nodelist">Failed to convert String to NodeList</string>
     <string name="toast_error_failed_to_export_node_to_pdf">Failed to export node to PDF</string>
     <string name="toast_error_failed_to_save_database_changes">Failed to save database changes</string>
+    <string name="toast_error_new_parent_cant_be_one_of_its_children">New parent can\'t be one of it\'s children</string>
     <string name="options_menu_item_about">About</string>
     <string name="options_menu_about_licence">Published under GPL v3</string>
     <string name="options_menu_about_libraries_title">Software used</string>
@@ -112,7 +115,11 @@
     <string name="menu_item_action_menu_add_subnode">Add subnode</string>
     <string name="menu_item_action_menu_add_to_bookmarks">Add to bookmarks</string>
     <string name="menu_item_action_menu_remove_from_bookmarks">Remove from bookmarks</string>
-    <string name="menu_item_action_menu_change_node_parent">Change node parent</string>
+    <string name="menu_item_action_menu_move_node">Move node</string>
     <string name="menu_item_action_menu_delete_node">Delete node</string>
     <string name="menu_item_action_menu_properties">Properties</string>
+    <string name="move_node_textview_title">Move node: %1$s</string>
+    <string name="move_node_textview_message">Use long tap to select the node</string>
+    <string name="move_node_button_up_content_description">Button UP. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>
+    <string name="move_node_button_home_content_description">Button HOME. When pressed - loads home menu (top of the tree).</string>
 </resources>

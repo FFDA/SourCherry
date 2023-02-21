@@ -86,12 +86,14 @@ import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import lt.ffda.sourcherry.fragments.AddNewNodeFragment;
+import lt.ffda.sourcherry.fragments.MoveNodeFragment;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 
 public class MainView extends AppCompatActivity {
@@ -215,7 +217,8 @@ public class MainView extends AppCompatActivity {
                     case REMOVE_FROM_BOOKMARKS:
                         MainView.this.removeNodeFromBookmarks(node[1], result.getInt("position"));
                         break;
-                    case CHANGE_NODE_PARENT:
+                    case MOVE_NODE:
+                        MainView.this.launchMoveNodeFragment(node);
                         break;
                     case DELETE_NODE:
                         break;
@@ -1418,17 +1421,18 @@ public class MainView extends AppCompatActivity {
 
     /**
      * Displays create new node fragment
+     * @param nodeUniqueID unique node ID of the node which action menu was launched
+     * @param relation relation to the node selected. 0 - sibling, 1 - subnode
      */
     private void launchCreateNewNodeFragment(String nodeUniqueID, int relation) {
         Bundle bundle = new Bundle();
         bundle.putString("uniqueID", nodeUniqueID);
         bundle.putInt("relation", relation);
         getSupportFragmentManager().beginTransaction()
-                .setReorderingAllowed(true).setReorderingAllowed(true)
+                .setReorderingAllowed(true)
                 .add(R.id.main_view_fragment, AddNewNodeFragment.class, bundle, "createNode")
                 .addToBackStack("createNode")
                 .commit();
-        getSupportFragmentManager().executePendingTransactions();
         DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
         getSupportActionBar().hide(); // Hides action bar
@@ -1485,6 +1489,41 @@ public class MainView extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    /**
+     * Displays move node fragment
+     * @param node information of the node which action menu was launched
+     */
+    private void launchMoveNodeFragment(String[] node) {
+        Bundle bundle = new Bundle();
+        bundle.putStringArray("node", node);
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, MoveNodeFragment.class, bundle, "moveNode")
+                .addToBackStack("moveNode")
+                .commit();
+        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        getSupportActionBar().hide(); // Hides action bar
+    }
+
+    /**
+     * Moves node to different location of the document tree
+     * @param targetNodeUniqueID unique ID of the node that user chose to move
+     * @param destinationNodeUniqueID unique ID of the node that has to be a parent of the target node
+     */
+    public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
+        getSupportFragmentManager().popBackStack();
+        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        getSupportActionBar().show();
+        this.reader.moveNode(targetNodeUniqueID, destinationNodeUniqueID);
+        if (this.currentNode == null) {
+            this.mainViewModel.setNodes(this.reader.getMainNodes());
+        } else {
+            this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+        }
+        this.resetMenuToCurrentNode();
     }
 
     private void exportPdfSetup() {

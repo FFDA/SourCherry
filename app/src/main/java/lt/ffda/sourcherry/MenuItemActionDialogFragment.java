@@ -77,6 +77,14 @@ public class MenuItemActionDialogFragment extends DialogFragment {
             });
         }
 
+        Button buttonMoveNode = view.findViewById(R.id.menu_item_action_menu_move_node);
+        buttonMoveNode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.MOVE_NODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
+            }
+        });
+
         Button buttonDeleteNode = view.findViewById(R.id.menu_item_action_menu_delete_node);
         buttonDeleteNode.setOnClickListener(new View.OnClickListener() {
             @Override

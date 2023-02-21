@@ -1136,6 +1136,7 @@ public class XMLReader implements DatabaseReader{
 
                 this.writeIntoDatabase();
                 newNodeMenuItem = new String[] {name, newNodeUniqueID, "false", "false", isSubNode};
+                break;
             }
         }
         return newNodeMenuItem;
@@ -1172,5 +1173,75 @@ public class XMLReader implements DatabaseReader{
         bookmarks.remove(nodeUniqueID);
         bookmarksNode.getAttributes().getNamedItem("list").setTextContent(String.join(",", bookmarks));
         writeIntoDatabase();
+    }
+
+    /**
+     * Checks if node is a subnode if another node
+     * Not really sure if it does not return false positives
+     * However all my tests worked
+     * @param targetNodeUniqueID unique ID of the node that needs to be check if it's a parent node
+     * @param destinationNodeUniqueID unique ID of the node that has to be check if it's a child
+     * @return true - if target node is a parent of destination node
+     */
+    public boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
+        ArrayList<String> heredity = new ArrayList<>();
+
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            // Finds destination node
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(destinationNodeUniqueID)) {
+                heredity.add(node.getAttributes().getNamedItem("unique_id").getNodeValue());
+                // Goes up the document tree and adds every nodes unique ID to heredity list
+                // until reaches cherrytree tag
+                while (true) {
+                    Node parentNode = node.getParentNode();
+                    if (parentNode.getNodeName().equals("cherrytree")) {
+                        break;
+                    } else {
+                        heredity.add(parentNode.getAttributes().getNamedItem("unique_id").getNodeValue());
+                        node = parentNode;
+                    }
+                }
+                break;
+            }
+        }
+        // Returns true if heredity contains unique ID of the target node
+        return heredity.contains(targetNodeUniqueID);
+    }
+
+    @Override
+    public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
+        if (areNodesRelated(targetNodeUniqueID, destinationNodeUniqueID)) {
+            displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
+        } else {
+            Node targetNode = null;
+            Node destinationNode = null;
+
+            // User chose to move the node to main menu
+            if (destinationNodeUniqueID.equals("-1")) {
+                NodeList nodeList = this.doc.getElementsByTagName("cherrytree");
+                destinationNode = nodeList.item(0);
+            }
+
+            NodeList nodeList = this.doc.getElementsByTagName("node");
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                // Goes through the nodes until target and destination nodes are found
+                if (targetNode == null || destinationNode == null) {
+                    Node node = nodeList.item(i);
+                    if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(targetNodeUniqueID)) {
+                        targetNode = nodeList.item(i);
+                    }
+                    if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(destinationNodeUniqueID)) {
+                        destinationNode = nodeList.item(i);
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            destinationNode.appendChild(targetNode);
+            this.writeIntoDatabase();
+        }
     }
 }
