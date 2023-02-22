@@ -260,4 +260,19 @@ public class NodeContentFragment extends Fragment {
             }
         }
     }
+
+    /**
+     * Removes node content from view, mainViewModel
+     */
+    public void removeLoadedNodeContent() {
+        if (this.contentFragmentLinearLayout != null) {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    NodeContentFragment.this.contentFragmentLinearLayout.removeAllViews();
+                }
+            });
+        }
+        this.mainViewModel.deleteNodeContent();
+    }
 }

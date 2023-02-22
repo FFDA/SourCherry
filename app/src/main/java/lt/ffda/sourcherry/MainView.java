@@ -86,7 +86,6 @@ import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -221,6 +220,7 @@ public class MainView extends AppCompatActivity {
                         MainView.this.launchMoveNodeFragment(node);
                         break;
                     case DELETE_NODE:
+                        MainView.this.deleteNode(node[1], result.getInt("position"));
                         break;
                     case PROPERTIES:
                         break;
@@ -777,6 +777,34 @@ public class MainView extends AppCompatActivity {
                 nodeContentFragment.loadContent();
             }
         });
+    }
+
+    /**
+     * Removes node content from view and all references to
+     * node in variables.
+     * Reset drawer menu to main menu.
+     */
+    private void removeNodeContent() {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+
+        // Gets instance of the fragment
+        NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
+        // Resets toolbar title
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        toolbar.setTitle("SourCherry");
+        // Removes all node content
+        this.executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                nodeContentFragment.removeLoadedNodeContent();
+            }
+        });
+        // Removes all other references to node in UI and variables
+        this.mainViewModel.setNodes(this.reader.getMainNodes());
+        this.currentNode = null;
+        this.currentNodePosition = RecyclerView.NO_POSITION;
+        this.adapter.markItemSelected(currentNodePosition);
+        this.adapter.notifyDataSetChanged();
     }
 
     private void setToolbarTitle() {
@@ -1524,6 +1552,26 @@ public class MainView extends AppCompatActivity {
             this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
         }
         this.resetMenuToCurrentNode();
+    }
+
+    /**
+     * Deletes node from database, removes node from the drawer menu
+     * if deleted node is not currently opened (selected)
+     * or if node is currently opened reloads drawer menu to main menu,
+     * removes nodeContent and resets action bar title
+     * @param nodeUniqueID unique ID of the node to delete
+     * @param position node's position in drawer menu as reported by adapter
+     */
+    public void deleteNode(String nodeUniqueID, int position) {
+        this.reader.deleteNode(nodeUniqueID);
+        if (nodeUniqueID.equals(this.currentNode[1])) {
+            // Currently displayed node was selected for deletion
+            this.removeNodeContent();
+        } else {
+            // Another node in drawer menu was selected for deletion
+            this.mainViewModel.getNodes().remove(position);
+            this.adapter.notifyItemRemoved(position);
+        }
     }
 
     private void exportPdfSetup() {

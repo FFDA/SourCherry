@@ -1244,4 +1244,17 @@ public class XMLReader implements DatabaseReader{
             this.writeIntoDatabase();
         }
     }
+
+    @Override
+    public void deleteNode(String nodeUniqueID) {
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                node.getParentNode().removeChild(node);
+                this.writeIntoDatabase();
+                break;
+            }
+        }
+    }
 }

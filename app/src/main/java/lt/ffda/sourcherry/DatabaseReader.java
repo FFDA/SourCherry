@@ -253,4 +253,10 @@ public interface DatabaseReader {
      * @param destinationNodeUniqueID unique ID of the node that has to be a parent of the target node
      */
     void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID);
+
+    /**
+     * Deletes node and it subnodes from database
+     * @param nodeUniqueID unique ID of the node to delete
+     */
+    void deleteNode(String nodeUniqueID);
 }

@@ -130,4 +130,11 @@ public class MainViewModel extends ViewModel {
             this.findInNodeResultStorage = new ArrayList<>();
         }
     }
+
+    /**
+     * Deletes node content
+     */
+    public void deleteNodeContent() {
+        this.nodeContent.clear();
+    }
 }

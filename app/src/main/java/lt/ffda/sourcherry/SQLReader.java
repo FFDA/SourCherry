@@ -1119,8 +1119,16 @@ public class SQLReader implements DatabaseReader {
 
     @Override
     public void removeNodeFromBookmarks(String nodeUniqueID) {
+        //Placeholder
     }
 
     @Override
-    public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {}
+    public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
+        //Placeholder
+    }
+
+    @Override
+    public void deleteNode(String nodeUniqueID) {
+        //Placeholder
+    }
 }

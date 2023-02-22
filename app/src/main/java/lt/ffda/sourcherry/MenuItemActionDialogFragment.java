@@ -89,7 +89,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonDeleteNode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.DELETE_NODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.DELETE_NODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
             }
         });
 
