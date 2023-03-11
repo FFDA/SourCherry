@@ -1197,18 +1197,34 @@ public class SQLReader implements DatabaseReader {
 
     @Override
     public boolean isNodeBookmarked(String nodeUniqueID) {
-        //Placeholder;
-        return false;
+        Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null, null);
+        boolean isNodeBookmarked = cursor.getCount() > 0;
+        cursor.close();
+        return isNodeBookmarked;
     }
 
     @Override
-    public void addNodeToBookmarks(String nodeUniqueID){
-        //Placeholder
+    public void addNodeToBookmarks(String nodeUniqueID) {
+        // Adding bookmarks
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("node_id", nodeUniqueID);
+        contentValues.put("sequence", 1);
+        this.sqlite.insert("bookmark", null, contentValues);
+        // Sorting bookmark sequence
+        Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, null, null, null, null, "node_id ASC", null);
+        int counter = 1;
+        while (cursor.moveToNext()) {
+            contentValues.clear();
+            contentValues.put("sequence", counter);
+            this.sqlite.update("bookmark", contentValues, "node_id = ?", new String[]{cursor.getString(0)});
+            counter++;
+        }
+        cursor.close();
     }
 
     @Override
     public void removeNodeFromBookmarks(String nodeUniqueID) {
-        //Placeholder
+        this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
     }
 
     @Override
