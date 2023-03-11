@@ -217,6 +217,13 @@ public interface DatabaseReader {
     boolean doesNodeExist(String uniqueID);
 
     /**
+     * Returns biggest node unique ID of the database
+     * Used when creating a new node
+     * @return biggest node unique ID of the database
+     */
+    int getNodeMaxID();
+
+    /**
      * Creates new node and writes changes to the database
      * @param uniqueID uniqueID of the node that new node will be created in relation with
      * @param relation relation to the node. 0 - sibling, 1 - subnode

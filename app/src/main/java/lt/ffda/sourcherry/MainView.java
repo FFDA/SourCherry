@@ -153,7 +153,7 @@ public class MainView extends AppCompatActivity {
                     is.close();
                 } else {
                     // If file is sql (password protected or not)
-                    SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
+                    SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READWRITE);
                     this.reader = new SQLReader(databaseString, sqlite, this, this.handler);
                 }
             }

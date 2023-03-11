@@ -10,6 +10,7 @@
 
 package lt.ffda.sourcherry;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -47,7 +48,6 @@ import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -975,7 +975,7 @@ public class SQLReader implements DatabaseReader {
         } catch (Exception SQLiteBlobTooBigException) {
             this.displayToast(context.getString(R.string.toast_error_failed_to_open_file_large, cursorWindow));
             return null;
-        }finally {
+        } finally {
             cursor.close();
         }
     }
@@ -1101,9 +1101,98 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
+    public int getNodeMaxID() {
+        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(node_id) FROM node", null);
+        cursor.moveToFirst();
+        int uniqueNodeID = cursor.getInt(0);
+        cursor.close();
+        return uniqueNodeID;
+    }
+
+    /**
+     * Get unique id of parent node of provided node
+     * @param uniqueNodeID unique ID of the node which parent unique ID to find
+     * @return unique id of the node
+     */
+    public int getParentNodeUniqueID(String uniqueNodeID) {
+        Cursor cursor = this.sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {uniqueNodeID});
+        cursor.moveToFirst();
+        int parentNodeUniqueID = cursor.getInt(0);
+        cursor.close();
+        return parentNodeUniqueID;
+    }
+
+    /**
+     * Returns next available children's sequence number of the node
+     * sequence number is used to order nodes in the drawer menu
+     * @param uniqueNodeID unique id of the node which next available children's sequence number to return
+     * @return next available sequence number
+     */
+    public int getNewNodeSequenceNumber(String uniqueNodeID) {
+        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {uniqueNodeID});
+        cursor.moveToFirst();
+        int sequence = cursor.getInt(0);
+        cursor.close();
+        return sequence + 1;
+    }
+
+    @Override
     public String[] createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
-        //Place holder
-        return new String[]{};
+        // Updating node table
+        int newNodeUniqueID = this.getNodeMaxID() + 1;
+        int level = 0;
+        if (noSearchMe.equals("1") && noSearchCh.equals("1")) {
+            level = 3;
+        } else if (noSearchMe.equals("1")) {
+            level = 1;
+        } else if (noSearchCh.equals("1")) {
+            level = 2;
+        }
+        String timeStamp = String.valueOf(System.currentTimeMillis());
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("node_id", newNodeUniqueID);
+        contentValues.put("name", name);
+        contentValues.put("txt", "");
+        contentValues.put("syntax", progLang);
+        contentValues.put("tags", "");
+        contentValues.put("is_ro",0);
+        contentValues.put("is_richtxt", progLang.equals("custom-folors") ? 1 : 0);
+        contentValues.put("has_codebox", 0);
+        contentValues.put("has_table", 0);
+        contentValues.put("has_image", 0);
+        contentValues.put("level", level);
+        contentValues.put("ts_creation", timeStamp);
+        contentValues.put("ts_lastsave", timeStamp);
+
+        long createNewNodeResult = this.sqlite.insert("node", null, contentValues);
+        if (createNewNodeResult == -1) {
+            displayToast(this.context.getString(R.string.toast_error_failed_to_create_entry_into_node_table));
+            return null;
+        }
+
+        // Updating children table
+        contentValues.clear();
+        String isSubnode = "true";
+        contentValues.put("node_id", newNodeUniqueID);
+        if (relation == 0) {
+            int fatherNodeUniqueID = this.getParentNodeUniqueID(uniqueID);
+            contentValues.put("father_id", fatherNodeUniqueID);
+            contentValues.put("sequence", this.getNewNodeSequenceNumber(String.valueOf(fatherNodeUniqueID)));
+            if (fatherNodeUniqueID == 0) {
+                isSubnode = "false";
+            }
+        } else {
+            contentValues.put("father_id", Integer.parseInt(uniqueID));
+            contentValues.put("sequence", this.getNewNodeSequenceNumber(uniqueID));
+        }
+
+        long childrenUpdateResult = this.sqlite.insert("children", null, contentValues);
+        if (childrenUpdateResult == -1) {
+            displayToast(this.context.getString(R.string.toast_error_failed_to_create_entry_into_children_table));
+            return null;
+        }
+
+        return new String[] {name, String.valueOf(newNodeUniqueID), "false", "false", isSubnode};
     }
 
     @Override

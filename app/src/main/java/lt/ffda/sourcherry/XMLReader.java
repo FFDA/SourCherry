@@ -1058,11 +1058,7 @@ public class XMLReader implements DatabaseReader{
         return false;
     }
 
-    /**
-     * Returns biggest node unique ID of the document
-     * Used when creating a new node
-     * @return biggest node unique ID of the document
-     */
+    @Override
     public int getNodeMaxID() {
         int uniqueNodeID = -1;
         NodeList nodeList = this.doc.getElementsByTagName("node");
