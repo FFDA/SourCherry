@@ -1566,7 +1566,7 @@ public class MainView extends AppCompatActivity {
      */
     public void deleteNode(String nodeUniqueID, int position) {
         this.reader.deleteNode(nodeUniqueID);
-        if (nodeUniqueID.equals(this.currentNode[1])) {
+        if (this.currentNode != null && nodeUniqueID.equals(this.currentNode[1])) {
             // Currently displayed node was selected for deletion
             this.removeNodeContent();
         } else {
