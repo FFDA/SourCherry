@@ -30,7 +30,7 @@
 
     <EditText
         android:id="@+id/edit_text_node_name"
-        android:layout_width="wrap_content"
+        android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="40dp"
         android:layout_marginTop="16dp"
@@ -69,13 +69,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/radio_button_rich_text"
-            android:visibility="gone"/>
+            android:enabled="false"/>
 
         <RadioButton
             android:id="@+id/radio_button_plain_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:checked="true"
             android:text="@string/radio_button_plain_text"/>
 
         <RadioButton

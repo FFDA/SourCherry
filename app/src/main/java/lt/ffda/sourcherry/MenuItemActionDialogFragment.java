@@ -97,7 +97,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonProperties.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.PROPERTIES, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.PROPERTIES, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
             }
         });
 

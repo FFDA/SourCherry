@@ -42,6 +42,7 @@ import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -53,7 +54,9 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -389,7 +392,6 @@ public class XMLReader implements DatabaseReader{
                             }
                         } else if (currentNodeType.equals("codebox")) {
                             int charOffset = getCharOffset(currentNode);
-
                             SpannableStringBuilder codeboxText = makeFormattedCodebox(currentNode);
                             nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
                             totalCharOffset += codeboxText.length() - 1;
@@ -798,7 +800,7 @@ public class XMLReader implements DatabaseReader{
 
         SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
 
-        formattedAttachedFile.append(" "); // Needed to insert image
+        formattedAttachedFile.append(" "); // Needed to insert an image
 
         //// Inserting image
         Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_attachment_24);
@@ -1084,7 +1086,12 @@ public class XMLReader implements DatabaseReader{
         try {
             transformer = transformerFactory.newTransformer();
             DOMSource dSource = new DOMSource(this.doc);
-            OutputStream fileOutputStream = context.getContentResolver().openOutputStream(Uri.parse(this.databaseUri), "wt");
+            OutputStream fileOutputStream;
+            if (this.databaseUri.startsWith("content://")) {
+                fileOutputStream = context.getContentResolver().openOutputStream(Uri.parse(this.databaseUri), "wt");
+            } else {
+                fileOutputStream = new FileOutputStream(new File(this.databaseUri));
+            }
             StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
             transformer.transform(dSource, result);
         } catch (TransformerException e) {
@@ -1254,6 +1261,173 @@ public class XMLReader implements DatabaseReader{
                 node.getParentNode().removeChild(node);
                 this.writeIntoDatabase();
                 break;
+            }
+        }
+    }
+
+    @Override
+    public String[] getNodeProperties(String nodeUniqueID) {
+        String[] nodeProperties = null;
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                NamedNodeMap properties = node.getAttributes();
+                String name = properties.getNamedItem("name").getNodeValue();
+                String progLang = properties.getNamedItem("prog_lang").getNodeValue();
+                String noSearchMe = properties.getNamedItem("nosearch_me").getNodeValue();
+                String noSearchCh = properties.getNamedItem("nosearch_ch").getNodeValue();
+                nodeProperties = new String[] {name, progLang, noSearchMe, noSearchCh};
+                break;
+            }
+        }
+        return nodeProperties;
+    }
+
+    @Override
+    public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                NamedNodeMap properties = node.getAttributes();
+                properties.getNamedItem("name").setNodeValue(name);
+                if (properties.getNamedItem("prog_lang").getNodeValue().equals("custom-colors") && !progLang.equals("custom-colors")) {
+                    StringBuilder nodeContent = this.convertRichTextNodeContentToPlainText(node);
+                    this.deleteNodeContent(node);
+                    Element newContentNode = this.doc.createElement("rich_text");
+                    newContentNode.setTextContent(nodeContent.toString());
+                    node.appendChild(newContentNode);
+                }
+                properties.getNamedItem("prog_lang").setNodeValue(progLang);
+                properties.getNamedItem("nosearch_me").setNodeValue(noSearchMe);
+                properties.getNamedItem("nosearch_ch").setNodeValue(noSearchCh);
+                properties.getNamedItem("ts_lastsave").setNodeValue(String.valueOf(System.currentTimeMillis()));
+                break;
+            }
+        }
+        this.writeIntoDatabase();
+    }
+
+    @Override
+    public StringBuilder convertRichTextNodeContentToPlainText(Node contentNode) {
+        StringBuilder nodeContent = new StringBuilder();
+        int totalCharOffset = 0;
+        NodeList nodeList = contentNode.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("rich_text")) {
+                nodeContent.append(node.getTextContent());
+            } else if (node.getNodeName().equals("table")) {
+                int charOffset = getCharOffset(node) + totalCharOffset;
+                StringBuilder tableContent = this.convertTableNodeContentToPlainText(node);
+                nodeContent.insert(charOffset, tableContent);
+                totalCharOffset += tableContent.length() - 1;
+            } else if (node.getNodeName().equals("encoded_png")) {
+                if (node.getAttributes().getNamedItem("filename") != null) {
+                    if (node.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
+                        // For latex boxes
+                        int charOffset = getCharOffset(node) + totalCharOffset;
+                        StringBuilder latexContent = this.convertLatexToPlainText(node);
+                        nodeContent.insert(charOffset, latexContent);
+                        totalCharOffset += latexContent.length() - 1;
+                        continue;
+                    } else {
+                        totalCharOffset -= 1;
+                    }
+                } else if (node.getAttributes().getNamedItem("anchor") != null) {
+                    totalCharOffset -= 1;
+                } else {
+                    totalCharOffset -= 1;
+                }
+            } else if (node.getNodeName().equals("codebox")) {
+                int charOffset = getCharOffset(node) + totalCharOffset;
+                StringBuilder codeboxContent = this.convertCodeboxToPlainText(node);
+                nodeContent.insert(charOffset, codeboxContent);
+                totalCharOffset += codeboxContent.length() - 1;
+            }
+        }
+        return nodeContent;
+    }
+
+    @Override
+    public StringBuilder convertTableNodeContentToPlainText(Node tableNode) {
+        StringBuilder tableContent = new StringBuilder();
+        NodeList nodeList = tableNode.getChildNodes();
+        int tableRowCount = nodeList.getLength() / 2;
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("row")) {
+                // Header row for the table is kept at the end of the table
+                // When converting to string it has to be added to the beginning
+                // of the string fro the information to make sense
+                if (tableRowCount > 1) {
+                    tableContent.append(this.convertTableRowToPlainText(node));
+                } else {
+                    tableContent.insert(0, this.convertTableRowToPlainText(node));
+                }
+                tableRowCount--;
+            }
+        }
+        tableContent.insert(0, "\n");
+        return tableContent;
+    }
+
+    @Override
+    public StringBuilder convertTableRowToPlainText(Node tableRow) {
+        StringBuilder rowContent = new StringBuilder();
+        rowContent.append("|");
+        NodeList nodeList = tableRow.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("cell")) {
+                rowContent.append(" ");
+                rowContent.append(node.getTextContent());
+                rowContent.append(" |");
+            }
+        }
+        rowContent.append("\n");
+        return rowContent;
+    }
+
+    @Override
+    public StringBuilder convertLatexToPlainText(Node node) {
+        StringBuilder latexContent = new StringBuilder();
+        latexContent.append(node.getTextContent());
+        latexContent.delete(0, 79);
+        latexContent.delete(latexContent.length()-14, latexContent.length());
+        latexContent.insert(0,getSeparator());
+        latexContent.insert(0, "\n");
+        latexContent.append(getSeparator());
+        latexContent.append("\n");
+        return latexContent;
+    }
+
+    @Override
+    public StringBuilder convertCodeboxToPlainText(Node node) {
+        StringBuilder codeboxContent = new StringBuilder();
+        codeboxContent.append("\n");
+        codeboxContent.append(getSeparator());
+        codeboxContent.append("\n");
+        codeboxContent.append(node.getTextContent());
+        codeboxContent.append("\n");
+        codeboxContent.append(getSeparator());
+        codeboxContent.append("\n");
+        return  codeboxContent;
+    }
+
+    @Override
+    public String getSeparator() {
+        return "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+    }
+
+    @Override
+    public void deleteNodeContent(Node node) {
+        NodeList nodeList = node.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node currentNode = nodeList.item(i);
+            if (!currentNode.getNodeName().equals("node")) {
+                node.removeChild(currentNode);
             }
         }
     }

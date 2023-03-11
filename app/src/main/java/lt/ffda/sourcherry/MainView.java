@@ -93,6 +93,7 @@ import java.util.stream.Collectors;
 
 import lt.ffda.sourcherry.fragments.AddNewNodeFragment;
 import lt.ffda.sourcherry.fragments.MoveNodeFragment;
+import lt.ffda.sourcherry.fragments.NodePropertiesFragment;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 
 public class MainView extends AppCompatActivity {
@@ -223,6 +224,7 @@ public class MainView extends AppCompatActivity {
                         MainView.this.deleteNode(node[1], result.getInt("position"));
                         break;
                     case PROPERTIES:
+                        MainView.this.openNodeProperties(node[1], result.getInt("position"));
                         break;
                 }
             }
@@ -1571,6 +1573,53 @@ public class MainView extends AppCompatActivity {
             // Another node in drawer menu was selected for deletion
             this.mainViewModel.getNodes().remove(position);
             this.adapter.notifyItemRemoved(position);
+        }
+    }
+
+    /**
+     * Opens a fragment with information about the node
+     * @param nodeUniqueID unique ID of the node of which properties has to be shown
+     * @param position node's position in drawer menu as reported by adapter
+     */
+    public void openNodeProperties(String nodeUniqueID, int position) {
+        Bundle bundle = new Bundle();
+        bundle.putString("nodeUniqueID", nodeUniqueID);
+        bundle.putInt("position", position);
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, NodePropertiesFragment.class, bundle, "moveNode")
+                .addToBackStack("nodeProperties")
+                .commit();
+        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        getSupportActionBar().hide(); // Hides action bar
+    }
+
+    /**
+     * Updates node properties in the database
+     * @param position node's position in drawer menu as reported by adapter
+     * @param nodeUniqueID unique ID of the node for which properties has to be updated
+     * @param name new name of the node
+     * @param progLang new node type
+     * @param noSearchMe 1 - to exclude node from searches, 0 - keep node searches
+     * @param noSearchCh 1 - to exclude subnodes of the node from searches, 0 - keep subnodes of the node in searches
+     * @param reloadNodeContent true - reload node content fragment after changing data, false - do nothing
+     */
+    public void updateNodeProperties(int position, String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh, boolean reloadNodeContent) {
+        getSupportFragmentManager().popBackStack();
+        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        getSupportActionBar().show();
+        this.reader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
+        mainViewModel.getNodes().get(position)[0] = name;
+        this.adapter.notifyItemChanged(position);
+        if (mainViewModel.getNodes().get(position)[1].equals(this.currentNode[1])) {
+            // If opened node was changed - reloads node name in toolbar
+            // and reloads node content if reloadNodeContent is true
+            this.currentNode[0] = name;
+            this.setToolbarTitle();
+            if (reloadNodeContent) {
+                this.loadNodeContent();
+            }
         }
     }
 

@@ -10,7 +10,9 @@
 
 package lt.ffda.sourcherry.fragments;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -31,7 +33,7 @@ import androidx.fragment.app.Fragment;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 
-public class AddNewNodeFragment extends Fragment {
+public class NodePropertiesFragment extends Fragment {
     RadioGroup radioGroupNodeType;
     CheckBox checkBoxExcludeFromSearchesThisNode;
     CheckBox checkBoxExcludeFromSearchesSubnodes;
@@ -41,34 +43,72 @@ public class AddNewNodeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.add_new_node_fragment, container, false);
-
         this.radioGroupNodeType = view.findViewById(R.id.radio_group_node_type);
         this.checkBoxExcludeFromSearchesThisNode = view.findViewById(R.id.exclude_from_searches_this_node);
         this.checkBoxExcludeFromSearchesSubnodes = view.findViewById(R.id.exclude_from_searches_subnodes);
-
         return view;
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        this.radioGroupNodeType.check(R.id.radio_button_plain_text);
-        String uniqueID = getArguments().getString("uniqueID");
-        int relation = getArguments().getInt("relation");
+
+        String nodeUniqueID = getArguments().getString("nodeUniqueID");
+        String[] nodeProperties = ((MainView) getActivity()).reader().getNodeProperties(nodeUniqueID);
 
         EditText editTextNodeName = view.findViewById(R.id.edit_text_node_name);
+        editTextNodeName.setText(nodeProperties[0]);
         editTextNodeName.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 boolean handle = false;
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     handle = true;
-                    AddNewNodeFragment.this.createNode(uniqueID, relation, AddNewNodeFragment.this.validateNodeName(editTextNodeName.getText().toString()));
+                    NodePropertiesFragment.this.updateNode(nodeUniqueID, nodeProperties[1]);
                     // Hides keyboard
                     InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(editTextNodeName.getWindowToken(), 0);
                 }
                 return handle;
+            }
+        });
+
+        // Setting up node type radio buttons
+        if (nodeProperties[1].equals("custom-colors")) {
+            radioGroupNodeType.check(R.id.radio_button_rich_text);
+        } else if (nodeProperties[1].equals("plain-text")) {
+            radioGroupNodeType.check(R.id.radio_button_plain_text);
+        } else {
+            radioGroupNodeType.check(R.id.radio_button_automatic_syntax_highlighting);
+        }
+
+        // Setting up "Exclude from search This node"
+        if (nodeProperties[2].equals("1")) {
+            this.checkBoxExcludeFromSearchesThisNode.setChecked(true);
+        }
+
+        // Setting up "Exclude from search The subnodes"
+        if (nodeProperties[3].equals("1")) {
+            this.checkBoxExcludeFromSearchesSubnodes.setChecked(true);
+        }
+
+        // Display a message if user changes from rich-text to another node type
+        // to notify that formatting will be lost
+        this.radioGroupNodeType.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (nodeProperties[1].equals("custom-colors") && checkedId != R.id.radio_button_rich_text) {
+                    AlertDialog.Builder confirmNodeTypeChangeBuilder = new AlertDialog.Builder(getActivity());
+                    confirmNodeTypeChangeBuilder.setTitle(R.string.dialog_node_type_change_title);
+                    confirmNodeTypeChangeBuilder.setMessage(R.string.dialog_node_type_change_message);
+                    confirmNodeTypeChangeBuilder.setPositiveButton(R.string.button_ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                        }
+                    });
+                    AlertDialog confirmNodeTypeChangeDialog = confirmNodeTypeChangeBuilder.show();
+                }
             }
         });
 
@@ -82,22 +122,23 @@ public class AddNewNodeFragment extends Fragment {
         });
 
         Button buttonCreate = view.findViewById(R.id.add_node_button_create);
+        buttonCreate.setText(R.string.button_ok);
         buttonCreate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                AddNewNodeFragment.this.createNode(uniqueID, relation, validateNodeName(editTextNodeName.getText().toString()));
+                NodePropertiesFragment.this.updateNode(nodeUniqueID, nodeProperties[1]);
             }
         });
     }
 
     /**
      * Convenience function to call createNewNode in MainView
-     * @param uniqueID uniqueID of the node that new node will be created in relation with
-     * @param relation relation to the node. 0 - sibling, 1 - subnode
-     * @param name node name
+     * @param nodeUniqueID uniqueID of the node that new node will be created in relation with
+     * @param progLangFromDatabase node's prog_lang propertie that was saved in the database when properties were opened
      */
-    private void createNode(String uniqueID, int relation, String name) {
-        ((MainView) getActivity()).createNewNode(uniqueID, relation, name, getNodeProgLangSelection(), getNoSearchMeState(), getNoSearchChState());
+    private void updateNode(String nodeUniqueID, String progLangFromDatabase) {
+        String progLang = getNodeProgLangSelection();
+        ((MainView) getActivity()).updateNodeProperties(getArguments().getInt("position"), nodeUniqueID, this.getNodeName(), progLang, getNoSearchMeState(), getNoSearchChState(), !progLangFromDatabase.equals(progLang));
     }
 
     /**
@@ -106,7 +147,7 @@ public class AddNewNodeFragment extends Fragment {
      * @return "custom-colors" - rich text, "plain-text' - plain text, "sh" - automatic_syntax_highlighting
      */
     private String getNodeProgLangSelection() {
-        String progLang = "plain-text";
+        String progLang;
         int selectedRadioButtonID = radioGroupNodeType.getCheckedRadioButtonId();
         if (selectedRadioButtonID == R.id.radio_button_rich_text) {
             progLang = "custom-colors";
@@ -148,11 +189,10 @@ public class AddNewNodeFragment extends Fragment {
      * Removes leading and trailing spaces
      * If name is empty then
      * returns a String containing a question mark (?)
-     * @param nodeName node name
      * @return node name that can be used for node creation
      */
-    private String validateNodeName(String nodeName) {
-        nodeName = nodeName.trim();
+    private String getNodeName() {
+        String nodeName = ((EditText) getView().findViewById(R.id.edit_text_node_name)).getText().toString().trim();
         if (nodeName.length() == 0) {
             nodeName = "?";
         }

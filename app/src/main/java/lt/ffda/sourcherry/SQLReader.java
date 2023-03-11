@@ -1131,4 +1131,55 @@ public class SQLReader implements DatabaseReader {
     public void deleteNode(String nodeUniqueID) {
         //Placeholder
     }
+
+    @Override
+    public String[] getNodeProperties(String nodeUniqueID) {
+        // Placeholder
+        return new String[]{};
+    }
+
+    @Override
+    public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
+        // Placeholder
+    }
+
+    @Override
+    public StringBuilder convertRichTextNodeContentToPlainText(Node contentNode) {
+        // Placeholder
+        return new StringBuilder();
+    }
+
+    @Override
+    public StringBuilder convertTableNodeContentToPlainText(Node tableNode) {
+        // Placeholder
+        return new StringBuilder();
+    }
+
+    @Override
+    public StringBuilder convertTableRowToPlainText(Node tableRow) {
+        // Placeholder
+        return new StringBuilder();
+    }
+
+    @Override
+    public StringBuilder convertLatexToPlainText(Node node) {
+        // Placeholder
+        return new StringBuilder();
+    }
+
+    @Override
+    public StringBuilder convertCodeboxToPlainText(Node node) {
+        // Placeholder
+        return new StringBuilder();
+    }
+
+    @Override
+    public String getSeparator() {
+        return "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+    }
+
+    @Override
+    public void deleteNodeContent(Node node) {
+        // Placeholder
+    }
 }

@@ -15,6 +15,8 @@
     <string name="navigation_drawer_checkbox_omit_marked_to_exclude">Omit marked to exclude</string>
     <string name="save_open_dialog_fragment_title">Save or Open the File</string>
     <string name="dialog_save_open_fragment_remember_choice_checkBox">Remember choice</string>
+    <string name="dialog_node_type_change_title">Node type change</string>
+    <string name="dialog_node_type_change_message">Leaving the rich text node type will lose all the formatting for this node</string>
     <string name="button_save">Save</string>
     <string name="button_cancel">Cancel</string>
     <string name="button_move">Move</string>

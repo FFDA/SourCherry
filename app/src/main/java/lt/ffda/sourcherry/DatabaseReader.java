@@ -259,4 +259,78 @@ public interface DatabaseReader {
      * @param nodeUniqueID unique ID of the node to delete
      */
     void deleteNode(String nodeUniqueID);
+
+    /**
+     * Retrieves relevant (the ones that app displays) node properties
+     * @param nodeUniqueID unique ID of the node for which properties has to be retrieved
+     * @return list with node properties in this order: name, prog_lang, nosearch_me, nosearch_ch
+     */
+    String[] getNodeProperties(String nodeUniqueID);
+
+    /**
+     * Updates properties if the node
+     * @param nodeUniqueID unique ID of the node for which properties has to be updated
+     * @param name new name of the node
+     * @param progLang new node type
+     * @param noSearchMe 1 - to exclude node from searches, 0 - keep node searches
+     * @param noSearchCh 1 - to exclude subnodes of the node from searches, 0 - keep subnodes of the node in searches
+     */
+    void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh);
+
+    /**
+     * Coverts content of provided node from rich-text to plain-text or automatic-syntax-highlighting
+     * Conversion adds all the content from the node's rich-text tags to StringBuilder
+     * that can be added to the new rich-text (single) tag later
+     * @param contentNode node that needs to be converted
+     * @return StringBuilder with all the node content without addition tags
+     */
+    StringBuilder convertRichTextNodeContentToPlainText(Node contentNode);
+
+    /**
+     * Coverts content of the table Node (part of content node) to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param tableNode table node that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
+    StringBuilder convertTableNodeContentToPlainText(Node tableNode);
+
+    /**
+     * Coverts content of the table row Node (part of table node) to a StringBuilder
+     * used as pat of convertTableNodeContentToPlainText function
+     * Data of every cell is surrounded with "|" (following CherryTree example)
+     * @param tableRow table row that need to be converted
+     * @return StringBuilder that can be added to the table content StringBuilder
+     */
+    StringBuilder convertTableRowToPlainText(Node tableRow);
+
+    /**
+     * Converts latex node content to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param node latex node that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
+    StringBuilder convertLatexToPlainText(Node node);
+
+    /**
+     * Coverts codebox node content to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param node codebox node that needs to be converted
+     * @return StringBuilder that can be added to the node StringBuilder at the proper offset
+     */
+    StringBuilder convertCodeboxToPlainText(Node node);
+
+    /**
+     * Separator that is used for formatting of codeboxes, latex
+     * it's made of 33 tilde (~) characters
+     * in plain-text form
+     * @return a separator
+     */
+    String getSeparator();
+
+    /**
+     * Removes all rich_text tags from the node
+     * Used to prepare node for conversion from rich-text to plain-text
+     * @param node node from which to delete all the content
+     */
+    void deleteNodeContent(Node node);
 }
