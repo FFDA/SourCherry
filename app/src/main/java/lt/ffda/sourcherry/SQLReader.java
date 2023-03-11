@@ -1234,7 +1234,8 @@ public class SQLReader implements DatabaseReader {
 
     @Override
     public void deleteNode(String nodeUniqueID) {
-        //Placeholder
+        this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
+        this.sqlite.delete("children", "node_id = ?", new String[]{nodeUniqueID});
     }
 
     @Override
