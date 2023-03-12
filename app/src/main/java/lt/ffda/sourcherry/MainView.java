@@ -1612,7 +1612,7 @@ public class MainView extends AppCompatActivity {
         this.reader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
         mainViewModel.getNodes().get(position)[0] = name;
         this.adapter.notifyItemChanged(position);
-        if (mainViewModel.getNodes().get(position)[1].equals(this.currentNode[1])) {
+        if (this.currentNode != null && mainViewModel.getNodes().get(position)[1].equals(this.currentNode[1])) {
             // If opened node was changed - reloads node name in toolbar
             // and reloads node content if reloadNodeContent is true
             this.currentNode[0] = name;

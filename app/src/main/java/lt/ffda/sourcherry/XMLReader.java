@@ -42,7 +42,6 @@ import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -1298,7 +1297,13 @@ public class XMLReader implements DatabaseReader{
         this.writeIntoDatabase();
     }
 
-    @Override
+    /**
+     * Coverts content of provided node from rich-text to plain-text or automatic-syntax-highlighting
+     * Conversion adds all the content from the node's rich-text tags to StringBuilder
+     * that can be added to the new rich-text (single) tag later
+     * @param contentNode node that needs to be converted
+     * @return StringBuilder with all the node content without addition tags
+     */
     public StringBuilder convertRichTextNodeContentToPlainText(Node contentNode) {
         StringBuilder nodeContent = new StringBuilder();
         int totalCharOffset = 0;
@@ -1324,6 +1329,9 @@ public class XMLReader implements DatabaseReader{
                     } else {
                         totalCharOffset -= 1;
                     }
+                // For every element, even ones that will not be added
+                // 1 has to be deducted from totalCharOffset
+                // to make node's data be displayed in order
                 } else if (node.getAttributes().getNamedItem("anchor") != null) {
                     totalCharOffset -= 1;
                 } else {
@@ -1339,7 +1347,12 @@ public class XMLReader implements DatabaseReader{
         return nodeContent;
     }
 
-    @Override
+    /**
+     * Coverts content of the table Node (part of content node) to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param tableNode table node that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
     public StringBuilder convertTableNodeContentToPlainText(Node tableNode) {
         StringBuilder tableContent = new StringBuilder();
         NodeList nodeList = tableNode.getChildNodes();
@@ -1379,7 +1392,12 @@ public class XMLReader implements DatabaseReader{
         return rowContent;
     }
 
-    @Override
+    /**
+     * Converts latex node content to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param node latex node that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
     public StringBuilder convertLatexToPlainText(Node node) {
         StringBuilder latexContent = new StringBuilder();
         latexContent.append(node.getTextContent());
@@ -1392,7 +1410,12 @@ public class XMLReader implements DatabaseReader{
         return latexContent;
     }
 
-    @Override
+    /**
+     * Coverts codebox node content to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param node codebox node that needs to be converted
+     * @return StringBuilder that can be added to the node StringBuilder at the proper offset
+     */
     public StringBuilder convertCodeboxToPlainText(Node node) {
         StringBuilder codeboxContent = new StringBuilder();
         codeboxContent.append("\n");
@@ -1402,7 +1425,7 @@ public class XMLReader implements DatabaseReader{
         codeboxContent.append("\n");
         codeboxContent.append(getSeparator());
         codeboxContent.append("\n");
-        return  codeboxContent;
+        return codeboxContent;
     }
 
     @Override
@@ -1410,7 +1433,11 @@ public class XMLReader implements DatabaseReader{
         return "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
     }
 
-    @Override
+    /**
+     * Removes all rich_text tags from the node
+     * Used to prepare node for conversion from rich-text to plain-text
+     * @param node node from which to delete all the content
+     */
     public void deleteNodeContent(Node node) {
         NodeList nodeList = node.getChildNodes();
         for (int i = 0; i < nodeList.getLength(); i++) {

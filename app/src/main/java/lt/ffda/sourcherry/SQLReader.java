@@ -1128,7 +1128,7 @@ public class SQLReader implements DatabaseReader {
      * @param uniqueNodeID unique id of the node which next available children's sequence number to return
      * @return next available sequence number
      */
-    public int getNewNodeSequenceNumber(String uniqueNodeID) {
+    private int getNewNodeSequenceNumber(String uniqueNodeID) {
         Cursor cursor = this.sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {uniqueNodeID});
         cursor.moveToFirst();
         int sequence = cursor.getInt(0);
@@ -1136,10 +1136,44 @@ public class SQLReader implements DatabaseReader {
         return sequence + 1;
     }
 
-    @Override
-    public String[] createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
-        // Updating node table
-        int newNodeUniqueID = this.getNodeMaxID() + 1;
+    /**
+     * Converts Exclude from search This node and The Subnodes values
+     * from int that are saved in SQL databases to separate
+     * noSearchMe and noSearchCh values that are used in XML databases and throughout
+     * the code in this app
+     * @param level value that was saved in SQL database
+     * @return Array that holds values {noSearchMe, ne SearchCh}
+     */
+    private String[] convertLevelToNoSearch(int level) {
+        String[] noSearch = new String[2];
+        switch (level) {
+            case 0:
+                noSearch[0] = "0";
+                noSearch[1] = "0";
+                break;
+            case 1:
+                noSearch[0] = "1";
+                noSearch[1] = "0";
+                break;
+            case 2:
+                noSearch[0] = "0";
+                noSearch[1] = "1";
+                break;
+            case 3:
+                noSearch[0] = "1";
+                noSearch[1] = "1";
+        }
+        return noSearch;
+    }
+
+    /**
+     * Convert noSearchMe and noSearchCh values that are used in XML databases and throughout
+     * the code in this app to int value Level that is used in SQL type databases
+     * @param noSearchMe exclude this node from search value. 0 - search the node, 1 - exclude
+     * @param noSearchCh exclude the subnode from search value. 0 - search the subnodes, 1 - exclude
+     * @return level value. 0 - search the node and subnodes, 1 - exclude the node, 2 - exclude subnodes, 3 - exclude both
+     */
+    private int convertNoSearchToLevel(String noSearchMe, String noSearchCh) {
         int level = 0;
         if (noSearchMe.equals("1") && noSearchCh.equals("1")) {
             level = 3;
@@ -1148,6 +1182,14 @@ public class SQLReader implements DatabaseReader {
         } else if (noSearchCh.equals("1")) {
             level = 2;
         }
+        return level;
+    }
+
+    @Override
+    public String[] createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
+        // Updating node table
+        int newNodeUniqueID = this.getNodeMaxID() + 1;
+        int level = convertNoSearchToLevel(noSearchMe, noSearchCh);
         String timeStamp = String.valueOf(System.currentTimeMillis());
         ContentValues contentValues = new ContentValues();
         contentValues.put("node_id", newNodeUniqueID);
@@ -1299,52 +1341,181 @@ public class SQLReader implements DatabaseReader {
 
     @Override
     public String[] getNodeProperties(String nodeUniqueID) {
-        // Placeholder
-        return new String[]{};
+        Cursor cursor = this.sqlite.query("node", new String[]{"name", "syntax", "level"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        cursor.moveToFirst();
+        String[] noSearch = this.convertLevelToNoSearch(cursor.getInt(2));
+        String noSearchMe = noSearch[0];
+        String noSearchCh = noSearch[1];
+        String[] nodeProperties = new String[]{cursor.getString(0), cursor.getString(1), noSearchMe, noSearchCh};
+        cursor.close();
+        return nodeProperties;
     }
 
     @Override
     public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        // Placeholder
+        Cursor cursorNodeType = this.sqlite.query("node", new String[]{"syntax"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        cursorNodeType.moveToFirst();
+        String nodeType = cursorNodeType.getString(0);
+        cursorNodeType.close();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("name", name);
+        if (nodeType.equals("custom-colors") && !progLang.equals("custom-colors")) {
+            contentValues.put("txt", this.convertRichTextNodeContentToPlainText(nodeUniqueID).toString());
+        }
+        contentValues.put("syntax", progLang);
+        contentValues.put("level", this.convertNoSearchToLevel(noSearchMe, noSearchCh));
+        contentValues.put("ts_lastsave", String.valueOf(System.currentTimeMillis()));
+        this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
     }
 
-    @Override
-    public StringBuilder convertRichTextNodeContentToPlainText(Node contentNode) {
-        // Placeholder
-        return new StringBuilder();
+    /**
+     * Coverts content of provided node (unique ID) from rich-text to plain-text or automatic-syntax-highlighting
+     * Conversion adds all the content from the node's rich-text tags to StringBuilder
+     * that can be added to the node table txt field
+     * @param nodeUniqueID unique id of the node that needs to be converted
+     * @return StringBuilder with all the node content without addition tags
+     */
+    public StringBuilder convertRichTextNodeContentToPlainText(String nodeUniqueID) {
+        StringBuilder nodeContent = new StringBuilder();
+        int totalCharOffset = 0;
+        // Getting text data of the node
+        Cursor cursor = this.sqlite.query("node", new String[]{"txt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        cursor.moveToFirst();
+        NodeList nodeList =  this.getNodeFromString(cursor.getString(0), "node");
+        cursor.close();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            nodeContent.append(node.getTextContent());
+        }
+        // Getting offset data for all images (latex, images, files), tables and codeboxes
+        // Adding 7 - for codebox, 8 - for table and 9 for image as a second column
+        Cursor codeboxTableImageCursor = this.sqlite.rawQuery(new String("SELECT offset, 7 FROM codebox WHERE node_id=? UNION SELECT offset, 8 FROM grid WHERE node_id=? UNION SELECT offset, 9 FROM image WHERE node_id=? ORDER BY offset ASC"), new String[]{nodeUniqueID, nodeUniqueID, nodeUniqueID});
+        while (codeboxTableImageCursor.moveToNext()) {
+            if (codeboxTableImageCursor.getInt(1) == 7) {
+                Cursor cursorCodeboxes = this.sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
+                while (cursorCodeboxes.moveToNext()) {
+                    int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
+                    StringBuilder codeboxContent = this.convertCodeboxToPlainText(cursorCodeboxes.getString(0));
+                    nodeContent.insert(charOffset, codeboxContent);
+                    totalCharOffset += codeboxContent.length() - 1;
+                }
+                cursorCodeboxes.close();
+            }
+            if (codeboxTableImageCursor.getInt(1) == 8) {
+                Cursor cursorTables = this.sqlite.query("grid", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
+                while (cursorTables.moveToNext()) {
+                    int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
+                    StringBuilder tableContent = this.convertTableContentToPlainText(cursorTables.getString(0));
+                    nodeContent.insert(charOffset, tableContent);
+                    totalCharOffset += tableContent.length() - 1;
+                }
+                cursorTables.close();
+            }
+            if (codeboxTableImageCursor.getInt(1) == 9) {
+                Cursor cursorImages = this.sqlite.query("image", new String[]{"anchor", "png", "filename"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
+                while (cursorImages.moveToNext()) {
+                    if (cursorImages.getString(2).equals("__ct_special.tex")) {
+                        int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
+                        StringBuilder imageContent = this.convertLatexToPlainText(new String(cursorImages.getBlob(1)));
+                        nodeContent.insert(charOffset, imageContent);
+                        totalCharOffset += imageContent.length() - 1;
+                    } else {
+                        // For every element, even ones that will not be added
+                        // 1 has to be deducted from totalCharOffset
+                        // to make node's data be displayed in order
+                        totalCharOffset -= 1;
+                    }
+                }
+                cursorImages.close();
+            }
+        }
+        codeboxTableImageCursor.close();
+        return nodeContent;
     }
 
-    @Override
-    public StringBuilder convertTableNodeContentToPlainText(Node tableNode) {
-        // Placeholder
-        return new StringBuilder();
+    /**
+     * Coverts table string retrieved from grid table in database to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param table string that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
+    public StringBuilder convertTableContentToPlainText(String table) {
+        StringBuilder tableContent = new StringBuilder();
+        NodeList nodeList = this.getNodeFromString(table, "table");
+        int tableRowCount = nodeList.getLength();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("row")) {
+                // Header row for the table is kept at the end of the table
+                // When converting to string it has to be added to the beginning
+                // of the string fro the information to make sense
+                if (tableRowCount > 1) {
+                    tableContent.append(this.convertTableRowToPlainText(node));
+                } else {
+                    tableContent.insert(0, this.convertTableRowToPlainText(node));
+                }
+                tableRowCount--;
+            }
+        }
+        tableContent.insert(0, "\n");
+        return tableContent;
     }
 
     @Override
     public StringBuilder convertTableRowToPlainText(Node tableRow) {
-        // Placeholder
-        return new StringBuilder();
+        StringBuilder rowContent = new StringBuilder();
+        rowContent.append("|");
+        NodeList nodeList = tableRow.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("cell")) {
+                rowContent.append(" ");
+                rowContent.append(node.getTextContent());
+                rowContent.append(" |");
+            }
+        }
+        rowContent.append("\n");
+        return rowContent;
     }
 
-    @Override
-    public StringBuilder convertLatexToPlainText(Node node) {
-        // Placeholder
-        return new StringBuilder();
+    /**
+     * Converts latex string retrieved from image table in database to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param latex latex string that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
+    public StringBuilder convertLatexToPlainText(String latex) {
+        StringBuilder latexContent = new StringBuilder();
+        latexContent.append(latex);
+        latexContent.delete(0, 79);
+        latexContent.delete(latexContent.length()-14, latexContent.length());
+        latexContent.insert(0,getSeparator());
+        latexContent.insert(0, "\n");
+        latexContent.append(getSeparator());
+        latexContent.append("\n");
+        return latexContent;
     }
 
-    @Override
-    public StringBuilder convertCodeboxToPlainText(Node node) {
-        // Placeholder
-        return new StringBuilder();
+    /**
+     * Coverts codebox string retrieved from codebox table in database to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param codebox string that needs to be converted
+     * @return StringBuilder that can be added to the node StringBuilder at the proper offset
+     */
+    public StringBuilder convertCodeboxToPlainText(String codebox) {
+        StringBuilder codeboxContent = new StringBuilder();
+        codeboxContent.append("\n");
+        codeboxContent.append(getSeparator());
+        codeboxContent.append("\n");
+        codeboxContent.append(codebox);
+        codeboxContent.append("\n");
+        codeboxContent.append(getSeparator());
+        codeboxContent.append("\n");
+        return codeboxContent;
     }
 
     @Override
     public String getSeparator() {
         return "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-    }
-
-    @Override
-    public void deleteNodeContent(Node node) {
-        // Placeholder
     }
 }
