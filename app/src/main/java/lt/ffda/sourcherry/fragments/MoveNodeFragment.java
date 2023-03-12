@@ -83,7 +83,7 @@ public class MoveNodeFragment extends Fragment {
         buttonMoveToMainMenu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MoveNodeFragment.this.moveNode("-1");
+                MoveNodeFragment.this.moveNode("0");
             }
         });
 

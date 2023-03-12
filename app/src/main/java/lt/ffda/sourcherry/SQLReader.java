@@ -1228,8 +1228,67 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
+    public boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
+        ArrayList<String> heredity = new ArrayList<>();
+        heredity.add(destinationNodeUniqueID);
+        while (true) {
+            Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id = ?", new String[]{destinationNodeUniqueID}, null, null, null, null);
+            if (cursor.moveToFirst()) {
+                destinationNodeUniqueID = cursor.getString(0);
+                heredity.add(destinationNodeUniqueID);
+                if (destinationNodeUniqueID.equals("0")) {
+                    cursor.close();
+                    break;
+                }
+            } else {
+                cursor.close();
+                break;
+            }
+            cursor.close();
+        }
+        return heredity.contains(targetNodeUniqueID);
+    }
+
+    /**
+     * Orders children of the node in sequence (children table)
+     * Needed after moving the node to a different parent
+     * That might create a missing a node in a middle of the sequence
+     * @param nodeUniqueID unique ID of the node which children sequence needs to be fixed
+     */
+    public void fixChildrenNodeSequence(String nodeUniqueID) {
+        int sequenceCounter = 1;
+        Cursor cursor = this.sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id = ?", new String[]{nodeUniqueID}, null, null, "sequence ASC", null);
+        while (cursor.moveToNext()) {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("sequence", sequenceCounter);
+            this.sqlite.update("children", contentValues, "node_id=?", new String[]{cursor.getString(0)});
+            sequenceCounter++;
+        }
+        cursor.close();
+    }
+
+    @Override
     public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
-        //Placeholder
+        if (areNodesRelated(targetNodeUniqueID, destinationNodeUniqueID)) {
+            displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
+        } else {
+            // Getting current parent node's unique ID of the target node
+            Cursor cursorTargetParent = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{targetNodeUniqueID}, null, null, null, null);
+            cursorTargetParent.moveToFirst();
+            String targetParentUniqueID = cursorTargetParent.getString(0);
+            cursorTargetParent.close();
+            // Getting next available children sequence spot of new parent node
+            Cursor cursorMove = this.sqlite.query("children", new String[]{"COUNT(node_id)"}, "father_id=?", new String[]{destinationNodeUniqueID}, null, null, null, null);
+            cursorMove.moveToFirst();
+            int newAvailableParentSequencePosition = cursorMove.getInt(0) + 1;
+            cursorMove.close();
+            // Moving to new parent
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("father_id", Integer.parseInt(destinationNodeUniqueID));
+            contentValues.put("sequence", newAvailableParentSequencePosition);
+            this.sqlite.update("children", contentValues, "node_id = ?", new String[]{targetNodeUniqueID});
+            this.fixChildrenNodeSequence(targetParentUniqueID);
+        }
     }
 
     @Override

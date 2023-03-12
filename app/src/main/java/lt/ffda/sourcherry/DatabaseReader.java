@@ -255,6 +255,16 @@ public interface DatabaseReader {
     void removeNodeFromBookmarks(String nodeUniqueID);
 
     /**
+     * Checks if node is a subnode if another node
+     * Not really sure if it does not return false positives
+     * However all my tests worked
+     * @param targetNodeUniqueID unique ID of the node that needs to be check if it's a parent node
+     * @param destinationNodeUniqueID unique ID of the node that has to be check if it's a child
+     * @return true - if target node is a parent of destination node
+     */
+    boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID);
+
+    /**
      * Moves node to different location of the document tree
      * @param targetNodeUniqueID unique ID of the node that user chose to move
      * @param destinationNodeUniqueID unique ID of the node that has to be a parent of the target node

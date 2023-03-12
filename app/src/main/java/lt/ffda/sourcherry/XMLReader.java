@@ -1178,14 +1178,7 @@ public class XMLReader implements DatabaseReader{
         writeIntoDatabase();
     }
 
-    /**
-     * Checks if node is a subnode if another node
-     * Not really sure if it does not return false positives
-     * However all my tests worked
-     * @param targetNodeUniqueID unique ID of the node that needs to be check if it's a parent node
-     * @param destinationNodeUniqueID unique ID of the node that has to be check if it's a child
-     * @return true - if target node is a parent of destination node
-     */
+    @Override
     public boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
         ArrayList<String> heredity = new ArrayList<>();
 
@@ -1222,7 +1215,7 @@ public class XMLReader implements DatabaseReader{
             Node destinationNode = null;
 
             // User chose to move the node to main menu
-            if (destinationNodeUniqueID.equals("-1")) {
+            if (destinationNodeUniqueID.equals("0")) {
                 NodeList nodeList = this.doc.getElementsByTagName("cherrytree");
                 destinationNode = nodeList.item(0);
             }
