@@ -27,6 +27,7 @@
         <entry key="app/src/main/res/drawable/ic_baseline_arrow_node_up_24.xml" value="0.2535" />
         <entry key="app/src/main/res/drawable/ic_baseline_arrow_up_24.xml" value="0.2535" />
         <entry key="app/src/main/res/drawable/ic_baseline_bookmarks_on_24.xml" value="0.2535" />
+        <entry key="app/src/main/res/drawable/ic_baseline_edit_24.xml" value="0.126" />
         <entry key="app/src/main/res/drawable/ic_baseline_keyboard_arrow_is_parent_24.xml" value="0.3165" />
         <entry key="app/src/main/res/drawable/ic_baseline_menu_item_action2_24.xml" value="0.2425" />
         <entry key="app/src/main/res/drawable/ic_baseline_menu_item_action_24.xml" value="0.2425" />
@@ -56,6 +57,7 @@
         <entry key="app/src/main/res/layout/activity_image_view.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.3421875" />
         <entry key="app/src/main/res/layout/activity_main_drawer.xml" value="0.18229166666666666" />
+        <entry key="app/src/main/res/layout/activity_main_toolbar.xml" value="0.3515625" />
         <entry key="app/src/main/res/layout/activity_mainview.xml" value="0.1151685393258427" />
         <entry key="app/src/main/res/layout/activity_preferences.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_search.xml" value="0.3567708333333333" />
@@ -71,6 +73,7 @@
         <entry key="app/src/main/res/layout/header_navigation_drawer.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/header_navitation_drawer.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/imported_databases_item.xml" value="0.33" />
+        <entry key="app/src/main/res/layout/main_view_toolbar.xml" value="0.3515625" />
         <entry key="app/src/main/res/layout/menu_item.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/menu_item_action_dialog_fragment.xml" value="0.35260416666666666" />
         <entry key="app/src/main/res/layout/menu_item_action_menu.xml" value="0.17916666666666667" />

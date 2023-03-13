@@ -525,6 +525,8 @@ public class MainView extends AppCompatActivity {
         } else {
             // Options menu items
             switch (item.getItemId()) {
+                case (R.id.toolbar_button_edit_node):
+                    return true;
                 case (R.id.options_menu_export_to_pdf):
                     this.exportPdfSetup();
                     return true;

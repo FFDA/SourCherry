@@ -126,4 +126,5 @@
     <string name="move_node_textview_message">Use long tap to select the node</string>
     <string name="move_node_button_up_content_description">Button UP. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>
     <string name="move_node_button_home_content_description">Button HOME. When pressed - loads home menu (top of the tree).</string>
+    <string name="toolbar_icon_edit_node">Edit node</string>
 </resources>

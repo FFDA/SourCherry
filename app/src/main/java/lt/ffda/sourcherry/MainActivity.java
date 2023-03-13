@@ -151,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
         inflater.inflate(R.menu.options_menu, menu);
         menu.findItem(R.id.options_menu_external_storage).setChecked(sharedPreferences.getBoolean("preferences_external_storage", false));
         menu.setGroupVisible(R.id.options_menu_mainview_group, false);
+        menu.findItem(R.id.toolbar_button_edit_node).setVisible(false);
         return true;
     }
 
