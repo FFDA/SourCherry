@@ -33,11 +33,10 @@ import lt.ffda.sourcherry.MoveNodeFragmentItemAdapter;
 import lt.ffda.sourcherry.R;
 
 public class MoveNodeFragment extends Fragment {
-
-    DatabaseReader reader;
-    ArrayList<String[]> nodeList;
-    MoveNodeFragmentItemAdapter adapter;
-    int currentPosition; // currently marked node
+    private DatabaseReader reader;
+    private ArrayList<String[]> nodeList;
+    private MoveNodeFragmentItemAdapter adapter;
+    private int currentPosition; // currently marked node
 
     @Nullable
     @Override
@@ -49,7 +48,7 @@ public class MoveNodeFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        this.reader = ((MainView) getActivity()).reader();
+        this.reader = ((MainView) getActivity()).getReader();
         this.nodeList = reader.getMainNodes();
         this.adapter = new MoveNodeFragmentItemAdapter(nodeList);
 

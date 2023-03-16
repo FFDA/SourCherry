@@ -54,7 +54,7 @@ public class NodePropertiesFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         String nodeUniqueID = getArguments().getString("nodeUniqueID");
-        String[] nodeProperties = ((MainView) getActivity()).reader().getNodeProperties(nodeUniqueID);
+        String[] nodeProperties = ((MainView) getActivity()).getReader().getNodeProperties(nodeUniqueID);
 
         EditText editTextNodeName = view.findViewById(R.id.edit_text_node_name);
         editTextNodeName.setText(nodeProperties[0]);

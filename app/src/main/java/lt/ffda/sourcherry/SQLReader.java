@@ -699,12 +699,12 @@ public class SQLReader implements DatabaseReader {
 
         // Changes font
         TypefaceSpan tf = new TypefaceSpan("monospace");
-        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
 
         // Changes background color
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         }
 
         return formattedCodeNode;
@@ -1517,5 +1517,21 @@ public class SQLReader implements DatabaseReader {
     @Override
     public String getSeparator() {
         return "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+    }
+
+    @Override
+    public boolean isNodeRichText(String nodeUniqueID) {
+        Cursor cursor = this.sqlite.query("node", new String[]{"syntax"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null);
+        cursor.moveToFirst();
+        boolean result = cursor.getString(0).equals("custom-colors");
+        cursor.close();
+        return result;
+    }
+
+    @Override
+    public void saveNodeContent(String nodeUniqueID, String nodeContent) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("txt", nodeContent);
+        this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
     }
 }

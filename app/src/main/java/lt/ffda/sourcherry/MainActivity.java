@@ -148,10 +148,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.options_menu, menu);
+        inflater.inflate(R.menu.options_menu_main_activity, menu);
         menu.findItem(R.id.options_menu_external_storage).setChecked(sharedPreferences.getBoolean("preferences_external_storage", false));
-        menu.setGroupVisible(R.id.options_menu_mainview_group, false);
-        menu.findItem(R.id.toolbar_button_edit_node).setVisible(false);
         return true;
     }
 

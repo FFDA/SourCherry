@@ -645,12 +645,12 @@ public class XMLReader implements DatabaseReader{
 
         // Changes font
         TypefaceSpan tf = new TypefaceSpan("monospace");
-        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
 
         // Changes background color
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         }
 
         return formattedCodeNode;
@@ -1444,6 +1444,37 @@ public class XMLReader implements DatabaseReader{
             Node currentNode = nodeList.item(i);
             if (!currentNode.getNodeName().equals("node")) {
                 node.removeChild(currentNode);
+            }
+        }
+    }
+
+    @Override
+    public boolean isNodeRichText(String nodeUniqueID) {
+        boolean result = false;
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                if (node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors")) {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public void saveNodeContent(String nodeUniqueID, String nodeContent) {
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                this.deleteNodeContent(node);
+                Element element = this.doc.createElement("rich_text");
+                element.setTextContent(nodeContent);
+                node.appendChild(element);
+                this.writeIntoDatabase();
             }
         }
     }

@@ -30,13 +30,6 @@
             android:id="@+id/options_menu_settings"
             android:title="@string/options_menu_item_settings"/>
     </group>
-    <group
-        android:id="@+id/options_menu_main_activity_group">
-        <item
-            android:id="@+id/options_menu_external_storage"
-            android:title="@string/options_menu_item_external_storage"
-            android:checkable="true" />
-    </group>
     <item
         android:id="@+id/options_menu_about"
         android:title="@string/options_menu_item_about" />

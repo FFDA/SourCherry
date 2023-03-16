@@ -52,7 +52,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
         // NeutralButton will cancel dialog and NegativeButton will be for saving the file
         super.onCreateDialog(savedInstanceState);
 
-        this.reader = ((MainView) getActivity()).reader(); // reader from main MainView
+        this.reader = ((MainView) getActivity()).getReader(); // reader from main MainView
 
         this.nodeUniqueID = getArguments().getString("nodeUniqueID", null);
         this.filename = getArguments().getString("filename", null); // Filename passed to fragment

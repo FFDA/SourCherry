@@ -48,6 +48,8 @@
     <string name="toast_error_does_not_look_like_a_cherrytree_database">Does not look like a CherryTree database</string>
     <string name="toast_error_xml_databases_are_not_supported">XML databases are not supported</string>
     <string name="toast_message_please_enter_password">Please enter the password</string>
+    <string name="toast_message_please_open_a_node">Please open a node</string>
+    <string name="toast_message_rich_text_node_editing_not_supported">Rich text node editing is not supported</string>
     <string name="open_database_fragment_copying_database_message">Copying database to app-specific storage</string>
     <string name="open_database_fragment_extracting_database_message">Extracting database</string>
     <string name="toast_error_failed_to_save_file">Failed to save the file</string>
@@ -127,4 +129,5 @@
     <string name="move_node_button_up_content_description">Button UP. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>
     <string name="move_node_button_home_content_description">Button HOME. When pressed - loads home menu (top of the tree).</string>
     <string name="toolbar_icon_edit_node">Edit node</string>
+    <string name="toolbar_icon_save_node">Save node</string>
 </resources>

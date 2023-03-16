@@ -56,8 +56,6 @@ import android.text.TextWatcher;
 import android.text.style.BackgroundColorSpan;
 import android.util.TypedValue;
 import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -92,6 +90,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import lt.ffda.sourcherry.fragments.AddNewNodeFragment;
+import lt.ffda.sourcherry.fragments.NodeEditorFragment;
 import lt.ffda.sourcherry.fragments.MoveNodeFragment;
 import lt.ffda.sourcherry.fragments.NodePropertiesFragment;
 import lt.ffda.sourcherry.utils.MenuItemAction;
@@ -526,6 +525,15 @@ public class MainView extends AppCompatActivity {
             // Options menu items
             switch (item.getItemId()) {
                 case (R.id.toolbar_button_edit_node):
+                    if (this.currentNode != null) {
+                         if (this.reader.isNodeRichText(this.currentNode[1])) {
+                             Toast.makeText(this, R.string.toast_message_rich_text_node_editing_not_supported, Toast.LENGTH_SHORT).show();
+                         } else {
+                             this.openNodeEditor();
+                         }
+                    } else {
+                        Toast.makeText(this, R.string.toast_message_please_open_a_node, Toast.LENGTH_SHORT).show();
+                    }
                     return true;
                 case (R.id.options_menu_export_to_pdf):
                     this.exportPdfSetup();
@@ -625,14 +633,6 @@ public class MainView extends AppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         this.executor.shutdownNow();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(@NonNull Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.options_menu, menu);
-        menu.setGroupVisible(R.id.options_menu_main_activity_group, false);
-        return true;
     }
 
     OnBackPressedCallback callbackDisplayToastBeforeExit = new OnBackPressedCallback(true /* enabled by default */) {
@@ -853,7 +853,11 @@ public class MainView extends AppCompatActivity {
         }
     }
 
-    public DatabaseReader reader() {
+    /**
+     * Returns database reader
+     * @return database reader
+     */
+    public DatabaseReader getReader() {
         return this.reader;
     }
 
@@ -1611,7 +1615,7 @@ public class MainView extends AppCompatActivity {
         getSupportFragmentManager().popBackStack();
         MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
-        this.reader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
+        this.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
         mainViewModel.getNodes().get(position)[0] = name;
         this.adapter.notifyItemChanged(position);
         if (this.currentNode != null && mainViewModel.getNodes().get(position)[1].equals(this.currentNode[1])) {
@@ -1623,6 +1627,38 @@ public class MainView extends AppCompatActivity {
                 this.loadNodeContent();
             }
         }
+    }
+
+    /**
+     * Opens node content editor in a different fragment
+     * Disables drawer menu and changes hamburger menu icon to
+     * home button
+     */
+    private void openNodeEditor() {
+        Bundle bundle = new Bundle();
+        bundle.putString("nodeUniqueID", this.currentNode[1]);
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, NodeEditorFragment.class, bundle, "editNode")
+                .addToBackStack("editNode")
+                .commit();
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+    }
+
+    /**
+     * Function used when closing NodeEditorFragment
+     * depending on passed boolean variable displayed node content
+     * will be reloaded or not.
+     * Changes home button to hamburger button in toolbar
+     * @param reloadContent true - reload node content
+     */
+    public void returnFromFragmentWithHomeButton(boolean reloadContent) {
+        if (reloadContent) {
+            this.loadNodeContent();
+        }
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
+        onBackPressed();
     }
 
     private void exportPdfSetup() {

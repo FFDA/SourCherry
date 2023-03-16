@@ -18,6 +18,9 @@ import android.text.Spanned;
 import android.text.style.BackgroundColorSpan;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
@@ -28,11 +31,13 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.view.MenuHost;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
-
-import lt.ffda.sourcherry.R;
 
 import java.util.ArrayList;
 
@@ -53,6 +58,23 @@ public class NodeContentFragment extends Fragment {
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         return rootView;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        MenuHost menuHost = requireActivity();
+        menuHost.addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+                menuInflater.inflate(R.menu.options_menu_node_content_fragment, menu);
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                return false;
+            }
+        }, getViewLifecycleOwner() , Lifecycle.State.RESUMED);
     }
 
     @Override
