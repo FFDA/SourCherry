@@ -523,46 +523,46 @@ public class MainView extends AppCompatActivity {
             return true;
         } else {
             // Options menu items
-            switch (item.getItemId()) {
-                case (R.id.toolbar_button_edit_node):
-                    if (this.currentNode != null) {
-                         if (this.reader.isNodeRichText(this.currentNode[1])) {
-                             Toast.makeText(this, R.string.toast_message_rich_text_node_editing_not_supported, Toast.LENGTH_SHORT).show();
-                         } else {
-                             this.openNodeEditor();
-                         }
+            int itemID = item.getItemId();
+            if (itemID == R.id.toolbar_button_edit_node) {
+                if (this.currentNode != null) {
+                    if (this.reader.isNodeRichText(this.currentNode[1])) {
+                        Toast.makeText(this, R.string.toast_message_rich_text_node_editing_not_supported, Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(this, R.string.toast_message_please_open_a_node, Toast.LENGTH_SHORT).show();
+                        this.openNodeEditor();
                     }
-                    return true;
-                case (R.id.options_menu_export_to_pdf):
-                    this.exportPdfSetup();
-                    return true;
-                case (R.id.options_menu_find_in_node):
-                    if (!findInNodeToggle) {
-                        // Opens findInNode (sets the variables) only if it hasn't been opened yet
-                        this.openFindInNode();
-                    }
-                    return true;
-                case (R.id.options_menu_search):
-                    if (findInNodeToggle) {
-                        // Closes findInNode if it was opened when searchActivity was selected to be opened
-                        // Otherwise it will prevent to displayed node content selected from search
-                        this.closeFindInNode();
-                    }
-                    Intent openSearchActivity = new Intent(this, SearchActivity.class);
-                    searchActivity.launch(openSearchActivity);
-                    return true;
-                case (R.id.options_menu_settings):
-                    Intent openSettingsActivity = new Intent(this, PreferencesActivity.class);
-                    startActivity(openSettingsActivity);
-                    return true;
-                case (R.id.options_menu_about):
-                    Intent openAboutActivity = new Intent(this, AboutActivity.class);
-                    startActivity(openAboutActivity);
-                    return true;
-                default:
-                    return super.onOptionsItemSelected(item);
+                } else {
+                    Toast.makeText(this, R.string.toast_message_please_open_a_node, Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            } else if (itemID == R.id.options_menu_export_to_pdf) {
+                this.exportPdfSetup();
+                return true;
+            } else if (itemID == R.id.options_menu_find_in_node) {
+                if (!findInNodeToggle) {
+                    // Opens findInNode (sets the variables) only if it hasn't been opened yet
+                    this.openFindInNode();
+                }
+                return true;
+            } else if (itemID == R.id.options_menu_search) {
+                if (findInNodeToggle) {
+                    // Closes findInNode if it was opened when searchActivity was selected to be opened
+                    // Otherwise it will prevent to displayed node content selected from search
+                    this.closeFindInNode();
+                }
+                Intent openSearchActivity = new Intent(this, SearchActivity.class);
+                searchActivity.launch(openSearchActivity);
+                return true;
+            } else if (itemID == R.id.options_menu_settings) {
+                Intent openSettingsActivity = new Intent(this, PreferencesActivity.class);
+                startActivity(openSettingsActivity);
+                return true;
+            } else if (itemID == R.id.options_menu_about) {
+                Intent openAboutActivity = new Intent(this, AboutActivity.class);
+                startActivity(openAboutActivity);
+                return true;
+            } else {
+                return super.onOptionsItemSelected(item);
             }
         }
     }
