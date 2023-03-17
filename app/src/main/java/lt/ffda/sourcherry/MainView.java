@@ -598,7 +598,7 @@ public class MainView extends AppCompatActivity {
         // at earlier point app will crash
         super.onResume();
         if (this.currentNode != null) {
-            this.setToolbarTitle();
+            this.setToolbarTitle(this.currentNode[0]);
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyItemChanged(this.currentNodePosition);
             this.loadNodeContent();
@@ -773,7 +773,7 @@ public class MainView extends AppCompatActivity {
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
         // Sends ArrayList to fragment to be added added to view
-        this.setToolbarTitle();
+        this.setToolbarTitle(this.currentNode[0]);
         this.executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -793,9 +793,7 @@ public class MainView extends AppCompatActivity {
 
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-        // Resets toolbar title
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setTitle("SourCherry");
+        this.setToolbarTitle("SourCherry");
         // Removes all node content
         this.executor.execute(new Runnable() {
             @Override
@@ -811,10 +809,13 @@ public class MainView extends AppCompatActivity {
         this.adapter.notifyDataSetChanged();
     }
 
-    private void setToolbarTitle() {
-        // Sets toolbar title to the current node name
+    /**
+     * Sets toolbar title to the provided string
+     * @param title new title for the toolbar
+     */
+    private void setToolbarTitle(String title) {
         Toolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setTitle(this.currentNode[0]);
+        toolbar.setTitle(title);
     }
 
     private void filterNodes(String query) {
@@ -1622,7 +1623,7 @@ public class MainView extends AppCompatActivity {
             // If opened node was changed - reloads node name in toolbar
             // and reloads node content if reloadNodeContent is true
             this.currentNode[0] = name;
-            this.setToolbarTitle();
+            this.setToolbarTitle(this.currentNode[0]);
             if (reloadNodeContent) {
                 this.loadNodeContent();
             }
