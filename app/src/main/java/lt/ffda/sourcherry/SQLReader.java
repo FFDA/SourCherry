@@ -1219,7 +1219,23 @@ public class SQLReader implements DatabaseReader {
         if (relation == 0) {
             int fatherNodeUniqueID = this.getParentNodeUniqueID(uniqueID);
             contentValues.put("father_id", fatherNodeUniqueID);
-            contentValues.put("sequence", this.getNewNodeSequenceNumber(String.valueOf(fatherNodeUniqueID)));
+            // Searching for position for new node in parent node children sequence
+            int newNodeSequenceNumber = -1;
+            Cursor parentNodeChildrenSequenceCursor = this.sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id=?", new String[]{String.valueOf(fatherNodeUniqueID)}, null, null, "sequence ASC", null);
+            while (parentNodeChildrenSequenceCursor.moveToNext()) {
+                if (uniqueID.equals(parentNodeChildrenSequenceCursor.getString(0))) {
+                    // Found the node that was selected to create sibling node
+                    newNodeSequenceNumber = parentNodeChildrenSequenceCursor.getInt(1) + 1;
+                    break;
+                }
+            }
+            parentNodeChildrenSequenceCursor.close();
+            // Updating sequence position (+1) for all nodes
+            // that follows new node in sequence
+            Cursor updateChildrenTableCursor = sqlite.rawQuery("UPDATE children SET sequence = sequence + 1 WHERE father_id=? and sequence >= ?;", new String[]{String.valueOf(fatherNodeUniqueID), String.valueOf(newNodeSequenceNumber)});
+            updateChildrenTableCursor.moveToFirst();
+            updateChildrenTableCursor.close();
+            contentValues.put("sequence", newNodeSequenceNumber);
             if (fatherNodeUniqueID == 0) {
                 isSubnode = "false";
             }
@@ -1294,7 +1310,7 @@ public class SQLReader implements DatabaseReader {
     /**
      * Orders children of the node in sequence (children table)
      * Needed after moving the node to a different parent
-     * That might create a missing a node in a middle of the sequence
+     * That might create an empty spot in a middle of the children sequence
      * @param nodeUniqueID unique ID of the node which children sequence needs to be fixed
      */
     public void fixChildrenNodeSequence(String nodeUniqueID) {

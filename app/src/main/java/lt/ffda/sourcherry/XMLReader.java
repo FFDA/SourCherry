@@ -1125,7 +1125,14 @@ public class XMLReader implements DatabaseReader{
                 // Adding node to document
                 if (relation == 0) {
                     // As a sibling to selected node
-                    node.getParentNode().appendChild(newNode);
+                    if (node.getNextSibling() == null) {
+                        // Selected node was the last of the parents children
+                        // Selecting at the end of parent children node list
+                        node.getParentNode().appendChild(newNode);
+                    } else {
+                        // Inserting after selected node
+                        node.getParentNode().insertBefore(newNode, node.getNextSibling());
+                    }
                     // Checking if node is being created as MainMenu node
                     // Needed to set correct indentation for the node in the menu
                     if (node.getParentNode().getNodeName().equals("cherrytree")) {
