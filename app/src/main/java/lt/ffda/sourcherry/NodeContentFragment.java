@@ -103,7 +103,6 @@ public class NodeContentFragment extends Fragment {
                 CharSequence[] textContent = part.get(1);
                 SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) textContent[0];
                 TextView tv = new TextView(getActivity());
-                tv.setTextSize(16);
                 tv.setTextIsSelectable(true);
                 tv.setMovementMethod(CustomMovementMethod.getInstance()); // Needed to detect click/open links
                 tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
