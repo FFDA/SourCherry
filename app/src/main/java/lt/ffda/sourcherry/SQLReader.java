@@ -1352,7 +1352,12 @@ public class SQLReader implements DatabaseReader {
     @Override
     public void deleteNode(String nodeUniqueID) {
         this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
+        Cursor parentNodeUniqueIDCursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        parentNodeUniqueIDCursor.moveToFirst();
+        String parentNodeUniqueID = parentNodeUniqueIDCursor.getString(0);
+        parentNodeUniqueIDCursor.close();
         this.sqlite.delete("children", "node_id = ?", new String[]{nodeUniqueID});
+        this.fixChildrenNodeSequence(parentNodeUniqueID);
     }
 
     @Override
