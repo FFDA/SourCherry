@@ -832,10 +832,11 @@ public class MainView extends AppCompatActivity {
         this.adapter.notifyDataSetChanged();
     }
 
+    /**
+     * Restores drawer menu selected item to currently opened node
+     */
     private void resetMenuToCurrentNode() {
-        // Restores drawer menu selected item to currently opened node
         if (this.currentNode != null) {
-
             if (MainView.this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
                 this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
                 this.currentNodePosition = 0;
@@ -849,7 +850,6 @@ public class MainView extends AppCompatActivity {
                     }
                 }
             }
-
             this.adapter.notifyDataSetChanged();
         }
     }
@@ -1578,8 +1578,13 @@ public class MainView extends AppCompatActivity {
             this.removeNodeContent();
         } else {
             // Another node in drawer menu was selected for deletion
-            this.mainViewModel.getNodes().remove(position);
-            this.adapter.notifyItemRemoved(position);
+            if (this.mainViewModel.getNodes().size() <= 2) {
+                this.currentNode[2] = "false";
+                this.resetMenuToCurrentNode();
+            } else {
+                this.mainViewModel.getNodes().remove(position);
+                this.adapter.notifyItemRemoved(position);
+            }
         }
     }
 
