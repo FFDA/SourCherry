@@ -378,7 +378,9 @@ public class MainActivity extends AppCompatActivity {
     private void checkIfDeleteDatabaseIsBeingUsed(String databaseFilename) {
         // Checks if user deletes the database that is set to be opened when user presses on Open button
         // And set everything to null in (database) settings if it's true
-        if (this.sharedPreferences.getString("databaseStorageType", null).equals("internal") && this.sharedPreferences.getString("databaseFilename", null).equals(databaseFilename)) {
+        String databaseStorageType = this.sharedPreferences.getString("databaseStorageType", null);
+        String databaseFilenameFromPreference = this.sharedPreferences.getString("databaseFilename", null);
+        if (databaseStorageType != null && databaseFilenameFromPreference != null && databaseStorageType.equals("internal") && databaseFilenameFromPreference.equals(databaseFilename)) {
             saveDatabaseToPrefs(null, null, null, null); // Setting database info as null that correct message for user will be displayed
             resetMirrorDatabasePreferences();
             setMessageWithDatabaseName();
