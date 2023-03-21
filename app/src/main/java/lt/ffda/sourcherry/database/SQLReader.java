@@ -75,10 +75,8 @@ public class SQLReader implements DatabaseReader {
     private final SQLiteDatabase sqlite;
     private final Context context;
     private final Handler handler;
-    private final String databaseUri;
 
-    public SQLReader(String databaseUri, SQLiteDatabase sqlite, Context context, Handler handler) {
-        this.databaseUri = databaseUri;
+    public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler) {
         this.context = context;
         this.sqlite = sqlite;
         this.handler = handler;

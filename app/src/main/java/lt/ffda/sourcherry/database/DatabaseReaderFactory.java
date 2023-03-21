@@ -57,7 +57,7 @@ public class DatabaseReaderFactory {
             } else {
                 // If file is sql (password protected or not)
                 SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READWRITE);
-                databaseReader = new SQLReader(databaseString, sqlite, context, handler);
+                databaseReader = new SQLReader(sqlite, context, handler);
             }
         }
         return databaseReader;

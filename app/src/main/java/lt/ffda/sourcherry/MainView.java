@@ -140,7 +140,7 @@ public class MainView extends AppCompatActivity {
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         DatabaseReaderFactory databaseReaderFactory = new DatabaseReaderFactory();
         try {
-            this.reader = databaseReaderFactory.getReader(this, handler, this.sharedPreferences);
+            this.reader = databaseReaderFactory.getReader(this, this.handler, this.sharedPreferences);
         } catch (IOException e) {
             Toast.makeText(this, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
             this.finish();
