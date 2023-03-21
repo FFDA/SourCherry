@@ -33,6 +33,9 @@ import android.widget.Toast;
 import java.io.FileInputStream;
 import java.io.InputStream;
 
+import lt.ffda.sourcherry.database.DatabaseReader;
+import lt.ffda.sourcherry.database.SQLReader;
+import lt.ffda.sourcherry.database.XMLReader;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class ImageViewActivity extends AppCompatActivity {

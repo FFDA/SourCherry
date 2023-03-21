@@ -8,7 +8,7 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.preferences;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -27,6 +27,8 @@ import androidx.preference.PreferenceManager;
 import androidx.preference.SwitchPreferenceCompat;
 
 import java.util.Date;
+
+import lt.ffda.sourcherry.R;
 
 public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat {
     SharedPreferences sharedPreferences;

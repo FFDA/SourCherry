@@ -26,7 +26,7 @@
     <androidx.fragment.app.FragmentContainerView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".PreferencesActivity"
+        tools:context=".preferences.PreferencesActivity"
         android:id="@+id/preferences_activity_view"/>
 
 </LinearLayout>

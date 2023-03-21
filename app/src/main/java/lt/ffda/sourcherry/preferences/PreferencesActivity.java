@@ -8,7 +8,7 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.preferences;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
@@ -20,6 +20,8 @@ import androidx.preference.PreferenceFragmentCompat;
 
 import android.os.Bundle;
 import android.view.MenuItem;
+
+import lt.ffda.sourcherry.R;
 
 public class PreferencesActivity extends AppCompatActivity implements
         PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {

@@ -8,7 +8,7 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.database;
 
 import android.text.SpannableStringBuilder;
 import android.text.style.ClickableSpan;

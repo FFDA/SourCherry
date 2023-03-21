@@ -8,7 +8,7 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.database;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -23,7 +23,7 @@ import java.util.Arrays;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
-public class SQLSearcher implements DatabaseSearcher{
+public class SQLSearcher implements DatabaseSearcher {
     private final SQLiteDatabase sqlite;
 
     public SQLSearcher(SQLiteDatabase sqlite) {

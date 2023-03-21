@@ -8,7 +8,7 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.preferences;
 
 import android.content.SharedPreferences;
 import android.content.res.Resources;
@@ -21,6 +21,8 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.SeekBarPreference;
+
+import lt.ffda.sourcherry.R;
 
 public class PreferencesFragment extends PreferenceFragmentCompat {
     SharedPreferences sharedPreferences;

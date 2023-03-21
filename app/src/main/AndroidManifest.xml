@@ -14,7 +14,7 @@
             android:name=".SearchActivity"
             android:exported="false" />
         <activity
-            android:name=".PreferencesActivity"
+            android:name=".preferences.PreferencesActivity"
             android:exported="false" />
         <activity
             android:name=".AboutActivity"

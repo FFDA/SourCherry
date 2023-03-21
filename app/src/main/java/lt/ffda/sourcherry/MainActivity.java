@@ -52,6 +52,9 @@ import android.widget.Toast;
 
 import java.io.File;
 
+import lt.ffda.sourcherry.dialogs.MirrorDatabaseProgressDialogFragment;
+import lt.ffda.sourcherry.dialogs.OpenDatabaseProgressDialogFragment;
+
 public class MainActivity extends AppCompatActivity {
     private SharedPreferences sharedPreferences;
 

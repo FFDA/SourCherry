@@ -89,11 +89,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import lt.ffda.sourcherry.database.DatabaseReader;
+import lt.ffda.sourcherry.database.SQLReader;
+import lt.ffda.sourcherry.database.XMLReader;
+import lt.ffda.sourcherry.dialogs.MenuItemActionDialogFragment;
+import lt.ffda.sourcherry.dialogs.SaveOpenDialogFragment;
 import lt.ffda.sourcherry.fragments.AddNewNodeFragment;
+import lt.ffda.sourcherry.fragments.NodeContentFragment;
 import lt.ffda.sourcherry.fragments.NodeEditorFragment;
 import lt.ffda.sourcherry.fragments.MoveNodeFragment;
 import lt.ffda.sourcherry.fragments.NodePropertiesFragment;
+import lt.ffda.sourcherry.preferences.PreferencesActivity;
 import lt.ffda.sourcherry.utils.MenuItemAction;
+import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
 
 public class MainView extends AppCompatActivity {
 

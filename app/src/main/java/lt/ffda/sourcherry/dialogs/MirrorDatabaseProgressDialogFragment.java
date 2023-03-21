@@ -8,23 +8,33 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.dialogs;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.preference.PreferenceManager;
 
@@ -40,10 +50,17 @@ import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class OpenDatabaseProgressDialogFragment extends DialogFragment {
+import lt.ffda.sourcherry.MainActivity;
+import lt.ffda.sourcherry.R;
+
+public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
     private SharedPreferences sharedPreferences;
     private ProgressBar progressBar;
     private TextView message;
+    private EditText passwordTextedit;
+    private LinearLayout buttonLayout;
+    private Button buttonOK;
+    private Button buttonCancel;
     private ExecutorService executor;
     private Handler handler;
 
@@ -55,14 +72,18 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         //// Dialog fragment layout
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = requireActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_open_database_progress, null);
+        View view = inflater.inflate(R.layout.dialog_mirror_database_progress, null);
         builder.setView(view);
 
         setCancelable(false); // Not allowing user to cancel the the dialog fragment
 
         // Setting up variables
-        this.progressBar = view.findViewById(R.id.progress_fragment_progressBar);
-        this.message = view.findViewById(R.id.progress_fragment_message);
+        this.progressBar = view.findViewById(R.id.mirror_database_progress_fragment_progressBar);
+        this.message = view.findViewById(R.id.mirror_database_progress_fragment_message);
+        this.passwordTextedit = view.findViewById(R.id.mirror_database_progress_fragment_password_textedit);
+        this.buttonLayout = view.findViewById(R.id.mirror_database_progress_fragment_button_layout);
+        this.buttonOK = view.findViewById(R.id.mirror_database_progress_fragment_password_button_ok);
+        this.buttonCancel = view.findViewById(R.id.mirror_database_progress_fragment_password_button_cancel);
         this.executor = Executors.newSingleThreadExecutor();
         this.handler = new Handler(Looper.getMainLooper());
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -74,24 +95,66 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
+        String databaseFileExtension = getArguments().getString("mirrorDatabaseFileExtension");
 
         if (databaseFileExtension.equals("ctb")) {
             this.message.setText(R.string.open_database_fragment_copying_database_message);
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.copyDatabaseToAppSpecificStorage();
-                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
+                    MirrorDatabaseProgressDialogFragment.this.copyDatabaseToAppSpecificStorage();
+                    MirrorDatabaseProgressDialogFragment.this.getDialog().cancel();
                 }
             });
         }
         if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
-            executor.execute(new Runnable() {
+            this.passwordTextedit.setVisibility(View.VISIBLE);
+            this.buttonLayout.setVisibility(View.VISIBLE);
+
+            //// Code to show keyboard
+            InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+            this.passwordTextedit.requestFocus();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Shows keyboard on API 30 (Android 11) reliably
+                WindowCompat.getInsetsController(getDialog().getWindow(), this.passwordTextedit).show(WindowInsetsCompat.Type.ime());
+            } else {
+                new Handler().postDelayed(new Runnable() {
+                    // Delays to show soft keyboard by few milliseconds
+                    // Otherwise keyboard does not show up
+                    // It's a bit hacky (should be fixed)
+                    @Override
+                    public void run() {
+                        imm.showSoftInput(MirrorDatabaseProgressDialogFragment.this.passwordTextedit, InputMethodManager.SHOW_IMPLICIT);
+                    }
+                }, 20);
+            }
+            ////
+
+            this.message.setText(R.string.mirror_database_fragment_enter_password_message);
+
+            this.buttonOK.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void run() {
-                    OpenDatabaseProgressDialogFragment.this.extractDatabase();
-                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
+                public void onClick(View v) {
+                    MirrorDatabaseProgressDialogFragment.this.runExtractDatabase();
+                }
+            });
+
+            this.buttonCancel.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    MirrorDatabaseProgressDialogFragment.this.dismiss();
+                }
+            });
+
+            this.passwordTextedit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                    boolean handle = false;
+                    if (actionId == EditorInfo.IME_ACTION_DONE) {
+                        handle = true;
+                        MirrorDatabaseProgressDialogFragment.this.runExtractDatabase();
+                    }
+                    return handle;
                 }
             });
         }
@@ -104,7 +167,9 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
 
     @Override
     public void onCancel(@NonNull DialogInterface dialog) {
-        ((MainActivity) getActivity()).startMainViewActivity();
+        if (this.sharedPreferences.getBoolean("checkboxAutoOpen", false)) {
+            ((MainActivity) getActivity()).startMainViewActivity();
+        }
         dismissNow();
     }
 
@@ -116,15 +181,8 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
 
     private void copyDatabaseToAppSpecificStorage() {
         // Set directory where database will be saved depending on user's choice in options menu
-        File databaseDir = null;
-        if (sharedPreferences.getBoolean("preferences_external_storage", false)) {
-            databaseDir = new File(getContext().getExternalFilesDir(null), "databases");
-        } else {
-            databaseDir = new File(getContext().getFilesDir(), "databases");
-        }
-
-        String databaseOutputFile = databaseDir.getPath() + "/" + this.sharedPreferences.getString("databaseFilename", null);
-        Uri databaseUri = Uri.parse(this.sharedPreferences.getString("databaseUri", null));
+        String databaseOutputFile = this.sharedPreferences.getString("databaseUri", null);
+        Uri databaseUri = Uri.parse(getArguments().getString("mirrorDatabaseUri"));
         long totalLen = 0;
 
         try {
@@ -134,7 +192,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
+                    MirrorDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
                 }
             });
 
@@ -148,7 +206,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+                        MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
                     }
                 });
             }
@@ -180,27 +238,11 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             getDialog().dismiss();
         }
 
-        //// Creating new settings
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPreferences.edit();
-        sharedPrefEditor.putString("databaseStorageType", "internal");
-        // This is not a real Uri, so don't try to use it, but I use it to check if database should be opened automatically
-        sharedPrefEditor.putString("databaseUri", databaseOutputFile);
-        sharedPrefEditor.apply();
-        ////
+        this.saveDatabaseToPrefs(getArguments().getLong("mirrorDatabaseLastModified"));
     }
 
-    private void extractDatabase() {
-        String databaseString = sharedPreferences.getString("databaseUri", null);
-
-        String password = getArguments().getString("password");
-
-        // Set directory where database will be saved depending on user's choice in options menu
-        File databaseDir = null;
-        if (sharedPreferences.getBoolean("preferences_external_storage", false)) {
-            databaseDir = new File(getContext().getExternalFilesDir(null), "databases");
-        } else {
-            databaseDir = new File(getContext().getFilesDir(), "databases");
-        }
+    private void extractDatabase(String password) {
+        String databaseString = getArguments().getString("mirrorDatabaseUri");
 
         String tmpDatabaseFilename = "";
         long totalLen = 0; // Used to calculate percentage
@@ -210,7 +252,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_copying_database_message);
+                    MirrorDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_copying_database_message);
                 }
             });
 
@@ -220,7 +262,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
+                    MirrorDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
                 }
             });
             // Copying files
@@ -234,7 +276,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+                        MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
                     }
                 });
             }
@@ -246,8 +288,8 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_extracting_database_message);
-                    OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(0);
+                    MirrorDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_extracting_database_message);
+                    MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(0);
                 }
             });
 
@@ -263,7 +305,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                 String[] tmpDatabaseFilenameArray = tmpDatabaseFilename.split("\\."); // Splitting filename in to array at avery dot
                 tmpDatabaseFilename = tmpDatabaseFilenameArray[0] + "." + tmpDatabaseFilenameArray[tmpDatabaseFilenameArray.length -1]; // Joining first and last part of the filename array
                 totalLen = 0; // Resetting totalLen value
-                FileOutputStream out = new FileOutputStream(new File(databaseDir, tmpDatabaseFilename));
+                FileOutputStream out = new FileOutputStream(new File(this.sharedPreferences.getString("databaseUri", null)));
                 InputStream in = sevenZFile.getInputStream(entry);
                 fileSize = entry.getSize();
                 while ((len = in.read(buf)) > 0) {
@@ -273,7 +315,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+                            MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
                         }
                     });
                 }
@@ -281,13 +323,8 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                 in.close();
                 entry = sevenZFile.getNextEntry();
             }
-            ////
-            //// Creating new settings
-            // Saved Uri is not a real Uri, so don't try to use it.
-            // The only reason to save it here is, that I'm using it to check if database should be opened automatically
-            String[] splitExtension = tmpDatabaseFilename.split("\\."); // Splitting the path to extract the file extension.
-            this.saveDatabaseToPrefs("internal", tmpDatabaseFilename, splitExtension[splitExtension.length - 1], databaseDir.getPath() + "/" + tmpDatabaseFilename);
-            ////
+
+            this.saveDatabaseToPrefs(getArguments().getLong("mirrorDatabaseLastModified"));
 
             //// Cleaning up
 //                tmpCompressedDatabase.delete(); // Using deleteTempFile onDestroy in MainActivity
@@ -314,13 +351,34 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         }
     }
 
-    private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
+    /**
+     * Saved passed parameters to the shared preferences
+     * @param mirrorDatabaseLastModified last modified datetime of the mirror database long saved using key "mirrorDatabaseLastModified"
+     */
+    private void saveDatabaseToPrefs(long mirrorDatabaseLastModified) {
         // Saves passed information about database to preferences
         SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-        sharedPreferencesEditor.putString("databaseStorageType", databaseStorageType);
-        sharedPreferencesEditor.putString("databaseFilename", databaseFilename);
-        sharedPreferencesEditor.putString("databaseFileExtension", databaseFileExtension);
-        sharedPreferencesEditor.putString("databaseUri", databaseUri);
+        sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", mirrorDatabaseLastModified);
         sharedPreferencesEditor.apply();
+    }
+
+    /**
+     *  Runs extractDatabase(), passes user entered password as an argument
+     *  Hides password field, and Cancel and Ok buttons
+     *  Hides soft keyboard
+     */
+    private void runExtractDatabase() {
+        InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+        String password = MirrorDatabaseProgressDialogFragment.this.passwordTextedit.getText().toString();
+        imm.hideSoftInputFromWindow(MirrorDatabaseProgressDialogFragment.this.passwordTextedit.getWindowToken(), 0); // Hides keyboard
+        MirrorDatabaseProgressDialogFragment.this.passwordTextedit.setVisibility(View.GONE);
+        MirrorDatabaseProgressDialogFragment.this.buttonLayout.setVisibility(View.GONE);
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                MirrorDatabaseProgressDialogFragment.this.extractDatabase(password);
+                MirrorDatabaseProgressDialogFragment.this.getDialog().cancel();
+            }
+        });
     }
 }

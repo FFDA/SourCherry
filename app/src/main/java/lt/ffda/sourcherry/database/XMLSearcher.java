@@ -8,7 +8,7 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.database;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-public class XMLSearcher implements DatabaseSearcher{
+public class XMLSearcher implements DatabaseSearcher {
     private final Document doc;
 
     public XMLSearcher(InputStream is) throws Exception {

@@ -8,7 +8,7 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.fragments;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -40,6 +40,11 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
+
+import lt.ffda.sourcherry.CustomMovementMethod;
+import lt.ffda.sourcherry.MainView;
+import lt.ffda.sourcherry.MainViewModel;
+import lt.ffda.sourcherry.R;
 
 public class NodeContentFragment extends Fragment {
     private LinearLayout contentFragmentLinearLayout;

@@ -8,7 +8,7 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.database;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -66,6 +66,9 @@ import java.util.Arrays;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import lt.ffda.sourcherry.ImageViewActivity;
+import lt.ffda.sourcherry.MainView;
+import lt.ffda.sourcherry.R;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class SQLReader implements DatabaseReader {

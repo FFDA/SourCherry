@@ -8,7 +8,7 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.dialogs;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -35,6 +35,10 @@ import androidx.preference.PreferenceManager;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+
+import lt.ffda.sourcherry.database.DatabaseReader;
+import lt.ffda.sourcherry.MainView;
+import lt.ffda.sourcherry.R;
 
 public class SaveOpenDialogFragment extends DialogFragment {
     private DatabaseReader reader;

@@ -43,6 +43,10 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import lt.ffda.sourcherry.database.DatabaseSearcher;
+import lt.ffda.sourcherry.database.SQLSearcher;
+import lt.ffda.sourcherry.database.XMLSearcher;
+
 public class SearchActivity extends AppCompatActivity {
     private DatabaseSearcher searcher;
     private Handler handler;

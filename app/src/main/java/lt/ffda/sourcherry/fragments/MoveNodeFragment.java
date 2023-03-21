@@ -27,7 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-import lt.ffda.sourcherry.DatabaseReader;
+import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MoveNodeFragmentItemAdapter;
 import lt.ffda.sourcherry.R;
