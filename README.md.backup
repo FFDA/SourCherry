@@ -16,7 +16,7 @@ Anyone can compile this app by cloning this repository or download an apk compil
 
 ## Limitations
 
-* Use of SQL type database is ***strongly*** recommended. Users using large XML type database might experience OOM crashes that can't be mitigated
+* Use of SQL type database is ***strongly*** recommended. User using XML type da
 * Right now it can only open databases in read only mode.
 * There is a possibility that not all text will be displayed.
 * Some text most definitely will be missing some formatting and it will look differently compared to how it looks in CherryTree.
