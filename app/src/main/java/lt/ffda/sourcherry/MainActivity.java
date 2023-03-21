@@ -293,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
 
         // If there are any databases in external storage
         File externalDatabaseDir = new File(getExternalFilesDir(null), "databases");
-        if (externalDatabaseDir.list().length > 0) {
+        if (externalDatabaseDir.list() != null && externalDatabaseDir.list().length > 0) {
             importedDatabasesTitle.setVisibility(View.VISIBLE);
 
             LayoutInflater layoutInflater = this.getLayoutInflater();
