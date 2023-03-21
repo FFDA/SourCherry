@@ -613,6 +613,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
+        cursor.close();
 
         // If found Mirror Database File last modified time is bigger than saved from previous database update
         if (mirrorDatabaseDacumentFileLastModified > this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
