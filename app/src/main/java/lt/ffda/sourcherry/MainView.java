@@ -552,6 +552,9 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Launches search activity
+     */
     private final ActivityResultLauncher<Intent> searchActivity = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
         new ActivityResultCallback<ActivityResult>() {
             @Override
@@ -620,6 +623,11 @@ public class MainView extends AppCompatActivity {
         this.executor.shutdownNow();
     }
 
+    /**
+     * Deals with back button presses.
+     * If there are any fragment in the BackStack - removes one
+     * Handles back to exit to make user double press back button to exit
+     */
     OnBackPressedCallback callbackDisplayToastBeforeExit = new OnBackPressedCallback(true /* enabled by default */) {
         @Override
         public void handleOnBackPressed() {
@@ -650,18 +658,21 @@ public class MainView extends AppCompatActivity {
         }
     };
 
+    /**
+     * Clears existing menu and recreate with submenu of the currentNode
+     */
     private void openSubmenu() {
-        // Clears existing menu and recreate with submenu of the currentNode
         this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
         this.currentNodePosition = 0;
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
     }
 
+    /**
+     * This function gets the new drawer menu list
+     * and marks currently opened node as such.
+     */
     private void setClickedItemInSubmenu() {
-        // When user chooses to open bookmarked or search provided node
-        // it's not always clear where said node is in menu.
-        // This function gets the new menu and marks node as opened
         this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
         for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
             if (this.mainViewModel.getNodes().get(index)[1].equals(this.currentNode[1])) {
@@ -803,10 +814,14 @@ public class MainView extends AppCompatActivity {
         toolbar.setTitle(title);
     }
 
+    /**
+     * Filters node list by the name of the node
+     * Changes the drawer menu item list to show only
+     * nodes with matching text in the node title.
+     * Search is case insensitive
+     * @param query search query
+     */
     private void filterNodes(String query) {
-        // Filters node list by the name of the node
-        // Changes the node list that represents menu and updates it
-        // Case insensitive
         this.mainViewModel.setNodes(this.mainViewModel.getTempSearchNodes());
 
         ArrayList<String[]> filteredNodes = this.mainViewModel.getNodes().stream()
@@ -847,6 +862,10 @@ public class MainView extends AppCompatActivity {
         return this.reader;
     }
 
+    /**
+     * Opens node that user selected by clicking anchor link
+     * @param nodeArray array that holds data of one drawer menu / currentNode item
+     */
     public void openAnchorLink(String[] nodeArray) {
         if (this.findInNodeToggle) {
             // Closes findInNode view to clear all variables
@@ -858,9 +877,12 @@ public class MainView extends AppCompatActivity {
         this.loadNodeContent();
     }
 
+    /**
+     * Displays Snackbar with the message
+     * Used to display file path of link to file/folder
+     * @param filename message to display for user
+     */
     public void fileFolderLinkFilepath(String filename) {
-        // Displays Snackbar with string that was passed as an argument
-        // Used to display file path of link to file/folder
         Snackbar.make(findViewById(R.id.main_view_fragment), filename, Snackbar.LENGTH_LONG)
         .setAction(R.string.snackbar_dismiss_action, new View.OnClickListener() {
             @Override
@@ -871,8 +893,11 @@ public class MainView extends AppCompatActivity {
         .show();
     }
 
+    /**
+     * Toggles between displaying and hiding of bookmarks
+     * @param view view that was clicked bu the user
+     */
     public void openCloseBookmarks(View view) {
-        // Toggles between displaying and hiding of bookmarks
         if (this.bookmarksToggle) {
             // Showing normal menu
             this.closeBookmarks();
@@ -881,10 +906,11 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Displays bookmarks instead of normal navigation menu in navigation drawer
+     */
     private void showBookmarks() {
-        // Displays bookmarks instead of normal navigation menu in navigation drawer
         ArrayList<String[]> bookmarkedNodes = this.reader.getBookmarkedNodes();
-
         // Check if there are any bookmarks
         // If no bookmarks were found a message is displayed
         // No other action is taken
@@ -906,8 +932,10 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Restoring saved node status
+     */
     private void closeBookmarks() {
-        // Restoring saved node status
         this.mainViewModel.restoreSavedCurrentNodes();
         this.currentNodePosition = this.tempCurrentNodePosition;
         this.adapter.markItemSelected(this.currentNodePosition);
@@ -916,15 +944,15 @@ public class MainView extends AppCompatActivity {
         this.bookmarkVariablesReset();
     }
 
+    /**
+     * Restores navigation buttons to the normal state
+     * as opposite to Bookmark navigation mode
+     * @param status true - normal mode, false - bookmark mode
+     */
     private void navigationNormalMode(boolean status) {
-        // This function restores navigation buttons to the normal state
-        // as opposite to Bookmark navigation mode
-        // true - normal mode, false - bookmark mode
-
         ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
         ImageButton goUpButton = findViewById(R.id.navigation_drawer_button_up);
         ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
-
         if (status) {
             goBackButton.setVisibility(View.GONE);
             goUpButton.setVisibility(View.VISIBLE);
@@ -936,22 +964,26 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Sets variables that were used to display bookmarks to their default values
+     */
     private void bookmarkVariablesReset() {
-        // Sets variables that were used to display bookmarks to they default values
         this.mainViewModel.resetTempNodes();
         this.tempCurrentNodePosition = -1;
         this.bookmarksToggle = false;
     }
 
+    /**
+     * Hides or displays navigation buttons at the top of drawer menu
+     * Used when user taps on search icon to make the search field bigger
+     * @param status true - hide navigation buttons, false - show navigation buttons
+     */
     private void hideNavigation(boolean status) {
-        // Hides or displays navigation buttons at the top of drawer menu
-        // Used when user taps on search icon to make the search field bigger
         ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
         ImageButton upButton = findViewById(R.id.navigation_drawer_button_up);
         ImageButton homeButton = findViewById(R.id.navigation_drawer_button_home);
         ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
         CheckBox excludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
-
         if (status) {
             goBackButton.setVisibility(View.GONE);
             upButton.setVisibility(View.GONE);
@@ -967,12 +999,18 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Returns handler used to run task not on main (UI) thread
+     * @return handler to run task in the background
+     */
     public Handler getHandler() {
         return this.handler;
     }
 
+    /**
+     * Close findInNode view, keyboard and restores variables to initial values
+     */
     private void closeFindInNode() {
-        // Close findInNode view, keyboard and restores variables to initial values
         // * This prevents crashes when user makes a sudden decision to close findInNode view while last search hasn't finished
         this.handler.removeCallbacksAndMessages(null);
         // *
@@ -1007,8 +1045,11 @@ public class MainView extends AppCompatActivity {
         this.mainViewModel.findInNodeStorageToggle(false);
     }
 
+    /**
+     * Sets FindInNode UI
+     * and prepares node content for search
+     */
     private void openFindInNode() {
-        // Searches through the node and highlights matches
         this.findInNodeToggle = true;
         MainView.this.mainViewModel.findInNodeStorageToggle(true); // Created an array to store nodeContent
         LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
@@ -1066,8 +1107,12 @@ public class MainView extends AppCompatActivity {
         });
     }
 
+    /**
+     * Sets the count of the results of
+     * findInNode to new value
+     * @param counter new result count
+     */
     private void updateCounter(int counter) {
-        // Sets the count of the results
         TextView findInNodeEditTextCount = findViewById(R.id.find_in_node_edit_text_result_count);
         handler.post(new Runnable() {
             @Override
@@ -1077,8 +1122,10 @@ public class MainView extends AppCompatActivity {
         });
     }
 
+    /**
+     * Sets/updates index of currently marked result
+     */
     private void updateMarkedIndex() {
-        // Sets/updates index of currently marked result
         TextView findInNodeEditTextMarkedIndex = findViewById(R.id.find_in_node_edit_text_marked_index);
         handler.post(new Runnable() {
             @Override
@@ -1088,8 +1135,11 @@ public class MainView extends AppCompatActivity {
         });
     }
 
+    /**
+     * Start or stops findInView progress bar
+     * @param status true - start progress bar, false - stop progress bar
+     */
     private void setFindInNodeProgressBar(Boolean status) {
-        // Depending on status starts (true) or stops (false) progress bar
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -1099,10 +1149,12 @@ public class MainView extends AppCompatActivity {
         });
     }
 
+    /**
+     * Searches for query in nodeContent
+     * @param query search query
+     */
     private void findInNode(String query) {
-        // Searches for query in nodeContent
         LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
-
         if (query.length() > 0) {
             // If new query is longer when one character
             this.restoreHighlightedView();
@@ -1177,8 +1229,11 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Highlights result from findInNodeResultStorage (array list) that is identified by currentFindInNodeMarked
+     * @param resultIndex index of result to be highlighted
+     */
     private void highlightFindInNodeResult(int resultIndex) {
-        // Highlights result from findInNodeResultStorage (array list) that is identified by currentFindInNodeMarked
         int viewCounter = this.mainViewModel.getFindInNodeResult(resultIndex)[0]; // Saved index for the view
         int startIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[1];
         int endIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[2];
@@ -1249,8 +1304,11 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Restores TextView to original state that was
+     * change changed with highlightFindInNodeResult() function
+     */
     private void restoreHighlightedView() {
-        // Restores TextView to original state that was change changed with highlightFindInNodeResult() function
         // Uses index of the TextView in currentFindInNodeMarked
         // At the end sets currentFindInNodeMarked to 0 (nothing marked)
         // Resets counters and search result storage too
@@ -1300,9 +1358,11 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Calculates next result that has to be highlighted
+     * and initiates switchFindInNodeHighlight
+     */
     private void findInNodeNext() {
-        // Calculates next result that has to be highlighted
-        // and initiates switchFindInNodeHighlight
         this.currentFindInNodeMarked++;
         this.updateMarkedIndex();
         if (this.currentFindInNodeMarked <= this.mainViewModel.getFindInNodeResultCount() - 1) {
@@ -1327,9 +1387,11 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Calculates previous result that has to be highlighted
+     * and initiates switchFindInNodeHighlight
+     */
     private void findInNodePrevious() {
-        // Calculates previous result that has to be highlighted
-        // and initiates switchFindInNodeHighlight
         this.currentFindInNodeMarked--;
         this.updateMarkedIndex();
         if (this.currentFindInNodeMarked >= 0) {
@@ -1354,6 +1416,12 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Deals with attached/embedded files into database
+     * @param nodeUniqueID unique ID of the node that has attached/embedded file
+     * @param attachedFileFilename filename of the attached/embedded file
+     * @param time timestamp that was saved to the database with the file
+     */
     public void saveOpenFile(String nodeUniqueID, String attachedFileFilename, String time) {
         // Checks preferences if user choice default action for embedded files
         FileNameMap fileNameMap  = URLConnection.getFileNameMap();
@@ -1386,6 +1454,13 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Opens attached/embedded with the app on the device
+     * @param fileMimeType mime type of the attached/embedded for the device to show relevant app list to open the file with
+     * @param nodeUniqueID unique ID of the node that has attached/embedded file
+     * @param filename filename of the attached/embedded file
+     * @param time timestamp that was saved to the database with the file
+     */
     private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time) {
         try {
             String[] splitFilename = filename.split("\\.");
@@ -1413,6 +1488,9 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Launches activity to save the attached file to the device
+     */
     ActivityResultLauncher<String[]> saveFile = registerForActivityResult(new ReturnSelectedFileUriForSaving(), result -> {
         if (result != null) {
             try {
