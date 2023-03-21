@@ -137,6 +137,15 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
+     * Returns findInNodeResultStorage ArrayList
+     * used to store result indexes for findInNode function
+     * @return findInNodeResultStorage ArrayList
+     */
+    public ArrayList<int[]> getFindInNodeResultStorage() {
+        return this.findInNodeResultStorage;
+    }
+
+    /**
      * Returns part of the content to search though it
      * @param index index of the findInNodeStorage array element to return
      * @return part of node content

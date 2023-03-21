@@ -1306,14 +1306,14 @@ public class MainView extends AppCompatActivity {
 
     /**
      * Restores TextView to original state that was
-     * change changed with highlightFindInNodeResult() function
+     * changed with highlightFindInNodeResult() function
      */
     private void restoreHighlightedView() {
         // Uses index of the TextView in currentFindInNodeMarked
         // At the end sets currentFindInNodeMarked to 0 (nothing marked)
         // Resets counters and search result storage too
         LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
-        if (this.currentFindInNodeMarked != -1 && contentFragmentLinearLayout != null) {
+        if (this.currentFindInNodeMarked != -1 && contentFragmentLinearLayout != null && this.mainViewModel.getFindInNodeResultStorage().size() > 0) {
             int viewIndex = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked)[0];
             int counter = 0;
             for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
