@@ -1091,6 +1091,9 @@ public class SQLReader implements DatabaseReader {
 
     @Override
     public boolean doesNodeExist(String uniqueID) {
+        if (uniqueID == null) {
+            return false;
+        }
         Cursor cursor = this.sqlite.rawQuery("SELECT node.name FROM node WHERE node.node_id=?", new String[]{uniqueID});
         if (cursor.getCount() == 1) {
             cursor.close();

@@ -1050,6 +1050,9 @@ public class XMLReader implements DatabaseReader {
 
     @Override
     public boolean doesNodeExist(String uniqueID) {
+        if (uniqueID == null) {
+            return false;
+        }
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
