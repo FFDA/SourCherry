@@ -1732,10 +1732,14 @@ public class MainView extends AppCompatActivity {
 
     private void exportPdfSetup() {
         // Sets the intent for asking user to choose a location where to save a file
-        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-        intent.setType("application/pdf");
-        intent.putExtra(Intent.EXTRA_TITLE, this.currentNode[0]);
-        exportPdf.launch(intent);
+        if (this.currentNode != null) {
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.setType("application/pdf");
+            intent.putExtra(Intent.EXTRA_TITLE, this.currentNode[0]);
+            exportPdf.launch(intent);
+        } else {
+            Toast.makeText(this, R.string.toast_error_please_select_node, Toast.LENGTH_SHORT).show();
+        }
     }
 
     ActivityResultLauncher<Intent> exportPdf = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
