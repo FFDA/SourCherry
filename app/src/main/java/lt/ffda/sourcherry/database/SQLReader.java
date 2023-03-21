@@ -320,16 +320,16 @@ public class SQLReader implements DatabaseReader {
         int totalCharOffset = 0;
         ////
 
-        Cursor cursor = this.sqlite.query("node", null, "node_id=?", new String[]{uniqueID}, null, null, null); // Get node table entry with uniqueID
+        Cursor cursor = this.sqlite.query("node", new String[]{"txt", "syntax", "has_codebox", "has_table", "has_image"}, "node_id=?", new String[]{uniqueID}, null, null, null); // Get node table entry with uniqueID
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // syntax is the same as prog_lang attribute in XML database
             // It is used to set formatting for the node and separate between node types (Code Node)
             // The same attribute is used for codeboxes
-            String nodeSyntax = cursor.getString(3);
+            String nodeSyntax = cursor.getString(1);
 
             if (nodeSyntax.equals("custom-colors")) {
                 // This is formatting for Rich Text and Plain Text nodes
-                NodeList nodeContentNodeList = getNodeFromString(cursor.getString(2), "node"); // Gets all the subnodes/childnodes of selected node
+                NodeList nodeContentNodeList = getNodeFromString(cursor.getString(0), "node"); // Gets all the subnodes/childnodes of selected node
                 for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
                     // Loops through nodes of selected node
                     Node currentNode = nodeContentNodeList.item(x);
@@ -340,9 +340,9 @@ public class SQLReader implements DatabaseReader {
                     }
                 }
 
-                int hasCodebox = cursor.getInt(7);
-                int hasTable = cursor.getInt(8);
-                int hasImage = cursor.getInt(9);
+                int hasCodebox = cursor.getInt(2);
+                int hasTable = cursor.getInt(3);
+                int hasImage = cursor.getInt(4);
                 
                 // If it is marked that node has codebox, table or image
                 if (hasCodebox == 1 || hasTable == 1 || hasImage == 1) {
@@ -491,10 +491,10 @@ public class SQLReader implements DatabaseReader {
                 }
             } else if (nodeSyntax.equals("plain-text")) {
                 // Plain text node does not have any formatting and has not node embedded in to it
-                nodeContentStringBuilder.append(cursor.getString(2));
+                nodeContentStringBuilder.append(cursor.getString(0));
             } else {
                 // Node is Code Node. It's just a big CodeBox with no dimensions
-                nodeContentStringBuilder.append(makeFormattedCodeNode(cursor.getString(2)));
+                nodeContentStringBuilder.append(makeFormattedCodeNode(cursor.getString(0)));
             }
         }
 
