@@ -1314,7 +1314,7 @@ public class SQLReader implements DatabaseReader {
      * That might create an empty spot in a middle of the children sequence
      * @param nodeUniqueID unique ID of the node which children sequence needs to be fixed
      */
-    public void fixChildrenNodeSequence(String nodeUniqueID) {
+    private void fixChildrenNodeSequence(String nodeUniqueID) {
         int sequenceCounter = 1;
         Cursor cursor = this.sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id = ?", new String[]{nodeUniqueID}, null, null, "sequence ASC", null);
         while (cursor.moveToNext()) {
@@ -1397,7 +1397,7 @@ public class SQLReader implements DatabaseReader {
      * @param nodeUniqueID unique id of the node that needs to be converted
      * @return StringBuilder with all the node content without addition tags
      */
-    public StringBuilder convertRichTextNodeContentToPlainText(String nodeUniqueID) {
+    private StringBuilder convertRichTextNodeContentToPlainText(String nodeUniqueID) {
         StringBuilder nodeContent = new StringBuilder();
         int totalCharOffset = 0;
         // Getting text data of the node
@@ -1461,7 +1461,7 @@ public class SQLReader implements DatabaseReader {
      * @param table string that needs to be converted
      * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
      */
-    public StringBuilder convertTableContentToPlainText(String table) {
+    private StringBuilder convertTableContentToPlainText(String table) {
         StringBuilder tableContent = new StringBuilder();
         NodeList nodeList = this.getNodeFromString(table, "table");
         int tableRowCount = nodeList.getLength();
@@ -1506,7 +1506,7 @@ public class SQLReader implements DatabaseReader {
      * @param latex latex string that needs to be converted
      * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
      */
-    public StringBuilder convertLatexToPlainText(String latex) {
+    private StringBuilder convertLatexToPlainText(String latex) {
         StringBuilder latexContent = new StringBuilder();
         latexContent.append(latex);
         latexContent.delete(0, 79);
@@ -1524,7 +1524,7 @@ public class SQLReader implements DatabaseReader {
      * @param codebox string that needs to be converted
      * @return StringBuilder that can be added to the node StringBuilder at the proper offset
      */
-    public StringBuilder convertCodeboxToPlainText(String codebox) {
+    private StringBuilder convertCodeboxToPlainText(String codebox) {
         StringBuilder codeboxContent = new StringBuilder();
         codeboxContent.append("\n");
         codeboxContent.append(getSeparator());

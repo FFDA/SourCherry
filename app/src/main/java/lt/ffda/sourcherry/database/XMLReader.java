@@ -1314,7 +1314,7 @@ public class XMLReader implements DatabaseReader {
      * @param contentNode node that needs to be converted
      * @return StringBuilder with all the node content without addition tags
      */
-    public StringBuilder convertRichTextNodeContentToPlainText(Node contentNode) {
+    private StringBuilder convertRichTextNodeContentToPlainText(Node contentNode) {
         StringBuilder nodeContent = new StringBuilder();
         int totalCharOffset = 0;
         NodeList nodeList = contentNode.getChildNodes();
@@ -1363,7 +1363,7 @@ public class XMLReader implements DatabaseReader {
      * @param tableNode table node that needs to be converted
      * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
      */
-    public StringBuilder convertTableNodeContentToPlainText(Node tableNode) {
+    private StringBuilder convertTableNodeContentToPlainText(Node tableNode) {
         StringBuilder tableContent = new StringBuilder();
         NodeList nodeList = tableNode.getChildNodes();
         int tableRowCount = nodeList.getLength() / 2;
@@ -1408,7 +1408,7 @@ public class XMLReader implements DatabaseReader {
      * @param node latex node that needs to be converted
      * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
      */
-    public StringBuilder convertLatexToPlainText(Node node) {
+    private StringBuilder convertLatexToPlainText(Node node) {
         StringBuilder latexContent = new StringBuilder();
         latexContent.append(node.getTextContent());
         latexContent.delete(0, 79);
@@ -1426,7 +1426,7 @@ public class XMLReader implements DatabaseReader {
      * @param node codebox node that needs to be converted
      * @return StringBuilder that can be added to the node StringBuilder at the proper offset
      */
-    public StringBuilder convertCodeboxToPlainText(Node node) {
+    private StringBuilder convertCodeboxToPlainText(Node node) {
         StringBuilder codeboxContent = new StringBuilder();
         codeboxContent.append("\n");
         codeboxContent.append(getSeparator());

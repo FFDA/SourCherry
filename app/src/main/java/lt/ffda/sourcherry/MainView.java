@@ -1556,7 +1556,7 @@ public class MainView extends AppCompatActivity {
      * @param nodeUniqueID unique ID of the node to delete
      * @param position node's position in drawer menu as reported by adapter
      */
-    public void deleteNode(String nodeUniqueID, int position) {
+    private void deleteNode(String nodeUniqueID, int position) {
         this.reader.deleteNode(nodeUniqueID);
         if (this.currentNode != null && nodeUniqueID.equals(this.currentNode[1])) {
             // Currently displayed node was selected for deletion
@@ -1578,7 +1578,7 @@ public class MainView extends AppCompatActivity {
      * @param nodeUniqueID unique ID of the node of which properties has to be shown
      * @param position node's position in drawer menu as reported by adapter
      */
-    public void openNodeProperties(String nodeUniqueID, int position) {
+    private void openNodeProperties(String nodeUniqueID, int position) {
         Bundle bundle = new Bundle();
         bundle.putString("nodeUniqueID", nodeUniqueID);
         bundle.putInt("position", position);
