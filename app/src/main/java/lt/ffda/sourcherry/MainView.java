@@ -38,7 +38,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Canvas;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
@@ -77,9 +76,8 @@ import android.widget.Toast;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
@@ -90,8 +88,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import lt.ffda.sourcherry.database.DatabaseReader;
-import lt.ffda.sourcherry.database.SQLReader;
-import lt.ffda.sourcherry.database.XMLReader;
+import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.dialogs.MenuItemActionDialogFragment;
 import lt.ffda.sourcherry.dialogs.SaveOpenDialogFragment;
 import lt.ffda.sourcherry.fragments.AddNewNodeFragment;
@@ -141,30 +138,10 @@ public class MainView extends AppCompatActivity {
         SearchView searchView = findViewById(R.id.navigation_drawer_search);
 
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String databaseString = sharedPreferences.getString("databaseUri", null);
+        DatabaseReaderFactory databaseReaderFactory = new DatabaseReaderFactory();
         try {
-            if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
-                // If file is in external storage
-                if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
-                    // If file is xml
-                    InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
-                    this.reader = new XMLReader(databaseString, is, this, this.handler);
-                    is.close();
-                }
-            } else {
-                // If file is in internal app storage
-                if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
-                    // If file is xml
-                    InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
-                    this.reader = new XMLReader(databaseString, is, this, this.handler);
-                    is.close();
-                } else {
-                    // If file is sql (password protected or not)
-                    SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READWRITE);
-                    this.reader = new SQLReader(databaseString, sqlite, this, this.handler);
-                }
-            }
-        } catch (Exception e) {
+            this.reader = databaseReaderFactory.getReader(this, handler, this.sharedPreferences);
+        } catch (IOException e) {
             Toast.makeText(this, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
             this.finish();
             return;
