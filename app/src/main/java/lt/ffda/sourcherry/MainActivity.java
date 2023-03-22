@@ -196,16 +196,7 @@ public class MainActivity extends AppCompatActivity {
         }
     });
 
-    private ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-    });
-
     public void openGetDatabase(View view) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
-            requestPermissionLauncher.launch(
-                    Manifest.permission.READ_EXTERNAL_STORAGE);
-        }
-        // There should be an else statement here do disable Select Button and most likely other buttons
-
         getDatabase.launch(new String[]{"*/*",});
     }
 
