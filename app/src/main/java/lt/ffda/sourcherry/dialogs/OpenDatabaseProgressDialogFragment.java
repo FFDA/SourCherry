@@ -58,7 +58,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         //// Dialog fragment layout
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = requireActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_open_database_progress, null);
+        View view = inflater.inflate(R.layout.dialog_fragment_open_database_progress, null);
         builder.setView(view);
 
         setCancelable(false); // Not allowing user to cancel the the dialog fragment

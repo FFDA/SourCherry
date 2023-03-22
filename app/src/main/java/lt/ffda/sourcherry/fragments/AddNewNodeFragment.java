@@ -40,7 +40,7 @@ public class AddNewNodeFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        View view = inflater.inflate(R.layout.add_new_node_fragment, container, false);
+        View view = inflater.inflate(R.layout.fragment_add_new_node, container, false);
 
         this.radioGroupNodeType = view.findViewById(R.id.radio_group_node_type);
         this.checkBoxExcludeFromSearchesThisNode = view.findViewById(R.id.exclude_from_searches_this_node);

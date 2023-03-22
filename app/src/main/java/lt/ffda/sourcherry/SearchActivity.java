@@ -58,7 +58,7 @@ public class SearchActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.search_activity);
+        setContentView(R.layout.activity_search);
         // Displays toolbar
         Toolbar imageViewActivityToolbar = findViewById(R.id.search_activity_toolbar);
         setSupportActionBar(imageViewActivityToolbar);
@@ -178,7 +178,7 @@ public class SearchActivity extends AppCompatActivity {
 
         if (searchResult != null) {
             for (String[] result: searchResult) {
-                LinearLayout searchResultItem = (LinearLayout) layoutInflater.inflate(R.layout.search_activity_result_item, null);
+                LinearLayout searchResultItem = (LinearLayout) layoutInflater.inflate(R.layout.item_search_activity_result, null);
 
                 // Title of a search result
                 // Because of how strings resources formatting works

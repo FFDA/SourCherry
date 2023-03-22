@@ -92,7 +92,7 @@ public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFr
     @Override
     public MoveNodeFragmentItemAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        View view = inflater.inflate(R.layout.move_node_fragment_item, parent, false);
+        View view = inflater.inflate(R.layout.item_move_node_fragment, parent, false);
         this.context = parent.getContext();
         return new ViewHolder(view);
     }

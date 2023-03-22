@@ -66,7 +66,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
         //// Dialog fragment layout
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = requireActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_save_open_fragment, null);
+        View view = inflater.inflate(R.layout.dialog_fragment_save_open, null);
 
         builder.setView(view)
             .setTitle(R.string.save_open_dialog_fragment_title)

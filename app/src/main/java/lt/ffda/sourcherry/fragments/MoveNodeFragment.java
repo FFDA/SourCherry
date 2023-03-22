@@ -42,7 +42,7 @@ public class MoveNodeFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        return getLayoutInflater().inflate(R.layout.move_node_fragment, container, false);
+        return getLayoutInflater().inflate(R.layout.fragment_move_node, container, false);
     }
 
     @Override

@@ -33,7 +33,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.menu_item_action_dialog_fragment, container, false);
+        return inflater.inflate(R.layout.dialog_fragment_menu_item_action, container, false);
     }
 
     @Override

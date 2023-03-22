@@ -16,18 +16,15 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.preference.PreferenceManager;
 
-import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -219,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
 
             for (String databaseFilename: databaseDir.list()) {
                 // Inflates database list item view
-                LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.imported_databases_item, null);
+                LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.item_imported_databases, null);
 
                 Button databaseFilenameButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
                 databaseFilenameButton.setText(getString(R.string.main_activity_imported_databases_item_internal,  databaseFilename)); // Adds database filename do be displayed for the current database
@@ -291,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
 
             for (String databaseFilename: externalDatabaseDir.list()) {
                 // Inflates database list item view
-                LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.imported_databases_item, null);
+                LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.item_imported_databases, null);
 
                 Button databaseFilenameButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
                 databaseFilenameButton.setText(getString(R.string.main_activity_imported_databases_item_external,  databaseFilename)); // Adds database filename do be displayed for the current database

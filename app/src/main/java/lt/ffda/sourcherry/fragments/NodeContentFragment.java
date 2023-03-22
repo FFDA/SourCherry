@@ -55,7 +55,7 @@ public class NodeContentFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        View rootView = inflater.inflate(R.layout.node_content_fragment, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_node_content, container, false);
 
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);

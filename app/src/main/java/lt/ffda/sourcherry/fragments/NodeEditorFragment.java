@@ -52,7 +52,7 @@ public class NodeEditorFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        View view = inflater.inflate(R.layout.node_editor_fragment, container, false);
+        View view = inflater.inflate(R.layout.fragment_node_editor, container, false);
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
         this.handler = ((MainView) getActivity()).getHandler();
