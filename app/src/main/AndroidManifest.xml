@@ -18,9 +18,6 @@
             android:name=".AboutActivity"
             android:exported="false" />
         <activity
-            android:name=".ImageViewActivity"
-            android:exported="false" />
-        <activity
             android:name=".MainView"
             android:exported="false" />
         <activity

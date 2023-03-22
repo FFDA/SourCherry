@@ -92,6 +92,7 @@ import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.dialogs.MenuItemActionDialogFragment;
 import lt.ffda.sourcherry.dialogs.SaveOpenDialogFragment;
 import lt.ffda.sourcherry.fragments.AddNewNodeFragment;
+import lt.ffda.sourcherry.fragments.ImageViewFragment;
 import lt.ffda.sourcherry.fragments.NodeContentFragment;
 import lt.ffda.sourcherry.fragments.NodeEditorFragment;
 import lt.ffda.sourcherry.fragments.MoveNodeFragment;
@@ -1728,6 +1729,51 @@ public class MainView extends AppCompatActivity {
         }
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
         onBackPressed();
+    }
+
+    /**
+     * Function used when closing Fragment
+     * that only has home button in toolbar
+     */
+    public void returnFromFragmentWithHomeButton() {
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
+        onBackPressed();
+    }
+
+    /**
+     * Function to launch fragment with enlarged image
+     * @param nodeUniqueID unique ID of the node that image is embedded into
+     * @param imageOffset offset of the image in the node content
+     */
+    public void openImageView(String nodeUniqueID, String imageOffset) {
+        Bundle bundle = new Bundle();
+        bundle.putString("type", "image");
+        bundle.putString("nodeUniqueID", nodeUniqueID);
+        bundle.putString("imageOffset", imageOffset);
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
+                .addToBackStack("imageView")
+                .commit();
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+    }
+
+    /**
+     * Function to launch fragment with enlarged latex image
+     * @param latexString latex code extracted from the database
+     */
+    public void openImageView(String latexString) {
+        Bundle bundle = new Bundle();
+        bundle.putString("type", "latex");
+        bundle.putString("latexString", latexString);
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
+                .addToBackStack("imageView")
+                .commit();
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
     }
 
     private void exportPdfSetup() {

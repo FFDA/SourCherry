@@ -72,6 +72,9 @@
         <entry key="app/src/main/res/layout/dialog_open_database_progress.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/dialog_open_database_progress_fragment.xml" value="0.35572916666666665" />
         <entry key="app/src/main/res/layout/dialog_save_open_fragment.xml" value="0.35572916666666665" />
+        <entry key="app/src/main/res/layout/fragment_image_view.xml" value="0.35260416666666666" />
+        <entry key="app/src/main/res/layout/fragment_node_content.xml" value="0.35260416666666666" />
+        <entry key="app/src/main/res/layout/fragment_node_editor.xml" value="0.35260416666666666" />
         <entry key="app/src/main/res/layout/header_navigation_drawer.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/header_navitation_drawer.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/imported_databases_item.xml" value="0.33" />

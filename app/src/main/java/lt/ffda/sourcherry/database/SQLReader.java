@@ -12,7 +12,6 @@ package lt.ffda.sourcherry.database;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -66,7 +65,6 @@ import java.util.Arrays;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import lt.ffda.sourcherry.ImageViewActivity;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 import ru.noties.jlatexmath.JLatexMathDrawable;
@@ -750,12 +748,8 @@ public class SQLReader implements DatabaseReader {
             ClickableSpan imageClickableSpan = new ClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
-                    // Starting activity to view enlarged zoomable image
-                    Intent displayImage = new Intent(context, ImageViewActivity.class);
-                    displayImage.putExtra("type", "image");
-                    displayImage.putExtra("imageNodeUniqueID", uniqueID);
-                    displayImage.putExtra("imageOffset", imageOffset);
-                    context.startActivity(displayImage);
+                    // Starting fragment to view enlarged zoomable image
+                    ((MainView) context).openImageView(uniqueID, imageOffset);
                 }
             };
             formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -820,11 +814,8 @@ public class SQLReader implements DatabaseReader {
             ClickableSpan imageClickableSpan = new ClickableSpan() {
                 @Override
                 public void onClick(@NonNull View widget) {
-                    // Starting activity to view enlarged zoomable image
-                    Intent displayImage = new Intent(context, ImageViewActivity.class);
-                    displayImage.putExtra("type", "latex");
-                    displayImage.putExtra("latexString", latexString);
-                    context.startActivity(displayImage);
+                    // Starting fragment to view enlarged zoomable image
+                    ((MainView) SQLReader.this.context).openImageView(latexString);
                 }
             };
             formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -983,7 +974,7 @@ public class SQLReader implements DatabaseReader {
 
     @Override
     public byte[] getImageByteArray(String nodeUniqueID, String offset) {
-        // Returns image byte array to be displayed in ImageViewActivity because some of the images are too big to pass in a bundle
+        // Returns image byte array to be displayed in ImageViewFragment because some of the images are too big to pass in a bundle
         Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, offset}, null, null, null);
         // Getting user choice how big the cursor window should be
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);

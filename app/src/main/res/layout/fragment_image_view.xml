@@ -8,27 +8,17 @@
   ~
   ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
   -->
-<LinearLayout
+
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/image_fragment_frame"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:background="?android:attr/windowBackground">
 
-    <androidx.appcompat.widget.Toolbar
+    <lt.ffda.sourcherry.ZoomableImageView
+        android:id="@+id/image_fragment_imageview"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        android:elevation="4dp"
-        android:id="@+id/image_activity_toolbar"/>
+        android:layout_height="match_parent" />
+</FrameLayout>
 
-    <FrameLayout
-        android:id="@+id/image_activity_frame"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <lt.ffda.sourcherry.ZoomableImageView
-            android:id="@+id/image_activity_imageview"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </FrameLayout>
-</LinearLayout>

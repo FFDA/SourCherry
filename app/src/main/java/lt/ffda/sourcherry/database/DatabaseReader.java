@@ -175,7 +175,7 @@ public interface DatabaseReader {
 
     /**
      * Finds and extracts image from the database
-     * Used in ImageViewActivity because some images can be bigger that can be passed in bundle
+     * Used in ImageViewFragment because some images can be too large to pass in the bundle
      * @param uniqueID uniqueID of the node in which image was embedded into
      * @param offset offset of the image in the node
      * @return byte[] that contains an image
