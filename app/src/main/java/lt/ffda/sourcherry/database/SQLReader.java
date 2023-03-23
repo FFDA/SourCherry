@@ -1192,7 +1192,7 @@ public class SQLReader implements DatabaseReader {
         contentValues.put("txt", "");
         contentValues.put("syntax", progLang);
         contentValues.put("tags", "");
-        contentValues.put("is_ro",0);
+        contentValues.put("is_ro", 0);
         contentValues.put("is_richtxt", progLang.equals("custom-folors") ? 1 : 0);
         contentValues.put("has_codebox", 0);
         contentValues.put("has_table", 0);

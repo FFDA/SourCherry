@@ -187,6 +187,18 @@
                         android:onClick="openCloseBookmarks"
                         android:src="@drawable/ic_outline_bookmarks_off_24" />
 
+                    <ImageButton
+                        android:id="@+id/navigation_drawer_button_create_node"
+                        android:layout_width="50dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="top"
+                        android:background="?selectableItemBackground"
+                        android:clickable="true"
+                        android:contentDescription="@string/navigation_drawer_button_create_node_content_description"
+                        android:focusable="true"
+                        android:onClick="createNode"
+                        android:src="@drawable/ic_baseline_create_node_24" />
+
                     <SearchView
                         android:id="@+id/navigation_drawer_search"
                         android:layout_width="match_parent"

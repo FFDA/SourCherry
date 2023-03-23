@@ -1102,57 +1102,61 @@ public class XMLReader implements DatabaseReader {
 
     @Override
     public String[] createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
-        String[] newNodeMenuItem = null;
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                String newNodeUniqueID = String.valueOf(getNodeMaxID() + 1);
-                String timestamp = String.valueOf(System.currentTimeMillis());
-
-                // Creating new node with all necessary tags
-                Element newNode = this.doc.createElement("node");
-                newNode.setAttribute("name", name);
-                newNode.setAttribute("unique_id", newNodeUniqueID);
-                newNode.setAttribute("prog_lang", progLang);
-                newNode.setAttribute("tags", "");
-                newNode.setAttribute("readonly", "0");
-                newNode.setAttribute("nosearch_me", noSearchMe);
-                newNode.setAttribute("nosearch_ch", noSearchCh);
-                newNode.setAttribute("custom_icon_id", "0");
-                newNode.setAttribute("is_bold", "0");
-                newNode.setAttribute("foreground", "");
-                newNode.setAttribute("ts_creation", timestamp);
-                newNode.setAttribute("ts_lastsave", timestamp);
-
-                String isSubNode = "true";
-                // Adding node to document
-                if (relation == 0) {
-                    // As a sibling to selected node
-                    if (node.getNextSibling() == null) {
-                        // Selected node was the last of the parents children
-                        // Selecting at the end of parent children node list
-                        node.getParentNode().appendChild(newNode);
-                    } else {
-                        // Inserting after selected node
-                        node.getParentNode().insertBefore(newNode, node.getNextSibling());
-                    }
-                    // Checking if node is being created as MainMenu node
-                    // Needed to set correct indentation for the node in the menu
-                    if (node.getParentNode().getNodeName().equals("cherrytree")) {
-                        isSubNode = "false";
-                    }
-                } else {
-                    // As a subnode of selected node
-                    node.appendChild(newNode);
+        Node node = null;
+        if (nodeUniqueID.equals("0")) {
+            // User chose to create the node in main menu
+            NodeList nodeList = this.doc.getElementsByTagName("cherrytree");
+            node = nodeList.item(0);
+        } else {
+            NodeList nodeList = this.doc.getElementsByTagName("node");
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                node = nodeList.item(i);
+                if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                    break;
                 }
-
-                this.writeIntoDatabase();
-                newNodeMenuItem = new String[] {name, newNodeUniqueID, "false", "false", isSubNode};
-                break;
             }
         }
-        return newNodeMenuItem;
+        String newNodeUniqueID = String.valueOf(getNodeMaxID() + 1);
+        String timestamp = String.valueOf(System.currentTimeMillis());
+
+        // Creating new node with all necessary tags
+        Element newNode = this.doc.createElement("node");
+        newNode.setAttribute("name", name);
+        newNode.setAttribute("unique_id", newNodeUniqueID);
+        newNode.setAttribute("prog_lang", progLang);
+        newNode.setAttribute("tags", "");
+        newNode.setAttribute("readonly", "0");
+        newNode.setAttribute("nosearch_me", noSearchMe);
+        newNode.setAttribute("nosearch_ch", noSearchCh);
+        newNode.setAttribute("custom_icon_id", "0");
+        newNode.setAttribute("is_bold", "0");
+        newNode.setAttribute("foreground", "");
+        newNode.setAttribute("ts_creation", timestamp);
+        newNode.setAttribute("ts_lastsave", timestamp);
+
+        String isSubNode = "true";
+        // Adding node to document
+        if (relation == 0) {
+            // As a sibling to selected node
+            if (node.getNextSibling() == null) {
+                // Selected node was the last of the parents children
+                // Selecting at the end of parent children node list
+                node.getParentNode().appendChild(newNode);
+            } else {
+                // Inserting after selected node
+                node.getParentNode().insertBefore(newNode, node.getNextSibling());
+            }
+            // Checking if node is being created as MainMenu node
+            // Needed to set correct indentation for the node in the menu
+            if (node.getParentNode().getNodeName().equals("cherrytree")) {
+                isSubNode = "false";
+            }
+        } else {
+            // As a subnode of selected node
+            node.appendChild(newNode);
+        }
+        this.writeIntoDatabase();
+        return new String[] {name, newNodeUniqueID, "false", "false", isSubNode};
     }
 
     @Override

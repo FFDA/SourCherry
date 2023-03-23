@@ -89,7 +89,7 @@ import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.dialogs.MenuItemActionDialogFragment;
 import lt.ffda.sourcherry.dialogs.SaveOpenDialogFragment;
-import lt.ffda.sourcherry.fragments.AddNewNodeFragment;
+import lt.ffda.sourcherry.fragments.CreateNodeFragment;
 import lt.ffda.sourcherry.fragments.ImageViewFragment;
 import lt.ffda.sourcherry.fragments.NodeContentFragment;
 import lt.ffda.sourcherry.fragments.NodeEditorFragment;
@@ -877,8 +877,16 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
+     * Launches CreateNewNode to create node in main menu
+     * @param view view that was clicked by the user
+     */
+    public void createNode(View view) {
+        this.launchCreateNewNodeFragment("0", 1);
+    }
+
+    /**
      * Toggles between displaying and hiding of bookmarks
-     * @param view view that was clicked bu the user
+     * @param view view that was clicked by the user
      */
     public void openCloseBookmarks(View view) {
         if (this.bookmarksToggle) {
@@ -935,14 +943,17 @@ public class MainView extends AppCompatActivity {
     private void navigationNormalMode(boolean status) {
         ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
         ImageButton goUpButton = findViewById(R.id.navigation_drawer_button_up);
+        ImageButton createNode = findViewById(R.id.navigation_drawer_button_create_node);
         ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
         if (status) {
             goBackButton.setVisibility(View.GONE);
             goUpButton.setVisibility(View.VISIBLE);
+            createNode.setVisibility(View.VISIBLE);
             bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_outline_bookmarks_off_24));
         } else {
             goBackButton.setVisibility(View.VISIBLE);
             goUpButton.setVisibility(View.GONE);
+            createNode.setVisibility(View.VISIBLE);
             bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_baseline_bookmarks_on_24));
         }
     }
@@ -966,18 +977,21 @@ public class MainView extends AppCompatActivity {
         ImageButton upButton = findViewById(R.id.navigation_drawer_button_up);
         ImageButton homeButton = findViewById(R.id.navigation_drawer_button_home);
         ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
+        ImageButton createNode = findViewById(R.id.navigation_drawer_button_create_node);
         CheckBox excludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
         if (status) {
             goBackButton.setVisibility(View.GONE);
             upButton.setVisibility(View.GONE);
             homeButton.setVisibility(View.GONE);
             bookmarksButton.setVisibility(View.GONE);
+            createNode.setVisibility(View.GONE);
             excludeFromSearch.setVisibility(View.VISIBLE);
         } else {
             goBackButton.setVisibility(View.GONE);
             upButton.setVisibility(View.VISIBLE);
             homeButton.setVisibility(View.VISIBLE);
             bookmarksButton.setVisibility(View.VISIBLE);
+            createNode.setVisibility(View.VISIBLE);
             excludeFromSearch.setVisibility(View.GONE);
         }
     }
@@ -1521,7 +1535,7 @@ public class MainView extends AppCompatActivity {
         bundle.putInt("relation", relation);
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
-                .add(R.id.main_view_fragment, AddNewNodeFragment.class, bundle, "createNode")
+                .add(R.id.main_view_fragment, CreateNodeFragment.class, bundle, "createNode")
                 .addToBackStack("createNode")
                 .commit();
         DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
@@ -1545,6 +1559,10 @@ public class MainView extends AppCompatActivity {
         getSupportActionBar().show();
         if (newNodeMenuItem != null) {
             // If new node was added - load it
+            if (this.bookmarksToggle) {
+                this.bookmarksToggle = false;
+                this.navigationNormalMode(true);
+            }
             this.currentNode = newNodeMenuItem;
             this.loadNodeContent();
             this.setClickedItemInSubmenu();

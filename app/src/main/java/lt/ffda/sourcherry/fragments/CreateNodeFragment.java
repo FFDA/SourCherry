@@ -31,7 +31,7 @@ import androidx.fragment.app.Fragment;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 
-public class AddNewNodeFragment extends Fragment {
+public class CreateNodeFragment extends Fragment {
     RadioGroup radioGroupNodeType;
     CheckBox checkBoxExcludeFromSearchesThisNode;
     CheckBox checkBoxExcludeFromSearchesSubnodes;
@@ -63,7 +63,7 @@ public class AddNewNodeFragment extends Fragment {
                 boolean handle = false;
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     handle = true;
-                    AddNewNodeFragment.this.createNode(nodeUniqueID, relation, AddNewNodeFragment.this.validateNodeName(editTextNodeName.getText().toString()));
+                    CreateNodeFragment.this.createNode(nodeUniqueID, relation, CreateNodeFragment.this.validateNodeName(editTextNodeName.getText().toString()));
                     // Hides keyboard
                     InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(editTextNodeName.getWindowToken(), 0);
@@ -85,7 +85,7 @@ public class AddNewNodeFragment extends Fragment {
         buttonCreate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                AddNewNodeFragment.this.createNode(nodeUniqueID, relation, validateNodeName(editTextNodeName.getText().toString()));
+                CreateNodeFragment.this.createNode(nodeUniqueID, relation, validateNodeName(editTextNodeName.getText().toString()));
             }
         });
     }
