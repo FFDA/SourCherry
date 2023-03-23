@@ -38,11 +38,11 @@ public interface DatabaseReader {
     ArrayList<String[]> getBookmarkedNodes();
 
     /**
-     * Returns first level subnodes of the node which uniqueID is provided
-     * @param uniqueID uniqueID of the node which subnodes to return
+     * Returns first level subnodes of the node which nodeUniqueID is provided
+     * @param nodeUniqueID unique ID of the node which subnodes to return
      * @return ArrayList of node's subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
      */
-    ArrayList<String[]> getSubnodes(String uniqueID);
+    ArrayList<String[]> getSubnodes(String nodeUniqueID);
 
 //    ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isSubnode);
 //    // This function scans provided NodeList and
@@ -56,20 +56,20 @@ public interface DatabaseReader {
 //    // Creates and returns the node that will be added to the node array as parent node
 
     /**
-     * Checks if it is possible to go up in document's node tree from given node's uniqueID
-     * Depending on result it will return ArrayList of subnodes of the parent node of given uniqueID
+     * Checks if it is possible to go up in document's node tree from given node
+     * Depending on result it will return ArrayList of subnodes of the parent node of given nodeUniqueID
      * or return main menu nodes
-     * @param uniqueID uniqueID of the node which parent node with subnodes to return
+     * @param nodeUniqueID unique ID of the node which parent node with subnodes to return
      * @return ArrayList subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
      */
-    ArrayList<String[]> getParentWithSubnodes(String uniqueID);
+    ArrayList<String[]> getParentWithSubnodes(String nodeUniqueID);
 
     /**
      * Returns single menu item with current information
-     * @param uniqueID uniqueID of the node to find and return
+     * @param nodeUniqueID unique ID of the node to find and return
      * @return Single drawer menu item. It is represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
      */
-    String[] getSingleMenuItem(String uniqueID);
+    String[] getSingleMenuItem(String nodeUniqueID);
 
     /**
      * Nodes that does not have tables in them will have just one ArrayList of CharSequence[] and will start with "text" as first part of the sequence
@@ -79,10 +79,10 @@ public interface DatabaseReader {
      * That part needs to be displayed in TableView that it could be displayed in the in in better format for the user
      * "table" CharSequence[] part has extra two fields (1 and 2) that has max and min column values extracted from table in CherryTree database
      * The last part of the CharSequence[] has headers of the table (as it is in CherryTree database)
-     * @param uniqueID uniqueID of the node that content has to be retrieved
+     * @param nodeUniqueID unique ID of the node that content has to be retrieved
      * @return ArrayList of Arraylist of CharSequence[] that has to be used in combination with SpannableStringBuilder
      */
-    ArrayList<ArrayList<CharSequence[]>> getNodeContent(String uniqueID);
+    ArrayList<ArrayList<CharSequence[]>> getNodeContent(String nodeUniqueID);
 
     /**
      * Rich text formatting of the node content.
@@ -122,14 +122,14 @@ public interface DatabaseReader {
     SpannableStringBuilder makeAnchorImageSpan();
 
     /**
-     * Creates and returns clickable span that when touched loads another node which uniqueID was passed as an argument
+     * Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
      * As in CherryTree it's foreground color #07841B
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
-     * @param uniqueID uniqueID of the node that the link has to load
+     * @param nodeUniqueID unique ID of the node that the link has to load
      * @return ClickableSpan that touched by user will load the other node
      */
-    ClickableSpan makeAnchorLinkSpan(String uniqueID);
+    ClickableSpan makeAnchorLinkSpan(String nodeUniqueID);
 
     /**
      * Creates and returns a span for a link to external file or folder
@@ -166,7 +166,7 @@ public interface DatabaseReader {
 
     /**
      * Returns byte array (stream) of the embedded file in the database to be written to file or opened
-     * @param nodeUniqueID UniqueID of the node to which file was attached to
+     * @param nodeUniqueID unique ID of the node to which file was attached to
      * @param filename filename of the file attached to the node
      * @param time datetime of when the file was attached (saved by CherryTree)
      * @return byte[] that contains a file
@@ -176,11 +176,11 @@ public interface DatabaseReader {
     /**
      * Finds and extracts image from the database
      * Used in ImageViewFragment because some images can be too large to pass in the bundle
-     * @param uniqueID uniqueID of the node in which image was embedded into
+     * @param nodeUniqueID unique ID of the node in which image was embedded into
      * @param offset offset of the image in the node
      * @return byte[] that contains an image
      */
-    byte[] getImageByteArray(String uniqueID, String offset);
+    byte[] getImageByteArray(String nodeUniqueID, String offset);
 
     /**
      * Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
@@ -211,10 +211,10 @@ public interface DatabaseReader {
 
     /**
      * Checks database if the node exists in it
-     * @param uniqueID uniqueID of the node to check existence of
+     * @param nodeUniqueID unique ID of the node to check existence of
      * @return true - if node exists, false - if it doesn't
      */
-    boolean doesNodeExist(String uniqueID);
+    boolean doesNodeExist(String nodeUniqueID);
 
     /**
      * Returns biggest node unique ID of the database
@@ -225,7 +225,7 @@ public interface DatabaseReader {
 
     /**
      * Creates new node and writes changes to the database
-     * @param uniqueID uniqueID of the node that new node will be created in relation with
+     * @param nodeUniqueID unique ID of the node that new node will be created in relation with
      * @param relation relation to the node. 0 - sibling, 1 - subnode
      * @param name node name
      * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
@@ -233,7 +233,7 @@ public interface DatabaseReader {
      * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
      * @return created node's information in menu items format ({name, unique_id, has_subnodes, is_parent, is_subnode})
      */
-    String[] createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh);
+    String[] createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh);
 
     /**
      * Checks if node with provided unique ID is bookmarked

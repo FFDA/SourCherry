@@ -139,17 +139,17 @@ public class XMLReader implements DatabaseReader {
         // Returns null if there aren't any
         ArrayList<String[]> nodes = new ArrayList<>();
         NodeList nodeBookmarkNode = this.doc.getElementsByTagName("bookmarks");
-        List<String> uniqueIDArray = Arrays.asList(nodeBookmarkNode.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
+        List<String> nodeUniqueIDArray = Arrays.asList(nodeBookmarkNode.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
         NodeList nodeList = this.doc.getElementsByTagName("node");
 
         for (int i=0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            if (uniqueIDArray.contains(node.getAttributes().getNamedItem("unique_id").getNodeValue())) {
+            if (nodeUniqueIDArray.contains(node.getAttributes().getNamedItem("unique_id").getNodeValue())) {
                 String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                 String hasSubnode = String.valueOf(hasSubnodes(node));
                 String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, "false"};
+                String[] currentNodeArray = {nameValue, nodeUniqueID, hasSubnode, isParent, "false"};
                 nodes.add(currentNodeArray);
             }
         }
@@ -169,15 +169,15 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> getSubnodes(String uniqueID) {
-        // Returns Subnodes of the node which uniqueID is provided
+    public ArrayList<String[]> getSubnodes(String nodeUniqueID) {
+        // Returns Subnodes of the node which nodeUniqueID is provided
         ArrayList<String[]> nodes = new ArrayList<>();
 
         NodeList nodeList = this.doc.getElementsByTagName("node");
 
         for (int i=0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) {
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
                 // When it finds a match - creates a NodeList and uses other function to get the MenuItems
                 NodeList childNodeList = node.getChildNodes();
                 nodes = returnSubnodeArrayList(childNodeList, "true");
@@ -210,10 +210,10 @@ public class XMLReader implements DatabaseReader {
             Node node = nodeList.item(i);
             if (node.getNodeName().equals("node")) {
                 String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                 String hasSubnode = String.valueOf(hasSubnodes(node));
                 String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-                String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                String[] currentNodeArray = {nameValue, nodeUniqueID, hasSubnode, isParent, isSubnode};
                 nodes.add(currentNodeArray);
             }
         }
@@ -273,10 +273,10 @@ public class XMLReader implements DatabaseReader {
      */
     private String[] returnSearchMenuItem(Node node) {
         String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-        String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+        String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
         String hasSubnode = String.valueOf(hasSubnodes(node));
         String isParent = "false";
-        return new String[]{nameValue, uniqueID, hasSubnode, isParent, "false"};
+        return new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, "false"};
     }
 
     /**
@@ -295,8 +295,8 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> getParentWithSubnodes(String uniqueID) {
-        // Checks if it is possible to go up in document's node tree from given node's uniqueID
+    public ArrayList<String[]> getParentWithSubnodes(String nodeUniqueID) {
+        // Checks if it is possible to go up in document's node tree from given nodeUniqueID
         // Returns array with appropriate nodes
         ArrayList<String[]> nodes = null;
 
@@ -304,7 +304,7 @@ public class XMLReader implements DatabaseReader {
 
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) {
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
                 Node parentNode = node.getParentNode();
                 if (parentNode == null) {
                     return nodes;
@@ -321,28 +321,28 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] getSingleMenuItem(String uniqueNodeID) {
+    public String[] getSingleMenuItem(String nodeUniqueID) {
         // Returns single menu item to be used when opening anchor links
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueNodeID)) {
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
                 if (node.getNodeName().equals("node")) {
                     // Node name and unique_id always the same for the node
                     String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                    String uniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                    String menuItemsNodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                     if (hasSubnodes(node)) {
                         // if node has subnodes, then it has to be opened as a parent node and displayed as such
                         String hasSubnode = "true";
                         String isParent = "true";
                         String isSubnode = "false";
-                        return new String[]{nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                        return new String[]{nameValue, menuItemsNodeUniqueID, hasSubnode, isParent, isSubnode};
                     } else {
                         // If node doesn't have subnodes, then it has to be opened as subnode of some other node
                         String hasSubnode = "false";
                         String isParent = "false";
                         String isSubnode = "true";
-                        return new String[]{nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                        return new String[]{nameValue, menuItemsNodeUniqueID, hasSubnode, isParent, isSubnode};
                     }
                 }
             }
@@ -351,7 +351,7 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String uniqueID) {
+    public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String nodeUniqueID) {
         ArrayList<ArrayList<CharSequence[]>> nodeContent = new ArrayList<>(); // The one that will be returned
 
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
@@ -368,7 +368,7 @@ public class XMLReader implements DatabaseReader {
 
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) { // Finds node that user chose
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
 
                 // prog_lang attribute is the same as syntax in SQL database
                 // it is used to set formatting for the node and separate between node types
@@ -408,7 +408,7 @@ public class XMLReader implements DatabaseReader {
                                     continue;
                                 } else {
                                     // For actual attached files
-                                    SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode, uniqueID);
+                                    SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode, nodeUniqueID);
                                     nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                     totalCharOffset += attachedFileSpan.length() - 1;
                                 }
@@ -420,7 +420,7 @@ public class XMLReader implements DatabaseReader {
                                 totalCharOffset += anchorImageSpan.length() - 1;
                             } else {
                                 // Images
-                                SpannableStringBuilder imageSpan = makeImageSpan(currentNode, uniqueID, String.valueOf(charOffset));
+                                SpannableStringBuilder imageSpan = makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                                 totalCharOffset += imageSpan.length() - 1;
                             }
@@ -670,11 +670,11 @@ public class XMLReader implements DatabaseReader {
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
      * @param node Node object that has Image embedded in it
-     * @param uniqueID uniqueID of the node that has image embedded in it
+     * @param nodeUniqueID unique ID of the node that has image embedded in it
      * @param imageOffset image offset that can be extracted from the taf of the node
      * @return SpannableStringBuilder that has spans with image in them
      */
-    public SpannableStringBuilder makeImageSpan(Node node, String uniqueID, String imageOffset) {
+    public SpannableStringBuilder makeImageSpan(Node node, String nodeUniqueID, String imageOffset) {
         SpannableStringBuilder formattedImage = new SpannableStringBuilder();
 
         //* Adds image to the span
@@ -703,7 +703,7 @@ public class XMLReader implements DatabaseReader {
                 @Override
                 public void onClick(@NonNull View widget) {
                     // Starting fragment to view enlarged zoomable image
-                    ((MainView) context).openImageView(uniqueID, imageOffset);
+                    ((MainView) context).openImageView(nodeUniqueID, imageOffset);
                 }
             };
             formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -790,10 +790,10 @@ public class XMLReader implements DatabaseReader {
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
      * @param node Node object that contains filename and datetime parameters
-     * @param uniqueID uniqueID of the node to which file was attached to
+     * @param nodeUniqueID unique ID of the node to which file was attached to
      * @return SpannableStringBuilder that has spans with image and filename
      */
-    public SpannableStringBuilder makeAttachedFileSpan(Node node, String uniqueID) {
+    public SpannableStringBuilder makeAttachedFileSpan(Node node, String nodeUniqueID) {
 
         String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
         String time = node.getAttributes().getNamedItem("time").getNodeValue();
@@ -817,7 +817,7 @@ public class XMLReader implements DatabaseReader {
             @Override
             public void onClick(@NonNull View widget) {
             // Launches function in MainView that checks if there is a default action in for attached files
-            ((MainView) XMLReader.this.context).saveOpenFile(uniqueID, attachedFileFilename, time);
+            ((MainView) XMLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time);
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -844,14 +844,14 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public ClickableSpan makeAnchorLinkSpan(String uniqueID) {
+    public ClickableSpan makeAnchorLinkSpan(String nodeUniqueID) {
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
 
         return new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
-                ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(uniqueID));
+                ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
             }
 
             @Override
@@ -1047,14 +1047,14 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public boolean doesNodeExist(String uniqueID) {
-        if (uniqueID == null) {
+    public boolean doesNodeExist(String nodeUniqueID) {
+        if (nodeUniqueID == null) {
             return false;
         }
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) {
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
                 return true;
             }
         }
@@ -1101,12 +1101,12 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
+    public String[] createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
         String[] newNodeMenuItem = null;
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(uniqueID)) {
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
                 String newNodeUniqueID = String.valueOf(getNodeMaxID() + 1);
                 String timestamp = String.valueOf(System.currentTimeMillis());
 

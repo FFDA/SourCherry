@@ -155,7 +155,7 @@ public class MoveNodeFragment extends Fragment {
             this.setNodes(nodes);
         } else {
             // If both node arrays matches in size it might be the same node (especially main/top)
-            // This part checks if first and last nodes in arrays matches by comparing uniqueID of both
+            // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
             if (nodes.get(0)[1].equals(this.nodeList.get(0)[1]) && nodes.get(nodes.size() -1 )[1].equals(this.nodeList.get(this.nodeList.size() -1 )[1])) {
                 Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
@@ -170,7 +170,7 @@ public class MoveNodeFragment extends Fragment {
      */
     private void goHome() {
         ArrayList<String[]> tempHomeNodes = this.reader.getMainNodes();
-        // Compares node sizes, first and last node's uniqueIDs in both arrays
+        // Compares node sizes, first and last nodeUniqueIDs in both arrays
         if (tempHomeNodes.size() == this.nodeList.size() && tempHomeNodes.get(0)[1].equals(this.nodeList.get(0)[1]) && tempHomeNodes.get(this.nodeList.size() -1 )[1].equals(this.nodeList.get(this.nodeList.size() -1 )[1])) {
             Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
         } else {

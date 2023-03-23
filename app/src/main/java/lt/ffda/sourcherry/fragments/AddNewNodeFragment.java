@@ -53,7 +53,7 @@ public class AddNewNodeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         this.radioGroupNodeType.check(R.id.radio_button_plain_text);
-        String uniqueID = getArguments().getString("uniqueID");
+        String nodeUniqueID = getArguments().getString("nodeUniqueID");
         int relation = getArguments().getInt("relation");
 
         EditText editTextNodeName = view.findViewById(R.id.edit_text_node_name);
@@ -63,7 +63,7 @@ public class AddNewNodeFragment extends Fragment {
                 boolean handle = false;
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     handle = true;
-                    AddNewNodeFragment.this.createNode(uniqueID, relation, AddNewNodeFragment.this.validateNodeName(editTextNodeName.getText().toString()));
+                    AddNewNodeFragment.this.createNode(nodeUniqueID, relation, AddNewNodeFragment.this.validateNodeName(editTextNodeName.getText().toString()));
                     // Hides keyboard
                     InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(editTextNodeName.getWindowToken(), 0);
@@ -85,19 +85,19 @@ public class AddNewNodeFragment extends Fragment {
         buttonCreate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                AddNewNodeFragment.this.createNode(uniqueID, relation, validateNodeName(editTextNodeName.getText().toString()));
+                AddNewNodeFragment.this.createNode(nodeUniqueID, relation, validateNodeName(editTextNodeName.getText().toString()));
             }
         });
     }
 
     /**
      * Convenience function to call createNewNode in MainView
-     * @param uniqueID uniqueID of the node that new node will be created in relation with
+     * @param nodeUniqueID unique ID of the node that new node will be created in relation with
      * @param relation relation to the node. 0 - sibling, 1 - subnode
      * @param name node name
      */
-    private void createNode(String uniqueID, int relation, String name) {
-        ((MainView) getActivity()).createNewNode(uniqueID, relation, name, getNodeProgLangSelection(), getNoSearchMeState(), getNoSearchChState());
+    private void createNode(String nodeUniqueID, int relation, String name) {
+        ((MainView) getActivity()).createNewNode(nodeUniqueID, relation, name, getNodeProgLangSelection(), getNoSearchMeState(), getNoSearchChState());
     }
 
     /**

@@ -126,12 +126,12 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> getSubnodes(String uniqueID) {
-        // Returns Subnodes of the node which uniqueID is provided
-        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{uniqueID});
+    public ArrayList<String[]> getSubnodes(String nodeUniqueID) {
+        // Returns Subnodes of the node which nodeUniqueID is provided
+        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
         ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "true");
 
-        nodes.add(0, createParentNode(uniqueID));
+        nodes.add(0, createParentNode(nodeUniqueID));
 
         cursor.close();
         return nodes;
@@ -152,10 +152,10 @@ public class SQLReader implements DatabaseReader {
 
         while (cursor.moveToNext()) {
             String nameValue = cursor.getString(0);
-            String uniqueID = String.valueOf(cursor.getInt(1));
-            String hasSubnode = hasSubnodes(uniqueID);
+            String nodeUniqueID = String.valueOf(cursor.getInt(1));
+            String hasSubnode = hasSubnodes(nodeUniqueID);
             String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-            String[] currentNodeArray = {nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+            String[] currentNodeArray = {nameValue, nodeUniqueID, hasSubnode, isParent, isSubnode};
             nodes.add(currentNodeArray);
         }
 
@@ -175,31 +175,31 @@ public class SQLReader implements DatabaseReader {
             if (cursor.getInt(2) == 0) {
                 // If node and subnodes are not selected to be excluded from search
                 String nameValue = cursor.getString(0);
-                String uniqueID = String.valueOf(cursor.getInt(1));
-                String hasSubnode = hasSubnodes(uniqueID);
+                String nodeUniqueID = String.valueOf(cursor.getInt(1));
+                String hasSubnode = hasSubnodes(nodeUniqueID);
                 String isParent = "false"; // There are no "parent" nodes in search. All nodes displayed without indentation
-                nodes.add(new String[]{nameValue, uniqueID, hasSubnode, isParent, "false"});
+                nodes.add(new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, "false"});
                 if (hasSubnode.equals("true")) {
-                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{uniqueID});
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
                     nodes.addAll(returnSubnodeSearchArrayList(subCursor));
                     subCursor.close();
                 }
             } else if (cursor.getInt(2) == 1) {
                 // If only node is selected to be excluded from search
-                String uniqueID = String.valueOf(cursor.getInt(1));
-                String hasSubnode = hasSubnodes(uniqueID);
+                String nodeUniqueID = String.valueOf(cursor.getInt(1));
+                String hasSubnode = hasSubnodes(nodeUniqueID);
                 if (hasSubnode.equals("true")) {
-                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{uniqueID});
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
                     nodes.addAll(returnSubnodeSearchArrayList(subCursor));
                     subCursor.close();
                 }
             } else if (cursor.getInt(2) == 2) {
                 // if only subnodes are selected to be excluded from search
                 String nameValue = cursor.getString(0);
-                String uniqueID = String.valueOf(cursor.getInt(1));
-                String hasSubnode = hasSubnodes(uniqueID);
+                String nodeUniqueID = String.valueOf(cursor.getInt(1));
+                String hasSubnode = hasSubnodes(nodeUniqueID);
                 String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new String[]{nameValue, uniqueID, hasSubnode, isParent, "false"});
+                nodes.add(new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, "false"});
             }
         }
 
@@ -208,12 +208,12 @@ public class SQLReader implements DatabaseReader {
 
     /**
      * Checks if provided Node object has a subnode(s)
-     * @param uniqueID uniqueID of the node that is being checked for subnodes
+     * @param nodeUniqueID unique ID of the node that is being checked for subnodes
      * @return "true" (string) if node has a subnode, "false" - if not
      */
-    public String hasSubnodes(String uniqueID) {
+    public String hasSubnodes(String nodeUniqueID) {
         // Checks if node with provided unique_id has subnodes
-        Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{uniqueID},null,null,null);
+        Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID},null,null,null);
 
         if (cursor.getCount() > 0) {
             cursor.close();
@@ -227,12 +227,12 @@ public class SQLReader implements DatabaseReader {
     /**
      * Parent node (top) in the drawer menu
      * Used when creating a drawer menu
-     * @param uniqueID uniqueID of the node that is parent node
+     * @param nodeUniqueID unique ID of the node that is parent node
      * @return String[] with information about provided node. Information is as fallows: {name, unique_id, has_subnodes, is_parent, is_subnode}
      */
-    public String[] createParentNode(String uniqueID) {
+    public String[] createParentNode(String nodeUniqueID) {
         // Creates and returns the node that will be added to the node array as parent node
-        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueID}, null, null,null);
+        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{nodeUniqueID}, null, null,null);
 
         String parentNodeName;
         if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
@@ -240,7 +240,7 @@ public class SQLReader implements DatabaseReader {
         } else {
             return null;
         }
-        String parentNodeUniqueID = uniqueID;
+        String parentNodeUniqueID = nodeUniqueID;
         String parentNodeHasSubnode = hasSubnodes(parentNodeUniqueID);
         String parentNodeIsParent = "true";
         String parentNodeIsSubnode = "false";
@@ -252,13 +252,13 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> getParentWithSubnodes(String uniqueID) {
+    public ArrayList<String[]> getParentWithSubnodes(String nodeUniqueID) {
         // Checks if it is possible to go up in document's node tree from given node's uniqueID
         // Returns array with appropriate nodes
         ArrayList<String[]> nodes = null;
 
         String nodeParentID;
-        Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{uniqueID}, null, null, null);
+        Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null);
         if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
             nodeParentID = cursor.getString(0);
             cursor.close();
@@ -276,25 +276,25 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] getSingleMenuItem(String uniqueID) {
+    public String[] getSingleMenuItem(String nodeUniqueID) {
         // Returns single menu item to be used when opening anchor links
         String[] currentNodeArray = null;
-        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{uniqueID}, null, null,null);
+        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{nodeUniqueID}, null, null,null);
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // Node name and unique_id always the same for the node
             String nameValue = cursor.getString(0);
-            if (hasSubnodes(uniqueID).equals("true")) {
+            if (hasSubnodes(nodeUniqueID).equals("true")) {
                 // if node has subnodes, then it has to be opened as a parent node and displayed as such
                 String hasSubnode = "true";
                 String isParent = "true";
                 String isSubnode = "false";
-                currentNodeArray = new String[]{nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                currentNodeArray = new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, isSubnode};
             } else {
                 // If node doesn't have subnodes, then it has to be opened as subnode of some other node
                 String hasSubnode = "false";
                 String isParent = "false";
                 String isSubnode = "true";
-                currentNodeArray = new String[]{nameValue, uniqueID, hasSubnode, isParent, isSubnode};
+                currentNodeArray = new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, isSubnode};
             }
         }
         cursor.close();
@@ -302,7 +302,7 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String uniqueID) {
+    public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String nodeUniqueID) {
         // Original XML document has newline characters marked (hopefully it's the same with SQL database)
         // Returns ArrayList of SpannableStringBuilder elements
 
@@ -318,7 +318,7 @@ public class SQLReader implements DatabaseReader {
         int totalCharOffset = 0;
         ////
 
-        Cursor cursor = this.sqlite.query("node", new String[]{"txt", "syntax", "has_codebox", "has_table", "has_image"}, "node_id=?", new String[]{uniqueID}, null, null, null); // Get node table entry with uniqueID
+        Cursor cursor = this.sqlite.query("node", new String[]{"txt", "syntax", "has_codebox", "has_table", "has_image"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null); // Get node table entry with nodeUniqueID
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // syntax is the same as prog_lang attribute in XML database
             // It is used to set formatting for the node and separate between node types (Code Node)
@@ -352,7 +352,7 @@ public class SQLReader implements DatabaseReader {
                     StringBuilder codeboxTableImageQueryString = new StringBuilder();
 
                     // Depending on how many tables will be searched
-                    // instances of how many time uniqueID will have to be inserted will differ
+                    // instances of how many times nodeUniqueID will have to be inserted will differ
                     int queryCounter = 0; // This is the counter for that
                     if (hasCodebox == 1) {
                         // Means that node has has codeboxes in it
@@ -377,9 +377,9 @@ public class SQLReader implements DatabaseReader {
                     }
                     codeboxTableImageQueryString.append("ORDER BY offset ASC");
 
-                    /// Creating the array that will be used to insert uniqueIDs
+                    /// Creating the array that will be used to insert nodeUniqueIDs
                     String[] queryArguments = new String[queryCounter];
-                    Arrays.fill(queryArguments, uniqueID);
+                    Arrays.fill(queryArguments, nodeUniqueID);
                     ///
                     ////
                     // Getting user choice how big the cursor window should be
@@ -391,7 +391,7 @@ public class SQLReader implements DatabaseReader {
                         int charOffset = codeboxTableImageCursor.getInt(0);
                         if (codeboxTableImageCursor.getInt(1) == 9) {
                             // Get image entry for current node_id and charOffset
-                            Cursor imageCursor = this.sqlite.query("image", new String[]{"anchor", "filename", "time"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                            Cursor imageCursor = this.sqlite.query("image", new String[]{"anchor", "filename", "time"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                             if (imageCursor.moveToFirst()) {
                                 if (!imageCursor.getString(0).isEmpty()) {
                                     // Text in column "anchor" (0) means that this line is for anchor
@@ -405,7 +405,7 @@ public class SQLReader implements DatabaseReader {
                                     // Text in column "filename" (1) means that this line is for file OR LaTeX formula box
                                     if (!imageCursor.getString(1).equals("__ct_special.tex")) {
                                         // If it is not LaTex file
-                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(uniqueID, imageCursor.getString(1), String.valueOf(imageCursor.getDouble(2)));
+                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(nodeUniqueID, imageCursor.getString(1), String.valueOf(imageCursor.getDouble(2)));
                                         imageCursor.close();
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                         totalCharOffset += attachedFileSpan.length() - 1;
@@ -413,7 +413,7 @@ public class SQLReader implements DatabaseReader {
                                     } else {
                                         // For latex boxes
                                         imageCursor.close();
-                                        Cursor latexBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                                        Cursor latexBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                                         latexBlobCursor.moveToFirst();
                                         SpannableStringBuilder latexImageSpan = makeLatexImageSpan(latexBlobCursor.getBlob(0));
                                         latexBlobCursor.close();
@@ -425,7 +425,7 @@ public class SQLReader implements DatabaseReader {
                                 else {
                                     // Any other line should be an image
                                     imageCursor.close();
-                                    Cursor imageBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                                    Cursor imageBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                                     if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                                         // Expands cursor window for API 28 (Android 9) and greater
                                         // This allows to display bigger images and open/save bigger files
@@ -440,7 +440,7 @@ public class SQLReader implements DatabaseReader {
                                     try {
                                         // Tries to move to get image blob from DB. Might me too big.
                                         imageBlobCursor.moveToFirst();
-                                        SpannableStringBuilder imageSpan = makeImageSpan(imageBlobCursor.getBlob(0), uniqueID, String.valueOf(charOffset)); // Blob is the image in byte[] form
+                                        SpannableStringBuilder imageSpan = makeImageSpan(imageBlobCursor.getBlob(0), nodeUniqueID, String.valueOf(charOffset)); // Blob is the image in byte[] form
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                                         totalCharOffset += imageSpan.length() - 1;
                                     } catch (Exception SQLiteBlobTooBigException) {
@@ -458,7 +458,7 @@ public class SQLReader implements DatabaseReader {
                         } else if (codeboxTableImageCursor.getInt(1) == 7) {
                             // codebox row
                             // Get codebox entry for current node_id and charOffset
-                            Cursor codeboxCursor = this.sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                            Cursor codeboxCursor = this.sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                             if (codeboxCursor.moveToFirst()) {
                                 SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxCursor.getString(0));
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
@@ -468,7 +468,7 @@ public class SQLReader implements DatabaseReader {
                         } else if (codeboxTableImageCursor.getInt(1) == 8) {
                             // table row
                             // Get table row entry for current node_id and charOffset
-                            Cursor tableCursor = this.sqlite.query("grid", new String[]{"txt", "col_min", "col_max"}, "node_id=? AND offset=?", new String[]{uniqueID, String.valueOf(charOffset)}, null, null, null);
+                            Cursor tableCursor = this.sqlite.query("grid", new String[]{"txt", "col_min", "col_max"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                             if (tableCursor.moveToFirst()) {
                                 int tableCharOffset = charOffset + totalCharOffset; // Place where SpannableStringBuilder will be split
                                 String cellMax = tableCursor.getString(2);
@@ -715,11 +715,11 @@ public class SQLReader implements DatabaseReader {
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
      * @param imageBlob byte[] that has data for the image
-     * @param uniqueID uniqueID of the node that has the image embedded
+     * @param nodeUniqueID unique ID of the node that has the image embedded
      * @param imageOffset offset of the image in the node
      * @return SpannableStringBuilder that has spans with image in them
      */
-    public SpannableStringBuilder makeImageSpan(byte[] imageBlob, String uniqueID, String imageOffset) {
+    public SpannableStringBuilder makeImageSpan(byte[] imageBlob, String nodeUniqueID, String imageOffset) {
         // Returns SpannableStringBuilder that has spans with images in them
         // Images are decoded from byte array that was passed to the function
 
@@ -749,7 +749,7 @@ public class SQLReader implements DatabaseReader {
                 @Override
                 public void onClick(@NonNull View widget) {
                     // Starting fragment to view enlarged zoomable image
-                    ((MainView) context).openImageView(uniqueID, imageOffset);
+                    ((MainView) context).openImageView(nodeUniqueID, imageOffset);
                 }
             };
             formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -835,12 +835,12 @@ public class SQLReader implements DatabaseReader {
      * Arguments that a passed to this function has to be retrieved from the appropriate tables in the database
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
-     * @param uniqueID uniqueID of the node that has file attached in it
+     * @param nodeUniqueID unique ID of the node that has file attached in it
      * @param attachedFileFilename filename of the attached file
      * @param time datetime of when file was attached to the node
      * @return Clickable spannableStringBuilder that has spans with image and filename
      */
-    public SpannableStringBuilder makeAttachedFileSpan(String uniqueID, String attachedFileFilename, String time) {
+    public SpannableStringBuilder makeAttachedFileSpan(String nodeUniqueID, String attachedFileFilename, String time) {
         SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
 
         formattedAttachedFile.append(" "); // Needed to insert image
@@ -860,7 +860,7 @@ public class SQLReader implements DatabaseReader {
             @Override
             public void onClick(@NonNull View widget) {
             // Launches function in MainView that checks if there is a default action in for attached files
-            ((MainView) SQLReader.this.context).saveOpenFile(uniqueID, attachedFileFilename, time);
+            ((MainView) SQLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time);
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -887,14 +887,14 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ClickableSpan makeAnchorLinkSpan(String uniqueID) {
+    public ClickableSpan makeAnchorLinkSpan(String nodeUniqueID) {
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
 
         return new ClickableSpan() {
             @Override
             public void onClick(@NonNull View widget) {
-                ((MainView) SQLReader.this.context).openAnchorLink(getSingleMenuItem(uniqueID));
+                ((MainView) SQLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
             }
 
             @Override
@@ -943,10 +943,10 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public byte[] getFileByteArray(String uniqueID, String filename, String time) {
+    public byte[] getFileByteArray(String nodeUniqueID, String filename, String time) {
         // Returns byte array (stream) to be written to file or opened
 
-        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=?", new String[]{uniqueID, filename, time}, null, null, null);
+        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=?", new String[]{nodeUniqueID, filename, time}, null, null, null);
         // Getting user choice how big the cursor window should be
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
@@ -1081,11 +1081,11 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public boolean doesNodeExist(String uniqueID) {
-        if (uniqueID == null) {
+    public boolean doesNodeExist(String nodeUniqueID) {
+        if (nodeUniqueID == null) {
             return false;
         }
-        Cursor cursor = this.sqlite.rawQuery("SELECT node.name FROM node WHERE node.node_id=?", new String[]{uniqueID});
+        Cursor cursor = this.sqlite.rawQuery("SELECT node.name FROM node WHERE node.node_id=?", new String[]{nodeUniqueID});
         if (cursor.getCount() == 1) {
             cursor.close();
             return true;
@@ -1181,7 +1181,7 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
+    public String[] createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
         // Updating node table
         int newNodeUniqueID = this.getNodeMaxID() + 1;
         int level = convertNoSearchToLevel(noSearchMe, noSearchCh);
@@ -1212,13 +1212,13 @@ public class SQLReader implements DatabaseReader {
         String isSubnode = "true";
         contentValues.put("node_id", newNodeUniqueID);
         if (relation == 0) {
-            int fatherNodeUniqueID = this.getParentNodeUniqueID(uniqueID);
-            contentValues.put("father_id", fatherNodeUniqueID);
+            int parentNodeUniqueID = this.getParentNodeUniqueID(nodeUniqueID);
+            contentValues.put("father_id", parentNodeUniqueID);
             // Searching for position for new node in parent node children sequence
             int newNodeSequenceNumber = -1;
-            Cursor parentNodeChildrenSequenceCursor = this.sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id=?", new String[]{String.valueOf(fatherNodeUniqueID)}, null, null, "sequence ASC", null);
+            Cursor parentNodeChildrenSequenceCursor = this.sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id=?", new String[]{String.valueOf(parentNodeUniqueID)}, null, null, "sequence ASC", null);
             while (parentNodeChildrenSequenceCursor.moveToNext()) {
-                if (uniqueID.equals(parentNodeChildrenSequenceCursor.getString(0))) {
+                if (nodeUniqueID.equals(parentNodeChildrenSequenceCursor.getString(0))) {
                     // Found the node that was selected to create sibling node
                     newNodeSequenceNumber = parentNodeChildrenSequenceCursor.getInt(1) + 1;
                     break;
@@ -1227,16 +1227,16 @@ public class SQLReader implements DatabaseReader {
             parentNodeChildrenSequenceCursor.close();
             // Updating sequence position (+1) for all nodes
             // that follows new node in sequence
-            Cursor updateChildrenTableCursor = sqlite.rawQuery("UPDATE children SET sequence = sequence + 1 WHERE father_id=? and sequence >= ?;", new String[]{String.valueOf(fatherNodeUniqueID), String.valueOf(newNodeSequenceNumber)});
+            Cursor updateChildrenTableCursor = sqlite.rawQuery("UPDATE children SET sequence = sequence + 1 WHERE father_id=? and sequence >= ?;", new String[]{String.valueOf(parentNodeUniqueID), String.valueOf(newNodeSequenceNumber)});
             updateChildrenTableCursor.moveToFirst();
             updateChildrenTableCursor.close();
             contentValues.put("sequence", newNodeSequenceNumber);
-            if (fatherNodeUniqueID == 0) {
+            if (parentNodeUniqueID == 0) {
                 isSubnode = "false";
             }
         } else {
-            contentValues.put("father_id", Integer.parseInt(uniqueID));
-            contentValues.put("sequence", this.getNewNodeSequenceNumber(uniqueID));
+            contentValues.put("father_id", Integer.parseInt(nodeUniqueID));
+            contentValues.put("sequence", this.getNewNodeSequenceNumber(nodeUniqueID));
         }
 
         long childrenUpdateResult = this.sqlite.insert("children", null, contentValues);
@@ -1562,8 +1562,8 @@ public class SQLReader implements DatabaseReader {
             while (cursor.moveToNext()) {
                 if (cursor.getInt(10) == 0) {
                     // If node and subnodes are not selected to be excluded from search
-                    String uniqueID = String.valueOf(cursor.getInt(0));
-                    String hasSubnode = this.hasSubnodes(uniqueID);
+                    String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                    String hasSubnode = this.hasSubnodes(nodeUniqueID);
                     String isParent = "true"; // Main menu node will always be a parent
                     String isSubnode = "false"; // Main menu item will always be displayed as a parent
                     String[] result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
@@ -1571,19 +1571,19 @@ public class SQLReader implements DatabaseReader {
                         searchResult.add(result);
                     }
                     if (hasSubnode.equals("true")) {
-                        searchResult.addAll(searchNodesSkippingExcluded(uniqueID, query));
+                        searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
                     }
                 } else if (cursor.getInt(10) == 1) {
                     // If only the node is selected to be excluded from search
-                    String uniqueID = String.valueOf(cursor.getInt(0));
-                    String hasSubnode = this.hasSubnodes(uniqueID);
+                    String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                    String hasSubnode = this.hasSubnodes(nodeUniqueID);
                     if (hasSubnode.equals("true")) {
-                        searchResult.addAll(searchNodesSkippingExcluded(uniqueID, query));
+                        searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
                     }
                 } else if (cursor.getInt(10) == 2) {
                     // if only subnodes are selected to be excluded from search
-                    String uniqueID = String.valueOf(cursor.getInt(0));
-                    String hasSubnodes = this.hasSubnodes(uniqueID);
+                    String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                    String hasSubnodes = this.hasSubnodes(nodeUniqueID);
                     String isParent = "true"; // Main menu node will always be a parent
                     String isSubnode = "false"; // Main menu item will always be displayed as parent
                     String[] result = findInNode(cursor, query, hasSubnodes, isParent, isSubnode);
@@ -1598,8 +1598,8 @@ public class SQLReader implements DatabaseReader {
             Cursor cursor = this.sqlite.rawQuery("SELECT * FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
             ArrayList<String[]> searchResult = new ArrayList<>();
             while (cursor.moveToNext()) {
-                String uniqueID = String.valueOf(cursor.getInt(0));
-                String hasSubnode = this.hasSubnodes(uniqueID);
+                String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                String hasSubnode = this.hasSubnodes(nodeUniqueID);
                 String isParent = "true"; // Main menu node will always be parent
                 String isSubnode = "false"; // Main menu item will displayed as parent
                 String[] result = this.findInNode(cursor, query, hasSubnode, isParent, isSubnode);
@@ -1607,7 +1607,7 @@ public class SQLReader implements DatabaseReader {
                     searchResult.add(result);
                 }
                 if (hasSubnode.equals("true")) {
-                    searchResult.addAll(this.searchAllNodes(uniqueID, query));
+                    searchResult.addAll(this.searchAllNodes(nodeUniqueID, query));
                 }
             }
             cursor.close();
@@ -1627,8 +1627,8 @@ public class SQLReader implements DatabaseReader {
         Cursor cursor = this.sqlite.rawQuery("SELECT * FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{parentUniqueID});
         ArrayList<String[]> searchResult = new ArrayList<>();
         while (cursor.moveToNext()) {
-            String uniqueID = String.valueOf(cursor.getInt(0));
-            String hasSubnode = this.hasSubnodes(uniqueID);
+            String nodeUniqueID = String.valueOf(cursor.getInt(0));
+            String hasSubnode = this.hasSubnodes(nodeUniqueID);
             String isParent = "false";
             String isSubnode = "true";
             if (hasSubnode.equals("true")) {
@@ -1641,7 +1641,7 @@ public class SQLReader implements DatabaseReader {
                 searchResult.add(result);
             }
             if (hasSubnode.equals("true")) {
-                searchResult.addAll(this.searchAllNodes(uniqueID, query));
+                searchResult.addAll(this.searchAllNodes(nodeUniqueID, query));
             }
         }
 
@@ -1664,8 +1664,8 @@ public class SQLReader implements DatabaseReader {
         while (cursor.moveToNext()) {
             if (cursor.getInt(10) == 0) {
                 // If node and subnodes are not selected to be excluded from search
-                String uniqueID = String.valueOf(cursor.getInt(0));
-                String hasSubnode = this.hasSubnodes(uniqueID);
+                String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                String hasSubnode = this.hasSubnodes(nodeUniqueID);
                 String isParent = "false";
                 String isSubnode = "true";
                 if (hasSubnode.equals("true")) {
@@ -1677,19 +1677,19 @@ public class SQLReader implements DatabaseReader {
                     searchResult.add(result);
                 }
                 if (hasSubnode.equals("true")) {
-                    searchResult.addAll(searchNodesSkippingExcluded(uniqueID, query));
+                    searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
                 }
             } else if (cursor.getInt(10) == 1) {
                 // If only the node is selected to be excluded from search
-                String uniqueID = String.valueOf(cursor.getInt(0));
-                String hasSubnode = hasSubnodes(uniqueID);
+                String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                String hasSubnode = hasSubnodes(nodeUniqueID);
                 if (hasSubnode.equals("true")) {
-                    searchResult.addAll(searchNodesSkippingExcluded(uniqueID, query));
+                    searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
                 }
             } else if (cursor.getInt(10) == 2) {
                 // if only subnodes are selected to be excluded from search
-                String uniqueID = String.valueOf(cursor.getInt(0));
-                String hasSubnode = this.hasSubnodes(uniqueID);
+                String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                String hasSubnode = this.hasSubnodes(nodeUniqueID);
                 String isParent = "false";
                 String isSubnode = "true";
                 if (hasSubnode.equals("true")) {
@@ -1746,7 +1746,7 @@ public class SQLReader implements DatabaseReader {
                 StringBuilder codeboxTableImageQueryString = new StringBuilder();
 
                 // Depending on how many tables will be searched
-                // instances of how many time uniqueID will have to be inserted will differ
+                // instances of how many time nodeUniqueID will have to be inserted will differ
                 int queryCounter = 0; // This is the counter for that
                 if (hasCodebox == 1) {
                     // Means that node has has codeboxes in it
@@ -1771,7 +1771,7 @@ public class SQLReader implements DatabaseReader {
                 }
                 codeboxTableImageQueryString.append("ORDER BY offset ASC");
 
-                /// Creating the array that will be used to insert uniqueIDs
+                /// Creating the array that will be used to insert nodeUniqueIDs
                 String[] queryArguments = new String[queryCounter];
                 Arrays.fill(queryArguments, cursor.getString(0));
                 ///

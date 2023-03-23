@@ -220,7 +220,7 @@ public class MainView extends AppCompatActivity {
             @Override
             public void onItemClick(View itemView, int position) {
                 if (MainView.this.currentNode == null || !MainView.this.mainViewModel.getNodes().get(position)[1].equals(MainView.this.currentNode[1])) {
-                    // If current node is null (empty/nothing opened yet) or selected uniqueID is not the same as selected one
+                    // If current node is null (empty/nothing opened yet) or selected nodeUniqueID is not the same as selected one
                     MainView.this.currentNode = MainView.this.mainViewModel.getNodes().get(position);
                     MainView.this.loadNodeContent();
                     if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
@@ -593,7 +593,7 @@ public class MainView extends AppCompatActivity {
     public void onStop() {
         super.onStop();
         if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.currentNode != null) {
-            // Saving current current node uniqueID to be able to load it on next startup
+            // Saving current nodeUniqueID to be able to load it on next startup
             SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
             sharedPreferencesEditor.putString("last_node_unique_id", this.currentNode[1]);
             sharedPreferencesEditor.apply();
@@ -667,7 +667,7 @@ public class MainView extends AppCompatActivity {
 
     /**
      * Sets current node as opened in drawer menu
-     * by finding it's uniqueID in drawer menu items
+     * by finding it's nodeUniqueID in drawer menu items
      * and setting it's index as this.currentNodePosition
      */
     private void setCurrentNodePosition() {
@@ -699,7 +699,7 @@ public class MainView extends AppCompatActivity {
             this.adapter.notifyDataSetChanged();
         } else {
             // If both node arrays matches in size it might be the same node (especially main/top)
-            // This part checks if first and last nodes in arrays matches by comparing uniqueID of both
+            // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
             if (nodes.get(0)[1].equals(this.mainViewModel.getNodes().get(0)[1]) && nodes.get(nodes.size() -1 )[1].equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 )[1])) {
                 Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
@@ -729,7 +729,7 @@ public class MainView extends AppCompatActivity {
                 // it might me that selected node is in main menu
                 // this part checks for that and marks the node if it finds it
                 for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
-                    // Checks uniqueID of current node against node in main menu
+                    // Checks nodeUniqueID of current node against node in main menu
                     if (this.mainViewModel.getNodes().get(i)[1].equals(this.currentNode[1])) {
                         this.currentNodePosition = i;
                         break;
@@ -1517,7 +1517,7 @@ public class MainView extends AppCompatActivity {
      */
     private void launchCreateNewNodeFragment(String nodeUniqueID, int relation) {
         Bundle bundle = new Bundle();
-        bundle.putString("uniqueID", nodeUniqueID);
+        bundle.putString("nodeUniqueID", nodeUniqueID);
         bundle.putInt("relation", relation);
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
@@ -1531,15 +1531,15 @@ public class MainView extends AppCompatActivity {
 
     /**
      * Creates new node in the database with provided parameters
-     * @param uniqueID uniqueID of the node that new node will be created in relation with
+     * @param nodeUniqueID unique ID of the node that new node will be created in relation with
      * @param relation relation to the node. 0 - sibling, 1 - subnode
      * @param name node name
      * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
      * @param noSearchMe 0 - marks that node should be searched, 1 - marks that node should be excluded from the search
      * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
      */
-    public void createNewNode(String uniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
-        String[] newNodeMenuItem = this.reader.createNewNode(uniqueID, relation, name, progLang, noSearchMe, noSearchCh);
+    public void createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
+        String[] newNodeMenuItem = this.reader.createNewNode(nodeUniqueID, relation, name, progLang, noSearchMe, noSearchCh);
         getSupportFragmentManager().popBackStack();
         MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
