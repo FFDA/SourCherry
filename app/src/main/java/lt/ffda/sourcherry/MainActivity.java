@@ -146,6 +146,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        deleteTempFiles();
+        if (isChangingConfigurations()) {
+            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+            sharedPreferencesEditor.putBoolean("isChangingConfigurations", true);
+            sharedPreferencesEditor.apply();
+        }
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.options_menu_main_activity, menu);
@@ -170,6 +181,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Registers activity for user to select a document
+     * Gets permanent read and write permissions for selected document
+     * Saved necessary data in the preferences
+     */
     ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
         if (result != null) {
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
@@ -193,13 +209,22 @@ public class MainActivity extends AppCompatActivity {
         }
     });
 
+    /**
+     * Launches activity for user to select a database
+     * @param view button that was clicked
+     */
     public void openGetDatabase(View view) {
         getDatabase.launch(new String[]{"*/*",});
     }
 
+    /**
+     * Lists all imported databases in IU
+     * Adds button to delete database and
+     * and listeners to clicks on database names
+     * click - makes database as selected
+     * long click - makes database as selected and opens it
+     */
     private void listImportedDatabases() {
-        // Lists all databases that are currently in app-specific storage
-
         // View into which all databases will be listed to
         LinearLayout importedDatabases = findViewById(R.id.layout_imported_databases);
         importedDatabases.removeAllViews(); // Everytime all the items are removed and re-added just in case user deleted something
@@ -356,20 +381,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        deleteTempFiles();
-        if (isChangingConfigurations()) {
-            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-            sharedPreferencesEditor.putBoolean("isChangingConfigurations", true);
-            sharedPreferencesEditor.apply();
-        }
-    }
-
+    /**
+     * Checks if user deletes the database that is set to be opened when user presses on Open button
+     * And set everything to null in settings if it's true
+     * @param databaseFilename database filename that user wants to delete
+     */
     private void checkIfDeleteDatabaseIsBeingUsed(String databaseFilename) {
-        // Checks if user deletes the database that is set to be opened when user presses on Open button
-        // And set everything to null in (database) settings if it's true
         String databaseStorageType = this.sharedPreferences.getString("databaseStorageType", null);
         String databaseFilenameFromPreference = this.sharedPreferences.getString("databaseFilename", null);
         if (databaseStorageType != null && databaseFilenameFromPreference != null && databaseStorageType.equals("internal") && databaseFilenameFromPreference.equals(databaseFilename)) {
@@ -379,6 +396,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Sets UI messages for the user with appropriate database name
+     * Shows password field for password protected databases
+     * Set checkbox state depending on what's saved in database
+     */
     private void setMessageWithDatabaseName() {
         EditText editTextTextPassword = findViewById(R.id.passwordField);
         TextView textViewMessage = findViewById(R.id.textViewMessage);
@@ -496,16 +518,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Function that saves checkbox state to preferences
+     * on every checkbox tap
+     * @param view checkbox that was clicked
+     */
     public void saveCheckboxStatus(View view) {
         CheckBox checkBoxAutoOpen = findViewById(R.id.checkBox_auto_open);
-
         SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
         sharedPreferencesEditor.putBoolean("checkboxAutoOpen", checkBoxAutoOpen.isChecked());
         sharedPreferencesEditor.commit();
     }
 
+    /**
+     * Saves passed information about database to preferences
+     * @param databaseStorageType values can be "shared" or "internal"
+     * @param databaseFilename database filename with extension
+     * @param databaseFileExtension database extension
+     * @param databaseUri uri for shared databases and path for internal databases
+     */
     private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
-        // Saves passed information about database to preferences
         SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
         sharedPreferencesEditor.putString("databaseStorageType", databaseStorageType);
         sharedPreferencesEditor.putString("databaseFilename", databaseFilename);
@@ -539,10 +571,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Deletes all file from cache (temp) directory
+     */
     private void deleteTempFiles() {
-        // Deletes all file from cache (temp) directory
         File cachedFileDir = getCacheDir();
-
         if (cachedFileDir.list().length > 0) {
             for (String filename: cachedFileDir.list()) {
                 new File(cachedFileDir, filename).delete();
@@ -550,14 +583,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Starts MainView activity with current settings/database
+     */
     public void startMainViewActivity() {
-        // Starts MainView activity with current settings/database
         Intent openDatabase = new Intent(this, MainView.class);
         startActivity(openDatabase);
     }
 
+    /**
+     * Sets theme depending on user selected setting
+     */
     private void setNightMode() {
-        // Sets theme depending on user selected setting
         SharedPreferences sharedPreferencesEditor = PreferenceManager.getDefaultSharedPreferences(this);
         switch (sharedPreferencesEditor.getString("preferences_dark_mode", "System")) {
             case "System":
