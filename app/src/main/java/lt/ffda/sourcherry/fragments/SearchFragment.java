@@ -8,101 +8,91 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry;
+package lt.ffda.sourcherry.fragments;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.preference.PreferenceManager;
-
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.database.sqlite.SQLiteDatabase;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.text.Html;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.BackgroundColorSpan;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
+import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.view.MenuHost;
+import androidx.core.view.MenuProvider;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
+
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import lt.ffda.sourcherry.database.DatabaseSearcher;
-import lt.ffda.sourcherry.database.SQLSearcher;
-import lt.ffda.sourcherry.database.XMLSearcher;
+import lt.ffda.sourcherry.MainView;
+import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.database.DatabaseReader;
 
-public class SearchActivity extends AppCompatActivity {
-    private DatabaseSearcher searcher;
+public class SearchFragment extends Fragment {
+    private DatabaseReader reader;
     private Handler handler;
     private ExecutorService executor;
     private LinearLayout searchResultLinearLayout;
     private TextView resultCount;
     private ProgressBar searchProgressBar;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_search);
-        // Displays toolbar
-        Toolbar imageViewActivityToolbar = findViewById(R.id.search_activity_toolbar);
-        setSupportActionBar(imageViewActivityToolbar);
-        ActionBar toolbar = getSupportActionBar();
-        toolbar.setDisplayHomeAsUpEnabled(true); // Enables home (arrow back button)
-        toolbar.setTitle(R.string.options_menu_item_search);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+        View view = inflater.inflate(R.layout.fragment_search, container, false);
+        this.searchProgressBar = view.findViewById(R.id.search_fragment_progressBar);
+        this.searchResultLinearLayout = view.findViewById(R.id.search_fragment_results_linear_layout);
+        this.resultCount = view.findViewById(R.id.search_fragment_result_count);
+        this.reader = ((MainView) getActivity()).getReader();
+        this.handler = ((MainView) getActivity()).getHandler();
+        this.executor = ((MainView) getActivity()).getExecutor();
+        return view;
+    }
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String databaseString = sharedPreferences.getString("databaseUri", null);
-        this.handler = new Handler(Looper.getMainLooper());
-
-        // Creates a searcher
-        try {
-            if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
-                // If file is in external storage
-                if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
-                    // If file is xml
-                    InputStream is = getContentResolver().openInputStream(Uri.parse(databaseString));
-                    this.searcher = new XMLSearcher(is);
-                    is.close();
-                }
-            } else {
-                // If file is in internal app storage
-                if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
-                    // If file is xml
-                    InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
-                    this.searcher = new XMLSearcher(is);
-                    is.close();
-                } else {
-                    // If file is sql (password protected or not)
-                    SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READONLY);
-                    this.searcher = new SQLSearcher(sqlite);
-                }
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        // Loading new menu for the fragment
+        // that only have a save button in it
+        MenuHost menuHost = requireActivity();
+        menuHost.addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+                menu.clear();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
-        }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (menuItem.getItemId() == android.R.id.home) {
+                    getActivity().onBackPressed();
+                    return true;
+                }
+                return false;
+            }
+        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
 
         // Checkmark for user to choose if searcher should skip "excluded" nodes
-        CheckBox checkBoxExclude = findViewById(R.id.search_activity_checkbox_exclude);
+        CheckBox checkBoxExclude = view.findViewById(R.id.search_fragment_checkbox_exclude);
 
         // Search field and related functions
-        SearchView searchView = findViewById(R.id.search_activity_search_view);
+        SearchView searchView = view.findViewById(R.id.search_fragment_search_view);
         searchView.setSubmitButtonEnabled(true);
         searchView.requestFocus();
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -111,10 +101,10 @@ public class SearchActivity extends AppCompatActivity {
                 // submits a search request to searcher only when user presses the button
                 // gets current value of checkbox as boolean to pass it to searcher
                 // boolean tells if search should skip "excluded" nodes or not
-                SearchActivity.this.executor.execute(new Runnable() {
+                SearchFragment.this.executor.execute(new Runnable() {
                     @Override
                     public void run() {
-                        SearchActivity.this.search(checkBoxExclude.isChecked(), query.toLowerCase());
+                        SearchFragment.this.search(checkBoxExclude.isChecked(), query.toLowerCase());
                     }
                 });
                 return true;
@@ -125,34 +115,26 @@ public class SearchActivity extends AppCompatActivity {
                 return false;
             }
         });
-        this.executor = Executors.newSingleThreadExecutor();
-
-        this.searchProgressBar = findViewById(R.id.search_activity_progressBar);
-        this.searchResultLinearLayout = findViewById(R.id.search_activity_results_linear_layout);
-        this.resultCount = findViewById(R.id.search_activity_result_count);
     }
 
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId();
-        if (id == android.R.id.home) {
-            finish();
-            return true;
+    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
+        @Override
+        public void handleOnBackPressed() {
+            remove(); // Otherwise there will be onBackPressed infinite loop
+            ((MainView) getActivity()).returnFromFragmentWithHomeButtonAndRestoreTitle();
         }
-        return super.onOptionsItemSelected(item);
-    }
+    };
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        this.executor.shutdownNow();
-    }
-
+    /**
+     * Executes search and adds results to UI
+     * @param noSearch true - exclude nodes marked to exclude from search, false - search all nodes
+     * @param query string to search for
+     */
     private void search(Boolean noSearch, String query) {
         this.handler.post(new Runnable() {
             @Override
             public void run() {
-                SearchActivity.this.searchProgressBar.setVisibility(View.VISIBLE);
+                SearchFragment.this.searchProgressBar.setVisibility(View.VISIBLE);
             }
         });
 
@@ -161,20 +143,19 @@ public class SearchActivity extends AppCompatActivity {
         this.handler.post(new Runnable() {
             @Override
             public void run() {
-                SearchActivity.this.searchResultLinearLayout.removeAllViews();
+                SearchFragment.this.searchResultLinearLayout.removeAllViews();
             }
         });
 
-        ArrayList<String[]> searchResult = this.searcher.search(noSearch, query);
+        ArrayList<String[]> searchResult = this.reader.search(noSearch, query);
 
         this.handler.post(new Runnable() {
             @Override
             public void run() {
-                SearchActivity.this.resultCount.setText(getString(R.string.options_menu_search_result_count, searchResult.size()));
-                SearchActivity.this.resultCount.setVisibility(View.VISIBLE);
+                SearchFragment.this.resultCount.setText(getString(R.string.options_menu_search_result_count, searchResult.size()));
+                SearchFragment.this.resultCount.setVisibility(View.VISIBLE);
             }
         });
-
 
         if (searchResult != null) {
             for (String[] result: searchResult) {
@@ -208,16 +189,13 @@ public class SearchActivity extends AppCompatActivity {
                 searchResultItem.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Intent selectedNode = new Intent();
-                        selectedNode.putExtra("selectedNode", new String[]{result[0], result[1], result[5], result[6], result[7]});
-                        setResult(RESULT_OK, selectedNode);
-                        finish();
+                        ((MainView) getActivity()).openSearchResult(new String[]{result[0], result[1], result[5], result[6], result[7]});
                     }
                 });
                 this.handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        SearchActivity.this.searchResultLinearLayout.addView(searchResultItem);
+                        SearchFragment.this.searchResultLinearLayout.addView(searchResultItem);
                     }
                 });
             }
@@ -225,15 +203,19 @@ public class SearchActivity extends AppCompatActivity {
         this.handler.post(new Runnable() {
             @Override
             public void run() {
-                SearchActivity.this.searchProgressBar.setVisibility(View.INVISIBLE);
+                SearchFragment.this.searchProgressBar.setVisibility(View.INVISIBLE);
             }
         });
     }
 
+    /**
+     * Changes background of the parts of the string
+     * Used to mark search query string in search result samples
+     * @param searchResult text to mark
+     * @param query text to match for marking
+     * @return text with marked matching parts
+     */
     private SpannableStringBuilder markSearchQuery(String searchResult, String query) {
-        // Changes background of the parts of the string (searchResult) that matches second string (searchQuery)
-        // Used to mark search query string in in search result samples
-
         int index = 0; // index of start of the found substring
         int searchLength = query.length();
 
@@ -244,7 +226,7 @@ public class SearchActivity extends AppCompatActivity {
             if (index != -1) {
                 int startIndex = index;
                 int endIndex = index + searchLength;
-                spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 index += searchLength; // moves search to the end of the last found string
             }
         }

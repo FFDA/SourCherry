@@ -9,9 +9,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SourCherry">
         <activity
-            android:name=".SearchActivity"
-            android:exported="false" />
-        <activity
             android:name=".preferences.PreferencesActivity"
             android:exported="false" />
         <activity

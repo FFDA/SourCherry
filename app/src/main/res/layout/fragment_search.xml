@@ -13,30 +13,24 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/search_activity_toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        android:elevation="4dp" />
+    android:orientation="vertical"
+    android:background="?android:attr/windowBackground">
 
     <SearchView
-        android:id="@+id/search_activity_search_view"
+        android:id="@+id/search_fragment_search_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:iconifiedByDefault="false"
         android:imeOptions="flagNoExtractUi" />
 
     <CheckBox
-        android:id="@+id/search_activity_checkbox_exclude"
+        android:id="@+id/search_fragment_checkbox_exclude"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/options_menu_search_checkbox_exclude" />
 
     <ProgressBar
-        android:id="@+id/search_activity_progressBar"
+        android:id="@+id/search_fragment_progressBar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -44,13 +38,13 @@
         android:visibility="invisible" />
 
     <View
-        android:id="@+id/search_activity_divider"
+        android:id="@+id/search_fragment_divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="?android:attr/listDivider" />
 
     <ScrollView
-        android:id="@+id/search_activity_results_scrollview"
+        android:id="@+id/search_fragment_results_scrollview"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -60,7 +54,7 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/search_activity_result_count"
+                android:id="@+id/search_fragment_result_count"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
@@ -68,7 +62,7 @@
                 android:paddingBottom="5dp"/>
 
             <LinearLayout
-                android:id="@+id/search_activity_results_linear_layout"
+                android:id="@+id/search_fragment_results_linear_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"/>

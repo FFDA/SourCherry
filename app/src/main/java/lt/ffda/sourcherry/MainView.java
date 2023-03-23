@@ -11,8 +11,6 @@
 package lt.ffda.sourcherry;
 
 import androidx.activity.OnBackPressedCallback;
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -97,6 +95,7 @@ import lt.ffda.sourcherry.fragments.NodeContentFragment;
 import lt.ffda.sourcherry.fragments.NodeEditorFragment;
 import lt.ffda.sourcherry.fragments.MoveNodeFragment;
 import lt.ffda.sourcherry.fragments.NodePropertiesFragment;
+import lt.ffda.sourcherry.fragments.SearchFragment;
 import lt.ffda.sourcherry.preferences.PreferencesActivity;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
@@ -532,12 +531,11 @@ public class MainView extends AppCompatActivity {
                 return true;
             } else if (itemID == R.id.options_menu_search) {
                 if (findInNodeToggle) {
-                    // Closes findInNode if it was opened when searchActivity was selected to be opened
-                    // Otherwise it will prevent to displayed node content selected from search
+                    // Closes findInNode if it was opened when SearchFragment was selected to be opened
+                    // Otherwise it won't let to display node content selected from search
                     this.closeFindInNode();
                 }
-                Intent openSearchActivity = new Intent(this, SearchActivity.class);
-                searchActivity.launch(openSearchActivity);
+                this.openSearch();
                 return true;
             } else if (itemID == R.id.options_menu_settings) {
                 Intent openSettingsActivity = new Intent(this, PreferencesActivity.class);
@@ -552,22 +550,6 @@ public class MainView extends AppCompatActivity {
             }
         }
     }
-
-    /**
-     * Launches search activity
-     */
-    private final ActivityResultLauncher<Intent> searchActivity = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-        new ActivityResultCallback<ActivityResult>() {
-            @Override
-            public void onActivityResult(ActivityResult result) {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Intent selectedNode = result.getData();
-                    MainView.this.currentNode = selectedNode.getStringArrayExtra("selectedNode");
-                    MainView.this.resetMenuToCurrentNode();
-                    MainView.this.loadNodeContent();
-                }
-            }
-        });
 
     @Override
     public void onSaveInstanceState(@Nullable Bundle outState) {
@@ -1001,11 +983,19 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
-     * Returns handler used to run task not on main (UI) thread
-     * @return handler to run task in the background
+     * Returns handler used to run task on main (UI) thread
+     * @return handler to run task on the main loop
      */
     public Handler getHandler() {
         return this.handler;
+    }
+
+    /**
+     * Returns ExecutorService to run tasks in the background
+     * @return executor to run tasks in the background
+     */
+    public ExecutorService getExecutor() {
+        return this.executor;
     }
 
     /**
@@ -1741,6 +1731,16 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
+     * Function used when closing Fragment
+     * sets toolbar title to currently opened node name
+     */
+    public void returnFromFragmentWithHomeButtonAndRestoreTitle() {
+        this.setToolbarTitle(this.currentNode[0]);
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
+        onBackPressed();
+    }
+
+    /**
      * Function to launch fragment with enlarged image
      * @param nodeUniqueID unique ID of the node that image is embedded into
      * @param imageOffset offset of the image in the node content
@@ -1774,6 +1774,34 @@ public class MainView extends AppCompatActivity {
                 .commit();
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
         actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+    }
+
+    /**
+     * Opens search in a different fragment
+     * Sets toolbar's title to "Search"
+     */
+    private void openSearch() {
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, SearchFragment.class, null, "search")
+                .addToBackStack("search")
+                .commit();
+        this.setToolbarTitle("Search");
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+    }
+
+    /**
+     * Opens node that was passed as an argument
+     * Used to open search results
+     * @param selectedNode String[] of the node that has to be oppend
+     */
+    public void openSearchResult(String[] selectedNode) {
+        this.currentNode = selectedNode;
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
+        onBackPressed();
+        this.resetMenuToCurrentNode();
+        this.loadNodeContent();
     }
 
     private void exportPdfSetup() {

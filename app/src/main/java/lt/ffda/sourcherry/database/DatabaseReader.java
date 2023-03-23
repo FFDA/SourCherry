@@ -326,4 +326,12 @@ public interface DatabaseReader {
      * @param nodeContent new node content
      */
     void saveNodeContent(String nodeUniqueID, String nodeContent);
+
+    /**
+     * Search for string in the database
+     * @param noSearch true - skip nodes marked excluded
+     * @param search string to search in database
+     * @return search search results - ArrayList of String[] {nodeName, nodeUniqueID, query, countOfResults, samplesOfResult, hasSubnodes, isParent, isSubnode}
+     */
+    ArrayList<String[]> search(Boolean noSearch, String search);
 }
