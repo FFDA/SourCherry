@@ -642,7 +642,14 @@ public class XMLReader implements DatabaseReader {
      */
     public SpannableStringBuilder makeFormattedCodeNode(Node node) {
         SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
-        formattedCodeNode.append(node.getTextContent());
+        NodeList nodeList = node.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node currentNode = nodeList.item(i);
+            if (currentNode.getNodeName().equals("rich_text")) {
+                formattedCodeNode.append(currentNode.getTextContent());
+                break;
+            }
+        }
 
         // Changes font
         TypefaceSpan tf = new TypefaceSpan("monospace");
