@@ -686,9 +686,12 @@ public class MainView extends AppCompatActivity {
         this.closeBookmarks();
     }
 
+    /**
+     * Moves navigation menu one node up
+     * If menu is already at the top it shows a message to the user
+     * @param view view that was clicked
+     */
     public void goNodeUp(View view) {
-        // Moves navigation menu one node up
-        // If menu is already at the top it shows a message to the user
         ArrayList<String[]> nodes = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0)[1]);
         if (nodes != null && nodes.size() != this.mainViewModel.getNodes().size()) {
             // If retrieved nodes are not null and array size do not match the one displayed
@@ -711,13 +714,15 @@ public class MainView extends AppCompatActivity {
         }
     }
 
+    /**
+     * Reloads drawer menu to show main menu
+     * if it is not displayed
+     * otherwise shows a message to the user
+     * that the top of the database tree was already reached
+     * @param view view that was clicked
+     */
     public void goHome(View view) {
-        // Reloads drawer menu to show main menu
-        // if it is not at the top yet
-        // otherwise shows a message to the user that the top was already reached
-
         ArrayList<String[]> tempMainNodes = this.reader.getMainNodes();
-
         // Compares node sizes, first and last node's uniqueIDs in both arrays
         if (tempMainNodes.size() == this.mainViewModel.getNodes().size() && tempMainNodes.get(0)[1].equals(this.mainViewModel.getNodes().get(0)[1]) && tempMainNodes.get(this.mainViewModel.getNodes().size() -1 )[1].equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 )[1])) {
             Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
@@ -728,13 +733,7 @@ public class MainView extends AppCompatActivity {
                 // Just in case user chose to come back from bookmarks to home and a node is selected
                 // it might me that selected node is in main menu
                 // this part checks for that and marks the node if it finds it
-                for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
-                    // Checks nodeUniqueID of current node against node in main menu
-                    if (this.mainViewModel.getNodes().get(i)[1].equals(this.currentNode[1])) {
-                        this.currentNodePosition = i;
-                        break;
-                    }
-                }
+                this.currentNodePosition = this.openedNodePositionInDrawerMenu();
             }
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyDataSetChanged();
@@ -830,6 +829,7 @@ public class MainView extends AppCompatActivity {
                     if (this.mainViewModel.getNodes().get(index)[1].equals(this.currentNode[1])) {
                         this.currentNodePosition = index;
                         this.adapter.markItemSelected(this.currentNodePosition);
+                        break;
                     }
                 }
             }
@@ -916,7 +916,7 @@ public class MainView extends AppCompatActivity {
 
             // Displaying bookmarks
             this.mainViewModel.setNodes(bookmarkedNodes);
-            this.currentNodePosition = -1;
+            this.currentNodePosition = this.openedNodePositionInDrawerMenu();
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyDataSetChanged();
             this.bookmarksToggle = true;
@@ -965,6 +965,21 @@ public class MainView extends AppCompatActivity {
         this.mainViewModel.resetTempNodes();
         this.tempCurrentNodePosition = -1;
         this.bookmarksToggle = false;
+    }
+
+    /**
+     * Checks if currently opened node is shown in drawer menu
+     * @return position of the node in current drawer menu. -1 if node was not found
+     */
+    private int openedNodePositionInDrawerMenu() {
+        int position = -1;
+        for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
+            if (this.currentNode[1].equals(this.mainViewModel.getNodes().get(i)[1])) {
+                position = i;
+                break;
+            }
+        }
+        return position;
     }
 
     /**
