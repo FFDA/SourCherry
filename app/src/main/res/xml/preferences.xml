@@ -39,6 +39,14 @@
         android:entries="@array/save_open_file_entries"
         android:entryValues="@array/save_open_file_entries"/>
 
+    <ListPreference
+        android:key="preferences_unsaved_changes"
+        android:title="@string/preferences_default_unsaved_changes_action_title"
+        app:useSimpleSummaryProvider="true"
+        android:defaultValue="ask"
+        android:entries="@array/unsaved_changes_entries"
+        android:entryValues="@array/unsaved_changes_entries_values"/>
+
     <SeekBarPreference
         android:key="preferences_text_size"
         android:title="@string/preferences_text_size_title"

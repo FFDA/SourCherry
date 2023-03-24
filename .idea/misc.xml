@@ -66,9 +66,14 @@
         <entry key="app/src/main/res/layout/activity_settings.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/activity_xmlview.xml" value="0.33" />
         <entry key="app/src/main/res/layout/add_new_node_fragment.xml" value="0.5" />
+        <entry key="app/src/main/res/layout/alert_dialog_unsaved_changes.xml" value="0.3515625" />
         <entry key="app/src/main/res/layout/app_bar_main.xml" value="0.18229166666666666" />
         <entry key="app/src/main/res/layout/babab.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/custom_edit_text.xml" value="0.35260416666666666" />
+        <entry key="app/src/main/res/layout/dialog_fragment_menu_item_action.xml" value="0.67" />
+        <entry key="app/src/main/res/layout/dialog_fragment_open_database_progress.xml" value="0.35260416666666666" />
+        <entry key="app/src/main/res/layout/dialog_fragment_save_open.xml" value="0.35260416666666666" />
+        <entry key="app/src/main/res/layout/dialog_fragment_unsaved_changes.xml" value="0.3515625" />
         <entry key="app/src/main/res/layout/dialog_mirror_database_progress.xml" value="0.35260416666666666" />
         <entry key="app/src/main/res/layout/dialog_open_database_progress.xml" value="0.3567708333333333" />
         <entry key="app/src/main/res/layout/dialog_open_database_progress_fragment.xml" value="0.35572916666666665" />

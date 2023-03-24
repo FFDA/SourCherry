@@ -9,28 +9,16 @@
   ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
   -->
 
-<resources>
-    <string-array name="dark_mode_entries">
-        <item>Light</item>
-        <item>Dark</item>
-        <item>System</item>
-    </string-array>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingStart="18dp">
 
-    <string-array name="save_open_file_entries">
-        <item>Ask</item>
-        <item>Save</item>
-        <item>Open</item>
-    </string-array>
-
-    <string-array name="unsaved_changes_entries">
-        <item>Ask</item>
-        <item>Exit without saving</item>
-        <item>Save and exit</item>
-    </string-array>
-
-    <string-array name="unsaved_changes_entries_values">
-        <item>ask</item>
-        <item>exit</item>
-        <item>save</item>
-    </string-array>
-</resources>
+    <CheckBox
+        android:id="@+id/alert_dialog_unsaved_changes_remember_choice_checkBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:checked="false"
+        android:text="@string/dialog_save_open_fragment_remember_choice_checkBox" />
+</LinearLayout>

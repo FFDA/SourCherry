@@ -11,10 +11,13 @@
 package lt.ffda.sourcherry.fragments;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.Editable;
 import android.text.SpannableStringBuilder;
+import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -23,6 +26,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -30,6 +34,7 @@ import android.widget.TextView;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
@@ -38,6 +43,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
@@ -47,8 +53,11 @@ public class NodeEditorFragment extends Fragment {
     private LinearLayout nodeEditorFragmentLinearLayout;
     private MainViewModel mainViewModel;
     private Handler handler;
+    private ExecutorService executor;
     private SharedPreferences sharedPreferences;
-    private boolean changed = false;
+    private boolean textChanged = false;
+    private boolean changesSaved = false;
+    private TextWatcher textWatcher;
 
     @Nullable
     @Override
@@ -58,6 +67,7 @@ public class NodeEditorFragment extends Fragment {
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
         this.handler = ((MainView) getActivity()).getHandler();
+        this.executor = ((MainView) getActivity()).getExecutor() ;
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         return view;
     }
@@ -65,6 +75,24 @@ public class NodeEditorFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        this.textWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                NodeEditorFragment.this.textChanged = true;
+                NodeEditorFragment.this.removeTextChangedListeners();
+            }
+        };
+
         // Loading new menu for the fragment
         // that only have a save button in it
         MenuHost menuHost = requireActivity();
@@ -81,7 +109,6 @@ public class NodeEditorFragment extends Fragment {
                     getActivity().onBackPressed();
                     return true;
                 } else if (menuItem.getItemId() == R.id.toolbar_button_save_node) {
-                    changed = true;
                     NodeEditorFragment.this.saveNodeContent();
                 }
                 return false;
@@ -101,16 +128,43 @@ public class NodeEditorFragment extends Fragment {
     private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
         @Override
         public void handleOnBackPressed() {
-            View view = getActivity().getCurrentFocus();
-            if (view != null) {
-                InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            if (NodeEditorFragment.this.textChanged) {
+                String unsavedChangesDefaultPreference = NodeEditorFragment.this.sharedPreferences.getString("preferences_unsaved_changes", null);
+                if (unsavedChangesDefaultPreference == null || unsavedChangesDefaultPreference.equals("ask")) {
+                    NodeEditorFragment.this.createUnsavedChangesAlertDialog();
+                } else if (unsavedChangesDefaultPreference.equals("save")) {
+                    NodeEditorFragment.this.saveNodeContent();
+                    View view = getActivity().getCurrentFocus();
+                    if (view != null) {
+                        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                    }
+                    remove(); // Otherwise there will be onBackPressed infinite loop
+                    ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
+                } else {
+                    View view = getActivity().getCurrentFocus();
+                    if (view != null) {
+                        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                    }
+                    remove(); // Otherwise there will be onBackPressed infinite loop
+                    ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
+                }
+            } else {
+                View view = getActivity().getCurrentFocus();
+                if (view != null) {
+                    InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                }
+                remove(); // Otherwise there will be onBackPressed infinite loop
+                ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
             }
-            remove(); // Otherwise there will be onBackPressed infinite loop
-            ((MainView) getActivity()).returnFromFragmentWithHomeButton(changed);
         }
     };
 
+    /**
+     * Loads node content to UI
+     */
     public void loadContent() {
         // Clears layout just in case. Most of the time it is needed
         if (this.nodeEditorFragmentLinearLayout != null) {
@@ -122,7 +176,7 @@ public class NodeEditorFragment extends Fragment {
             });
         }
 
-        for (ArrayList<CharSequence[]> part: mainViewModel.getNodeContent()) {
+        for (ArrayList<CharSequence[]> part : mainViewModel.getNodeContent()) {
             CharSequence[] type = part.get(0);
             if (type[0].equals("text")) {
                 // This adds not only text, but images, codeboxes
@@ -130,7 +184,8 @@ public class NodeEditorFragment extends Fragment {
                 SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) textContent[0];
                 EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
                 editText.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
-                editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size" , 15));
+                editText.addTextChangedListener(textWatcher);
+                editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -206,14 +261,93 @@ public class NodeEditorFragment extends Fragment {
      * the database
      */
     private void saveNodeContent() {
-        this.handler.post(new Runnable() {
+        if (nodeEditorFragmentLinearLayout.getChildCount() == 1) {
+            this.changesSaved = true;
+            this.textChanged = false;
+            EditText editText = (EditText) nodeEditorFragmentLinearLayout.getChildAt(0);
+            ((MainView) getActivity()).getReader().saveNodeContent(getArguments().getString("nodeUniqueID"), editText.getText().toString());
+        }
+        this.addTextChangedListeners();
+    }
+
+    /**
+     * Adds textChangedListeners for all EditText views
+     * Does it in the background
+     */
+    private void addTextChangedListeners() {
+        this.executor.execute(new Runnable() {
             @Override
             public void run() {
-                if (nodeEditorFragmentLinearLayout.getChildCount() == 1) {
-                    EditText editText = (EditText) nodeEditorFragmentLinearLayout.getChildAt(0);
-                    ((MainView) getActivity()).getReader().saveNodeContent(getArguments().getString("nodeUniqueID"), editText.getText().toString());
+                for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
+                    View view = nodeEditorFragmentLinearLayout.getChildAt(i);
+                    if (view instanceof TextView) {
+                        ((EditText) view).addTextChangedListener(textWatcher);
+                    }
                 }
             }
         });
+    }
+
+    /**
+     * Removes all textChangedListeners from EditText views
+     * Does it in the background
+     */
+    private void removeTextChangedListeners() {
+        this.executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
+                    View view = nodeEditorFragmentLinearLayout.getChildAt(i);
+                    if (view instanceof TextView) {
+                        ((EditText) view).removeTextChangedListener(textWatcher);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Creates dialog to ask user if changes in the editor has to be saved
+     * User can check the checkbox to save the choice to the database
+     */
+    private void createUnsavedChangesAlertDialog() {
+        View checkboxView = View.inflate(getContext(), R.layout.alert_dialog_unsaved_changes, null);
+        CheckBox checkBox = checkboxView.findViewById(R.id.alert_dialog_unsaved_changes_remember_choice_checkBox);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setView(checkboxView);
+        builder.setTitle(R.string.alert_dialog_unsaved_changes_title);
+        builder.setMessage(R.string.alert_dialog_unsaved_changes_message);
+        builder.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                NodeEditorFragment.this.textChanged = false;
+                if (checkBox.isChecked()) {
+                    NodeEditorFragment.this.saveUnsavedChangesDialogChoice("exit");
+                }
+                NodeEditorFragment.this.getActivity().onBackPressed();
+            }
+        });
+        builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (checkBox.isChecked()) {
+                    NodeEditorFragment.this.saveUnsavedChangesDialogChoice("save");
+                }
+                NodeEditorFragment.this.saveNodeContent();
+                NodeEditorFragment.this.getActivity().onBackPressed();
+            }
+        });
+        builder.show();
+    }
+
+    /**
+     * Saves user choice to the preference key preferences_unsaved_changes
+     * @param choice user choice (ask, exit, save)
+     */
+    private void saveUnsavedChangesDialogChoice(String choice) {
+        SharedPreferences.Editor editor = this.sharedPreferences.edit();
+        editor.putString("preferences_unsaved_changes", choice);
+        editor.apply();
     }
 }

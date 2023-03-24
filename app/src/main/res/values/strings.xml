@@ -17,6 +17,8 @@
     <string name="dialog_save_open_fragment_remember_choice_checkBox">Remember choice</string>
     <string name="dialog_node_type_change_title">Node type change</string>
     <string name="dialog_node_type_change_message">Leaving the rich text node type will lose all the formatting for this node</string>
+    <string name="alert_dialog_unsaved_changes_title">Unsaved changes</string>
+    <string name="alert_dialog_unsaved_changes_message">Leaving editor without saving changes</string>
     <string name="button_save">Save</string>
     <string name="button_cancel">Cancel</string>
     <string name="button_move">Move</string>
@@ -91,6 +93,7 @@
     <string name="preferences_auto_open_summary">Automatically close drawer menu when selected node does not have subnodes</string>
     <string name="preferences_dark_mode_title">Dark mode</string>
     <string name="preferences_default_file_action_title">Default file action</string>
+    <string name="preferences_default_unsaved_changes_action_title">Default unsaved changes action</string>
     <string name="preferences_text_size_title">Text size</string>
     <string name="preferences_category_padding_title">Padding</string>
     <string name="preferences_category_padding_summary">Padding for node content in DP</string>
