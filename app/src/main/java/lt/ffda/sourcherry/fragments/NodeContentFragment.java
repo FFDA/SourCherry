@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
 import android.text.style.BackgroundColorSpan;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -41,7 +42,6 @@ import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
 
-import lt.ffda.sourcherry.CustomMovementMethod;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
@@ -109,7 +109,7 @@ public class NodeContentFragment extends Fragment {
                 SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) textContent[0];
                 TextView tv = new TextView(getActivity());
                 tv.setTextIsSelectable(true);
-                tv.setMovementMethod(CustomMovementMethod.getInstance()); // Needed to detect click/open links
+                tv.setMovementMethod(LinkMovementMethod.getInstance()); // Needed to detect click/open links
                 tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
                 tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
                 handler.post(new Runnable() {
