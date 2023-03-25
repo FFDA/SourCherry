@@ -67,7 +67,7 @@ public class NodeEditorFragment extends Fragment {
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
         this.handler = ((MainView) getActivity()).getHandler();
-        this.executor = ((MainView) getActivity()).getExecutor() ;
+        this.executor = ((MainView) getActivity()).getExecutor();
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         return view;
     }
@@ -115,7 +115,13 @@ public class NodeEditorFragment extends Fragment {
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
         requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
-        loadContent();
+        this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
+        this.executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                NodeEditorFragment.this.loadContent();
+            }
+        });
     }
 
     @Override
