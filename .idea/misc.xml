@@ -70,7 +70,9 @@
         <entry key="app/src/main/res/layout/app_bar_main.xml" value="0.18229166666666666" />
         <entry key="app/src/main/res/layout/babab.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/custom_edit_text.xml" value="0.35260416666666666" />
+        <entry key="app/src/main/res/layout/dialog_fragment_export_database.xml" value="0.33" />
         <entry key="app/src/main/res/layout/dialog_fragment_menu_item_action.xml" value="0.67" />
+        <entry key="app/src/main/res/layout/dialog_fragment_mirror_database_progress.xml" value="0.35260416666666666" />
         <entry key="app/src/main/res/layout/dialog_fragment_open_database_progress.xml" value="0.35260416666666666" />
         <entry key="app/src/main/res/layout/dialog_fragment_save_open.xml" value="0.35260416666666666" />
         <entry key="app/src/main/res/layout/dialog_fragment_unsaved_changes.xml" value="0.3515625" />

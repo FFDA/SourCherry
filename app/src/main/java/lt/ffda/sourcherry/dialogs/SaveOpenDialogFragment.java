@@ -136,7 +136,6 @@ public class SaveOpenDialogFragment extends DialogFragment {
     }
 
     private void openFile() {
-
         try {
             String[] splitFilename = filename.split("\\.");
             // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
@@ -166,7 +165,6 @@ public class SaveOpenDialogFragment extends DialogFragment {
     ActivityResultLauncher<Intent> saveFile = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         // Saves attached file to the user selected file
         if (result.getResultCode() == Activity.RESULT_OK) {
-
             try {
                 OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file
                 outputStream.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));

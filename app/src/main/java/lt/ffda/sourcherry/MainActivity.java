@@ -644,7 +644,7 @@ public class MainActivity extends AppCompatActivity {
         }
         cursor.close();
 
-        // If found Mirror Database File last modified time is bigger than saved from previous database update
+        // If found Mirror Database File's last modified time is bigger than saved from previous database update
         if (mirrorDatabaseDacumentFileLastModified > this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
             if (mirrorDatabaseFileExtension.equals("ctz") || mirrorDatabaseFileExtension.equals("ctx") || mirrorDatabaseFileExtension.equals("ctb")) {
                 Bundle bundle = new Bundle();

@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
@@ -33,9 +34,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.graphics.Canvas;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
@@ -43,6 +46,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.DocumentsContract;
 import android.text.Editable;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
@@ -87,6 +91,7 @@ import java.util.stream.Collectors;
 
 import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
+import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
 import lt.ffda.sourcherry.dialogs.MenuItemActionDialogFragment;
 import lt.ffda.sourcherry.dialogs.SaveOpenDialogFragment;
 import lt.ffda.sourcherry.fragments.CreateNodeFragment;
@@ -522,6 +527,9 @@ public class MainView extends AppCompatActivity {
                 return true;
             } else if (itemID == R.id.options_menu_export_to_pdf) {
                 this.exportPdfSetup();
+                return true;
+            } else if (itemID == R.id.options_menu_export_database) {
+                this.exportDatabaseSetup();
                 return true;
             } else if (itemID == R.id.options_menu_find_in_node) {
                 if (!findInNodeToggle) {
@@ -1939,4 +1947,96 @@ public class MainView extends AppCompatActivity {
             }
         }
     });
+
+    /**
+     * Sets up database for export
+     * User can be prompted to choose file location
+     * Or confirm to overwrite the newer
+     * Mirror database file
+     */
+    public void exportDatabaseSetup() {
+        // XML without password already saved in external file
+        if (this.sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
+            Toast.makeText(this, R.string.toast_message_not_password_protected_xml_saves_changes_externally, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
+            // Variables that will be put into bundle for MirrorDatabaseProgressDialogFragment
+            Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
+            long mirrorDatabaseDacumentFileLastModified = 0;
+
+            // Reading through files inside Mirror Database Folder
+            Uri mirrorDatabaseFolderUri = Uri.parse(this.sharedPreferences.getString("mirrorDatabaseFolderUri", null));
+            Uri mirrorDatabaseFolderChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mirrorDatabaseFolderUri, DocumentsContract.getTreeDocumentId(mirrorDatabaseFolderUri));
+
+            Cursor cursor = this.getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
+            while (cursor != null && cursor.moveToNext()) {
+                if (cursor.getString(1).equals(this.sharedPreferences.getString("mirrorDatabaseFilename", null))) {
+                    // if file with the Mirror Database File filename was wound inside Mirror Database Folder
+                    mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
+                    mirrorDatabaseDacumentFileLastModified = cursor.getLong(2);
+                    break;
+                }
+            }
+            cursor.close();
+
+            // If found Mirror Database File is older or the same as the last time it was synchronized
+            // copying is done immediately
+            if (mirrorDatabaseDacumentFileLastModified <= this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
+                    Bundle bundle = new Bundle();
+                    bundle.putString("exportFileUri", mirrorDatabaseFileUri.toString());
+                    ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+                    exportDatabaseDialogFragment.setArguments(bundle);
+                    exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+            } else {
+                // If found Mirror Database File is newer that the last time it was synchronized
+                // User is prompted to choose to cancel or continue
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle(R.string.alert_dialog_warning_newer_mirror_database_will_be_overwritten_title);
+                builder.setMessage(R.string.alert_dialog_warning_newer_mirror_database_will_be_overwritten_message);
+                builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+                Uri finalMirrorDatabaseFileUri = mirrorDatabaseFileUri;
+                long finalMirrorDatabaseDocumentFileLastModified = mirrorDatabaseDacumentFileLastModified;
+                builder.setPositiveButton(R.string.button_overwrite, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Saving new last modified date to preferences
+                        SharedPreferences.Editor sharedPreferencesEditor = MainView.this.sharedPreferences.edit();
+                        sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", finalMirrorDatabaseDocumentFileLastModified);
+                        sharedPreferencesEditor.apply();
+                        // Launching coping dialog
+                        Bundle bundle = new Bundle();
+                        bundle.putString("exportFileUri", finalMirrorDatabaseFileUri.toString());
+                        ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+                        exportDatabaseDialogFragment.setArguments(bundle);
+                        exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+                    }
+                });
+                builder.show();
+            }
+        } else {
+            this.exportDatabaseToFile.launch(this.sharedPreferences.getString("databaseFilename", null));
+        }
+    }
+
+    /**
+     * Launches file chooser to select location
+     * where to export database
+     */
+    ActivityResultLauncher<String> exportDatabaseToFile = registerForActivityResult(new ActivityResultContracts.CreateDocument("*/*"), result -> {
+        if (result != null) {
+            Bundle bundle = new Bundle();
+            bundle.putString("exportFileUri", result.toString());
+            ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+            exportDatabaseDialogFragment.setArguments(bundle);
+            exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+        }
+    });
+
 }

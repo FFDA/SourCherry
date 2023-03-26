@@ -21,6 +21,9 @@
             android:id="@+id/options_menu_export_to_pdf"
             android:title="@string/options_menu_item_export_to_pdf"/>
         <item
+            android:id="@+id/options_menu_export_database"
+            android:title="@string/options_menu_item_export_database"/>
+        <item
             android:id="@+id/options_menu_find_in_node"
             android:title="@string/options_menu_item_find_in_node"/>
         <item
