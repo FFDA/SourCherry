@@ -1,6 +1,6 @@
 # SourCherry
 
-SourCherry is an Android app to open CherryTree’s (note taking program [1](https://github.com/giuspen/cherrytree),[2](https://www.giuspen.com/)) databases. Right now app can only read databases and do not have any writing capabilities.
+SourCherry is an Android app to open CherryTree’s (note taking program [1](https://github.com/giuspen/cherrytree),[2](https://www.giuspen.com/)) databases. Right now app can read databases and do basic editing tasks.
 
 ![gif with SourCherry UI](https://github.com/FFDA/ffda.github.storage/raw/main/images/SourCherry.gif)
 
@@ -17,12 +17,11 @@ Anyone can compile this app by cloning this repository or download an apk compil
 ## Limitations
 
 * Use of SQL type database is ***strongly*** recommended. Users using large XML type database might experience OOM crashes that can't be mitigated.
-* Right now it can only open databases in read only mode.
+* Right now it can read databases and do basic editing of it. Most importantly it can't edit "Rich Text" nodes.
 * There is a possibility that not all text will be displayed.
 * Some text most definitely will be missing some formatting and it will look differently compared to how it looks in CherryTree.
 * Not all latex boxes might be displayed. From example latex code in CherryTree only code between ***\begin{align\*}*** and ***\end{align\*}*** tags is used (and only it should be modified). Rest of the code should not be edited in any way.
 * In some instances image will not be displayed and opening/saving attached might cause a crash. It depends on Android version and phone. Default size for Android SQL window size is 2mb. For Android9+ (>=API 28) I increased it to 15mb and it can be adjusted in settings up to 500mb. XML databases do not have any way to adjust files that can opened/saved, but it has bigger limit. In my experience it is 11mb.
-* Android 7 (API 24 & 25) do not support password protected databases;
 
 ## Password protected databases
 
@@ -39,8 +38,7 @@ For the same reason (SAF) that prevents file extraction without saving files ins
 
 ## Software used
 
-* XZ for Java - https://tukaani.org/xz/java.html
-* Apache Commons Compress - https://commons.apache.org/proper/commons-compress/
+* 7-Zip-JBinding-4Android - https://github.com/omicronapps/7-Zip-JBinding-4Android
 * JLatexMath Android - https://github.com/noties/jlatexmath-android
 
 ## Privacy policy

@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        deleteTempFiles();
+        this.deleteTempFiles();
         if (isChangingConfigurations()) {
             SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
             sharedPreferencesEditor.putBoolean("isChangingConfigurations", true);
@@ -190,12 +190,12 @@ public class MainActivity extends AppCompatActivity {
         if (result != null) {
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
             String databaseFileExtension = databaseDocumentFile.getName().split("\\.")[1];
-            if ((databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) && Build.VERSION.SDK_INT <= Build.VERSION_CODES.O_MR1) {
-                // Only works for >=API 26 (Android 8+)
-                // Lower versions of Android do not have required functions for org.apache.commons.compress to work
-                Toast.makeText(this, R.string.toast_error_android_7_cannot_open_password_protected, Toast.LENGTH_SHORT).show();
-                return;
-            }
+//            if ((databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) && Build.VERSION.SDK_INT <= Build.VERSION_CODES.O_MR1) {
+//                // Only works for >=API 26 (Android 8+)
+//                // Lower versions of Android do not have required functions for org.apache.commons.compress to work
+//                Toast.makeText(this, R.string.toast_error_android_7_cannot_open_password_protected, Toast.LENGTH_SHORT).show();
+//                return;
+//            }
             // Saving filename and path to the file in the preferences
             this.saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, result.toString());
             //

@@ -38,8 +38,13 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.preference.PreferenceManager;
 
-import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
-import org.apache.commons.compress.archivers.sevenz.SevenZFile;
+import net.sf.sevenzipjbinding.ArchiveFormat;
+import net.sf.sevenzipjbinding.IInArchive;
+import net.sf.sevenzipjbinding.ISequentialOutStream;
+import net.sf.sevenzipjbinding.PropID;
+import net.sf.sevenzipjbinding.SevenZip;
+import net.sf.sevenzipjbinding.SevenZipException;
+import net.sf.sevenzipjbinding.impl.RandomAccessFileInStream;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -47,6 +52,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -63,6 +69,8 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
     private Button buttonCancel;
     private ExecutorService executor;
     private Handler handler;
+    private long totalLen; // Used to calculate percentage for progressBar
+    private long fileSize; // File size of the file (not the archive itself) that is being extracted
 
     @NonNull
     @Override
@@ -183,12 +191,12 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
         // Set directory where database will be saved depending on user's choice in options menu
         String databaseOutputFile = this.sharedPreferences.getString("databaseUri", null);
         Uri databaseUri = Uri.parse(getArguments().getString("mirrorDatabaseUri"));
-        long totalLen = 0;
+        this.totalLen = 0;
 
         try {
             InputStream databaseInputStream = getContext().getContentResolver().openInputStream(databaseUri);
             OutputStream databaseOutputStream = new FileOutputStream(databaseOutputFile, false);
-            long fileSize = databaseInputStream.available();
+            this.fileSize = databaseInputStream.available();
             handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -201,14 +209,7 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             int len;
             while ((len = databaseInputStream.read(buf)) > 0) {
                 databaseOutputStream.write(buf, 0, len);
-                totalLen += len;
-                int percent = (int) (totalLen * 100 / fileSize);
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
-                    }
-                });
+                MirrorDatabaseProgressDialogFragment.this.updateProgressBar(len);
             }
 
             databaseInputStream.close();
@@ -244,8 +245,8 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
     private void extractDatabase(String password) {
         String databaseString = getArguments().getString("mirrorDatabaseUri");
 
-        String tmpDatabaseFilename = "";
-        long totalLen = 0; // Used to calculate percentage
+        String tmpDatabaseFilename;
+        this.totalLen = 0;
 
         try {
             //// Copying file to temporary internal apps storage (cache)
@@ -266,19 +267,12 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                 }
             });
             // Copying files
-            long fileSize = is.available();
+            this.fileSize = is.available();
             byte[] buf = new byte[4 * 1024];
             int len;
             while ((len = is.read(buf)) > 0) {
                 os.write(buf, 0, len);
-                totalLen += len;
-                int percent = (int) (totalLen * 100 / fileSize);
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
-                    }
-                });
+                MirrorDatabaseProgressDialogFragment.this.updateProgressBar(len);
             }
             ////
             is.close();
@@ -293,61 +287,42 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                 }
             });
 
-            SevenZFile sevenZFile = new SevenZFile(tmpCompressedDatabase, password.toCharArray());
-            // Entry is a file inside the archive
-            // In CherryTree database file there always should be one
-            SevenZArchiveEntry entry = sevenZFile.getNextEntry();
+            // Opening archive
+            RandomAccessFile randomAccessFile = new RandomAccessFile(tmpCompressedDatabase, "r");
+            RandomAccessFileInStream inStream = new RandomAccessFileInStream(randomAccessFile);
+            IInArchive inArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, inStream);
 
-            while (entry != null) {
-                tmpDatabaseFilename = entry.getName(); // Getting the (current) name of the file inside the archive
-                // At some point filenames inside CherryTree password protected archives were changed to include a random(?) integer
-                // in the middle of the filename. To make it look normal again I had to remove it
-                String[] tmpDatabaseFilenameArray = tmpDatabaseFilename.split("\\."); // Splitting filename in to array at avery dot
-                tmpDatabaseFilename = tmpDatabaseFilenameArray[0] + "." + tmpDatabaseFilenameArray[tmpDatabaseFilenameArray.length -1]; // Joining first and last part of the filename array
-                totalLen = 0; // Resetting totalLen value
-                FileOutputStream out = new FileOutputStream(new File(this.sharedPreferences.getString("databaseUri", null)));
-                InputStream in = sevenZFile.getInputStream(entry);
-                fileSize = entry.getSize();
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
-                    totalLen += len;
-                    int percent = (int) (totalLen * 100 / fileSize);
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
-                        }
-                    });
-                }
-                out.close();
-                in.close();
-                entry = sevenZFile.getNextEntry();
-            }
+            this.totalLen = 0; // Resetting totalLen value
+            this.fileSize = Long.parseLong(inArchive.getStringProperty(0, PropID.SIZE));
 
+            // Writing data
+            SequentialOutStream sequentialOutStream = new SequentialOutStream();
+            sequentialOutStream.openOutputStream(new File(this.sharedPreferences.getString("databaseUri", null)));
+            inArchive.extractSlow(0, sequentialOutStream, password); // Extracting file
+
+            // Cleaning up
+            sequentialOutStream.closeOutputStream();
+            inArchive.close();
+            inStream.close();
+
+            // Saving new LastModified datetime string to preferences
             this.saveDatabaseToPrefs(getArguments().getLong("mirrorDatabaseLastModified"));
-
-            //// Cleaning up
-//                tmpCompressedDatabase.delete(); // Using deleteTempFile onDestroy in MainActivity
-            sevenZFile.close();
-            ////
         } catch (FileNotFoundException e) {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(getContext(), "Error FileNotFoundException (1a): " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), R.string.toast_error_database_does_not_exists, Toast.LENGTH_SHORT).show();
                 }
             });
-            e.printStackTrace();
-            dismiss();
+            this.dismiss();
         } catch (IOException e) {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(getContext(), "Error IOException (1b): " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), R.string.toast_error_failed_to_extract_database, Toast.LENGTH_SHORT).show();
                 }
             });
-            e.printStackTrace();
-            dismiss();
+            this.dismiss();
         }
     }
 
@@ -380,5 +355,67 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                 MirrorDatabaseProgressDialogFragment.this.getDialog().cancel();
             }
         });
+    }
+
+    /**
+     * Calculates new value for the progress bar and updates progress bar to show it
+     * @param len amount of data that was consumed
+     */
+    private void updateProgressBar(int len) {
+        this.totalLen += len;
+        int percent = (int) (this.totalLen * 100 / this.fileSize);
+        this.handler.post(new Runnable() {
+            @Override
+            public void run() {
+                MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+            }
+        });
+    }
+
+    /**
+     * Class to write archive to a file
+     */
+    private class SequentialOutStream implements ISequentialOutStream {
+        private FileOutputStream fileOutputStream;
+
+        /**
+         * Opens output file stream to write archived file into
+         * @param file file to open as output stream
+         */
+        public void openOutputStream(File file) {
+            try {
+                this.fileOutputStream = new FileOutputStream(file, false);
+            } catch (FileNotFoundException e) {
+                Toast.makeText(getContext(), R.string.toast_error_failed_to_open_extraction_output_stream, Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        /**
+         * Closes output stream
+         */
+        public void closeOutputStream() {
+            try {
+                this.fileOutputStream.close();
+            } catch (IOException e) {
+                Toast.makeText(getContext(), R.string.toast_error_failed_to_close_extraction_output_stream, Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        /**
+         * Writes data stream to a file
+         * @param data data to be written
+         * @return amount of data consumed (written)
+         * @throws SevenZipException exception while extracting
+         */
+        @Override
+        public int write(byte[] data) throws SevenZipException {
+            try {
+                this.fileOutputStream.write(data);
+                MirrorDatabaseProgressDialogFragment.this.updateProgressBar(data.length);
+            } catch (IOException e) {
+                Toast.makeText(getContext(), R.string.toast_error_failed_to_extract_database, Toast.LENGTH_SHORT).show();
+            }
+            return data.length;
+        }
     }
 }
