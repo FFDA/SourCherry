@@ -1777,7 +1777,9 @@ public class MainView extends AppCompatActivity {
      * sets toolbar title to currently opened node name
      */
     public void returnFromFragmentWithHomeButtonAndRestoreTitle() {
-        this.setToolbarTitle(this.currentNode[0]);
+        if (this.currentNode != null) {
+            this.setToolbarTitle(this.currentNode[0]);
+        }
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
         onBackPressed();
     }
