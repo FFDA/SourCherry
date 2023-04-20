@@ -535,7 +535,11 @@ public class MainView extends AppCompatActivity {
             } else if (itemID == R.id.options_menu_find_in_node) {
                 if (!findInNodeToggle) {
                     // Opens findInNode (sets the variables) only if it hasn't been opened yet
-                    this.openFindInNode();
+                    if (this.currentNode != null) {
+                        this.openFindInNode();
+                    } else {
+                        Toast.makeText(this, R.string.toast_error_please_select_node, Toast.LENGTH_SHORT).show();
+                    }
                 }
                 return true;
             } else if (itemID == R.id.options_menu_search) {
