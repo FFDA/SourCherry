@@ -4,6 +4,8 @@
     <string name="button_select_database">Select database</string>
     <string name="button_open">Open</string>
     <string name="button_ok">OK</string>
+    <string name="button_select">Select</string>
+    <string name="button_leave">Leave</string>
     <string name="text_password_label">Password</string>
     <string name="text_message_no_database">Create or select a CherryTree database</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
@@ -49,11 +51,12 @@
     <string name="toast_error_could_not_open_a_file_to_copy_the_database">Could not open a file to copy the database</string>
     <string name="toast_error_could_not_copy_the_database">Could not copy the database</string>
     <string name="toast_error_does_not_look_like_a_cherrytree_database">Does not look like a CherryTree database</string>
-    <string name="toast_error_xml_databases_are_not_supported">XML databases are not supported</string>
+    <string name="toast_error_xml_databases_are_not_supported">XML databases without password are not supported</string>
     <string name="toast_message_please_enter_password">Please enter the password</string>
     <string name="toast_message_please_open_a_node">Please open a node</string>
     <string name="toast_message_rich_text_node_editing_not_supported">Rich text node editing is not supported</string>
     <string name="toast_message_not_password_protected_xml_saves_changes_externally">Not password protected XML databases are already saved externally</string>
+    <string name="toast_message_incompatible_database_types">Incompatible database types.</string>
     <string name="open_database_fragment_copying_database_message">Copying database to app-specific storage</string>
     <string name="open_database_fragment_extracting_database_message">Extracting database</string>
     <string name="toast_error_failed_to_save_file">Failed to save the file</string>
@@ -116,6 +119,7 @@
     <string name="preferences_screen_mirror_database_title">Mirror database</string>
     <string name="preferences_screen_mirror_database_screen_summary">Copy database from external storage at launch</string>
     <string name="preferences_screen_mirror_database_message_summary">Checks selected file at launch for changes. If any changes are detected new file will be copied to app\'s internal storage and old database overwritten</string>
+    <string name="preferences_screen_mirror_database_message_summary_alternative_for_xml_database">XML databases opened in place can\'t have MirrorDatabase enabled.</string>
     <string name="preferences_screen_mirror_database_switch_summary">Turn databases mirroring on and off</string>
     <string name="preferences_screen_mirror_database_mirror_database_folder_title">Mirror database folder</string>
     <string name="preferences_screen_mirror_database_mirror_database_folder_summary">No mirror database folder selected</string>
@@ -152,4 +156,5 @@
     <string name="dialog_fragment_export_database_message_compressing_database">Compressing database</string>
     <string name="alert_dialog_warning_newer_mirror_database_will_be_overwritten_title">Overwrite</string>
     <string name="alert_dialog_warning_newer_mirror_database_will_be_overwritten_message">Mirror database was updated after the last synchronization</string>
+    <string name="alert_dialog_warning_no_mirror_database_selected_message">Select mirror database file. Otherwise Mirror Database will be disabled when leaving.</string>
 </resources>

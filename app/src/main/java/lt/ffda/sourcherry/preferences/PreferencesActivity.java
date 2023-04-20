@@ -25,6 +25,7 @@ import lt.ffda.sourcherry.R;
 
 public class PreferencesActivity extends AppCompatActivity implements
         PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
+    private ActionBar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,9 +40,9 @@ public class PreferencesActivity extends AppCompatActivity implements
         // Displays toolbar
         Toolbar imageViewActivityToolbar = findViewById(R.id.preferences_activity_toolbar);
         setSupportActionBar(imageViewActivityToolbar);
-        ActionBar toolbar = getSupportActionBar();
+        this.toolbar = getSupportActionBar();
         toolbar.setDisplayHomeAsUpEnabled(true); // Enables home (arrow back button)
-        toolbar.setTitle(R.string.options_menu_item_settings);
+        this.changeTitle(getString(R.string.options_menu_item_settings));
     }
 
     @Override
@@ -51,8 +52,6 @@ public class PreferencesActivity extends AppCompatActivity implements
         if (id == android.R.id.home) {
             if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
                 this.finish();
-            } else {
-                getSupportFragmentManager().popBackStack();
             }
         }
         return super.onOptionsItemSelected(item);
@@ -72,5 +71,13 @@ public class PreferencesActivity extends AppCompatActivity implements
                 .addToBackStack(null)
                 .commit();
         return true;
+    }
+
+    /**
+     * Changes title
+     * @param title title of the activity
+     */
+    public void changeTitle(String title) {
+        toolbar.setTitle(title);
     }
 }

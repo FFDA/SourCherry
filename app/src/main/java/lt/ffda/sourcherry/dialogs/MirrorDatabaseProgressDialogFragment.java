@@ -386,7 +386,12 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             try {
                 this.fileOutputStream = new FileOutputStream(file, false);
             } catch (FileNotFoundException e) {
-                Toast.makeText(getContext(), R.string.toast_error_failed_to_open_extraction_output_stream, Toast.LENGTH_SHORT).show();
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getContext(), R.string.toast_error_failed_to_open_extraction_output_stream, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         }
 
@@ -396,8 +401,13 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
         public void closeOutputStream() {
             try {
                 this.fileOutputStream.close();
-            } catch (IOException e) {
-                Toast.makeText(getContext(), R.string.toast_error_failed_to_close_extraction_output_stream, Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getContext(), R.string.toast_error_failed_to_close_extraction_output_stream, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         }
 
@@ -412,8 +422,13 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             try {
                 this.fileOutputStream.write(data);
                 MirrorDatabaseProgressDialogFragment.this.updateProgressBar(data.length);
-            } catch (IOException e) {
-                Toast.makeText(getContext(), R.string.toast_error_failed_to_extract_database, Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getContext(), R.string.toast_error_failed_to_extract_database, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
             return data.length;
         }
