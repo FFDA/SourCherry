@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -1962,6 +1963,7 @@ public class MainView extends AppCompatActivity {
         }
 
         if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
+            // If user uses MirrorDatabase
             // Variables that will be put into bundle for MirrorDatabaseProgressDialogFragment
             Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
             long mirrorDatabaseDacumentFileLastModified = 0;
@@ -2010,7 +2012,7 @@ public class MainView extends AppCompatActivity {
                         SharedPreferences.Editor sharedPreferencesEditor = MainView.this.sharedPreferences.edit();
                         sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", finalMirrorDatabaseDocumentFileLastModified);
                         sharedPreferencesEditor.apply();
-                        // Launching coping dialog
+                        // Launching copying dialog
                         Bundle bundle = new Bundle();
                         bundle.putString("exportFileUri", finalMirrorDatabaseFileUri.toString());
                         ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
@@ -2021,13 +2023,15 @@ public class MainView extends AppCompatActivity {
                 builder.show();
             }
         } else {
+            // If MirrorDatabase isn't turned on
             this.exportDatabaseToFile.launch(this.sharedPreferences.getString("databaseFilename", null));
         }
     }
 
     /**
      * Launches file chooser to select location
-     * where to export database
+     * where to export database. If user chooses a file - launches a
+     * export dialog fragment
      */
     ActivityResultLauncher<String> exportDatabaseToFile = registerForActivityResult(new ActivityResultContracts.CreateDocument("*/*"), result -> {
         if (result != null) {

@@ -145,7 +145,7 @@ public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat 
      */
     ActivityResultLauncher<Uri> getMirrorDatabaseFolder = registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), result -> {
         if (result != null) {
-            getActivity().getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            getActivity().getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             //// Saving selected file to preferences
             SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
             sharedPreferencesEditor.putString("mirrorDatabaseFolderUri", result.toString());

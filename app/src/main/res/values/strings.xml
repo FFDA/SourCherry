@@ -72,7 +72,10 @@
     <string name="toast_error_failed_to_create_entry_into_children_table">Failed to create entry into children table</string>
     <string name="toast_error_failed_to_export_database">Failed to export database</string>
     <string name="toast_error_failed_to_extract_database">Failed to extract database</string>
+    <string name="toast_error_failed_to_compress_database">Failed to compress database</string>
     <string name="toast_error_failed_to_open_extraction_output_stream">Failed to open extraction output stream</string>
+    <string name="toast_error_failed_to_close_compression_input_stream">Failed to close compression input stream</string>
+    <string name="toast_error_failed_to_open_input_or_output_stream">Failed to open input or output stream</string>
     <string name="toast_error_failed_to_close_extraction_output_stream">Failed to close extraction output stream</string>
     <string name="toast_error_passwords_do_not_match">Passwords do not match</string>
     <string name="toast_error_please_select_node">Please select a node</string>
@@ -146,6 +149,7 @@
     <string name="dialog_fragment_export_database_checkbox_password_protect">Protect with password</string>
     <string name="dialog_fragment_export_database_repeat_password">Repeat password</string>
     <string name="dialog_fragment_export_database_message_exporting_database">Exporting database</string>
+    <string name="dialog_fragment_export_database_message_compressing_database">Compressing database</string>
     <string name="alert_dialog_warning_newer_mirror_database_will_be_overwritten_title">Overwrite</string>
     <string name="alert_dialog_warning_newer_mirror_database_will_be_overwritten_message">Mirror database was updated after the last synchronization</string>
 </resources>
