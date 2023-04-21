@@ -30,6 +30,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.DocumentsContract;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -411,7 +412,7 @@ public class MainActivity extends AppCompatActivity {
                     // Shows keyboard on API 30 (Android 11) reliably
                     WindowCompat.getInsetsController(getWindow(), editTextTextPassword).show(WindowInsetsCompat.Type.ime());
                 } else {
-                    new Handler().postDelayed(new Runnable() {
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                         // Delays to show soft keyboard by few milliseconds
                         // Otherwise keyboard does not show up
                         // It's a bit hacky (should be fixed)

@@ -189,9 +189,15 @@ public class MainView extends AppCompatActivity {
 
         // Register with fragmentManager to get result from menuItemActionDialogFragment
         getSupportFragmentManager().setFragmentResultListener("menuItemAction", this, new FragmentResultListener() {
+            @SuppressWarnings("deprecation")
             @Override
             public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
-                MenuItemAction menuItemAction = (MenuItemAction) result.getSerializable("menuItemActionCode");
+                MenuItemAction menuItemAction;
+                if (Build.VERSION.SDK_INT >= 33) {
+                    menuItemAction = result.getSerializable("menuItemActionCode", MenuItemAction.class);
+                } else {
+                    menuItemAction = (MenuItemAction) result.getSerializable("menuItemActionCode");
+                }
                 String[] node = result.getStringArray("node");
                 switch (menuItemAction) {
                     case ADD_SIBLING_NODE:
@@ -643,7 +649,7 @@ public class MainView extends AppCompatActivity {
             Toast.makeText(MainView.this, R.string.toast_confirm_mainview_exit, Toast.LENGTH_SHORT).show();
 
 
-            new Handler().postDelayed(new Runnable() {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                 // Reverts boolean that marks if user pressed back button once after 2 seconds
                 @Override
                 public void run() {
@@ -1059,7 +1065,7 @@ public class MainView extends AppCompatActivity {
             // Shows keyboard on API 30 (Android 11) reliably
             WindowCompat.getInsetsController(getWindow(), findInNodeEditText).hide(WindowInsetsCompat.Type.ime());
         } else {
-            new Handler().postDelayed(new Runnable() {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                 // Delays to show soft keyboard by few milliseconds
                 // Otherwise keyboard does not show up
                 // It's a bit hacky (should be fixed)
@@ -1097,7 +1103,7 @@ public class MainView extends AppCompatActivity {
             // Shows keyboard on API 30 (Android 11) reliably
             WindowCompat.getInsetsController(getWindow(), findInNodeEditText).show(WindowInsetsCompat.Type.ime());
         } else {
-            new Handler().postDelayed(new Runnable() {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                 // Delays to show soft keyboard by few milliseconds
                 // Otherwise keyboard does not show up
                 // It's a bit hacky (should be fixed)

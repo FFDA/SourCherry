@@ -126,7 +126,7 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                 // Shows keyboard on API 30 (Android 11) reliably
                 WindowCompat.getInsetsController(getDialog().getWindow(), this.passwordTextedit).show(WindowInsetsCompat.Type.ime());
             } else {
-                new Handler().postDelayed(new Runnable() {
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                     // Delays to show soft keyboard by few milliseconds
                     // Otherwise keyboard does not show up
                     // It's a bit hacky (should be fixed)
