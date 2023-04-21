@@ -32,11 +32,20 @@
         android:textColor="?android:attr/textColorPrimary"/>
 
     <ImageButton
-        android:id="@+id/imported_databases_item_image"
+        android:id="@+id/imported_databases_item_export_button"
+        android:layout_width="25dp"
+        android:layout_height="30dp"
+        android:padding="1dp"
+        android:src="@drawable/ic_baseline_export_24"
+        android:contentDescription="@string/imported_databases_item_export_button_description"
+        style="?android:attr/borderlessButtonStyle" />
+
+    <ImageButton
+        android:id="@+id/imported_databases_item_delete_button"
         android:layout_width="30dp"
         android:layout_height="30dp"
         android:padding="1dp"
         android:src="@drawable/ic_outline_delete_forever_24"
-        android:contentDescription="@string/imported_databases_item_image_content_description"
+        android:contentDescription="@string/imported_databases_item_delete_button_description"
         style="?android:attr/borderlessButtonStyle" />
 </LinearLayout>

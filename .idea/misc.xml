@@ -29,6 +29,8 @@
         <entry key="app/src/main/res/drawable/ic_baseline_arrow_up_24.xml" value="0.2535" />
         <entry key="app/src/main/res/drawable/ic_baseline_bookmarks_on_24.xml" value="0.2535" />
         <entry key="app/src/main/res/drawable/ic_baseline_edit_24.xml" value="0.126" />
+        <entry key="app/src/main/res/drawable/ic_baseline_export_24.xml" value="0.229" />
+        <entry key="app/src/main/res/drawable/ic_baseline_export_database_24.xml" value="0.229" />
         <entry key="app/src/main/res/drawable/ic_baseline_keyboard_arrow_is_parent_24.xml" value="0.3165" />
         <entry key="app/src/main/res/drawable/ic_baseline_menu_item_action2_24.xml" value="0.2425" />
         <entry key="app/src/main/res/drawable/ic_baseline_menu_item_action_24.xml" value="0.2425" />
@@ -86,6 +88,7 @@
         <entry key="app/src/main/res/layout/header_navigation_drawer.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/header_navitation_drawer.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/imported_databases_item.xml" value="0.33" />
+        <entry key="app/src/main/res/layout/item_imported_databases.xml" value="0.75" />
         <entry key="app/src/main/res/layout/main_view_toolbar.xml" value="0.3515625" />
         <entry key="app/src/main/res/layout/menu_item.xml" value="0.3572916666666667" />
         <entry key="app/src/main/res/layout/menu_item_action_dialog_fragment.xml" value="0.35260416666666666" />

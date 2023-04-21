@@ -133,7 +133,8 @@
     <string name="navigation_drawer_button_home_content_description">Button HOME. Displayed in normal navigation and bookmark modes. When pressed - loads home menu (top of the tree).</string>
     <string name="navigation_drawer_button_create_node_content_description">Button ADD NODE. Displayed in normal mode. When pressed - opens create new node fragment.</string>
     <string name="navigation_drawer_button_bookmarks_content_description">Button BOOKMARKS. Displayed in normal and bookmark modes. When pressed - switch menu between normal and bookmark menus.</string>
-    <string name="imported_databases_item_image_content_description">Button DELETE DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to confirm deletion.</string>
+    <string name="imported_databases_item_export_button_description">Button EXPORT DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to choose to encrypt with password and confirm of export operation.</string>
+    <string name="imported_databases_item_delete_button_description">Button DELETE DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to confirm deletion.</string>
     <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
     <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>
     <string name="menu_item_action_content_description">Drawer menu item preferences. Displays settings icon. When clicked opens contextual menu.</string>

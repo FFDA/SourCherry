@@ -14,6 +14,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.DocumentsContract;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -53,6 +54,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
@@ -80,9 +82,14 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        this.executor = ((MainView) getActivity()).getExecutor();
+        try {
+            this.executor = ((MainView) getActivity()).getExecutor();
+            this.handler = ((MainView) getActivity()).getHandler();
+        } catch (RuntimeException e) {
+            this.executor = Executors.newSingleThreadExecutor();
+            this.handler = new Handler(Looper.getMainLooper());
+        }
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-        this.handler = ((MainView) getActivity()).getHandler();
         this.progressBar = view.findViewById(R.id.dialog_fragment_export_database_progress_bar);
         this.passwordCheckBox = view.findViewById(R.id.dialog_fragment_export_database_checkbox_password_protect);
         this.password1 = view.findViewById(R.id.dialog_fragment_export_database_password1);

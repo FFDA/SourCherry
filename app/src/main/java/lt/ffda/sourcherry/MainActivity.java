@@ -49,6 +49,7 @@ import android.widget.Toast;
 
 import java.io.File;
 
+import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
 import lt.ffda.sourcherry.dialogs.MirrorDatabaseProgressDialogFragment;
 import lt.ffda.sourcherry.dialogs.OpenDatabaseProgressDialogFragment;
 
@@ -219,10 +220,6 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Lists all imported databases in IU
-     * Adds button to delete database and
-     * and listeners to clicks on database names
-     * click - makes database as selected
-     * long click - makes database as selected and opens it
      */
     private void listImportedDatabases() {
         // View into which all databases will be listed to
@@ -232,154 +229,128 @@ public class MainActivity extends AppCompatActivity {
         TextView importedDatabasesTitle = findViewById(R.id.imported_databases_title);
 
         File databaseDir = new File(getFilesDir(), "databases");
+        LayoutInflater layoutInflater = null;
 
         // If there are any databases in app-specific storage
         if (databaseDir.list().length > 0) {
             importedDatabasesTitle.setVisibility(View.VISIBLE);
-
-            LayoutInflater layoutInflater = this.getLayoutInflater();
-
+            layoutInflater = this.getLayoutInflater();
             for (String databaseFilename: databaseDir.list()) {
                 if (!databaseFilename.endsWith("-journal")) {
-                    // Inflates database list item view
-                    LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.item_imported_databases, null);
-
-                    Button databaseFilenameButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
-                    databaseFilenameButton.setText(getString(R.string.main_activity_imported_databases_item_internal, databaseFilename)); // Adds database filename do be displayed for the current database
-                    // If user taps on database filename
-                    databaseFilenameButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
-                            // Saves selected database's information to the settings
-                            MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
-                            MainActivity.this.resetMirrorDatabasePreferences();
-                            MainActivity.this.setMessageWithDatabaseName();
-                        }
-                    });
-                    // If user long presses database filename
-                    databaseFilenameButton.setOnLongClickListener(new View.OnLongClickListener() {
-                        @Override
-                        public boolean onLongClick(View v) {
-                            File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
-                            // Saves selected database's information to the settings
-                            MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
-                            MainActivity.this.resetMirrorDatabasePreferences();
-                            MainActivity.this.setMessageWithDatabaseName();
-                            // Opens database
-                            MainActivity.this.openDatabase();
-                            return true;
-                        }
-                    });
-
-                    //// Delete icon/button
-                    ImageButton removeDatabaseIcon = importedDatabaseItem.findViewById(R.id.imported_databases_item_image);
-                    removeDatabaseIcon.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            // If user taps on delete (trashcan image) icon
-                            // confirmation dialog window for deletion is displayed
-                            AlertDialog.Builder confirmDeletion = new AlertDialog.Builder(MainActivity.this)
-                                    .setTitle(databaseFilename)
-                                    .setMessage(R.string.main_activity_imported_databases_delete_dialog_message)
-                                    .setPositiveButton(R.string.button_delete, new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            File selectedDatabaseToDelete = new File(databaseDir, databaseFilename);
-                                            selectedDatabaseToDelete.delete(); // Deletes database file
-                                            checkIfDeleteDatabaseIsBeingUsed(databaseFilename);
-                                            listImportedDatabases(); // Launches this function to make a new list of imported databases
-                                        }
-                                    })
-                                    .setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            dialog.cancel();
-                                        }
-                                    });
-                            confirmDeletion.show();
-                        }
-                    });
-                    ////
-                    importedDatabases.addView(importedDatabaseItem);
+                    importedDatabases.addView(this.createImportedDatabaseListItem(layoutInflater, databaseDir, databaseFilename));
                 }
             }
         }
 
         // If there are any databases in external storage
-        File externalDatabaseDir = new File(getExternalFilesDir(null), "databases");
-        if (externalDatabaseDir.list() != null && externalDatabaseDir.list().length > 0) {
+        databaseDir = new File(getExternalFilesDir(null), "databases");
+        if (databaseDir.list() != null && databaseDir.list().length > 0) {
             importedDatabasesTitle.setVisibility(View.VISIBLE);
-
-            LayoutInflater layoutInflater = this.getLayoutInflater();
-
-            for (String databaseFilename: externalDatabaseDir.list()) {
+            if (layoutInflater == null) {
+                layoutInflater = this.getLayoutInflater();
+            }
+            for (String databaseFilename: databaseDir.list()) {
                 if (!databaseFilename.endsWith("-journal")) {
-                    // Inflates database list item view
-                    LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.item_imported_databases, null);
-
-                    Button databaseFilenameButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
-                    databaseFilenameButton.setText(getString(R.string.main_activity_imported_databases_item_external, databaseFilename)); // Adds database filename do be displayed for the current database
-                    // If user taps on database filename
-                    databaseFilenameButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            File selectedDatabaseToOpen = new File(externalDatabaseDir, databaseFilename);
-                            // Saves selected database's information to the settings
-                            MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
-                            MainActivity.this.resetMirrorDatabasePreferences();
-                            MainActivity.this.setMessageWithDatabaseName();
-                        }
-                    });
-                    // If user long presses database filename
-                    databaseFilenameButton.setOnLongClickListener(new View.OnLongClickListener() {
-                        @Override
-                        public boolean onLongClick(View v) {
-                            File selectedDatabaseToOpen = new File(externalDatabaseDir, databaseFilename);
-                            // Saves selected database's information to the settings
-                            MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
-                            MainActivity.this.resetMirrorDatabasePreferences();
-                            MainActivity.this.setMessageWithDatabaseName();
-                            // Opens database
-                            MainActivity.this.openDatabase();
-                            return true;
-                        }
-                    });
-
-                    //// Delete icon/button
-                    ImageButton removeDatabaseIcon = importedDatabaseItem.findViewById(R.id.imported_databases_item_image);
-                    removeDatabaseIcon.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            // If user taps on delete (trashcan image) icon
-                            // confirmation dialog window for deletion is displayed
-                            AlertDialog.Builder confirmDeletion = new AlertDialog.Builder(MainActivity.this)
-                                    .setTitle(databaseFilename)
-                                    .setMessage(R.string.main_activity_imported_databases_delete_dialog_message)
-                                    .setPositiveButton(R.string.button_delete, new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            File selectedDatabaseToDelete = new File(externalDatabaseDir, databaseFilename);
-                                            selectedDatabaseToDelete.delete(); // Deletes database file
-                                            checkIfDeleteDatabaseIsBeingUsed(databaseFilename);
-                                            listImportedDatabases(); // Launches this function to make a new list of imported databases
-                                        }
-                                    })
-                                    .setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            dialog.cancel();
-                                        }
-                                    });
-                            confirmDeletion.show();
-                        }
-                    });
-                    ////
-                    importedDatabases.addView(importedDatabaseItem);
+                    importedDatabases.addView(this.createImportedDatabaseListItem(layoutInflater, databaseDir, databaseFilename));
                 }
             }
         }
     }
+
+    /**
+     * Creates an imported database list item from provided information to be displayed for the user
+     * Adds functions to select a database to be opened, open (using long tap), export and delete
+     * @param layoutInflater layout inflater to inflate new menu time layout
+     * @param databaseDir File object representing directory in which item is located.
+     * @param databaseFilename filename if the database for which imported database item is being created
+     * @return imported database list item
+     */
+    private LinearLayout createImportedDatabaseListItem(LayoutInflater layoutInflater,File databaseDir, String databaseFilename) {
+        // Inflates database list item view
+        LinearLayout importedDatabaseItem = (LinearLayout) layoutInflater.inflate(R.layout.item_imported_databases, null);
+
+        Button databaseFilenameButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_text);
+        databaseFilenameButton.setText(getString(R.string.main_activity_imported_databases_item_internal, databaseFilename)); // Adds database filename do be displayed for the current database
+        // If user taps on database filename
+        databaseFilenameButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
+                // Saves selected database's information to the settings
+                MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
+                MainActivity.this.resetMirrorDatabasePreferences();
+                MainActivity.this.setMessageWithDatabaseName();
+            }
+        });
+        // If user long presses database filename
+        databaseFilenameButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
+                // Saves selected database's information to the settings
+                MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
+                MainActivity.this.resetMirrorDatabasePreferences();
+                MainActivity.this.setMessageWithDatabaseName();
+                // Opens database
+                MainActivity.this.openDatabase();
+                return true;
+            }
+        });
+
+        ImageButton exportDatabaseButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_export_button);
+        exportDatabaseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MainActivity.this.exportDatabaseToFile.launch(databaseFilename);
+            }
+        });
+
+        //// Delete icon/button
+        ImageButton removeDatabaseButton = importedDatabaseItem.findViewById(R.id.imported_databases_item_delete_button);
+        removeDatabaseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // If user taps on delete (trashcan image) icon
+                // confirmation dialog window for deletion is displayed
+                AlertDialog.Builder confirmDeletion = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle(databaseFilename)
+                        .setMessage(R.string.main_activity_imported_databases_delete_dialog_message)
+                        .setPositiveButton(R.string.button_delete, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                File selectedDatabaseToDelete = new File(databaseDir, databaseFilename);
+                                selectedDatabaseToDelete.delete(); // Deletes database file
+                                checkIfDeleteDatabaseIsBeingUsed(databaseFilename);
+                                listImportedDatabases(); // Launches this function to make a new list of imported databases
+                            }
+                        })
+                        .setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.cancel();
+                            }
+                        });
+                confirmDeletion.show();
+            }
+        });
+        ////
+        return importedDatabaseItem;
+    }
+
+    /**
+     * Launches file chooser to select location
+     * where to export database. If user chooses a file - launches a
+     * export dialog fragment
+     */
+    ActivityResultLauncher<String> exportDatabaseToFile = registerForActivityResult(new ActivityResultContracts.CreateDocument("*/*"), result -> {
+        if (result != null) {
+            Bundle bundle = new Bundle();
+            bundle.putString("exportFileUri", result.toString());
+            ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+            exportDatabaseDialogFragment.setArguments(bundle);
+            exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+        }
+    });
 
     /**
      * Checks if user deletes the database that is set to be opened when user presses on Open button
