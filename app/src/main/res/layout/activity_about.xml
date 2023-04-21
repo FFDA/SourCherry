@@ -67,6 +67,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:padding="10dp"
+            android:height="48dp"
             android:autoLink="web"
             android:text="@string/options_menu_about_activity_github" />
 

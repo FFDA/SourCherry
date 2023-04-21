@@ -127,7 +127,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
 
     @NonNull
     @Override
-    public MenuItemAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public MenuItemAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
 //        Context context = parent.getContext(); // TODO Testing. If app is stable without this - remove the line
         LayoutInflater inflater = LayoutInflater.from(this.context);
         View menuView = inflater.inflate(R.layout.item_drawer_menu, parent, false);

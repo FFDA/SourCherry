@@ -44,15 +44,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
-        android:layout_marginEnd="24dp"
         android:text="@string/button_move_to_main_menu"
         app:layout_constraintEnd_toStartOf="@+id/move_node_button_up"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/move_node_fragment_recycle_view" />
 
     <ImageButton
         android:id="@+id/move_node_button_up"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toStartOf="@+id/move_node_button_home"
@@ -62,14 +62,14 @@
 
     <ImageButton
         android:id="@+id/move_node_button_home"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="48dp"
+        android:layout_marginEnd="16dp"
+        android:contentDescription="@string/move_node_button_home_content_description"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/move_node_fragment_recycle_view"
-        app:srcCompat="@drawable/ic_outline_home_24"
-        android:contentDescription="@string/move_node_button_home_content_description" />
+        app:srcCompat="@drawable/ic_outline_home_24" />
 
     <TextView
         android:id="@+id/move_node_textview_message"

@@ -77,7 +77,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
                         // Saving preference if checkbox is checked
                         SharedPreferences.Editor sharedPreferencesEditor = PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
                         sharedPreferencesEditor.putString("preferences_save_open_file", "Open");
-                        sharedPreferencesEditor.commit();
+                        sharedPreferencesEditor.apply();
                     }
                     openFile();
                 }
@@ -124,7 +124,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
                     // Saving preference if checkbox is checked
                     SharedPreferences.Editor sharedPreferencesEditor = PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
                     sharedPreferencesEditor.putString("preferences_save_open_file", "Save");
-                    sharedPreferencesEditor.commit();
+                    sharedPreferencesEditor.apply();
                 }
                 Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.setType(SaveOpenDialogFragment.this.fileMimeType);

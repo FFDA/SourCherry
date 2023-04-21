@@ -79,13 +79,21 @@ public class PreferencesFragment extends PreferenceFragmentCompat {
         });
     }
 
+    /**
+     * Converts provided PX value to DP and returns it
+     * @param paddingInPX padding value in PX to be converted
+     * @return padding value in DP
+     */
     private int pxToDp(int paddingInPX) {
-        // Converts provided PX value to DP and returns it
         return (int) (paddingInPX / Resources.getSystem().getDisplayMetrics().density);
     }
 
+    /**
+     * Converts provided DP value to PX and returns it
+     * @param paddingInDP padding value in DP to be converted
+     * @return padding value in PX
+     */
     private int dpToPx(int paddingInDP) {
-        // Converts provided DP value to PX and returns it
         return (int) (paddingInDP * Resources.getSystem().getDisplayMetrics().density);
     }
 }

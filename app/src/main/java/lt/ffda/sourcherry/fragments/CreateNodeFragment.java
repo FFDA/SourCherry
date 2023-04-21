@@ -106,7 +106,7 @@ public class CreateNodeFragment extends Fragment {
      * @return "custom-colors" - rich text, "plain-text' - plain text, "sh" - automatic_syntax_highlighting
      */
     private String getNodeProgLangSelection() {
-        String progLang = "plain-text";
+        String progLang;
         int selectedRadioButtonID = radioGroupNodeType.getCheckedRadioButtonId();
         if (selectedRadioButtonID == R.id.radio_button_rich_text) {
             progLang = "custom-colors";

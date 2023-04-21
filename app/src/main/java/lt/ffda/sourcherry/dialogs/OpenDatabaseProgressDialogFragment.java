@@ -127,7 +127,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
 
     private void copyDatabaseToAppSpecificStorage() {
         // Set directory where database will be saved depending on user's choice in options menu
-        File databaseDir = null;
+        File databaseDir;
         if (sharedPreferences.getBoolean("preferences_external_storage", false)) {
             databaseDir = new File(getContext().getExternalFilesDir(null), "databases");
         } else {
@@ -199,7 +199,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         String password = getArguments().getString("password");
 
         // Set directory where database will be saved depending on user's choice in options menu
-        File databaseDir = null;
+        File databaseDir;
         if (sharedPreferences.getBoolean("preferences_external_storage", false)) {
             databaseDir = new File(getContext().getExternalFilesDir(null), "databases");
         } else {

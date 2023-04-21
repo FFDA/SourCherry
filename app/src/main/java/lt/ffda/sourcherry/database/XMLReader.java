@@ -45,6 +45,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.content.res.AppCompatResources;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -803,7 +804,7 @@ public class XMLReader implements DatabaseReader {
         formattedAttachedFile.append(" "); // Needed to insert an image
 
         //// Inserting image
-        Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_attachment_24);
+        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
         ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -834,7 +835,7 @@ public class XMLReader implements DatabaseReader {
         anchorImageSpan.append(" ");
 
         //// Inserting image
-        Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_anchor_24);
+        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_anchor_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
         ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -927,7 +928,7 @@ public class XMLReader implements DatabaseReader {
     }
 
     /**
-     * Depreciated
+     * No longer in use
      * While function works it no longer used in creating codeboxes
      * @param node codebox node from which extract codebox dimensions that are embedded into tags
      * @return int[] {frameHeight, frameWidth} with codebox dimensions
@@ -1032,9 +1033,9 @@ public class XMLReader implements DatabaseReader {
         brokenSpan.append(" ");
         Drawable drawableBrokenImage;
         if (type == 0) {
-            drawableBrokenImage = this.context.getDrawable(R.drawable.ic_outline_broken_image_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_image_48);
         } else {
-            drawableBrokenImage = this.context.getDrawable(R.drawable.ic_outline_broken_latex_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_latex_48);
         }
         //// Inserting image
 
@@ -1089,7 +1090,7 @@ public class XMLReader implements DatabaseReader {
             if (this.databaseUri.startsWith("content://")) {
                 fileOutputStream = context.getContentResolver().openOutputStream(Uri.parse(this.databaseUri), "wt");
             } else {
-                fileOutputStream = new FileOutputStream(new File(this.databaseUri));
+                fileOutputStream = new FileOutputStream(this.databaseUri);
             }
             StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
             transformer.transform(dSource, result);

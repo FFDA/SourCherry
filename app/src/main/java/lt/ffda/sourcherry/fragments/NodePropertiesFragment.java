@@ -107,7 +107,7 @@ public class NodePropertiesFragment extends Fragment {
 
                         }
                     });
-                    AlertDialog confirmNodeTypeChangeDialog = confirmNodeTypeChangeBuilder.show();
+                    confirmNodeTypeChangeBuilder.show();
                 }
             }
         });

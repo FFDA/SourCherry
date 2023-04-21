@@ -18,6 +18,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
@@ -189,7 +190,6 @@ public class MainView extends AppCompatActivity {
 
         // Register with fragmentManager to get result from menuItemActionDialogFragment
         getSupportFragmentManager().setFragmentResultListener("menuItemAction", this, new FragmentResultListener() {
-            @SuppressWarnings("deprecation")
             @Override
             public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
                 MenuItemAction menuItemAction;
@@ -967,12 +967,12 @@ public class MainView extends AppCompatActivity {
             goBackButton.setVisibility(View.GONE);
             goUpButton.setVisibility(View.VISIBLE);
             createNode.setVisibility(View.VISIBLE);
-            bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_outline_bookmarks_off_24));
+            bookmarksButton.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_outline_bookmarks_off_24));
         } else {
             goBackButton.setVisibility(View.VISIBLE);
             goUpButton.setVisibility(View.GONE);
             createNode.setVisibility(View.VISIBLE);
-            bookmarksButton.setImageDrawable(getDrawable(R.drawable.ic_baseline_bookmarks_on_24));
+            bookmarksButton.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_baseline_bookmarks_on_24));
         }
     }
 
@@ -1847,7 +1847,7 @@ public class MainView extends AppCompatActivity {
     /**
      * Opens node that was passed as an argument
      * Used to open search results
-     * @param selectedNode String[] of the node that has to be oppend
+     * @param selectedNode String[] of the node that has to be opened
      */
     public void openSearchResult(String[] selectedNode) {
         this.currentNode = selectedNode;
@@ -1977,7 +1977,7 @@ public class MainView extends AppCompatActivity {
             // If user uses MirrorDatabase
             // Variables that will be put into bundle for MirrorDatabaseProgressDialogFragment
             Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
-            long mirrorDatabaseDacumentFileLastModified = 0;
+            long mirrorDatabaseDocumentFileLastModified = 0;
 
             // Reading through files inside Mirror Database Folder
             Uri mirrorDatabaseFolderUri = Uri.parse(this.sharedPreferences.getString("mirrorDatabaseFolderUri", null));
@@ -1988,7 +1988,7 @@ public class MainView extends AppCompatActivity {
                 if (cursor.getString(1).equals(this.sharedPreferences.getString("mirrorDatabaseFilename", null))) {
                     // if file with the Mirror Database File filename was wound inside Mirror Database Folder
                     mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
-                    mirrorDatabaseDacumentFileLastModified = cursor.getLong(2);
+                    mirrorDatabaseDocumentFileLastModified = cursor.getLong(2);
                     break;
                 }
             }
@@ -1996,7 +1996,7 @@ public class MainView extends AppCompatActivity {
 
             // If found Mirror Database File is older or the same as the last time it was synchronized
             // copying is done immediately
-            if (mirrorDatabaseDacumentFileLastModified <= this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
+            if (mirrorDatabaseDocumentFileLastModified <= this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
                     Bundle bundle = new Bundle();
                     bundle.putString("exportFileUri", mirrorDatabaseFileUri.toString());
                     ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
@@ -2015,7 +2015,7 @@ public class MainView extends AppCompatActivity {
                     }
                 });
                 Uri finalMirrorDatabaseFileUri = mirrorDatabaseFileUri;
-                long finalMirrorDatabaseDocumentFileLastModified = mirrorDatabaseDacumentFileLastModified;
+                long finalMirrorDatabaseDocumentFileLastModified = mirrorDatabaseDocumentFileLastModified;
                 builder.setPositiveButton(R.string.button_overwrite, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {

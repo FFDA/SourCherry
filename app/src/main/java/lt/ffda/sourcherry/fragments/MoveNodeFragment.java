@@ -122,7 +122,7 @@ public class MoveNodeFragment extends Fragment {
     }
 
     /**
-     * Changes navagiation menu items with the one that are provided through the argument
+     * Changes navigation menu items with the one that are provided through the argument
      * Removes selection of the node that's currently selected for the move
      * @param nodes node list to load to the navigation menu
      */

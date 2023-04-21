@@ -192,12 +192,6 @@ public class MainActivity extends AppCompatActivity {
         if (result != null) {
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
             String databaseFileExtension = databaseDocumentFile.getName().split("\\.")[1];
-//            if ((databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) && Build.VERSION.SDK_INT <= Build.VERSION_CODES.O_MR1) {
-//                // Only works for >=API 26 (Android 8+)
-//                // Lower versions of Android do not have required functions for org.apache.commons.compress to work
-//                Toast.makeText(this, R.string.toast_error_android_7_cannot_open_password_protected, Toast.LENGTH_SHORT).show();
-//                return;
-//            }
             // Saving filename and path to the file in the preferences
             this.saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, result.toString());
             //
@@ -597,7 +591,7 @@ public class MainActivity extends AppCompatActivity {
     private void mirrorDatabase() {
         // Variables that will be put into bundle for MirrorDatabaseProgressDialogFragment
         Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
-        long mirrorDatabaseDacumentFileLastModified = 0;
+        long mirrorDatabaseDocumentFileLastModified = 0;
         String mirrorDatabaseFileExtension = null;
 
         // Reading through files inside Mirror Database Folder
@@ -610,17 +604,17 @@ public class MainActivity extends AppCompatActivity {
                 // if file with the Mirror Database File filename was wound inside Mirror Database Folder
                 mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
                 mirrorDatabaseFileExtension = cursor.getString(1).split("\\.")[1];
-                mirrorDatabaseDacumentFileLastModified = cursor.getLong(2);
+                mirrorDatabaseDocumentFileLastModified = cursor.getLong(2);
                 break;
             }
         }
         cursor.close();
 
         // If found Mirror Database File's last modified time is bigger than saved from previous database update
-        if (mirrorDatabaseDacumentFileLastModified > this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
+        if (mirrorDatabaseDocumentFileLastModified > this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
             if (mirrorDatabaseFileExtension.equals("ctz") || mirrorDatabaseFileExtension.equals("ctx") || mirrorDatabaseFileExtension.equals("ctb")) {
                 Bundle bundle = new Bundle();
-                bundle.putLong("mirrorDatabaseLastModified", mirrorDatabaseDacumentFileLastModified);
+                bundle.putLong("mirrorDatabaseLastModified", mirrorDatabaseDocumentFileLastModified);
                 bundle.putString("mirrorDatabaseUri", mirrorDatabaseFileUri.toString());
                 bundle.putString("mirrorDatabaseFileExtension", mirrorDatabaseFileExtension);
                 MirrorDatabaseProgressDialogFragment mirrorDatabaseProgressDialogFragment = new MirrorDatabaseProgressDialogFragment();

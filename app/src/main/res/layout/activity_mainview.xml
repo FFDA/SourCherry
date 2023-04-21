@@ -28,7 +28,8 @@
                 android:id="@+id/main_view_fragment"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                tools:layout="@layout/fragment_node_content" />
 
             <LinearLayout
                 android:id="@+id/main_view_find_in_node_linear_layout"
@@ -56,7 +57,9 @@
                         android:layout_weight="1"
                         android:inputType="textNoSuggestions|text"
                         android:imeOptions="flagNoExtractUi|actionNext"
-                        android:ems="10" />
+                        android:ems="10"
+                        android:hint="@string/find_in_node_edit_text_hint"
+                        android:importantForAutofill="no" />
 
                     <TextView
                         android:id="@+id/find_in_node_edit_text_marked_index"

@@ -133,8 +133,8 @@
     <string name="navigation_drawer_button_home_content_description">Button HOME. Displayed in normal navigation and bookmark modes. When pressed - loads home menu (top of the tree).</string>
     <string name="navigation_drawer_button_create_node_content_description">Button ADD NODE. Displayed in normal mode. When pressed - opens create new node fragment.</string>
     <string name="navigation_drawer_button_bookmarks_content_description">Button BOOKMARKS. Displayed in normal and bookmark modes. When pressed - switch menu between normal and bookmark menus.</string>
-    <string name="imported_databases_item_export_button_description">Button EXPORT DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to choose to encrypt with password and confirm of export operation.</string>
-    <string name="imported_databases_item_delete_button_description">Button DELETE DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to confirm deletion.</string>
+    <string name="imported_databases_item_export_button_description">EXPORT DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to choose to encrypt with password and confirm of export operation.</string>
+    <string name="imported_databases_item_delete_button_description">DELETE DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to confirm deletion.</string>
     <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
     <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>
     <string name="menu_item_action_content_description">Drawer menu item preferences. Displays settings icon. When clicked opens contextual menu.</string>
@@ -147,8 +147,8 @@
     <string name="menu_item_action_menu_properties">Properties</string>
     <string name="move_node_textview_title">Move node: %1$s</string>
     <string name="move_node_textview_message">Use long tap to select the node</string>
-    <string name="move_node_button_up_content_description">Button UP. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>
-    <string name="move_node_button_home_content_description">Button HOME. When pressed - loads home menu (top of the tree).</string>
+    <string name="move_node_button_up_content_description">UP. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>
+    <string name="move_node_button_home_content_description">HOME. When pressed - loads home menu (top of the tree).</string>
     <string name="toolbar_icon_edit_node">Edit node</string>
     <string name="toolbar_icon_save_node">Save node</string>
     <string name="dialog_fragment_export_database_checkbox_password_protect">Protect with password</string>
@@ -158,4 +158,5 @@
     <string name="alert_dialog_warning_newer_mirror_database_will_be_overwritten_title">Overwrite</string>
     <string name="alert_dialog_warning_newer_mirror_database_will_be_overwritten_message">Mirror database was updated after the last synchronization</string>
     <string name="alert_dialog_warning_no_mirror_database_selected_message">Select mirror database file. Otherwise Mirror Database will be disabled when leaving.</string>
+    <string name="find_in_node_edit_text_hint">Type node name</string>
 </resources>

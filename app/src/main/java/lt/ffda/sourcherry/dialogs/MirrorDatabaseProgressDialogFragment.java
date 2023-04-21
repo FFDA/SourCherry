@@ -244,8 +244,6 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
 
     private void extractDatabase(String password) {
         String databaseString = getArguments().getString("mirrorDatabaseUri");
-
-        String tmpDatabaseFilename;
         this.totalLen = 0;
 
         try {

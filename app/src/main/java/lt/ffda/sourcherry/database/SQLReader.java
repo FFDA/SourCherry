@@ -51,6 +51,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.preference.PreferenceManager;
 
 import org.w3c.dom.Document;
@@ -846,7 +847,7 @@ public class SQLReader implements DatabaseReader {
         formattedAttachedFile.append(" "); // Needed to insert image
 
         //// Inserting image
-        Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_attachment_24);
+        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
         ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -877,7 +878,7 @@ public class SQLReader implements DatabaseReader {
         anchorImageSpan.append(" ");
 
         //// Inserting image
-        Drawable drawableAttachedFileIcon = this.context.getDrawable(R.drawable.ic_outline_anchor_24);
+        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_anchor_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
         ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -1066,9 +1067,9 @@ public class SQLReader implements DatabaseReader {
         brokenSpan.append(" ");
         Drawable drawableBrokenImage;
         if (type == 0) {
-            drawableBrokenImage = this.context.getDrawable(R.drawable.ic_outline_broken_image_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_image_48);
         } else {
-            drawableBrokenImage = this.context.getDrawable(R.drawable.ic_outline_broken_latex_48);
+            drawableBrokenImage =  AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_latex_48);
         }
         //// Inserting image
 
@@ -1193,7 +1194,7 @@ public class SQLReader implements DatabaseReader {
         contentValues.put("syntax", progLang);
         contentValues.put("tags", "");
         contentValues.put("is_ro", 0);
-        contentValues.put("is_richtxt", progLang.equals("custom-folors") ? 1 : 0);
+        contentValues.put("is_richtxt", progLang.equals("custom-colors") ? 1 : 0);
         contentValues.put("has_codebox", 0);
         contentValues.put("has_table", 0);
         contentValues.put("has_image", 0);
