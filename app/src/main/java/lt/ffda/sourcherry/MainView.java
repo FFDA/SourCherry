@@ -1663,7 +1663,9 @@ public class MainView extends AppCompatActivity {
         if (this.currentNode == null) {
             this.mainViewModel.setNodes(this.reader.getMainNodes());
         } else {
-            this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+            if (this.mainViewModel.getNodes().size() <= 2) {
+                this.currentNode = this.reader.getSingleMenuItem(this.currentNode[1]);
+            }
         }
         this.resetMenuToCurrentNode();
     }
