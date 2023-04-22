@@ -785,7 +785,6 @@ public class MainView extends AppCompatActivity {
      */
     private void removeNodeContent() {
         FragmentManager fragmentManager = getSupportFragmentManager();
-
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
         this.setToolbarTitle("SourCherry");
@@ -894,11 +893,16 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
-     * Launches CreateNewNode to create node in main menu
+     * Launches CreateNewNode to create node in currently opened menu
+     * Node will be appended to the end of it
      * @param view view that was clicked by the user
      */
     public void createNode(View view) {
-        this.launchCreateNewNodeFragment("0", 1);
+        if (this.mainViewModel.getNodes().size() == 0 || this.mainViewModel.getNodes().get(0)[3].equals("false")) {
+            this.launchCreateNewNodeFragment("0", 1);
+        } else {
+            this.launchCreateNewNodeFragment(this.currentNode[1], 1);
+        }
     }
 
     /**
@@ -1688,7 +1692,7 @@ public class MainView extends AppCompatActivity {
             this.removeNodeContent();
         } else {
             // Another node in drawer menu was selected for deletion
-            if (this.mainViewModel.getNodes().size() <= 2) {
+            if (this.mainViewModel.getNodes().size() <= 2 && this.currentNode != null) {
                 this.currentNode[2] = "false";
                 this.resetMenuToCurrentNode();
             } else {
