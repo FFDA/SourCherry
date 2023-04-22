@@ -117,7 +117,6 @@ public class MainView extends AppCompatActivity {
     private boolean filterNodeToggle;
     private boolean findInNodeToggle; // Holds true when FindInNode view is initiated
     private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
-    private boolean backToExit;
     private MainViewModel mainViewModel;
     private SharedPreferences sharedPreferences;
     private ExecutorService executor;
@@ -134,7 +133,6 @@ public class MainView extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         this.mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
-        this.backToExit = false;
         this.executor = Executors.newSingleThreadExecutor();
         this.handler = new Handler(Looper.getMainLooper());
         // drawer layout instance to toggle the menu icon to open
@@ -403,8 +401,6 @@ public class MainView extends AppCompatActivity {
 
         // to make the Navigation drawer icon always appear on the action bar
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        // Registers listener for back button clicks
-        getOnBackPressedDispatcher().addCallback(this, callbackDisplayToastBeforeExit);
 
         // Button in findInView to close it
         ImageButton findInNodeCloseButton = findViewById(R.id.find_in_node_button_close);
@@ -622,41 +618,6 @@ public class MainView extends AppCompatActivity {
         super.onDestroy();
         this.executor.shutdownNow();
     }
-
-    /**
-     * Deals with back button presses.
-     * If there are any fragment in the BackStack - removes one
-     * Handles back to exit to make user double press back button to exit
-     */
-    OnBackPressedCallback callbackDisplayToastBeforeExit = new OnBackPressedCallback(true /* enabled by default */) {
-        @Override
-        public void handleOnBackPressed() {
-
-            if (backToExit) { // If button back was already pressed once
-                MainView.this.finish();
-                return;
-            }
-
-            if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
-                getSupportFragmentManager().popBackStack();
-                MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-                getSupportActionBar().show();
-                return;
-            }
-
-            backToExit = true; // Marks that back button was pressed once
-            Toast.makeText(MainView.this, R.string.toast_confirm_mainview_exit, Toast.LENGTH_SHORT).show();
-
-
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                // Reverts boolean that marks if user pressed back button once after 2 seconds
-                @Override
-                public void run() {
-                    backToExit = false;
-                }
-            }, 2000);
-        }
-    };
 
     /**
      * Clears existing menu and recreate with submenu of the currentNode
@@ -2074,5 +2035,13 @@ public class MainView extends AppCompatActivity {
     public void exitWithError() {
         Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
         this.finish();
+    }
+
+    /**
+     * Unlocks drawer menu and shows it
+     */
+    public void enableDrawer() {
+        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        getSupportActionBar().show();
     }
 }

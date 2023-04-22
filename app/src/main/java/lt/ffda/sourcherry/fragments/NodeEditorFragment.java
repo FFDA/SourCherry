@@ -117,12 +117,38 @@ public class NodeEditorFragment extends Fragment {
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
         this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
-        this.executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                NodeEditorFragment.this.loadContent();
-            }
-        });
+        if (savedInstanceState == null) {
+            this.executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    NodeEditorFragment.this.loadContent();
+                }
+            });
+        } else {
+            this.textChanged = savedInstanceState.getBoolean("textChanged");
+            this.changesSaved = savedInstanceState.getBoolean("changesSaved");
+            EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+            editText.setText(savedInstanceState.getString("content"), TextView.BufferType.EDITABLE);
+            editText.addTextChangedListener(textWatcher);
+            editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    NodeEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (this.changesSaved || this.textChanged) {
+            outState.putBoolean("textChanged", this.textChanged);
+            outState.putBoolean("changesSaved", this.changesSaved);
+            EditText editText = (EditText) this.nodeEditorFragmentLinearLayout.getChildAt(0);
+            outState.putString("content", editText.getText().toString());
+        }
     }
 
     @Override

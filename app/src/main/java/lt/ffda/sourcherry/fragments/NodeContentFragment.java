@@ -13,6 +13,7 @@ package lt.ffda.sourcherry.fragments;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
@@ -30,7 +31,9 @@ import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.MenuHost;
@@ -51,6 +54,7 @@ public class NodeContentFragment extends Fragment {
     private MainViewModel mainViewModel;
     private Handler handler;
     private SharedPreferences sharedPreferences;
+    private boolean backToExit;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -61,7 +65,7 @@ public class NodeContentFragment extends Fragment {
         this.contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
         this.handler = ((MainView) getActivity()).getHandler();
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-
+        this.backToExit = false;
         return rootView;
     }
 
@@ -80,6 +84,8 @@ public class NodeContentFragment extends Fragment {
                 return false;
             }
         }, getViewLifecycleOwner() , Lifecycle.State.RESUMED);
+        // Registers listener for back button clicks
+        this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.callbackDisplayToastBeforeExit);
     }
 
     @Override
@@ -89,6 +95,39 @@ public class NodeContentFragment extends Fragment {
         // Top and bottom paddings are always the same: 14px (5dp)
         this.contentFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
     }
+
+    /**
+     * Deals with back button presses.
+     * If there are any fragment in the BackStack - removes one
+     * Handles back to exit to make user double press back button to exit
+     */
+    OnBackPressedCallback callbackDisplayToastBeforeExit = new OnBackPressedCallback(true /* enabled by default */) {
+        @Override
+        public void handleOnBackPressed() {
+
+            if (backToExit) { // If button back was already pressed once
+                getActivity().finish();
+                return;
+            }
+
+            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                getParentFragmentManager().popBackStack();
+                ((MainView) getActivity()).enableDrawer();
+                return;
+            }
+
+            backToExit = true; // Marks that back button was pressed once
+            Toast.makeText(getContext(), R.string.toast_confirm_mainview_exit, Toast.LENGTH_SHORT).show();
+
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                // Reverts boolean that marks if user pressed back button once after 2 seconds
+                @Override
+                public void run() {
+                    backToExit = false;
+                }
+            }, 2000);
+        }
+    };
 
     public void loadContent() {
         // Clears layout just in case. Most of the time it is needed
