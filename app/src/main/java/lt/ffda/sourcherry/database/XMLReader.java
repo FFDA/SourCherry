@@ -1251,6 +1251,15 @@ public class XMLReader implements DatabaseReader {
                 }
             }
 
+            // Checks for when user wants to move node to the same parent node
+            // In XML databases that causes crash and it is not necessary write operation
+            if (destinationNode.getNodeName().equals("cherrytree") && targetNode.getParentNode().getNodeName().equals("cherrytree")) {
+                return;
+            }
+            if (targetNode.getParentNode().getAttributes().getNamedItem("unique_id").getNodeValue().equals(destinationNodeUniqueID)) {
+                return;
+            }
+
             destinationNode.appendChild(targetNode);
             this.writeIntoDatabase();
         }

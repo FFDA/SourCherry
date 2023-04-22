@@ -1331,6 +1331,11 @@ public class SQLReader implements DatabaseReader {
             cursorTargetParent.moveToFirst();
             String targetParentUniqueID = cursorTargetParent.getString(0);
             cursorTargetParent.close();
+            // Checks for when user wants to move node to the same parent node
+            // It is not necessary write operation
+            if (targetParentUniqueID.equals(destinationNodeUniqueID)) {
+                return;
+            }
             // Getting next available children sequence spot of new parent node
             Cursor cursorMove = this.sqlite.query("children", new String[]{"COUNT(node_id)"}, "father_id=?", new String[]{destinationNodeUniqueID}, null, null, null, null);
             cursorMove.moveToFirst();
