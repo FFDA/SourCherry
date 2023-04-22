@@ -157,7 +157,6 @@ public class MainView extends AppCompatActivity {
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true).setReorderingAllowed(true)
                     .add(R.id.main_view_fragment, NodeContentFragment.class, null, "main")
-//                    .addToBackStack("main") // This not needed it seems. Clean up at the latter date
                     .commit();
             getSupportFragmentManager().executePendingTransactions();
             this.bookmarksToggle = false;
@@ -1567,6 +1566,7 @@ public class MainView extends AppCompatActivity {
         bundle.putString("nodeUniqueID", nodeUniqueID);
         bundle.putInt("relation", relation);
         getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .setReorderingAllowed(true)
                 .add(R.id.main_view_fragment, CreateNodeFragment.class, bundle, "createNode")
                 .addToBackStack("createNode")
@@ -1641,6 +1641,7 @@ public class MainView extends AppCompatActivity {
         Bundle bundle = new Bundle();
         bundle.putStringArray("node", node);
         getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .setReorderingAllowed(true)
                 .add(R.id.main_view_fragment, MoveNodeFragment.class, bundle, "moveNode")
                 .addToBackStack("moveNode")
@@ -1705,6 +1706,7 @@ public class MainView extends AppCompatActivity {
         bundle.putString("nodeUniqueID", nodeUniqueID);
         bundle.putInt("position", position);
         getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .setReorderingAllowed(true)
                 .add(R.id.main_view_fragment, NodePropertiesFragment.class, bundle, "moveNode")
                 .addToBackStack("nodeProperties")
@@ -1806,6 +1808,7 @@ public class MainView extends AppCompatActivity {
         bundle.putString("nodeUniqueID", nodeUniqueID);
         bundle.putString("imageOffset", imageOffset);
         getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .setReorderingAllowed(true)
                 .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
                 .addToBackStack("imageView")
@@ -1823,6 +1826,7 @@ public class MainView extends AppCompatActivity {
         bundle.putString("type", "latex");
         bundle.putString("latexString", latexString);
         getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .setReorderingAllowed(true)
                 .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
                 .addToBackStack("imageView")
@@ -1837,6 +1841,7 @@ public class MainView extends AppCompatActivity {
      */
     private void openSearch() {
         getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .setReorderingAllowed(true)
                 .add(R.id.main_view_fragment, SearchFragment.class, null, "search")
                 .addToBackStack("search")
