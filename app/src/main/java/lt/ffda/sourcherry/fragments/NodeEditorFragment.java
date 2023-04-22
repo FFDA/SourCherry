@@ -37,6 +37,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
@@ -259,6 +261,20 @@ public class NodeEditorFragment extends Fragment {
 //                });
 //            }
         }
+        // Shows keyboard if opened node for editing has less than 2 characters in the EditText
+        this.handler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (mainViewModel.getNodeContent().size() == 1) {
+                    EditText editText = (EditText) NodeEditorFragment.this.nodeEditorFragmentLinearLayout.getChildAt(0);
+                    if (editText.getText().length() <= 1) {
+                        editText.requestFocus();
+                        WindowCompat.getInsetsController(getActivity().getWindow(), editText).show(WindowInsetsCompat.Type.ime());
+                    }
+                }
+            }
+        });
+
     }
 
     /**
@@ -269,7 +285,7 @@ public class NodeEditorFragment extends Fragment {
         if (nodeEditorFragmentLinearLayout.getChildCount() == 1) {
             this.changesSaved = true;
             this.textChanged = false;
-            EditText editText = (EditText) nodeEditorFragmentLinearLayout.getChildAt(0);
+            EditText editText = (EditText) this.nodeEditorFragmentLinearLayout.getChildAt(0);
             ((MainView) getActivity()).getReader().saveNodeContent(getArguments().getString("nodeUniqueID"), editText.getText().toString());
         }
         this.addTextChangedListeners();
