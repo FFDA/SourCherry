@@ -990,10 +990,12 @@ public class MainView extends AppCompatActivity {
      */
     private int openedNodePositionInDrawerMenu() {
         int position = -1;
-        for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
-            if (this.currentNode[1].equals(this.mainViewModel.getNodes().get(i)[1])) {
-                position = i;
-                break;
+        if (this.currentNode != null) {
+            for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
+                if (this.currentNode[1].equals(this.mainViewModel.getNodes().get(i)[1])) {
+                    position = i;
+                    break;
+                }
             }
         }
         return position;
