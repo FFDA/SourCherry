@@ -104,10 +104,14 @@ public class SQLReader implements DatabaseReader {
     public ArrayList<String[]> getMainNodes() {
         // Returns main nodes from the database
         // Used to display menu when app starts
-        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
-        ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "false");
-
-        cursor.close();
+        ArrayList<String[]> nodes = null;
+        try {
+            Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
+            nodes = returnSubnodeArrayList(cursor, "false");
+            cursor.close();
+        } catch (Exception SQLiteException) {
+            ((MainView) context).exitWithError();
+        }
         return nodes;
     }
 

@@ -2066,4 +2066,13 @@ public class MainView extends AppCompatActivity {
             exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
         }
     });
+
+    /**
+     * Exists MainView activity with Toast message
+     * telling user that error occurred while reading the database
+     */
+    public void exitWithError() {
+        Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
+        this.finish();
+    }
 }

@@ -127,10 +127,8 @@ public class XMLReader implements DatabaseReader {
     public ArrayList<String[]> getMainNodes() {
         // Returns main nodes from the document
         // Used to display menu when app starts
-
         NodeList nodeList = this.doc.getElementsByTagName("cherrytree"); // There is only one this type of tag in the database
         NodeList mainNodeList = nodeList.item(0).getChildNodes(); // So selecting all children of the first node is always safe
-
         return returnSubnodeArrayList(mainNodeList, "false");
     }
 
