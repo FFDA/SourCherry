@@ -1256,7 +1256,8 @@ public class XMLReader implements DatabaseReader {
             if (destinationNode.getNodeName().equals("cherrytree") && targetNode.getParentNode().getNodeName().equals("cherrytree")) {
                 return;
             }
-            if (targetNode.getParentNode().getAttributes().getNamedItem("unique_id").getNodeValue().equals(destinationNodeUniqueID)) {
+            Node parentNodeUniqueID = targetNode.getParentNode().getAttributes().getNamedItem("unique_id");
+            if (parentNodeUniqueID != null && parentNodeUniqueID.getNodeValue().equals(destinationNodeUniqueID)) {
                 return;
             }
 
