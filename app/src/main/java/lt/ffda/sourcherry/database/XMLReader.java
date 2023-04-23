@@ -53,7 +53,6 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -1080,7 +1079,7 @@ public class XMLReader implements DatabaseReader {
      */
     public void writeIntoDatabase(){
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
-        Transformer transformer = null;
+        Transformer transformer;
         try {
             transformer = transformerFactory.newTransformer();
             DOMSource dSource = new DOMSource(this.doc);

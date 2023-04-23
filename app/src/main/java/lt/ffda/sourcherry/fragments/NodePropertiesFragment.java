@@ -134,7 +134,7 @@ public class NodePropertiesFragment extends Fragment {
     /**
      * Convenience function to call createNewNode in MainView
      * @param nodeUniqueID uniqueID of the node that new node will be created in relation with
-     * @param progLangFromDatabase node's prog_lang propertie that was saved in the database when properties were opened
+     * @param progLangFromDatabase node's prog_lang property that was saved in the database when properties were opened
      */
     private void updateNode(String nodeUniqueID, String progLangFromDatabase) {
         String progLang = getNodeProgLangSelection();

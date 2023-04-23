@@ -446,12 +446,6 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.toast_error_database_does_not_exists, Toast.LENGTH_SHORT).show();
                 return;
             }
-            // Disabled because clashed with intent-filters
-            // Delete later if no issues arise
-//            if (!databaseDocumentFile.canRead()) {
-//                Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
-//                return;
-//            }
 
             if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
                 // Password protected databases

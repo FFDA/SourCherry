@@ -224,18 +224,9 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             });
             getDialog().dismiss();
         } catch (IOException e) {
-            // Disabled because clashed with intent-filters
-            // Delete later if no issues arises
             // This exception is for close() method
             // If app continues to work after this exception it can be ignored
             // It could be that input stream was already closed by fragment before this function was called
-//            e.printStackTrace();
-//            handler.post(new Runnable() {
-//                @Override
-//                public void run() {
-//                    Toast.makeText(getContext(), R.string.toast_error_could_not_copy_the_database, Toast.LENGTH_LONG).show();
-//                }
-//            });
             getDialog().dismiss();
         }
 

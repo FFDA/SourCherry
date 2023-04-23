@@ -2,7 +2,7 @@
 
 SourCherry is an Android app to open CherryTree’s (note taking program [1](https://github.com/giuspen/cherrytree),[2](https://www.giuspen.com/)) databases. Right now app can only read databases and do not have any writing capabilities.
 
-https://github.com/FFDA/ffda.github.storage/blob/main/video/SourCherry.mp4
+![mp4 with SourCherry UI](https://github.com/FFDA/ffda.github.storage/blob/main/video/SourCherry.mp4?raw=true)
 
 App is targeted for sdk 31 (Android 12) with min version of 24 (Android 7).
 
