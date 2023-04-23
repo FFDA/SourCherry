@@ -1942,7 +1942,7 @@ public class MainView extends AppCompatActivity {
      */
     public void exportDatabaseSetup() {
         // XML without password already saved in external file
-        if (this.sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
+        if (this.sharedPreferences.getString("databaseFileExtension", null).equals("ctd") && this.sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
             Toast.makeText(this, R.string.toast_message_not_password_protected_xml_saves_changes_externally, Toast.LENGTH_SHORT).show();
             return;
         }
