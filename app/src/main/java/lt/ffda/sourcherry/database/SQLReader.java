@@ -1268,21 +1268,37 @@ public class SQLReader implements DatabaseReader {
         contentValues.put("node_id", nodeUniqueID);
         contentValues.put("sequence", 1);
         this.sqlite.insert("bookmark", null, contentValues);
-        // Sorting bookmark sequence
-        Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, null, null, null, null, "node_id ASC", null);
-        int counter = 1;
-        while (cursor.moveToNext()) {
-            contentValues.clear();
-            contentValues.put("sequence", counter);
-            this.sqlite.update("bookmark", contentValues, "node_id = ?", new String[]{cursor.getString(0)});
-            counter++;
-        }
-        cursor.close();
+        this.fixBookmarkNodeSequence();
     }
 
     @Override
     public void removeNodeFromBookmarks(String nodeUniqueID) {
         this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
+        this.fixBookmarkNodeSequence();
+    }
+
+    /**
+     * Reorders bookmark table's node sequence
+     * Removes any gaps that might have been left after deleting node
+     * or removing it from bookmarks
+     */
+    private void fixBookmarkNodeSequence() {
+        this.sqlite.beginTransaction();
+        try {
+            Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, null, null, null, null, "node_id ASC", null);
+            int counter = 1;
+            ContentValues contentValues = new ContentValues();
+            while (cursor.moveToNext()) {
+                contentValues.clear();
+                contentValues.put("sequence", counter);
+                this.sqlite.update("bookmark", contentValues, "node_id = ?", new String[]{cursor.getString(0)});
+                counter++;
+            }
+            cursor.close();
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
     }
 
     @Override
@@ -1316,11 +1332,17 @@ public class SQLReader implements DatabaseReader {
     private void fixChildrenNodeSequence(String nodeUniqueID) {
         int sequenceCounter = 1;
         Cursor cursor = this.sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id = ?", new String[]{nodeUniqueID}, null, null, "sequence ASC", null);
-        while (cursor.moveToNext()) {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put("sequence", sequenceCounter);
-            this.sqlite.update("children", contentValues, "node_id=?", new String[]{cursor.getString(0)});
-            sequenceCounter++;
+        this.sqlite.beginTransaction();
+        try {
+            while (cursor.moveToNext()) {
+                ContentValues contentValues = new ContentValues();
+                contentValues.put("sequence", sequenceCounter);
+                this.sqlite.update("children", contentValues, "node_id=?", new String[]{cursor.getString(0)});
+                sequenceCounter++;
+            }
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
         }
         cursor.close();
     }
@@ -1356,13 +1378,57 @@ public class SQLReader implements DatabaseReader {
 
     @Override
     public void deleteNode(String nodeUniqueID) {
-        this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
-        Cursor parentNodeUniqueIDCursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-        parentNodeUniqueIDCursor.moveToFirst();
-        String parentNodeUniqueID = parentNodeUniqueIDCursor.getString(0);
-        parentNodeUniqueIDCursor.close();
-        this.sqlite.delete("children", "node_id = ?", new String[]{nodeUniqueID});
+        String parentNodeUniqueID;
+        this.sqlite.beginTransaction();
+        try {
+            Cursor parentNodeUniqueIDCursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+            parentNodeUniqueIDCursor.moveToFirst();
+            parentNodeUniqueID = parentNodeUniqueIDCursor.getString(0);
+            parentNodeUniqueIDCursor.close();
+            this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("children", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
+        Cursor childrenNodeUniqueID = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        while (childrenNodeUniqueID.moveToNext()) {
+            this.deleteNodeChildren(childrenNodeUniqueID.getString(0));
+        }
+        childrenNodeUniqueID.close();
         this.fixChildrenNodeSequence(parentNodeUniqueID);
+        this.fixBookmarkNodeSequence();
+    }
+
+    /**
+     * Deletes node and it subnodes from database
+     * Difference from deleteNode() is that this function does not do
+     * any cleanup functions like fixing sequences of bookmarks
+     * and original node's parent sequence of children node
+     * @param nodeUniqueID unique ID of the node to delete
+     */
+    private void deleteNodeChildren(String nodeUniqueID) {
+        this.sqlite.beginTransaction();
+        try {
+        this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
+        this.sqlite.delete("children", "node_id = ?", new String[]{nodeUniqueID});
+        this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
+        this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+        this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
+        this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
+        Cursor childrenNodeUniqueID = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        while (childrenNodeUniqueID.moveToNext()) {
+            this.deleteNodeChildren(childrenNodeUniqueID.getString(0));
+        }
+        childrenNodeUniqueID.close();
     }
 
     @Override
