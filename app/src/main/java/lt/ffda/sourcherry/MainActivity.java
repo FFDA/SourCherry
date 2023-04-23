@@ -221,14 +221,11 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout importedDatabases = findViewById(R.id.layout_imported_databases);
         importedDatabases.removeAllViews(); // Everytime all the items are removed and re-added just in case user deleted something
 
-        TextView importedDatabasesTitle = findViewById(R.id.imported_databases_title);
-
         File databaseDir = new File(getFilesDir(), "databases");
         LayoutInflater layoutInflater = null;
 
         // If there are any databases in app-specific storage
         if (databaseDir.list().length > 0) {
-            importedDatabasesTitle.setVisibility(View.VISIBLE);
             layoutInflater = this.getLayoutInflater();
             for (String databaseFilename: databaseDir.list()) {
                 if (!databaseFilename.endsWith("-journal")) {
@@ -240,7 +237,6 @@ public class MainActivity extends AppCompatActivity {
         // If there are any databases in external storage
         databaseDir = new File(getExternalFilesDir(null), "databases");
         if (databaseDir.list() != null && databaseDir.list().length > 0) {
-            importedDatabasesTitle.setVisibility(View.VISIBLE);
             if (layoutInflater == null) {
                 layoutInflater = this.getLayoutInflater();
             }
@@ -249,6 +245,13 @@ public class MainActivity extends AppCompatActivity {
                     importedDatabases.addView(this.createImportedDatabaseListItem(layoutInflater, databaseDir, databaseFilename));
                 }
             }
+        }
+        
+        TextView importedDatabasesTitle = findViewById(R.id.imported_databases_title);
+        if (importedDatabases.getChildCount() > 0) {
+            importedDatabasesTitle.setVisibility(View.VISIBLE);
+        } else {
+            importedDatabasesTitle.setVisibility(View.INVISIBLE);
         }
     }
 
