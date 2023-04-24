@@ -81,6 +81,14 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
+     * Returns items saved using saveCurrentNodes
+     * @return saved drawer menu items
+     */
+    public ArrayList<String[]> getTempNodes() {
+        return this.tempNodes;
+    }
+
+    /**
      * Restores saved menu drawer items to the drawer menu
      */
     public void restoreSavedCurrentNodes() {

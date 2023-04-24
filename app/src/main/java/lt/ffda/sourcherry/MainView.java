@@ -874,7 +874,7 @@ public class MainView extends AppCompatActivity {
             // Showing normal menu
             this.closeBookmarks();
         } else {
-            showBookmarks();
+            this.showBookmarks();
         }
     }
 
@@ -1651,6 +1651,17 @@ public class MainView extends AppCompatActivity {
             // Currently displayed node was selected for deletion
             this.removeNodeContent();
         } else {
+            if (this.filterNodeToggle) {
+                // Necessary, otherwise it will show up again in other searches until
+                // the search function is turn off and on again
+                this.removeNodeFromTempSearchNodes(nodeUniqueID);
+            }
+            if (this.bookmarksToggle) {
+                // In case deleted node was in the drawer menu that user opened bookmarks form
+                // If user comes back to that menu (exists bookmarks) without selecting a
+                // bookmarked node to open - deleted node would be visible
+                this.removeNodeFromTempNodes(nodeUniqueID);
+            }
             // Another node in drawer menu was selected for deletion
             if (this.mainViewModel.getNodes().size() <= 2 && this.currentNode != null) {
                 this.currentNode[2] = "false";
@@ -1658,6 +1669,36 @@ public class MainView extends AppCompatActivity {
             } else {
                 this.mainViewModel.getNodes().remove(position);
                 this.adapter.notifyItemRemoved(position);
+            }
+        }
+    }
+
+    /**
+     * Removes node from tempSearchNodes list
+     * @param nodeUniqueID unique ID of the node that was deleted
+     */
+    private void removeNodeFromTempSearchNodes(String nodeUniqueID) {
+        Iterator<String[]> iterator = this.mainViewModel.getTempSearchNodes().iterator();
+        while (iterator.hasNext()) {
+            String[] currentNode = iterator.next();
+            if (currentNode[1].equals(nodeUniqueID)) {
+                iterator.remove();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Searches for node in tempNodes menu item list and removes it if found
+     * @param nodeUniqueID unique ID of the node to search for
+     */
+    private void removeNodeFromTempNodes(String nodeUniqueID) {
+        Iterator<String[]> iterator = this.mainViewModel.getTempNodes().iterator();
+        while (iterator.hasNext()) {
+            String[] currentNode = iterator.next();
+            if (currentNode[1].equals(nodeUniqueID)) {
+                iterator.remove();
+                break;
             }
         }
     }
