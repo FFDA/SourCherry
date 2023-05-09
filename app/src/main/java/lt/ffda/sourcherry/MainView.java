@@ -328,8 +328,8 @@ public class MainView extends AppCompatActivity {
                     // Gets new menu list only if filter mode is activated
                     MainView.this.mainViewModel.setTempSearchNodes(MainView.this.reader.getAllNodes(isChecked));
                     MainView.this.adapter.notifyDataSetChanged();
-                    searchView.setQuery("", false);
                     searchView.requestFocus();
+                    MainView.this.filterNodes(searchView.getQuery().toString());
                 }
             }
         });
