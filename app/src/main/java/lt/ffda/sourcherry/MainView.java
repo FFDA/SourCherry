@@ -321,6 +321,7 @@ public class MainView extends AppCompatActivity {
         rvMenu.setLayoutManager(new LinearLayoutManager(this));
 
         CheckBox checkBoxExcludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
+        checkBoxExcludeFromSearch.setChecked(this.sharedPreferences.getBoolean("exclude_from_search", false));
         checkBoxExcludeFromSearch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -330,6 +331,9 @@ public class MainView extends AppCompatActivity {
                     MainView.this.adapter.notifyDataSetChanged();
                     searchView.requestFocus();
                     MainView.this.filterNodes(searchView.getQuery().toString());
+                    SharedPreferences.Editor editor = MainView.this.sharedPreferences.edit();
+                    editor.putBoolean("exclude_from_search", isChecked);
+                    editor.commit();
                 }
             }
         });
