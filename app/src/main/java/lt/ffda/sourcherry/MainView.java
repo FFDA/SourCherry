@@ -101,6 +101,7 @@ import lt.ffda.sourcherry.fragments.NodeEditorFragment;
 import lt.ffda.sourcherry.fragments.MoveNodeFragment;
 import lt.ffda.sourcherry.fragments.NodePropertiesFragment;
 import lt.ffda.sourcherry.fragments.SearchFragment;
+import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.preferences.PreferencesActivity;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
@@ -110,7 +111,7 @@ public class MainView extends AppCompatActivity {
     private ActionBarDrawerToggle actionBarDrawerToggle;
     private DatabaseReader reader;
     private MenuItemAdapter adapter;
-    private String[] currentNode;
+    private ScNode currentNode;
     private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
     private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
     private boolean filterNodeToggle;
@@ -163,10 +164,10 @@ public class MainView extends AppCompatActivity {
             if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.reader.doesNodeExist(this.sharedPreferences.getString("last_node_unique_id", null))) {
                 // Restores node on startup if user set this in settings
                 this.currentNode = this.reader.getSingleMenuItem(this.sharedPreferences.getString("last_node_unique_id", null));
-                if (this.currentNode[2].equals("true")) { // Checks if menu has subnodes and creates appropriate menu
-                    this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
+                if (this.currentNode.hasSubnodes()) { // Checks if menu has subnodes and creates appropriate menu
+                    this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode.getUniqueId()));
                 } else {
-                    this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+                    this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode.getUniqueId()));
                 }
                 this.setCurrentNodePosition();
             } else {
@@ -178,7 +179,7 @@ public class MainView extends AppCompatActivity {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
             this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
             this.tempCurrentNodePosition = savedInstanceState.getInt("tempCurrentNodePosition");
-            this.currentNode = savedInstanceState.getStringArray("currentNode");
+            this.currentNode = savedInstanceState.getParcelable("currentNode");
             this.bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
             this.filterNodeToggle = savedInstanceState.getBoolean("filterNodeToggle");
             this.findInNodeToggle = savedInstanceState.getBoolean("findInNodeToggle");
@@ -194,28 +195,28 @@ public class MainView extends AppCompatActivity {
                 } else {
                     menuItemAction = (MenuItemAction) result.getSerializable("menuItemActionCode");
                 }
-                String[] node = result.getStringArray("node");
+                ScNode node = result.getParcelable("node");
                 switch (menuItemAction) {
                     case ADD_SIBLING_NODE:
-                        MainView.this.launchCreateNewNodeFragment(node[1], 0);
+                        MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 0);
                         break;
                     case ADD_SUBNODE:
-                        MainView.this.launchCreateNewNodeFragment(node[1], 1);
+                        MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 1);
                         break;
                     case ADD_TO_BOOKMARKS:
-                        MainView.this.addNodeToBookmarks(node[1]);
+                        MainView.this.addNodeToBookmarks(node.getUniqueId());
                         break;
                     case REMOVE_FROM_BOOKMARKS:
-                        MainView.this.removeNodeFromBookmarks(node[1], result.getInt("position"));
+                        MainView.this.removeNodeFromBookmarks(node.getUniqueId(), result.getInt("position"));
                         break;
                     case MOVE_NODE:
                         MainView.this.launchMoveNodeFragment(node);
                         break;
                     case DELETE_NODE:
-                        MainView.this.deleteNode(node[1], result.getInt("position"));
+                        MainView.this.deleteNode(node.getUniqueId(), result.getInt("position"));
                         break;
                     case PROPERTIES:
-                        MainView.this.openNodeProperties(node[1], result.getInt("position"));
+                        MainView.this.openNodeProperties(node.getUniqueId(), result.getInt("position"));
                         break;
                 }
             }
@@ -226,11 +227,11 @@ public class MainView extends AppCompatActivity {
         this.adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
-                if (MainView.this.currentNode == null || !MainView.this.mainViewModel.getNodes().get(position)[1].equals(MainView.this.currentNode[1])) {
+                if (MainView.this.currentNode == null || !MainView.this.mainViewModel.getNodes().get(position).getUniqueId().equals(MainView.this.currentNode.getUniqueId())) {
                     // If current node is null (empty/nothing opened yet) or selected nodeUniqueID is not the same as selected one
                     MainView.this.currentNode = MainView.this.mainViewModel.getNodes().get(position);
                     MainView.this.loadNodeContent();
-                    if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked to have subnodes
+                    if (MainView.this.mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked to have subnodes
                         // In this case it does not matter if node was selected from normal menu, bookmarks or search
                         if (MainView.this.filterNodeToggle) {
                             searchView.onActionViewCollapsed();
@@ -272,7 +273,7 @@ public class MainView extends AppCompatActivity {
                     if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
                         drawerLayout.close();
                     }
-                    if (MainView.this.mainViewModel.getNodes().get(position)[2].equals("true")) { // Checks if node is marked as having subnodes
+                    if (MainView.this.mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked as having subnodes
                         if (MainView.this.filterNodeToggle) {
                             searchView.onActionViewCollapsed();
                             MainView.this.hideNavigation(false);
@@ -520,7 +521,7 @@ public class MainView extends AppCompatActivity {
             int itemID = item.getItemId();
             if (itemID == R.id.toolbar_button_edit_node) {
                 if (this.currentNode != null) {
-                    if (this.reader.isNodeRichText(this.currentNode[1])) {
+                    if (this.reader.isNodeRichText(this.currentNode.getUniqueId())) {
                         Toast.makeText(this, R.string.toast_message_rich_text_node_editing_not_supported, Toast.LENGTH_SHORT).show();
                     } else {
                         this.openNodeEditor();
@@ -572,7 +573,7 @@ public class MainView extends AppCompatActivity {
         // Saving some variables to make it possible to restore the content after screen rotation
         outState.putInt("currentNodePosition", this.currentNodePosition);
         outState.putInt("tempCurrentNodePosition", this.tempCurrentNodePosition);
-        outState.putStringArray("currentNode", this.currentNode);
+        outState.putParcelable("currentNode", this.currentNode);
         outState.putBoolean("bookmarksToggle", this.bookmarksToggle);
         outState.putBoolean("filterNodeToggle", this.filterNodeToggle);
         outState.putBoolean("findInNodeToggle", this.findInNodeToggle);
@@ -585,7 +586,7 @@ public class MainView extends AppCompatActivity {
         // at earlier point app will crash
         super.onResume();
         if (this.currentNode != null) {
-            this.setToolbarTitle(this.currentNode[0]);
+            this.setToolbarTitle(this.currentNode.getUniqueId());
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyItemChanged(this.currentNodePosition);
             this.loadNodeContent();
@@ -611,7 +612,7 @@ public class MainView extends AppCompatActivity {
         if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.currentNode != null) {
             // Saving current nodeUniqueID to be able to load it on next startup
             SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-            sharedPreferencesEditor.putString("last_node_unique_id", this.currentNode[1]);
+            sharedPreferencesEditor.putString("last_node_unique_id", this.currentNode.getUniqueId());
             sharedPreferencesEditor.apply();
         }
     }
@@ -626,7 +627,7 @@ public class MainView extends AppCompatActivity {
      * Clears existing menu and recreate with submenu of the currentNode
      */
     private void openSubmenu() {
-        this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
+        this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode.getUniqueId()));
         this.currentNodePosition = 0;
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
@@ -637,9 +638,9 @@ public class MainView extends AppCompatActivity {
      * and marks currently opened node as such.
      */
     private void setClickedItemInSubmenu() {
-        this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+        this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode.getUniqueId()));
         for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
-            if (this.mainViewModel.getNodes().get(index)[1].equals(this.currentNode[1])) {
+            if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.currentNode.getUniqueId())) {
                 this.currentNodePosition = index;
                 this.adapter.markItemSelected(this.currentNodePosition);
             }
@@ -653,7 +654,7 @@ public class MainView extends AppCompatActivity {
      */
     private void setCurrentNodePosition() {
         for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
-            if (this.mainViewModel.getNodes().get(index)[1].equals(this.currentNode[1])) {
+            if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.currentNode.getUniqueId())) {
                 this.currentNodePosition = index;
             }
         }
@@ -673,7 +674,7 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked
      */
     public void goNodeUp(View view) {
-        ArrayList<String[]> nodes = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0)[1]);
+        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId());
         if (nodes != null && nodes.size() != this.mainViewModel.getNodes().size()) {
             // If retrieved nodes are not null and array size do not match the one displayed
             // it is definitely not the same node so it can go up
@@ -684,7 +685,7 @@ public class MainView extends AppCompatActivity {
         } else {
             // If both node arrays matches in size it might be the same node (especially main/top)
             // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
-            if (nodes.get(0)[1].equals(this.mainViewModel.getNodes().get(0)[1]) && nodes.get(nodes.size() -1 )[1].equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 )[1])) {
+            if (nodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && nodes.get(nodes.size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
                 Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
                 this.mainViewModel.setNodes(nodes);
@@ -703,9 +704,9 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked
      */
     public void goHome(View view) {
-        ArrayList<String[]> tempMainNodes = this.reader.getMainNodes();
+        ArrayList<ScNode> tempMainNodes = this.reader.getMainNodes();
         // Compares node sizes, first and last node's uniqueIDs in both arrays
-        if (tempMainNodes.size() == this.mainViewModel.getNodes().size() && tempMainNodes.get(0)[1].equals(this.mainViewModel.getNodes().get(0)[1]) && tempMainNodes.get(this.mainViewModel.getNodes().size() -1 )[1].equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 )[1])) {
+        if (tempMainNodes.size() == this.mainViewModel.getNodes().size() && tempMainNodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && tempMainNodes.get(this.mainViewModel.getNodes().size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
             Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
         } else {
             this.mainViewModel.setNodes(tempMainNodes);
@@ -732,11 +733,11 @@ public class MainView extends AppCompatActivity {
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
         // Sends ArrayList to fragment to be added added to view
-        this.setToolbarTitle(this.currentNode[0]);
+        this.setToolbarTitle(this.currentNode.getName());
         this.executor.execute(new Runnable() {
             @Override
             public void run() {
-                MainView.this.mainViewModel.setNodeContent(MainView.this.reader.getNodeContent(MainView.this.currentNode[1]));
+                MainView.this.mainViewModel.setNodeContent(MainView.this.reader.getNodeContent(MainView.this.currentNode.getUniqueId()));
                 nodeContentFragment.loadContent();
             }
         });
@@ -786,8 +787,8 @@ public class MainView extends AppCompatActivity {
     private void filterNodes(String query) {
         this.mainViewModel.setNodes(this.mainViewModel.getTempSearchNodes());
 
-        ArrayList<String[]> filteredNodes = this.mainViewModel.getNodes().stream()
-                .filter(node -> node[0].toLowerCase().contains(query.toLowerCase()))
+        ArrayList<ScNode> filteredNodes = this.mainViewModel.getNodes().stream()
+                .filter(node -> node.getName().toLowerCase().contains(query.toLowerCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         this.mainViewModel.setNodes(filteredNodes);
@@ -799,14 +800,14 @@ public class MainView extends AppCompatActivity {
      */
     private void resetMenuToCurrentNode() {
         if (this.currentNode != null) {
-            if (MainView.this.currentNode[2].equals("true")) { // Checks if node is marked to have subnodes
-                this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode[1]));
+            if (MainView.this.currentNode.hasSubnodes()) { // Checks if node is marked to have subnodes
+                this.mainViewModel.setNodes(this.reader.getSubnodes(this.currentNode.getUniqueId()));
                 this.currentNodePosition = 0;
                 this.adapter.markItemSelected(this.currentNodePosition);
             } else {
-                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode[1]));
+                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.currentNode.getUniqueId()));
                 for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
-                    if (this.mainViewModel.getNodes().get(index)[1].equals(this.currentNode[1])) {
+                    if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.currentNode.getUniqueId())) {
                         this.currentNodePosition = index;
                         this.adapter.markItemSelected(this.currentNodePosition);
                         break;
@@ -827,15 +828,15 @@ public class MainView extends AppCompatActivity {
 
     /**
      * Opens node that user selected by clicking anchor link
-     * @param nodeArray array that holds data of one drawer menu / currentNode item
+     * @param node array that holds data of one drawer menu / currentNode item
      */
-    public void openAnchorLink(String[] nodeArray) {
+    public void openAnchorLink(ScNode node) {
         if (this.findInNodeToggle) {
             // Closes findInNode view to clear all variables
             // Otherwise loaded node in some cases might display previous node's content
             this.closeFindInNode();
         }
-        this.currentNode = nodeArray;
+        this.currentNode = node;
         this.resetMenuToCurrentNode();
         this.loadNodeContent();
     }
@@ -862,10 +863,10 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked by the user
      */
     public void createNode(View view) {
-        if (this.mainViewModel.getNodes().size() == 0 || this.mainViewModel.getNodes().get(0)[3].equals("false")) {
+        if (this.mainViewModel.getNodes().size() == 0 || !this.mainViewModel.getNodes().get(0).isParent()) {
             this.launchCreateNewNodeFragment("0", 1);
         } else {
-            this.launchCreateNewNodeFragment(this.currentNode[1], 1);
+            this.launchCreateNewNodeFragment(this.currentNode.getUniqueId(), 1);
         }
     }
 
@@ -886,7 +887,7 @@ public class MainView extends AppCompatActivity {
      * Displays bookmarks instead of normal navigation menu in navigation drawer
      */
     private void showBookmarks() {
-        ArrayList<String[]> bookmarkedNodes = this.reader.getBookmarkedNodes();
+        ArrayList<ScNode> bookmarkedNodes = this.reader.getBookmarkedNodes();
         // Check if there are any bookmarks
         // If no bookmarks were found a message is displayed
         // No other action is taken
@@ -960,7 +961,7 @@ public class MainView extends AppCompatActivity {
         int position = -1;
         if (this.currentNode != null) {
             for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
-                if (this.currentNode[1].equals(this.mainViewModel.getNodes().get(i)[1])) {
+                if (this.currentNode.getUniqueId().equals(this.mainViewModel.getNodes().get(i).getUniqueId())) {
                     position = i;
                     break;
                 }
@@ -1515,12 +1516,12 @@ public class MainView extends AppCompatActivity {
      * @param node node which action menu should be shown
      * @param position position of the node in drawer menu as reported by MenuItemAdapter
      */
-    private void openMenuItemActionDialogFragment(String[] node, int position) {
+    private void openMenuItemActionDialogFragment(ScNode node, int position) {
         DialogFragment menuItemActionDialogFragment = new MenuItemActionDialogFragment();
         Bundle bundle = new Bundle();
-        bundle.putStringArray("node", node);
+        bundle.putParcelable("node", node);
         bundle.putInt("position", position);
-        bundle.putBoolean("bookmarked", this.reader.isNodeBookmarked(node[1]));
+        bundle.putBoolean("bookmarked", this.reader.isNodeBookmarked(node.getUniqueId()));
         menuItemActionDialogFragment.setArguments(bundle);
         menuItemActionDialogFragment.setStyle(DialogFragment.STYLE_NORMAL, R.style.CustomDialogFragment);
         menuItemActionDialogFragment.show(getSupportFragmentManager(), "menuItemActionDialogFragment");
@@ -1556,7 +1557,7 @@ public class MainView extends AppCompatActivity {
      * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
      */
     public void createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
-        String[] newNodeMenuItem = this.reader.createNewNode(nodeUniqueID, relation, name, progLang, noSearchMe, noSearchCh);
+        ScNode newNodeMenuItem = this.reader.createNewNode(nodeUniqueID, relation, name, progLang, noSearchMe, noSearchCh);
         getSupportFragmentManager().popBackStack();
         MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
@@ -1590,11 +1591,10 @@ public class MainView extends AppCompatActivity {
     private void removeNodeFromBookmarks(String nodeUniqueID, int position) {
         this.reader.removeNodeFromBookmarks(nodeUniqueID);
         if (this.bookmarksToggle) {
-            Iterator<String[]> iterator = this.mainViewModel.getNodes().iterator();
-
+            Iterator<ScNode> iterator = this.mainViewModel.getNodes().iterator();
             while(iterator.hasNext()) {
-                String[] node = iterator.next();
-                if (node[1].equals(nodeUniqueID)) {
+                ScNode node = iterator.next();
+                if (node.getUniqueId().equals(nodeUniqueID)) {
                     iterator.remove();
                     this.adapter.notifyItemRemoved(position);
                     break;
@@ -1607,9 +1607,9 @@ public class MainView extends AppCompatActivity {
      * Displays move node fragment
      * @param node information of the node which action menu was launched
      */
-    private void launchMoveNodeFragment(String[] node) {
+    private void launchMoveNodeFragment(ScNode node) {
         Bundle bundle = new Bundle();
-        bundle.putStringArray("node", node);
+        bundle.putParcelable("node", node);
         getSupportFragmentManager().beginTransaction()
                 .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .setReorderingAllowed(true)
@@ -1635,7 +1635,7 @@ public class MainView extends AppCompatActivity {
             this.mainViewModel.setNodes(this.reader.getMainNodes());
         } else {
             if (this.mainViewModel.getNodes().size() <= 2) {
-                this.currentNode = this.reader.getSingleMenuItem(this.currentNode[1]);
+                this.currentNode = this.reader.getSingleMenuItem(this.currentNode.getUniqueId());
             }
         }
         this.resetMenuToCurrentNode();
@@ -1651,7 +1651,7 @@ public class MainView extends AppCompatActivity {
      */
     private void deleteNode(String nodeUniqueID, int position) {
         this.reader.deleteNode(nodeUniqueID);
-        if (this.currentNode != null && nodeUniqueID.equals(this.currentNode[1])) {
+        if (this.currentNode != null && nodeUniqueID.equals(this.currentNode.getUniqueId())) {
             // Currently displayed node was selected for deletion
             this.removeNodeContent();
         } else {
@@ -1668,7 +1668,7 @@ public class MainView extends AppCompatActivity {
             }
             // Another node in drawer menu was selected for deletion
             if (this.mainViewModel.getNodes().size() <= 2 && this.currentNode != null) {
-                this.currentNode[2] = "false";
+                this.currentNode.setHasSubnodes(false);
                 this.resetMenuToCurrentNode();
             } else {
                 this.mainViewModel.getNodes().remove(position);
@@ -1682,10 +1682,10 @@ public class MainView extends AppCompatActivity {
      * @param nodeUniqueID unique ID of the node that was deleted
      */
     private void removeNodeFromTempSearchNodes(String nodeUniqueID) {
-        Iterator<String[]> iterator = this.mainViewModel.getTempSearchNodes().iterator();
+        Iterator<ScNode> iterator = this.mainViewModel.getTempSearchNodes().iterator();
         while (iterator.hasNext()) {
-            String[] currentNode = iterator.next();
-            if (currentNode[1].equals(nodeUniqueID)) {
+            ScNode currentNode = iterator.next();
+            if (currentNode.getUniqueId().equals(nodeUniqueID)) {
                 iterator.remove();
                 break;
             }
@@ -1697,10 +1697,10 @@ public class MainView extends AppCompatActivity {
      * @param nodeUniqueID unique ID of the node to search for
      */
     private void removeNodeFromTempNodes(String nodeUniqueID) {
-        Iterator<String[]> iterator = this.mainViewModel.getTempNodes().iterator();
+        Iterator<ScNode> iterator = this.mainViewModel.getTempNodes().iterator();
         while (iterator.hasNext()) {
-            String[] currentNode = iterator.next();
-            if (currentNode[1].equals(nodeUniqueID)) {
+            ScNode currentNode = iterator.next();
+            if (currentNode.getUniqueId().equals(nodeUniqueID)) {
                 iterator.remove();
                 break;
             }
@@ -1742,13 +1742,13 @@ public class MainView extends AppCompatActivity {
         MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
         this.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
-        mainViewModel.getNodes().get(position)[0] = name;
+        mainViewModel.getNodes().get(position).setName(name);
         this.adapter.notifyItemChanged(position);
-        if (this.currentNode != null && mainViewModel.getNodes().get(position)[1].equals(this.currentNode[1])) {
+        if (this.currentNode != null && mainViewModel.getNodes().get(position).getUniqueId().equals(this.currentNode.getUniqueId())) {
             // If opened node was changed - reloads node name in toolbar
             // and reloads node content if reloadNodeContent is true
-            this.currentNode[0] = name;
-            this.setToolbarTitle(this.currentNode[0]);
+            this.currentNode.setName(name);
+            this.setToolbarTitle(this.currentNode.getName());
             if (reloadNodeContent) {
                 this.loadNodeContent();
             }
@@ -1762,7 +1762,7 @@ public class MainView extends AppCompatActivity {
      */
     private void openNodeEditor() {
         Bundle bundle = new Bundle();
-        bundle.putString("nodeUniqueID", this.currentNode[1]);
+        bundle.putString("nodeUniqueID", this.currentNode.getUniqueId());
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
                 .add(R.id.main_view_fragment, NodeEditorFragment.class, bundle, "editNode")
@@ -1802,7 +1802,7 @@ public class MainView extends AppCompatActivity {
      */
     public void returnFromFragmentWithHomeButtonAndRestoreTitle() {
         if (this.currentNode != null) {
-            this.setToolbarTitle(this.currentNode[0]);
+            this.setToolbarTitle(this.currentNode.getName());
         }
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
         onBackPressed();
@@ -1865,9 +1865,9 @@ public class MainView extends AppCompatActivity {
     /**
      * Opens node that was passed as an argument
      * Used to open search results
-     * @param selectedNode String[] of the node that has to be opened
+     * @param selectedNode Node that has to be opened
      */
-    public void openSearchResult(String[] selectedNode) {
+    public void openSearchResult(ScNode selectedNode) {
         this.currentNode = selectedNode;
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
         onBackPressed();
@@ -1880,7 +1880,7 @@ public class MainView extends AppCompatActivity {
         if (this.currentNode != null) {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
             intent.setType("application/pdf");
-            intent.putExtra(Intent.EXTRA_TITLE, this.currentNode[0]);
+            intent.putExtra(Intent.EXTRA_TITLE, this.currentNode.getName());
             exportPdf.launch(intent);
         } else {
             Toast.makeText(this, R.string.toast_error_please_select_node, Toast.LENGTH_SHORT).show();
@@ -1922,7 +1922,7 @@ public class MainView extends AppCompatActivity {
                 paint.setColor(color);
                 paint.setTextSize(50);
 
-                StaticLayout title = StaticLayout.Builder.obtain(this.currentNode[0], 0, this.currentNode[0].length(), paint, nodeContent.getWidth())
+                StaticLayout title = StaticLayout.Builder.obtain(this.currentNode.getName(), 0, this.currentNode.getName().length(), paint, nodeContent.getWidth())
                         .setAlignment(Layout.Alignment.ALIGN_CENTER)
                         .build();
                 //*

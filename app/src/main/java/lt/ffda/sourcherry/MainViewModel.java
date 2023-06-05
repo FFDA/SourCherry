@@ -16,12 +16,14 @@ import androidx.lifecycle.ViewModel;
 
 import java.util.ArrayList;
 
+import lt.ffda.sourcherry.model.ScNode;
+
 public class MainViewModel extends ViewModel {
     // Stores data, that should be kept during screen orientation change
     private ArrayList<ArrayList<CharSequence[]>> nodeContent;
-    private ArrayList<String[]> nodes;
-    private ArrayList<String[]> tempNodes;
-    private ArrayList<String[]> tempSearchNodes;
+    private ArrayList<ScNode> nodes;
+    private ArrayList<ScNode> tempNodes;
+    private ArrayList<ScNode> tempSearchNodes;
     // String value of every TextView in node
     private ArrayList<SpannableStringBuilder> findInNodeStorage;
     // Stores results for FindInNode() int[textView index in findInNodeStorage, start index of matching substring, end index of matching substring]
@@ -48,7 +50,7 @@ public class MainViewModel extends ViewModel {
      * Set nodes to a list that holds drawer menu items
      * @param nodes drawer menu items list
      */
-    public void setNodes(ArrayList<String[]> nodes) {
+    public void setNodes(ArrayList<ScNode> nodes) {
         if (this.nodes != null) {
             this.nodes.clear();
             this.nodes.addAll(nodes);
@@ -61,7 +63,7 @@ public class MainViewModel extends ViewModel {
      * Returns current drawer menu items
      * @return drawer menu items
      */
-    public ArrayList<String[]> getNodes() {
+    public ArrayList<ScNode> getNodes() {
         return this.nodes;
     }
 
@@ -84,7 +86,7 @@ public class MainViewModel extends ViewModel {
      * Returns items saved using saveCurrentNodes
      * @return saved drawer menu items
      */
-    public ArrayList<String[]> getTempNodes() {
+    public ArrayList<ScNode> getTempNodes() {
         return this.tempNodes;
     }
 
@@ -114,7 +116,7 @@ public class MainViewModel extends ViewModel {
      * Returns array list that was previously saved with setTempSearchNodes
      * @return drawer menu node list
      */
-    public ArrayList<String[]> getTempSearchNodes() {
+    public ArrayList<ScNode> getTempSearchNodes() {
         return this.tempSearchNodes;
     }
 
@@ -123,7 +125,7 @@ public class MainViewModel extends ViewModel {
      * Used to store all the nodes for node filter function
      * @param nodes nodes to save to a different array
      */
-    public void setTempSearchNodes(ArrayList<String[]> nodes) {
+    public void setTempSearchNodes(ArrayList<ScNode> nodes) {
         this.tempSearchNodes.clear();
         this.tempSearchNodes.addAll(nodes);
     }

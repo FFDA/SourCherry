@@ -21,6 +21,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 
 public class MenuItemActionDialogFragment extends DialogFragment {
@@ -44,7 +45,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonAddSiblingNode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SIBLING_NODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SIBLING_NODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"));
             }
         });
 
@@ -52,7 +53,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonAddSubnode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SUBNODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SUBNODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"));
             }
         });
 
@@ -64,7 +65,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
             buttonRemoveFromBookmarks.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    MenuItemActionDialogFragment.this.sendResult(MenuItemAction.REMOVE_FROM_BOOKMARKS, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
+                    MenuItemActionDialogFragment.this.sendResult(MenuItemAction.REMOVE_FROM_BOOKMARKS, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
                 }
             });
         } else {
@@ -73,7 +74,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
             buttonAddToBookmarks.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_TO_BOOKMARKS, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
+                    MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_TO_BOOKMARKS, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"));
                 }
             });
         }
@@ -82,7 +83,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonMoveNode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.MOVE_NODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.MOVE_NODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"));
             }
         });
 
@@ -90,7 +91,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonDeleteNode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.DELETE_NODE, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.DELETE_NODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
             }
         });
 
@@ -98,12 +99,12 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonProperties.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.PROPERTIES, MenuItemActionDialogFragment.this.getArguments().getStringArray("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
+                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.PROPERTIES, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
             }
         });
 
-        String[] node = getArguments().getStringArray("node");
-        getDialog().setTitle(node[0]);
+        ScNode node = getArguments().getParcelable("node");
+        getDialog().setTitle(node.getName());
     }
 
     /**
@@ -111,10 +112,10 @@ public class MenuItemActionDialogFragment extends DialogFragment {
      * @param menuItemAction action code that user chose
      * @param node node menu item information on which action was initiated
      */
-    private void sendResult(MenuItemAction menuItemAction, String[] node) {
+    private void sendResult(MenuItemAction menuItemAction, ScNode node) {
         Bundle result = new Bundle();
         result.putSerializable("menuItemActionCode", menuItemAction);
-        result.putStringArray("node", node);
+        result.putParcelable("node", node);
         getParentFragmentManager().setFragmentResult("menuItemAction", result);
         dismiss();
     }
@@ -125,10 +126,10 @@ public class MenuItemActionDialogFragment extends DialogFragment {
      * @param node node menu item information on which action was initiated
      * @param position position of the node in drawer menu as reported by MenuItemAdapter
      */
-    private void sendResult(MenuItemAction menuItemAction, String[] node, int position) {
+    private void sendResult(MenuItemAction menuItemAction, ScNode node, int position) {
         Bundle result = new Bundle();
         result.putSerializable("menuItemActionCode", menuItemAction);
-        result.putStringArray("node", node);
+        result.putParcelable("node", node);
         result.putInt("position", position);
         getParentFragmentManager().setFragmentResult("menuItemAction", result);
         dismiss();

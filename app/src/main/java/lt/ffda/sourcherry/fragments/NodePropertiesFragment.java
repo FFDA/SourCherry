@@ -32,6 +32,7 @@ import androidx.fragment.app.Fragment;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.model.ScNodeProperties;
 
 public class NodePropertiesFragment extends Fragment {
     RadioGroup radioGroupNodeType;
@@ -54,17 +55,17 @@ public class NodePropertiesFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         String nodeUniqueID = getArguments().getString("nodeUniqueID");
-        String[] nodeProperties = ((MainView) getActivity()).getReader().getNodeProperties(nodeUniqueID);
+        ScNodeProperties nodeProperties = ((MainView) getActivity()).getReader().getNodeProperties(nodeUniqueID);
 
         EditText editTextNodeName = view.findViewById(R.id.edit_text_node_name);
-        editTextNodeName.setText(nodeProperties[0]);
+        editTextNodeName.setText(nodeProperties.getName());
         editTextNodeName.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 boolean handle = false;
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     handle = true;
-                    NodePropertiesFragment.this.updateNode(nodeUniqueID, nodeProperties[1]);
+                    NodePropertiesFragment.this.updateNode(nodeUniqueID, nodeProperties.getProgLang());
                     // Hides keyboard
                     InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(editTextNodeName.getWindowToken(), 0);
@@ -74,21 +75,21 @@ public class NodePropertiesFragment extends Fragment {
         });
 
         // Setting up node type radio buttons
-        if (nodeProperties[1].equals("custom-colors")) {
+        if (nodeProperties.getProgLang().equals("custom-colors")) {
             radioGroupNodeType.check(R.id.radio_button_rich_text);
-        } else if (nodeProperties[1].equals("plain-text")) {
+        } else if (nodeProperties.getProgLang().equals("plain-text")) {
             radioGroupNodeType.check(R.id.radio_button_plain_text);
         } else {
             radioGroupNodeType.check(R.id.radio_button_automatic_syntax_highlighting);
         }
 
         // Setting up "Exclude from search This node"
-        if (nodeProperties[2].equals("1")) {
+        if (nodeProperties.getNoSearchMe() == 1) {
             this.checkBoxExcludeFromSearchesThisNode.setChecked(true);
         }
 
         // Setting up "Exclude from search The subnodes"
-        if (nodeProperties[3].equals("1")) {
+        if (nodeProperties.getNoSearchCh() == 1) {
             this.checkBoxExcludeFromSearchesSubnodes.setChecked(true);
         }
 
@@ -97,7 +98,7 @@ public class NodePropertiesFragment extends Fragment {
         this.radioGroupNodeType.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
-                if (nodeProperties[1].equals("custom-colors") && checkedId != R.id.radio_button_rich_text) {
+                if (nodeProperties.getProgLang().equals("custom-colors") && checkedId != R.id.radio_button_rich_text) {
                     AlertDialog.Builder confirmNodeTypeChangeBuilder = new AlertDialog.Builder(getActivity());
                     confirmNodeTypeChangeBuilder.setTitle(R.string.dialog_node_type_change_title);
                     confirmNodeTypeChangeBuilder.setMessage(R.string.dialog_node_type_change_message);
@@ -126,7 +127,7 @@ public class NodePropertiesFragment extends Fragment {
         buttonCreate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NodePropertiesFragment.this.updateNode(nodeUniqueID, nodeProperties[1]);
+                NodePropertiesFragment.this.updateNode(nodeUniqueID, nodeProperties.getProgLang());
             }
         });
     }

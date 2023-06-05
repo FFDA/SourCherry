@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutorService;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.database.DatabaseReader;
+import lt.ffda.sourcherry.model.ScSearchNode;
 
 public class SearchFragment extends Fragment {
     private DatabaseReader reader;
@@ -147,7 +148,7 @@ public class SearchFragment extends Fragment {
             }
         });
 
-        ArrayList<String[]> searchResult = this.reader.search(noSearch, query);
+        ArrayList<ScSearchNode> searchResult = this.reader.search(noSearch, query);
 
         this.handler.post(new Runnable() {
             @Override
@@ -158,30 +159,30 @@ public class SearchFragment extends Fragment {
         });
 
         if (searchResult != null) {
-            for (String[] result: searchResult) {
+            for (ScSearchNode result: searchResult) {
                 LinearLayout searchResultItem = (LinearLayout) layoutInflater.inflate(R.layout.item_search_activity_result, null);
 
                 // Title of a search result
                 // Because of how strings resources formatting works
                 // String has to be created from resource, then all tags html tags have to be converted to normal string elements (<br/> -> \n, etc)
                 TextView resultTitle = searchResultItem.findViewById(R.id.search_activity_results_item_title);
-                String itemTitle = getString(R.string.options_menu_search_item_title, result[3], result[2], result[0]);
+                String itemTitle = getString(R.string.options_menu_search_item_title, result.getResultCount(), result.getQuery(), result.getName());
                 Spanned styledItemTitle = Html.fromHtml(itemTitle, Html.FROM_HTML_MODE_LEGACY);
                 resultTitle.setText(styledItemTitle);
 
                 // if there are more than 3 instances of the query in node
                 // adds a string to the bottom of the 3 instances that tells user how many are left
                 TextView resultSearchSamples = searchResultItem.findViewById(R.id.search_activity_results_item_search_samples);
-                int instanceCount = Integer.parseInt(result[3]);
+                int instanceCount = result.getResultCount();
                 if (instanceCount > 3) {
-                    String resultText = getString(R.string.options_menu_search_query_instances_node,result[4], instanceCount - 3);
+                    String resultText = getString(R.string.options_menu_search_query_instances_node,result.getResultSamples(), instanceCount - 3);
                     Spanned styledResultText = Html.fromHtml(resultText, Html.FROM_HTML_MODE_LEGACY);
                     // Because of how Html.fromHtml (removes spanned formatting) works it is not possible to mark string queries in searcher
                     // it has to be done on this end
-                    resultSearchSamples.setText(markSearchQuery(styledResultText.toString(), result[2]));
+                    resultSearchSamples.setText(markSearchQuery(styledResultText.toString(), result.getQuery()));
                 } else {
-                    Spanned styledResultText = Html.fromHtml(result[4], Html.FROM_HTML_MODE_LEGACY);
-                    resultSearchSamples.setText(markSearchQuery(styledResultText.toString(), result[2]));
+                    Spanned styledResultText = Html.fromHtml(result.getResultSamples(), Html.FROM_HTML_MODE_LEGACY);
+                    resultSearchSamples.setText(markSearchQuery(styledResultText.toString(), result.getQuery()));
                 }
 
                 // Detects click on search result
@@ -189,7 +190,7 @@ public class SearchFragment extends Fragment {
                 searchResultItem.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        ((MainView) getActivity()).openSearchResult(new String[]{result[0], result[1], result[5], result[6], result[7]});
+                        ((MainView) getActivity()).openSearchResult(result);
                     }
                 });
                 this.handler.post(new Runnable() {

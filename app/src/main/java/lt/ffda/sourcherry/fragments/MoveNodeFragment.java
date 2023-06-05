@@ -31,10 +31,11 @@ import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MoveNodeFragmentItemAdapter;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.model.ScNode;
 
 public class MoveNodeFragment extends Fragment {
     private DatabaseReader reader;
-    private ArrayList<String[]> nodeList;
+    private ArrayList<ScNode> nodeList;
     private MoveNodeFragmentItemAdapter adapter;
     private int currentPosition; // currently marked node
 
@@ -53,7 +54,7 @@ public class MoveNodeFragment extends Fragment {
         this.adapter = new MoveNodeFragmentItemAdapter(nodeList);
 
         TextView moveNodeTextviewTitle = view.findViewById(R.id.move_node_textview_title);
-        moveNodeTextviewTitle.setText(getString(R.string.move_node_textview_title, getArguments().getStringArray("node")[0]));
+        moveNodeTextviewTitle.setText(getString(R.string.move_node_textview_title, ((ScNode) getArguments().getParcelable("node")).getName()));
 
         RecyclerView recyclerView = view.findViewById(R.id.move_node_fragment_recycle_view);
         recyclerView.setAdapter(adapter);
@@ -62,8 +63,8 @@ public class MoveNodeFragment extends Fragment {
         adapter.setOnItemClickListener(new MoveNodeFragmentItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
-                if (nodeList.get(position)[2].equals("true")) {
-                    MoveNodeFragment.this.setNodes(reader.getSubnodes(nodeList.get(position)[1]));
+                if (nodeList.get(position).hasSubnodes()) {
+                    MoveNodeFragment.this.setNodes(reader.getSubnodes(nodeList.get(position).getUniqueId()));
                 }
             }
         });
@@ -90,7 +91,7 @@ public class MoveNodeFragment extends Fragment {
         buttonUp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MoveNodeFragment.this.goNodeUp(MoveNodeFragment.this.nodeList.get(0)[1]);
+                MoveNodeFragment.this.goNodeUp(MoveNodeFragment.this.nodeList.get(0).getUniqueId());
             }
         });
 
@@ -115,7 +116,7 @@ public class MoveNodeFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if (MoveNodeFragment.this.currentPosition != RecyclerView.NO_POSITION) {
-                    MoveNodeFragment.this.moveNode(nodeList.get(currentPosition)[1]);
+                    MoveNodeFragment.this.moveNode(nodeList.get(currentPosition).getUniqueId());
                 }
             }
         });
@@ -126,7 +127,7 @@ public class MoveNodeFragment extends Fragment {
      * Removes selection of the node that's currently selected for the move
      * @param nodes node list to load to the navigation menu
      */
-    private void setNodes(ArrayList<String[]> nodes) {
+    private void setNodes(ArrayList<ScNode> nodes) {
         this.nodeList.clear();
         this.nodeList.addAll(nodes);
         this.currentPosition = RecyclerView.NO_POSITION;
@@ -139,7 +140,7 @@ public class MoveNodeFragment extends Fragment {
      * @param destinationNodeUniqueID unique ID of the node that user wants to make a new parent of the select node
      */
     private void moveNode(String destinationNodeUniqueID) {
-        ((MainView) getActivity()).moveNode(getArguments().getStringArray("node")[1], destinationNodeUniqueID);
+        ((MainView) getActivity()).moveNode(((ScNode) getArguments().getParcelable("node")).getUniqueId(), destinationNodeUniqueID);
     }
 
     /**
@@ -148,7 +149,7 @@ public class MoveNodeFragment extends Fragment {
      * @param nodeUniqueID unique node ID if the node which is currently at the top (parent node)
      */
     private void goNodeUp(String nodeUniqueID) {
-        ArrayList<String[]> nodes = this.reader.getParentWithSubnodes(nodeUniqueID);
+        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(nodeUniqueID);
         if (nodes != null && nodes.size() != this.nodeList.size()) {
             // If retrieved nodes are not null and array size do not match the one displayed
             // it is definitely not the same node so it can go up
@@ -156,7 +157,7 @@ public class MoveNodeFragment extends Fragment {
         } else {
             // If both node arrays matches in size it might be the same node (especially main/top)
             // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
-            if (nodes.get(0)[1].equals(this.nodeList.get(0)[1]) && nodes.get(nodes.size() -1 )[1].equals(this.nodeList.get(this.nodeList.size() -1 )[1])) {
+            if (nodes.get(0).getUniqueId().equals(this.nodeList.get(0).getUniqueId()) && nodes.get(nodes.size() -1).getUniqueId().equals(this.nodeList.get(this.nodeList.size() -1).getUniqueId())) {
                 Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
                 this.setNodes(nodes);
@@ -169,9 +170,9 @@ public class MoveNodeFragment extends Fragment {
      * Displays a message if navigation is already at the top and does not reload the menu
      */
     private void goHome() {
-        ArrayList<String[]> tempHomeNodes = this.reader.getMainNodes();
+        ArrayList<ScNode> tempHomeNodes = this.reader.getMainNodes();
         // Compares node sizes, first and last nodeUniqueIDs in both arrays
-        if (tempHomeNodes.size() == this.nodeList.size() && tempHomeNodes.get(0)[1].equals(this.nodeList.get(0)[1]) && tempHomeNodes.get(this.nodeList.size() -1 )[1].equals(this.nodeList.get(this.nodeList.size() -1 )[1])) {
+        if (tempHomeNodes.size() == this.nodeList.size() && tempHomeNodes.get(0).getUniqueId().equals(this.nodeList.get(0).getUniqueId()) && tempHomeNodes.get(this.nodeList.size() -1).getUniqueId().equals(this.nodeList.get(this.nodeList.size() -1).getUniqueId())) {
             Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
         } else {
             this.setNodes(tempHomeNodes);

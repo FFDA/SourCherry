@@ -68,6 +68,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.model.ScNode;
+import lt.ffda.sourcherry.model.ScNodeProperties;
+import lt.ffda.sourcherry.model.ScSearchNode;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class SQLReader implements DatabaseReader {
@@ -82,32 +85,29 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> getAllNodes(boolean noSearch) {
+    public ArrayList<ScNode> getAllNodes(boolean noSearch) {
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
             Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
-            ArrayList<String[]> nodes = new ArrayList<>(returnSubnodeSearchArrayList(cursor));
+            ArrayList<ScNode> nodes = this.returnSubnodeSearchArrayList(cursor);
             cursor.close();
-
             return nodes;
         } else {
             Cursor cursor = this.sqlite.query("node", new String[]{"name", "node_id"}, null, null, null, null, null);
-
-            ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "false");
-
+            ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, false);
             cursor.close();
             return nodes;
         }
     }
 
     @Override
-    public ArrayList<String[]> getMainNodes() {
+    public ArrayList<ScNode> getMainNodes() {
         // Returns main nodes from the database
         // Used to display menu when app starts
-        ArrayList<String[]> nodes = null;
+        ArrayList<ScNode> nodes = null;
         try {
             Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
-            nodes = returnSubnodeArrayList(cursor, "false");
+            nodes = returnSubnodeArrayList(cursor, false);
             cursor.close();
         } catch (Exception SQLiteException) {
             ((MainView) context).exitWithError();
@@ -116,7 +116,7 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> getBookmarkedNodes() {
+    public ArrayList<ScNode> getBookmarkedNodes() {
         // Returns bookmarked nodes from the document
         // Returns null if there aren't any
         Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN bookmark ON node.node_id=bookmark.node_id ORDER BY bookmark.sequence ASC", null);
@@ -124,20 +124,17 @@ public class SQLReader implements DatabaseReader {
             cursor.close();
             return null;
         }
-        ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "false");
-
+        ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, false);
         cursor.close();
         return nodes;
     }
 
     @Override
-    public ArrayList<String[]> getSubnodes(String nodeUniqueID) {
+    public ArrayList<ScNode> getSubnodes(String nodeUniqueID) {
         // Returns Subnodes of the node which nodeUniqueID is provided
         Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
-        ArrayList<String[]> nodes = returnSubnodeArrayList(cursor, "true");
-
-        nodes.add(0, createParentNode(nodeUniqueID));
-
+        ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, true);
+        nodes.add(0, createParentNode(String.valueOf(nodeUniqueID)));
         cursor.close();
         return nodes;
     }
@@ -146,86 +143,80 @@ public class SQLReader implements DatabaseReader {
      * This function scans provided Cursor to collect all the nodes from it to be displayed as subnodes in drawer menu
      * Most of the time it is used to collect information about subnodes of the node that is being opened
      * However, it can be used to create information Main menu items
-     * In that case isSubnode should passed as "false"
+     * In that case isSubnode should passed as false
      * If true this value will make node look indented
      * @param cursor SQL Cursor object that contains nodes from which to make a node list
-     * @param isSubnode "true" - means that node is not a subnode and should not be displayed indented in the drawer menu. "false" - apposite of that
-     * @return ArrayList of node's subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @param isSubnode true - means that node is not a subnode and should not be displayed indented in the drawer menu. false - apposite of that
+     * @return ArrayList of node's subnodes.
      */
-    public ArrayList<String[]> returnSubnodeArrayList(Cursor cursor, String isSubnode) {
-        ArrayList<String[]> nodes = new ArrayList<>();
-
+    public ArrayList<ScNode> returnSubnodeArrayList(Cursor cursor, boolean isSubnode) {
+        ArrayList<ScNode> nodes = new ArrayList<>();
         while (cursor.moveToNext()) {
+            String nodeUniqueID = cursor.getString(1);
             String nameValue = cursor.getString(0);
-            String nodeUniqueID = String.valueOf(cursor.getInt(1));
-            String hasSubnode = hasSubnodes(nodeUniqueID);
-            String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-            String[] currentNodeArray = {nameValue, nodeUniqueID, hasSubnode, isParent, isSubnode};
-            nodes.add(currentNodeArray);
+            boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+            // There is only one parent Node and its added manually in getSubNodes()
+            nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, isSubnode));
         }
-
         return nodes;
     }
 
     /**
-     * Creates an ArrayList of String[] that can be used to display nodes during drawer menu search/filter function
+     * Creates an ArrayList of ScNode objects that can be used to display nodes during drawer menu search/filter function
      * ArrayList is creaded based on node.level value (to exclude node/subnodes from search)
      * @param cursor SQL Cursor object that contains nodes from which to make a node list
-     * @return ArrayList<String[]> that contains all the nodes of the provided cursor object
+     * @return ArrayList that contains all the nodes of the provided cursor object
      */
-    public ArrayList<String[]> returnSubnodeSearchArrayList(Cursor cursor) {
-        ArrayList<String[]> nodes = new ArrayList<>();
-
+    public ArrayList<ScNode> returnSubnodeSearchArrayList(Cursor cursor) {
+        ArrayList<ScNode> nodes = new ArrayList<>();
         while (cursor.moveToNext()) {
             if (cursor.getInt(2) == 0) {
                 // If node and subnodes are not selected to be excluded from search
+                String nodeUniqueID = cursor.getString(1);
                 String nameValue = cursor.getString(0);
-                String nodeUniqueID = String.valueOf(cursor.getInt(1));
-                String hasSubnode = hasSubnodes(nodeUniqueID);
-                String isParent = "false"; // There are no "parent" nodes in search. All nodes displayed without indentation
-                nodes.add(new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, "false"});
-                if (hasSubnode.equals("true")) {
-                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
+                boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+                // There are no "parent" nodes in search. All nodes displayed without indentation
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false));
+                if (hasSubnodes) {
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
                     nodes.addAll(returnSubnodeSearchArrayList(subCursor));
                     subCursor.close();
                 }
             } else if (cursor.getInt(2) == 1) {
                 // If only node is selected to be excluded from search
-                String nodeUniqueID = String.valueOf(cursor.getInt(1));
-                String hasSubnode = hasSubnodes(nodeUniqueID);
-                if (hasSubnode.equals("true")) {
-                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
+                String nodeUniqueID = cursor.getString(1);
+                boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+                if (hasSubnodes) {
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
                     nodes.addAll(returnSubnodeSearchArrayList(subCursor));
                     subCursor.close();
                 }
             } else if (cursor.getInt(2) == 2) {
                 // if only subnodes are selected to be excluded from search
+                String nodeUniqueID = cursor.getString(1);
                 String nameValue = cursor.getString(0);
-                String nodeUniqueID = String.valueOf(cursor.getInt(1));
-                String hasSubnode = hasSubnodes(nodeUniqueID);
-                String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, "false"});
+                boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+                // There is only one parent Node and its added manually in getSubNodes()
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false));
             }
         }
-
         return nodes;
     }
 
     /**
      * Checks if provided Node object has a subnode(s)
      * @param nodeUniqueID unique ID of the node that is being checked for subnodes
-     * @return "true" (string) if node has a subnode, "false" - if not
+     * @return true if node has a subnode, false - if not
      */
-    public String hasSubnodes(String nodeUniqueID) {
+    public boolean hasSubnodes(String nodeUniqueID) {
         // Checks if node with provided unique_id has subnodes
         Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID},null,null,null);
-
         if (cursor.getCount() > 0) {
             cursor.close();
-            return "true";
+            return true;
         } else {
             cursor.close();
-            return "false";
+            return false;
         }
     }
 
@@ -233,12 +224,11 @@ public class SQLReader implements DatabaseReader {
      * Parent node (top) in the drawer menu
      * Used when creating a drawer menu
      * @param nodeUniqueID unique ID of the node that is parent node
-     * @return String[] with information about provided node. Information is as fallows: {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return ScNode object with properties of a parent node
      */
-    public String[] createParentNode(String nodeUniqueID) {
+    public ScNode createParentNode(String nodeUniqueID) {
         // Creates and returns the node that will be added to the node array as parent node
-        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{nodeUniqueID}, null, null,null);
-
+        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{String.valueOf(nodeUniqueID)}, null, null,null);
         String parentNodeName;
         if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
             parentNodeName = cursor.getString(0);
@@ -246,22 +236,17 @@ public class SQLReader implements DatabaseReader {
             return null;
         }
         String parentNodeUniqueID = nodeUniqueID;
-        String parentNodeHasSubnode = hasSubnodes(parentNodeUniqueID);
-        String parentNodeIsParent = "true";
-        String parentNodeIsSubnode = "false";
-        String[] node = {parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent, parentNodeIsSubnode};
-
+        boolean parentNodeHasSubnodes = hasSubnodes(parentNodeUniqueID);
+        ScNode node = new ScNode(parentNodeUniqueID, parentNodeName, true, parentNodeHasSubnodes, false);
         cursor.close();
-
         return node;
     }
 
     @Override
-    public ArrayList<String[]> getParentWithSubnodes(String nodeUniqueID) {
+    public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
         // Checks if it is possible to go up in document's node tree from given node's uniqueID
         // Returns array with appropriate nodes
-        ArrayList<String[]> nodes = null;
-
+        ArrayList<ScNode> nodes = null;
         String nodeParentID;
         Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null);
         if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
@@ -270,52 +255,42 @@ public class SQLReader implements DatabaseReader {
             if (nodeParentID.equals("0")) {
                 nodes = getMainNodes();
             } else {
-                cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeParentID});
-                nodes = returnSubnodeArrayList(cursor, "true");
+                cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeParentID)});
+                nodes = returnSubnodeArrayList(cursor, true);
                 nodes.add(0, createParentNode(nodeParentID));
             }
         }
-
         cursor.close();
         return nodes;
     }
 
     @Override
-    public String[] getSingleMenuItem(String nodeUniqueID) {
+    public ScNode getSingleMenuItem(String nodeUniqueID) {
         // Returns single menu item to be used when opening anchor links
-        String[] currentNodeArray = null;
+        ScNode currentScNode = null;
         Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{nodeUniqueID}, null, null,null);
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // Node name and unique_id always the same for the node
             String nameValue = cursor.getString(0);
-            if (hasSubnodes(nodeUniqueID).equals("true")) {
+            if (hasSubnodes(nodeUniqueID)) {
                 // if node has subnodes, then it has to be opened as a parent node and displayed as such
-                String hasSubnode = "true";
-                String isParent = "true";
-                String isSubnode = "false";
-                currentNodeArray = new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, isSubnode};
+                currentScNode = new ScNode(nodeUniqueID, nameValue, true, true, false);
             } else {
                 // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-                String hasSubnode = "false";
-                String isParent = "false";
-                String isSubnode = "true";
-                currentNodeArray = new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, isSubnode};
+                currentScNode = new ScNode(nodeUniqueID, nameValue, false, false, true);
             }
         }
         cursor.close();
-        return currentNodeArray;
+        return currentScNode;
     }
 
     @Override
     public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String nodeUniqueID) {
         // Original XML document has newline characters marked (hopefully it's the same with SQL database)
         // Returns ArrayList of SpannableStringBuilder elements
-
         ArrayList<ArrayList<CharSequence[]>> nodeContent = new ArrayList<>(); // The one that will be returned
-
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
         ArrayList<ArrayList<CharSequence[]>> nodeTables = new ArrayList<>(); // Temporary for table storage
-
         //// This needed to calculate where to place span in to builder
         // Because after every insertion in the middle it displaces the next insertion
         // by the length of the inserted span.
@@ -1144,24 +1119,24 @@ public class SQLReader implements DatabaseReader {
      * @param level value that was saved in SQL database
      * @return Array that holds values {noSearchMe, ne SearchCh}
      */
-    private String[] convertLevelToNoSearch(int level) {
-        String[] noSearch = new String[2];
+    private byte[] convertLevelToNoSearch(int level) {
+        byte[] noSearch = new byte[2];
         switch (level) {
             case 0:
-                noSearch[0] = "0";
-                noSearch[1] = "0";
+                noSearch[0] = 0;
+                noSearch[1] = 0;
                 break;
             case 1:
-                noSearch[0] = "1";
-                noSearch[1] = "0";
+                noSearch[0] = 1;
+                noSearch[1] = 0;
                 break;
             case 2:
-                noSearch[0] = "0";
-                noSearch[1] = "1";
+                noSearch[0] = 0;
+                noSearch[1] = 1;
                 break;
             case 3:
-                noSearch[0] = "1";
-                noSearch[1] = "1";
+                noSearch[0] = 1;
+                noSearch[1] = 1;
         }
         return noSearch;
     }
@@ -1173,8 +1148,8 @@ public class SQLReader implements DatabaseReader {
      * @param noSearchCh exclude the subnode from search value. 0 - search the subnodes, 1 - exclude
      * @return level value. 0 - search the node and subnodes, 1 - exclude the node, 2 - exclude subnodes, 3 - exclude both
      */
-    private int convertNoSearchToLevel(String noSearchMe, String noSearchCh) {
-        int level = 0;
+    private byte convertNoSearchToLevel(String noSearchMe, String noSearchCh) {
+        byte level = 0;
         if (noSearchMe.equals("1") && noSearchCh.equals("1")) {
             level = 3;
         } else if (noSearchMe.equals("1")) {
@@ -1186,10 +1161,10 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
+    public ScNode createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
         // Updating node table
         int newNodeUniqueID = this.getNodeMaxID() + 1;
-        int level = convertNoSearchToLevel(noSearchMe, noSearchCh);
+        byte level = convertNoSearchToLevel(noSearchMe, noSearchCh);
         String timeStamp = String.valueOf(System.currentTimeMillis());
         ContentValues contentValues = new ContentValues();
         contentValues.put("node_id", newNodeUniqueID);
@@ -1214,7 +1189,7 @@ public class SQLReader implements DatabaseReader {
 
         // Updating children table
         contentValues.clear();
-        String isSubnode = "true";
+        boolean isSubnode = true;
         contentValues.put("node_id", newNodeUniqueID);
         if (relation == 0) {
             int parentNodeUniqueID = this.getParentNodeUniqueID(nodeUniqueID);
@@ -1237,7 +1212,7 @@ public class SQLReader implements DatabaseReader {
             updateChildrenTableCursor.close();
             contentValues.put("sequence", newNodeSequenceNumber);
             if (parentNodeUniqueID == 0) {
-                isSubnode = "false";
+                isSubnode = false;
             }
         } else {
             contentValues.put("father_id", Integer.parseInt(nodeUniqueID));
@@ -1249,8 +1224,7 @@ public class SQLReader implements DatabaseReader {
             displayToast(this.context.getString(R.string.toast_error_failed_to_create_entry_into_children_table));
             return null;
         }
-
-        return new String[] {name, String.valueOf(newNodeUniqueID), "false", "false", isSubnode};
+        return new ScNode(String.valueOf(newNodeUniqueID), name, false, false, isSubnode);
     }
 
     @Override
@@ -1432,13 +1406,11 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] getNodeProperties(String nodeUniqueID) {
+    public ScNodeProperties getNodeProperties(String nodeUniqueID) {
         Cursor cursor = this.sqlite.query("node", new String[]{"name", "syntax", "level"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
         cursor.moveToFirst();
-        String[] noSearch = this.convertLevelToNoSearch(cursor.getInt(2));
-        String noSearchMe = noSearch[0];
-        String noSearchCh = noSearch[1];
-        String[] nodeProperties = new String[]{cursor.getString(0), cursor.getString(1), noSearchMe, noSearchCh};
+        byte[] noSearch = this.convertLevelToNoSearch(cursor.getInt(2));
+        ScNodeProperties nodeProperties = new ScNodeProperties(nodeUniqueID, cursor.getString(0), cursor.getString(1), noSearch[0], noSearch[1]);
         cursor.close();
         return nodeProperties;
     }
@@ -1628,10 +1600,10 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> search(Boolean noSearch, String query) {
+    public ArrayList<ScSearchNode> search(Boolean noSearch, String query) {
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
-            ArrayList<String[]> searchResult = new ArrayList<>();
+            ArrayList<ScSearchNode> searchResult = new ArrayList<>();
 
             Cursor cursor = this.sqlite.rawQuery("SELECT * FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
 
@@ -1639,30 +1611,30 @@ public class SQLReader implements DatabaseReader {
                 if (cursor.getInt(10) == 0) {
                     // If node and subnodes are not selected to be excluded from search
                     String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                    String hasSubnode = this.hasSubnodes(nodeUniqueID);
-                    String isParent = "true"; // Main menu node will always be a parent
-                    String isSubnode = "false"; // Main menu item will always be displayed as a parent
-                    String[] result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+                    boolean hasSubnode = this.hasSubnodes(nodeUniqueID);
+                    // Main menu node will always be a parent
+                    // Main menu item will always be displayed as a parent
+                    ScSearchNode result = findInNode(cursor, query, hasSubnode, true, false);
                     if (result != null) {
                         searchResult.add(result);
                     }
-                    if (hasSubnode.equals("true")) {
+                    if (hasSubnode) {
                         searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
                     }
                 } else if (cursor.getInt(10) == 1) {
                     // If only the node is selected to be excluded from search
                     String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                    String hasSubnode = this.hasSubnodes(nodeUniqueID);
-                    if (hasSubnode.equals("true")) {
+                    boolean hasSubnode = this.hasSubnodes(nodeUniqueID);
+                    if (hasSubnode) {
                         searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
                     }
                 } else if (cursor.getInt(10) == 2) {
                     // if only subnodes are selected to be excluded from search
                     String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                    String hasSubnodes = this.hasSubnodes(nodeUniqueID);
-                    String isParent = "true"; // Main menu node will always be a parent
-                    String isSubnode = "false"; // Main menu item will always be displayed as parent
-                    String[] result = findInNode(cursor, query, hasSubnodes, isParent, isSubnode);
+                    boolean hasSubnodes = this.hasSubnodes(nodeUniqueID);
+                    // Main menu node will always be a parent
+                    // Main menu item will always be displayed as parent
+                    ScSearchNode result = findInNode(cursor, query, hasSubnodes, true, false);
                     if (result != null) {
                         searchResult.add(result);
                     }
@@ -1672,17 +1644,17 @@ public class SQLReader implements DatabaseReader {
             return searchResult;
         } else {
             Cursor cursor = this.sqlite.rawQuery("SELECT * FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
-            ArrayList<String[]> searchResult = new ArrayList<>();
+            ArrayList<ScSearchNode> searchResult = new ArrayList<>();
             while (cursor.moveToNext()) {
                 String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                String hasSubnode = this.hasSubnodes(nodeUniqueID);
-                String isParent = "true"; // Main menu node will always be parent
-                String isSubnode = "false"; // Main menu item will displayed as parent
-                String[] result = this.findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+                boolean hasSubnode = this.hasSubnodes(nodeUniqueID);
+                // Main menu node will always be parent
+                // Main menu item will displayed as parent
+                ScSearchNode result = this.findInNode(cursor, query, hasSubnode, true, false);
                 if (result != null) {
                     searchResult.add(result);
                 }
-                if (hasSubnode.equals("true")) {
+                if (hasSubnode) {
                     searchResult.addAll(this.searchAllNodes(nodeUniqueID, query));
                 }
             }
@@ -1695,32 +1667,30 @@ public class SQLReader implements DatabaseReader {
      * Searches through all nodes without skipping marked to exclude nodes
      * @param parentUniqueID unique ID of the node to search in
      * @param query string to search for
-     * @return search results - ArrayList of String[] {nodeName, nodeUniqueID, query, countOfResults, samplesOfResult, hasSubnodes, isParent, isSubnode}
+     * @return ArrayList of search result objects
      */
-    private ArrayList<String[]> searchAllNodes(String parentUniqueID, String query) {
+    private ArrayList<ScSearchNode> searchAllNodes(String parentUniqueID, String query) {
         // It actually just filters node and it's subnodes
         // The search of the string is done in findInNode()
         Cursor cursor = this.sqlite.rawQuery("SELECT * FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{parentUniqueID});
-        ArrayList<String[]> searchResult = new ArrayList<>();
+        ArrayList<ScSearchNode> searchResult = new ArrayList<>();
         while (cursor.moveToNext()) {
             String nodeUniqueID = String.valueOf(cursor.getInt(0));
-            String hasSubnode = this.hasSubnodes(nodeUniqueID);
-            String isParent = "false";
-            String isSubnode = "true";
-            if (hasSubnode.equals("true")) {
-                isParent = "true";
-                isSubnode = "false";
+            boolean hasSubnode = this.hasSubnodes(nodeUniqueID);
+            boolean isParent = false;
+            boolean isSubnode = true;
+            if (hasSubnode) {
+                isParent = true;
+                isSubnode = false;
             }
-
-            String[] result = this.findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+            ScSearchNode result = this.findInNode(cursor, query, hasSubnode, isParent, isSubnode);
             if (result != null) {
                 searchResult.add(result);
             }
-            if (hasSubnode.equals("true")) {
+            if (hasSubnode) {
                 searchResult.addAll(this.searchAllNodes(nodeUniqueID, query));
             }
         }
-
         cursor.close();
         return searchResult;
     }
@@ -1729,11 +1699,11 @@ public class SQLReader implements DatabaseReader {
      * Searches through nodes skipping marked to exclude
      * @param parentUniqueID unique ID of the node to search in
      * @param query string to search for
-     * @return search results - ArrayList of String[] {nodeName, nodeUniqueID, query, countOfResults, samplesOfResult, hasSubnodes, isParent, isSubnode}
+     * @return ArrayList of search result objects
      */
-    private ArrayList<String[]> searchNodesSkippingExcluded(String parentUniqueID, String query) {
+    private ArrayList<ScSearchNode> searchNodesSkippingExcluded(String parentUniqueID, String query) {
         // If user marked that filter should omit nodes and/or node children from filter results
-        ArrayList<String[]> searchResult = new ArrayList<>();
+        ArrayList<ScSearchNode> searchResult = new ArrayList<>();
 
         Cursor cursor = this.sqlite.rawQuery("SELECT * FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{parentUniqueID});
 
@@ -1741,38 +1711,38 @@ public class SQLReader implements DatabaseReader {
             if (cursor.getInt(10) == 0) {
                 // If node and subnodes are not selected to be excluded from search
                 String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                String hasSubnode = this.hasSubnodes(nodeUniqueID);
-                String isParent = "false";
-                String isSubnode = "true";
-                if (hasSubnode.equals("true")) {
-                    isParent = "true";
-                    isSubnode = "false";
+                boolean hasSubnode = this.hasSubnodes(nodeUniqueID);
+                boolean isParent = false;
+                boolean isSubnode = true;
+                if (hasSubnode) {
+                    isParent = true;
+                    isSubnode = false;
                 }
-                String[] result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+                ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
                 if (result != null) {
                     searchResult.add(result);
                 }
-                if (hasSubnode.equals("true")) {
+                if (hasSubnode) {
                     searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
                 }
             } else if (cursor.getInt(10) == 1) {
                 // If only the node is selected to be excluded from search
                 String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                String hasSubnode = hasSubnodes(nodeUniqueID);
+                String hasSubnode = String.valueOf(hasSubnodes(nodeUniqueID));
                 if (hasSubnode.equals("true")) {
                     searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
                 }
             } else if (cursor.getInt(10) == 2) {
                 // if only subnodes are selected to be excluded from search
                 String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                String hasSubnode = this.hasSubnodes(nodeUniqueID);
-                String isParent = "false";
-                String isSubnode = "true";
-                if (hasSubnode.equals("true")) {
-                    isParent = "true";
-                    isSubnode = "false";
+                boolean hasSubnode = this.hasSubnodes(nodeUniqueID);
+                boolean isParent = false;
+                boolean isSubnode = true;
+                if (hasSubnode) {
+                    isParent = true;
+                    isSubnode = false;
                 }
-                String[] result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+                ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
                 if (result != null) {
                     searchResult.add(result);
                 }
@@ -1786,12 +1756,12 @@ public class SQLReader implements DatabaseReader {
      * Searches through node's content
      * @param cursor cursor that holds all the data of the of the node to search through
      * @param query string to search for
-     * @param hasSubnodes string "true" if node has subnodes, else - "false"
-     * @param isParent string "true" if node is a parent node, else - "false"
-     * @param isSubnode isSubnode string "true" if node is a subnode, else - "false"
-     * @return String[] {nodeName, nodeUniqueID, query, countOfResults, samplesOfResult, hasSubnodes, isParent, isSubnode}
+     * @param hasSubnodes true if node has subnodes, else - false
+     * @param isParent true if node is a parent node, else - false
+     * @param isSubnode isSubnode true if node is a subnode, else - false
+     * @return search result object or null if nothing was found
      */
-    private String[] findInNode(Cursor cursor, String query, String hasSubnodes, String isParent, String isSubnode) {
+    private ScSearchNode findInNode(Cursor cursor, String query, boolean hasSubnodes, boolean isParent, boolean isSubnode) {
         // This string builder will hold oll text content of the node
         StringBuilder nodeContent = new StringBuilder();
         // As in reader that all the text would be in order user sees it
@@ -1939,7 +1909,7 @@ public class SQLReader implements DatabaseReader {
 
         // ***Search
         int queryLength = query.length();
-        int count = 0;
+        int resultCount = 0;
         int index = 0;
         StringBuilder samples = new StringBuilder(); // This will hold 3 samples to show to user
 
@@ -1950,7 +1920,7 @@ public class SQLReader implements DatabaseReader {
             index = preparedNodeContent.indexOf(query, index);
             if (index != -1) {
                 // if match to search query was found in the node's content
-                if (count < 3 ) {
+                if (resultCount < 3 ) {
                     // Results display only first three found instances of search query
                     int startIndex = 0; // Start of sample substring that will be created
                     int endIndex = preparedNodeContent.length(); // End of sample substring that will be created
@@ -1980,14 +1950,14 @@ public class SQLReader implements DatabaseReader {
                     samples.append(sample);
                 }
 
-                count++;
+                resultCount++;
                 index += queryLength; // moving search start to the end of the last position that search query was found
             }
         }
 
-        if (count > 0) {
+        if (resultCount > 0) {
             // if node count of matches is more than 0 that a match of q query was found
-            return new String[]{cursor.getString(1), cursor.getString(0), query, String.valueOf(count), samples.toString(), hasSubnodes, isParent, isSubnode};
+            return new ScSearchNode(cursor.getString(0), cursor.getString(1), isParent, hasSubnodes, isSubnode, query, resultCount, samples.toString());
         } else {
             return null;
         }

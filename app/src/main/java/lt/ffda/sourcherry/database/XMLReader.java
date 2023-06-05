@@ -59,7 +59,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -72,6 +72,9 @@ import javax.xml.transform.stream.StreamResult;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.model.ScNode;
+import lt.ffda.sourcherry.model.ScNodeProperties;
+import lt.ffda.sourcherry.model.ScSearchNode;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class XMLReader implements DatabaseReader {
@@ -95,11 +98,11 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> getAllNodes(boolean noSearch) {
+    public ArrayList<ScNode> getAllNodes(boolean noSearch) {
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
             NodeList nodeList = this.doc.getFirstChild().getChildNodes();
-            ArrayList<String[]> nodes = new ArrayList<>();
+            ArrayList<ScNode> nodes = new ArrayList<>();
 
             for (int i = 0; i < nodeList.getLength(); i++) {
                 if (nodeList.item(i).getNodeName().equals("node")) {
@@ -118,24 +121,24 @@ public class XMLReader implements DatabaseReader {
             return nodes;
         } else {
             NodeList nodeList = this.doc.getElementsByTagName("node");
-            return returnSubnodeArrayList(nodeList, "false");
+            return returnSubnodeArrayList(nodeList, false);
         }
     }
 
     @Override
-    public ArrayList<String[]> getMainNodes() {
+    public ArrayList<ScNode> getMainNodes() {
         // Returns main nodes from the document
         // Used to display menu when app starts
         NodeList nodeList = this.doc.getElementsByTagName("cherrytree"); // There is only one this type of tag in the database
         NodeList mainNodeList = nodeList.item(0).getChildNodes(); // So selecting all children of the first node is always safe
-        return returnSubnodeArrayList(mainNodeList, "false");
+        return returnSubnodeArrayList(mainNodeList, false);
     }
 
     @Override
-    public ArrayList<String[]> getBookmarkedNodes() {
+    public ArrayList<ScNode> getBookmarkedNodes() {
         // Returns bookmarked nodes from the document
         // Returns null if there aren't any
-        ArrayList<String[]> nodes = new ArrayList<>();
+        ArrayList<ScNode> nodes = new ArrayList<>();
         NodeList nodeBookmarkNode = this.doc.getElementsByTagName("bookmarks");
         List<String> nodeUniqueIDArray = Arrays.asList(nodeBookmarkNode.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
         NodeList nodeList = this.doc.getElementsByTagName("node");
@@ -143,21 +146,15 @@ public class XMLReader implements DatabaseReader {
         for (int i=0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (nodeUniqueIDArray.contains(node.getAttributes().getNamedItem("unique_id").getNodeValue())) {
-                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
                 String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                String hasSubnode = String.valueOf(hasSubnodes(node));
-                String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-                String[] currentNodeArray = {nameValue, nodeUniqueID, hasSubnode, isParent, "false"};
-                nodes.add(currentNodeArray);
+                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+                boolean hasSubnode = hasSubnodes(node);
+                // There is only one parent Node and its added manually in getSubNodes()
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false));
             }
         }
 
-        nodes.sort(new Comparator<String[]>() {
-            @Override
-            public int compare(String[] strings, String[] t1) {
-                return Integer.valueOf(strings[1]).compareTo(Integer.valueOf(t1[1]));
-            }
-        });
+        Collections.sort(nodes);
 
         if (nodes.size() == 0) {
             return null;
@@ -167,23 +164,18 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> getSubnodes(String nodeUniqueID) {
+    public ArrayList<ScNode> getSubnodes(String nodeUniqueID) {
         // Returns Subnodes of the node which nodeUniqueID is provided
-        ArrayList<String[]> nodes = new ArrayList<>();
-
+        ArrayList<ScNode> nodes = new ArrayList<>();
         NodeList nodeList = this.doc.getElementsByTagName("node");
-
         for (int i=0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
                 // When it finds a match - creates a NodeList and uses other function to get the MenuItems
                 NodeList childNodeList = node.getChildNodes();
-                nodes = returnSubnodeArrayList(childNodeList, "true");
-
-                String[] parentNode = createParentNode(node);
+                nodes = returnSubnodeArrayList(childNodeList, true);
+                ScNode parentNode = createParentNode(node);
                 nodes.add(0, parentNode);
-                //
-
                 return nodes;
             }
         }
@@ -194,45 +186,38 @@ public class XMLReader implements DatabaseReader {
      * This function scans provided NodeList to collect all the nodes from it to be displayed as subnodes in drawer menu
      * Most of the time it is used to collect information about subnodes of the node that is being opened
      * However, it can be used to create information Main menu items
-     * In that case isSubnode should passed as "false"
+     * In that case isSubnode should passed as false
      * If true this value will make node look indented
      * @param nodeList NodeList object to collect information about nodes from
-     * @param isSubnode "true" - means that node is not a subnode and should not be displayed indented in the drawer menu. "false" - apposite of that
-     * @return ArrayList of node's subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @param isSubnode true - means that node is not a subnode and should not be displayed indented in the drawer menu. false - apposite of that
+     * @return ArrayList of node's subnodes
      */
-    public ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isSubnode) {
-        ArrayList<String[]> nodes = new ArrayList<>();
-
+    public ArrayList<ScNode> returnSubnodeArrayList(NodeList nodeList, boolean isSubnode) {
+        ArrayList<ScNode> nodes = new ArrayList<>();
         for (int i=0; i < nodeList.getLength(); i++) {
-
             Node node = nodeList.item(i);
             if (node.getNodeName().equals("node")) {
-                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
                 String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                String hasSubnode = String.valueOf(hasSubnodes(node));
-                String isParent = "false"; // There is only one parent Node and its added manually in getSubNodes()
-                String[] currentNodeArray = {nameValue, nodeUniqueID, hasSubnode, isParent, isSubnode};
-                nodes.add(currentNodeArray);
+                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+                boolean hasSubnode = hasSubnodes(node);
+                // There is only one parent Node and its added manually in getSubNodes()
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, isSubnode));
             }
         }
         return nodes;
     }
 
     /**
-     * Creates an ArrayList of String[] that can be used to display nodes during drawer menu search/filter function
+     * Creates an ArrayList of ScNode objects that can be used to display nodes during drawer menu search/filter function
      * @param nodeList NodeList object to collect information about node in it
-     * @return ArrayList<String[]> that contains all the nodes of the provided NodeList object
+     * @return ArrayList that contains all the nodes of the provided NodeList object
      */
-    public ArrayList<String[]> returnSubnodeSearchArrayListList(NodeList nodeList) {
+    public ArrayList<ScNode> returnSubnodeSearchArrayListList(NodeList nodeList) {
         // This function scans provided NodeList and
-        // returns ArrayList with nested String Arrays that
-        // holds individual menu items
+        // returns ArrayList that holds individual menu items
         // It skips all the nodes, that are marked as to be excluded from search
-
-        ArrayList<String[]> nodes = new ArrayList<>();
-
+        ArrayList<ScNode> nodes = new ArrayList<>();
         for (int i=0; i < nodeList.getLength(); i++) {
-
             Node node = nodeList.item(i);
             if (node.getNodeName().equals("node")) {
                 if (node.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
@@ -254,7 +239,6 @@ public class XMLReader implements DatabaseReader {
     public boolean hasSubnodes(Node node) {
         // Checks if provided node has nested "node" tag
         NodeList subNodes = node.getChildNodes();
-
         for (int i = 0; i < subNodes.getLength(); i++) {
             if (subNodes.item(i).getNodeName().equals("node")) {
                 return true;
@@ -267,39 +251,34 @@ public class XMLReader implements DatabaseReader {
      * Used during creation of the all the node in the document for drawer menu search/filter function
      * For that reason created node is never a parent node or a subnode
      * @param node node to collect information from
-     * @return String[] with information about provided node. Information is as fallows: {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return ScNode object for filter nodes function
      */
-    private String[] returnSearchMenuItem(Node node) {
-        String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+    private ScNode returnSearchMenuItem(Node node) {
         String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-        String hasSubnode = String.valueOf(hasSubnodes(node));
-        String isParent = "false";
-        return new String[]{nameValue, nodeUniqueID, hasSubnode, isParent, "false"};
+        String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+        boolean hasSubnode = hasSubnodes(node);
+        return new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false);
     }
 
     /**
      * Parent node (top) in the drawer menu
      * Used when creating a drawer menu
      * @param parentNode Node object of the parent node from which parent (top) node information has to be collected
-     * @return String[] with information about parent node. Information is as fallows: {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return ScNode object with properties of a parent node
      */
-    public String[] createParentNode(Node parentNode) {
-        String parentNodeName = parentNode.getAttributes().getNamedItem("name").getNodeValue();
+    public ScNode createParentNode(Node parentNode) {
         String parentNodeUniqueID = parentNode.getAttributes().getNamedItem("unique_id").getNodeValue();
-        String parentNodeHasSubnode = String.valueOf(hasSubnodes(parentNode));
-        String parentNodeIsParent = "true";
-        String parentNodeIsSubnode = "false";
-        return new String[]{parentNodeName, parentNodeUniqueID, parentNodeHasSubnode, parentNodeIsParent, parentNodeIsSubnode};
+        String parentNodeName = parentNode.getAttributes().getNamedItem("name").getNodeValue();
+        boolean parentNodeHasSubnode = hasSubnodes(parentNode);
+        return new ScNode(parentNodeUniqueID, parentNodeName, true, parentNodeHasSubnode, false);
     }
 
     @Override
-    public ArrayList<String[]> getParentWithSubnodes(String nodeUniqueID) {
+    public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
         // Checks if it is possible to go up in document's node tree from given nodeUniqueID
         // Returns array with appropriate nodes
-        ArrayList<String[]> nodes = null;
-
+        ArrayList<ScNode> nodes = null;
         NodeList nodeList = this.doc.getElementsByTagName("node");
-
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
@@ -310,7 +289,7 @@ public class XMLReader implements DatabaseReader {
                     nodes = this.getMainNodes();
                 } else {
                     NodeList parentSubnodes = parentNode.getChildNodes();
-                    nodes = returnSubnodeArrayList(parentSubnodes, "true");
+                    nodes = returnSubnodeArrayList(parentSubnodes, true);
                     nodes.add(0, createParentNode(parentNode));
                 }
             }
@@ -319,7 +298,7 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] getSingleMenuItem(String nodeUniqueID) {
+    public ScNode getSingleMenuItem(String nodeUniqueID) {
         // Returns single menu item to be used when opening anchor links
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
@@ -327,20 +306,14 @@ public class XMLReader implements DatabaseReader {
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
                 if (node.getNodeName().equals("node")) {
                     // Node name and unique_id always the same for the node
-                    String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
                     String menuItemsNodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                    String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
                     if (hasSubnodes(node)) {
                         // if node has subnodes, then it has to be opened as a parent node and displayed as such
-                        String hasSubnode = "true";
-                        String isParent = "true";
-                        String isSubnode = "false";
-                        return new String[]{nameValue, menuItemsNodeUniqueID, hasSubnode, isParent, isSubnode};
+                        return new ScNode(menuItemsNodeUniqueID, nameValue, true, true, false);
                     } else {
                         // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-                        String hasSubnode = "false";
-                        String isParent = "false";
-                        String isSubnode = "true";
-                        return new String[]{nameValue, menuItemsNodeUniqueID, hasSubnode, isParent, isSubnode};
+                        return new ScNode(menuItemsNodeUniqueID, nameValue, false, false, true);
                     }
                 }
             }
@@ -720,7 +693,7 @@ public class XMLReader implements DatabaseReader {
      * Image is created from latex code string embedded in the tag
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
-     * @param node Node object that has a Tatex code embedded in it
+     * @param node Node object that has a Latex code embedded in it
      * @return SpannableStringBuilder that has span with Latex image in them
      */
     public SpannableStringBuilder makeLatexImageSpan(Node node) {
@@ -1099,7 +1072,7 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
+    public ScNode createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
         Node node = null;
         if (nodeUniqueID.equals("0")) {
             // User chose to create the node in main menu
@@ -1132,7 +1105,7 @@ public class XMLReader implements DatabaseReader {
         newNode.setAttribute("ts_creation", timestamp);
         newNode.setAttribute("ts_lastsave", timestamp);
 
-        String isSubNode = "true";
+        boolean isSubNode = true;
         // Adding node to document
         if (relation == 0) {
             // As a sibling to selected node
@@ -1147,14 +1120,14 @@ public class XMLReader implements DatabaseReader {
             // Checking if node is being created as MainMenu node
             // Needed to set correct indentation for the node in the menu
             if (node.getParentNode().getNodeName().equals("cherrytree")) {
-                isSubNode = "false";
+                isSubNode = false;
             }
         } else {
             // As a subnode of selected node
             node.appendChild(newNode);
         }
         this.writeIntoDatabase();
-        return new String[] {name, newNodeUniqueID, "false", "false", isSubNode};
+        return new ScNode(newNodeUniqueID, name,false, false, isSubNode);
     }
 
     @Override
@@ -1277,8 +1250,8 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public String[] getNodeProperties(String nodeUniqueID) {
-        String[] nodeProperties = null;
+    public ScNodeProperties getNodeProperties(String nodeUniqueID) {
+        ScNodeProperties nodeProperties = null;
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
@@ -1286,9 +1259,9 @@ public class XMLReader implements DatabaseReader {
                 NamedNodeMap properties = node.getAttributes();
                 String name = properties.getNamedItem("name").getNodeValue();
                 String progLang = properties.getNamedItem("prog_lang").getNodeValue();
-                String noSearchMe = properties.getNamedItem("nosearch_me").getNodeValue();
-                String noSearchCh = properties.getNamedItem("nosearch_ch").getNodeValue();
-                nodeProperties = new String[] {name, progLang, noSearchMe, noSearchCh};
+                byte noSearchMe = Byte.parseByte(properties.getNamedItem("nosearch_me").getNodeValue());
+                byte noSearchCh = Byte.parseByte(properties.getNamedItem("nosearch_ch").getNodeValue());
+                nodeProperties = new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
                 break;
             }
         }
@@ -1503,33 +1476,29 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<String[]> search(Boolean noSearch, String query) {
+    public ArrayList<ScSearchNode> search(Boolean noSearch, String query) {
         NodeList nodeList = this.doc.getFirstChild().getChildNodes();
-        ArrayList<String[]> searchResult = new ArrayList<>();
+        ArrayList<ScSearchNode> searchResult = new ArrayList<>();
         if (noSearch) {
             // If user marked that search should skip search "excluded" nodes
-
             for (int i = 0; i < nodeList.getLength(); i++) {
                 if (nodeList.item(i).getNodeName().equals("node")) {
                     // If node is a "node" and not some other tag
-                    String hasSubnodes = String.valueOf(this.hasSubnodes(nodeList.item(i)));
-
+                    boolean hasSubnodes = this.hasSubnodes(nodeList.item(i));
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
                         // if user haven't marked to skip current node - searches through its content
-                        // Because this is a start of the search all nodes never are "subnodes"
-                        String isParent = "true";
-                        String isSubnode = "false";
-                        if (hasSubnodes.equals("true")) {
-                            isParent = "true";
-                            isSubnode = "false";
+                        boolean isParent = false;
+                        boolean isSubnode = true;
+                        if (hasSubnodes) {
+                            isParent = true;
+                            isSubnode = false;
                         }
-
-                        String[] result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
+                        ScSearchNode result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                         if (result != null) {
                             searchResult.add(result);
                         }
                     }
-                    if (hasSubnodes.equals("true") && nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
+                    if (hasSubnodes && nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
                         // if user haven't selected not to search subnodes of current node
                         searchResult.addAll(this.searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
                     }
@@ -1538,22 +1507,20 @@ public class XMLReader implements DatabaseReader {
             return searchResult;
         } else {
             for (int i = 0; i < nodeList.getLength(); i++) {
-                String hasSubnodes = String.valueOf(hasSubnodes(nodeList.item(i)));
+                boolean hasSubnodes = hasSubnodes(nodeList.item(i));
                 if (nodeList.item(i).getNodeName().equals("node")) {
-
-                    String isParent  = "true";
-                    String isSubnode  = "false";
-                    if (hasSubnodes.equals("true")) {
-                        isParent = "true";
-                        isSubnode = "false";
+                    boolean isParent  = false;
+                    boolean isSubnode  = true;
+                    if (hasSubnodes) {
+                        isParent = true;
+                        isSubnode = false;
                     }
-
-                    String[] result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
+                    ScSearchNode result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                     if (result != null) {
                         searchResult.add(result);
                     }
                 }
-                if (hasSubnodes.equals("true")) {
+                if (hasSubnodes) {
                     // If node has subnodes
                     searchResult.addAll(this.searchAllNodes(query, nodeList.item(i).getChildNodes()));
                 }
@@ -1566,32 +1533,31 @@ public class XMLReader implements DatabaseReader {
      * Searches through all nodes without skipping marked to exclude nodes
      * @param query string to search for
      * @param nodeList list of nodes to search through
-     * @return search results - ArrayList of String[] {nodeName, nodeUniqueID, query, countOfResults, samplesOfResult, hasSubnodes, isParent, isSubnode}
+     * @return ArrayList of search result objects
      */
-    private ArrayList<String[]> searchAllNodes(String query, NodeList nodeList) {
+    private ArrayList<ScSearchNode> searchAllNodes(String query, NodeList nodeList) {
         // It actually just filters node and it's subnodes
         // The search of the string is done in findInNode()
-        ArrayList<String[]> searchResult = new ArrayList<>();
+        ArrayList<ScSearchNode> searchResult = new ArrayList<>();
         for (int i = 0; i < nodeList.getLength(); i++) {
-            String hasSubnodes = String.valueOf(hasSubnodes(nodeList.item(i)));
-
+            boolean hasSubnodes = hasSubnodes(nodeList.item(i));
             if (nodeList.item(i).getNodeName().equals("node")) {
                 // If node is a "node" and not some other tag
-                String isParent;
-                String isSubnode;
-                if (hasSubnodes.equals("true")) {
-                    isParent = "true";
-                    isSubnode = "false";
+                boolean isParent;
+                boolean isSubnode;
+                if (hasSubnodes) {
+                    isParent = true;
+                    isSubnode = false;
                 } else {
-                    isParent = "false";
-                    isSubnode = "true";
+                    isParent = false;
+                    isSubnode = true;
                 }
-                String[] result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
+                ScSearchNode result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                 if (result != null) {
                     searchResult.add(result);
                 }
             }
-            if (hasSubnodes.equals("true")) {
+            if (hasSubnodes) {
                 // If node has subnodes
                 searchResult.addAll(this.searchAllNodes(query, nodeList.item(i).getChildNodes()));
             }
@@ -1603,34 +1569,34 @@ public class XMLReader implements DatabaseReader {
      * Searches through nodes skipping marked to exclude
      * @param query string to search for
      * @param nodeList list of nodes to search through
-     * @return search results - ArrayList of String[] {nodeName, nodeUniqueID, query, countOfResults, samplesOfResult, hasSubnodes, isParent, isSubnode}
+     * @return ArrayList of search result objects
      */
-    private ArrayList<String[]> searchNodesSkippingExcluded(String query, NodeList nodeList) {
+    private ArrayList<ScSearchNode> searchNodesSkippingExcluded(String query, NodeList nodeList) {
         // It actually just filters node and it's subnodes
         // The search of the string is done in findInNode()
-        ArrayList<String[]> searchResult = new ArrayList<>();
+        ArrayList<ScSearchNode> searchResult = new ArrayList<>();
         for (int i = 0; i < nodeList.getLength(); i++) {
             if (nodeList.item(i).getNodeName().equals("node")) {
                 // If node is a "node" and not some other tag
-                String hasSubnodes = String.valueOf(this.hasSubnodes(nodeList.item(i)));
+                boolean hasSubnodes = this.hasSubnodes(nodeList.item(i));
 
                 if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
                     // If user haven't marked to skip current node - searches through its content
-                    String isParent;
-                    String isSubnode;
-                    if (hasSubnodes.equals("true")) {
-                        isParent = "true";
-                        isSubnode = "false";
+                    boolean isParent;
+                    boolean isSubnode;
+                    if (hasSubnodes) {
+                        isParent = true;
+                        isSubnode = false;
                     } else {
-                        isParent = "false";
-                        isSubnode = "true";
+                        isParent = false;
+                        isSubnode = true;
                     }
-                    String[] result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
+                    ScSearchNode result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                     if (result != null) {
                         searchResult.add(result);
                     }
                 }
-                if (hasSubnodes.equals("true") && nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
+                if (hasSubnodes && nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
                     // If node has subnodes and user haven't selected not to search subnodes of current node
                     searchResult.addAll(this.searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
                 }
@@ -1643,12 +1609,12 @@ public class XMLReader implements DatabaseReader {
      * Searches through node's content
      * @param node node to search in
      * @param query string to search for
-     * @param hasSubnodes string "true" if node has subnodes, else - "false"
-     * @param isParent string "true" if node is a parent node, else - "false"
-     * @param isSubnode string "true" if node is a subnode, else - "false"
-     * @return String[] {nodeName, nodeUniqueID, query, countOfResults, samplesOfResult, hasSubnodes, isParent, isSubnode}
+     * @param hasSubnodes true if node has subnodes, else - false
+     * @param isParent true if node is a parent node, else - false
+     * @param isSubnode true if node is a subnode, else - false
+     * @return search result object or null if nothing was found
      */
-    private String[] findInNode(Node node, String query, String hasSubnodes, String isParent, String isSubnode) {
+    private ScSearchNode findInNode(Node node, String query, boolean hasSubnodes, boolean isParent, boolean isSubnode) {
         // This string builder will hold oll text content of the node
         StringBuilder nodeContent = new StringBuilder();
 
@@ -1729,7 +1695,7 @@ public class XMLReader implements DatabaseReader {
 
         // Search
         int queryLength = query.length();
-        int count = 0;
+        int resultCount = 0;
         int index = 0;
         String nodeName = null; // To display in results
         String nodeUniqueID = null; // That it could be returned to MainView to load selected node
@@ -1742,14 +1708,14 @@ public class XMLReader implements DatabaseReader {
             index = preparedNodeContent.indexOf(query, index);
             if (index != -1) {
                 // if match to search query was found in the node's content
-                if (count < 1) {
+                if (resultCount < 1) {
                     // If it's first match
                     // Settings node name and unique_id values that they could be returned with result
                     nodeName = node.getAttributes().getNamedItem("name").getNodeValue();
                     nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                 }
 
-                if (count < 3 ) {
+                if (resultCount < 3 ) {
                     // Results display only first three found instances of search query
                     int startIndex = 0; // Start of sample substring that will be created
                     int endIndex = preparedNodeContent.length(); // End of sample substring that will be created
@@ -1779,14 +1745,14 @@ public class XMLReader implements DatabaseReader {
                     samples.append(sample);
                 }
 
-                count++;
+                resultCount++;
                 index += queryLength; // moving search start to the end of the last position that search query was found
             }
         }
 
         if (nodeName != null) {
             // if node name isn't null that means match for a query was found
-            return new String[]{nodeName, nodeUniqueID, query, String.valueOf(count), samples.toString(), hasSubnodes, isParent, isSubnode};
+            return new ScSearchNode(nodeUniqueID, nodeName, isParent, hasSubnodes, isSubnode, query, resultCount, samples.toString());
         } else {
             return null;
         }

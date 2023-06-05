@@ -24,6 +24,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
+import lt.ffda.sourcherry.model.ScNode;
+
 public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHolder> {
 
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
@@ -89,14 +91,14 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     }
 
     // nodeList has values in this order: {name, unique_id, has_subnodes, is_parent, is_subnode}
-    private final ArrayList<String[]> nodeList;
+    private final ArrayList<ScNode> nodeList;
     private OnItemClickListener listener;
     private OnLongClickListener longClickListener;
     private OnActionIconClickListener onActionIconClickListener;
     private int selectedPos = RecyclerView.NO_POSITION;
     private final Context context;
 
-    public MenuItemAdapter(ArrayList<String[]> nodeList, Context context) {
+    public MenuItemAdapter(ArrayList<ScNode> nodeList, Context context) {
         this.nodeList = nodeList;
         this.context = context;
     }
@@ -128,7 +130,6 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     @NonNull
     @Override
     public MenuItemAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-//        Context context = parent.getContext(); // TODO Testing. If app is stable without this - remove the line
         LayoutInflater inflater = LayoutInflater.from(this.context);
         View menuView = inflater.inflate(R.layout.item_drawer_menu, parent, false);
         return new ViewHolder(menuView);
@@ -136,10 +137,10 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        String nodeName = nodeList.get(position)[0];
-        String nodeHasSubnodes = nodeList.get(position)[2];
-        String nodeIsParent = nodeList.get(position)[3];
-        String nodeIsSubnode = nodeList.get(position)[4];
+        String nodeName = nodeList.get(position).getName();
+        boolean nodeIsParent = nodeList.get(position).isParent();
+        boolean nodeHasSubnodes = nodeList.get(position).hasSubnodes();
+        boolean nodeIsSubnode = nodeList.get(position).isSubnode();
 
         // Setting selected items background color
         holder.itemView.setBackgroundColor(selectedPos == position ? this.context.getResources().getColor(R.color.cherry_red_500, this.context.getTheme()) : Color.TRANSPARENT);
@@ -149,7 +150,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         TextView menuItemText = holder.menuItemText;
 
         // Making visible/invisible an arrow that indicates that node has subnodes
-        if (nodeHasSubnodes.equals("true")) {
+        if (nodeHasSubnodes) {
             menuItemArrow.setVisibility(View.VISIBLE);
             menuItemArrow.setImageResource(R.drawable.ic_baseline_arrow_has_subnodes_24);
         } else {
@@ -157,14 +158,14 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         }
 
         // Adding arrow that make menu item took differently to indicate that this node is a parent (top) node
-        if (nodeIsParent.equals("true")) {
+        if (nodeIsParent) {
             menuItemArrow.setVisibility(View.VISIBLE);
 //            menuItemArrow.setImageDrawable((ContextCompat.getDrawable(holder.itemView.getContext(), R.drawable.ic_baseline_arrow_is_parent_24))); // Leaving this as a reminder
             menuItemArrow.setImageResource(R.drawable.ic_baseline_arrow_is_parent_24);
         }
 
         // If node is a subnode - adds small ImageView item to make it look indented.
-        if (nodeIsSubnode.equals("true")) {
+        if (nodeIsSubnode) {
             menuItemPadding.setVisibility(View.INVISIBLE);
         } else {
             menuItemPadding.setVisibility(View.GONE);

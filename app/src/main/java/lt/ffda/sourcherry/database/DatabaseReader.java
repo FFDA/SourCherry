@@ -17,32 +17,36 @@ import org.w3c.dom.Node;
 
 import java.util.ArrayList;
 
+import lt.ffda.sourcherry.model.ScNode;
+import lt.ffda.sourcherry.model.ScNodeProperties;
+import lt.ffda.sourcherry.model.ScSearchNode;
+
 public interface DatabaseReader {
     /**
      * Returns all nodes from the database. Used for search/filter function in drawer menu.
      * @param noSearch true - skips all nodes that are marked not to be searched
-     * @return ArrayList of all the nodes in the database. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return ArrayList of all the nodes in the database.
      */
-    ArrayList<String[]> getAllNodes(boolean noSearch);
+    ArrayList<ScNode> getAllNodes(boolean noSearch);
 
     /**
      * Returns main/first level (that do not have a parent) nodes in the database
-     * @return ArrayList of main nodes in the database. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return ArrayList of main menu nodes in the database.
      */
-    ArrayList<String[]> getMainNodes();
+    ArrayList<ScNode> getMainNodes();
 
     /**
      * Returns bookmarked nodes in the database
-     * @return ArrayList of bookmarked nodes in the database. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return ArrayList of bookmarked nodes in the database.
      */
-    ArrayList<String[]> getBookmarkedNodes();
+    ArrayList<ScNode> getBookmarkedNodes();
 
     /**
      * Returns first level subnodes of the node which nodeUniqueID is provided
      * @param nodeUniqueID unique ID of the node which subnodes to return
-     * @return ArrayList of node's subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return ArrayList of node's subnodes.
      */
-    ArrayList<String[]> getSubnodes(String nodeUniqueID);
+    ArrayList<ScNode> getSubnodes(String nodeUniqueID);
 
 //    ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isSubnode);
 //    // This function scans provided NodeList and
@@ -60,16 +64,16 @@ public interface DatabaseReader {
      * Depending on result it will return ArrayList of subnodes of the parent node of given nodeUniqueID
      * or return main menu nodes
      * @param nodeUniqueID unique ID of the node which parent node with subnodes to return
-     * @return ArrayList subnodes. They are represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return ArrayList of node an it's subnodes.
      */
-    ArrayList<String[]> getParentWithSubnodes(String nodeUniqueID);
+    ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID);
 
     /**
      * Returns single menu item with current information
      * @param nodeUniqueID unique ID of the node to find and return
-     * @return Single drawer menu item. It is represented by String[] {name, unique_id, has_subnodes, is_parent, is_subnode}
+     * @return Single drawer menu item.
      */
-    String[] getSingleMenuItem(String nodeUniqueID);
+    ScNode getSingleMenuItem(String nodeUniqueID);
 
     /**
      * Nodes that does not have tables in them will have just one ArrayList of CharSequence[] and will start with "text" as first part of the sequence
@@ -231,9 +235,9 @@ public interface DatabaseReader {
      * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
      * @param noSearchMe 0 - marks that node should be searched, 1 - marks that node should be excluded from the search
      * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
-     * @return created node's information in menu items format ({name, unique_id, has_subnodes, is_parent, is_subnode})
+     * @return Created node
      */
-    String[] createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh);
+    ScNode createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh);
 
     /**
      * Checks if node with provided unique ID is bookmarked
@@ -280,9 +284,9 @@ public interface DatabaseReader {
     /**
      * Retrieves relevant (the ones that app displays) node properties
      * @param nodeUniqueID unique ID of the node for which properties has to be retrieved
-     * @return list with node properties in this order: name, prog_lang, nosearch_me, nosearch_ch
+     * @return Node properties onject
      */
-    String[] getNodeProperties(String nodeUniqueID);
+    ScNodeProperties getNodeProperties(String nodeUniqueID);
 
     /**
      * Updates properties if the node
@@ -331,7 +335,7 @@ public interface DatabaseReader {
      * Search for string in the database
      * @param noSearch true - skip nodes marked excluded
      * @param search string to search in database
-     * @return search search results - ArrayList of String[] {nodeName, nodeUniqueID, query, countOfResults, samplesOfResult, hasSubnodes, isParent, isSubnode}
+     * @return search ArrayList of search result objects
      */
-    ArrayList<String[]> search(Boolean noSearch, String search);
+    ArrayList<ScSearchNode> search(Boolean noSearch, String search);
 }
