@@ -69,6 +69,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.model.ScNode;
+import lt.ffda.sourcherry.model.ScNodeContent;
+import lt.ffda.sourcherry.model.ScNodeContentTable;
+import lt.ffda.sourcherry.model.ScNodeContentText;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 import lt.ffda.sourcherry.model.ScSearchNode;
 import ru.noties.jlatexmath.JLatexMathDrawable;
@@ -285,12 +288,13 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public ArrayList<ArrayList<CharSequence[]>> getNodeContent(String nodeUniqueID) {
+    public ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID) {
         // Original XML document has newline characters marked (hopefully it's the same with SQL database)
-        // Returns ArrayList of SpannableStringBuilder elements
-        ArrayList<ArrayList<CharSequence[]>> nodeContent = new ArrayList<>(); // The one that will be returned
+        // Returns ArrayList of objects implementing ScNodeContent interface
+        ArrayList<ScNodeContent> nodeContent = new ArrayList<>(); // The one that will be returned
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
-        ArrayList<ArrayList<CharSequence[]>> nodeTables = new ArrayList<>(); // Temporary for table storage
+        ArrayList<ScNodeContentTable> nodeTables = new ArrayList<>(); // Temporary for table storage
+        ArrayList<Integer> nodeTableCharOffsets = new ArrayList<>();
         //// This needed to calculate where to place span in to builder
         // Because after every insertion in the middle it displaces the next insertion
         // by the length of the inserted span.
@@ -451,17 +455,18 @@ public class SQLReader implements DatabaseReader {
                             Cursor tableCursor = this.sqlite.query("grid", new String[]{"txt", "col_min", "col_max"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                             if (tableCursor.moveToFirst()) {
                                 int tableCharOffset = charOffset + totalCharOffset; // Place where SpannableStringBuilder will be split
-                                String cellMax = tableCursor.getString(2);
-                                String cellMin = tableCursor.getString(1);
+                                nodeTableCharOffsets.add(tableCharOffset);
+                                int cellMin = tableCursor.getInt(1);
+                                int cellMax = tableCursor.getInt(2);
                                 nodeContentStringBuilder.insert(tableCharOffset, " "); // Adding space for formatting reason
-                                ArrayList<CharSequence[]> currentTable = new ArrayList<>(); // ArrayList with all the data from the table that will added to nodeTables
-                                currentTable.add(new CharSequence[]{"table", String.valueOf(tableCharOffset), cellMax, cellMin}); // Values of the table. There aren't any table data in this line
+                                ArrayList<CharSequence[]> currentTableContent = new ArrayList<>();
                                 NodeList tableRowsNodes = getNodeFromString(tableCursor.getString(0), "table"); // All the rows of the table. Not like in XML database, there are not any empty text nodes to be filtered out
                                 tableCursor.close();
                                 for (int row = 0; row < tableRowsNodes.getLength(); row++) {
-                                    currentTable.add(getTableRow(tableRowsNodes.item(row)));
+                                    currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
                                 }
-                                nodeTables.add(currentTable);
+                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax);
+                                nodeTables.add(scNodeContentTable);
                             }
                         }
                     }
@@ -475,59 +480,32 @@ public class SQLReader implements DatabaseReader {
                 nodeContentStringBuilder.append(makeFormattedCodeNode(cursor.getString(0)));
             }
         }
-
         cursor.close();
 
         int subStringStart = 0; // Holds start from where SpannableStringBuilder has to be split from
-
         if (nodeTables.size() > 0) {
             // If there are at least one table in the node
             // SpannableStringBuilder that holds are split in to parts
-            // After each text array table array is added
-            for (ArrayList<CharSequence[]> table: nodeTables) {
-                // Getting table's char_offset that was embedded into CharArray
-                // It will be used to split the text in appropriate parts
-                int charOffset = Integer.parseInt((String) table.get(0)[1]);
-                //
-
+            for (int i = 0; i < nodeTables.size(); i++) {
                 // Creating text part of this iteration
-                SpannableStringBuilder textPart = (SpannableStringBuilder) nodeContentStringBuilder.subSequence(subStringStart, charOffset);
-                subStringStart = charOffset; // Next string will be cut starting from this offset (previous end)
-                ArrayList<CharSequence[]> nodeContentText = new ArrayList<>();
-                nodeContentText.add(new CharSequence[]{"text"});
-                nodeContentText.add(new CharSequence[]{textPart});
+                SpannableStringBuilder textPart = (SpannableStringBuilder) nodeContentStringBuilder.subSequence(subStringStart, nodeTableCharOffsets.get(i));
+                subStringStart = nodeTableCharOffsets.get(i); // Next string will be cut starting from this offset (previous end)
+                ScNodeContentText nodeContentText = new ScNodeContentText((byte) 0, textPart);
                 nodeContent.add(nodeContentText);
-                //
-
                 // Creating table part of this iteration
-                ArrayList<CharSequence[]> nodeContentTable = new ArrayList<>();
-                // Add string for separating text and table arrays and col_max, col_min to set table cells width
-                nodeContentTable.add(new CharSequence[]{"table", table.get(0)[2], table.get(0)[3]});
-                // Because first row had information about it start to read from the second line till the last one
-                for (int row = 1; row < table.size(); row++) {
-                    nodeContentTable.add(table.get(row));
-                }
-                nodeContent.add(nodeContentTable);
-                //
+                nodeContent.add(nodeTables.get(i));
             }
-            // Last part of the SpannableStringBuilder (if there is one) is appended to nodeContent array
+            // Last part of the SpannableStringBuilder (if there is one)
             if (subStringStart < nodeContentStringBuilder.length()) {
                 SpannableStringBuilder textPart = (SpannableStringBuilder) nodeContentStringBuilder.subSequence(subStringStart, nodeContentStringBuilder.length());
-                ArrayList<CharSequence[]> nodeContentText = new ArrayList<>();
-                nodeContentText.add(new CharSequence[]{"text"});
-                nodeContentText.add(new CharSequence[]{textPart});
+                ScNodeContentText nodeContentText = new ScNodeContentText((byte) 0, textPart);
                 nodeContent.add(nodeContentText);
             }
-
         } else {
             // If there are no tables in the Node content
-            // Only one text CharSequence array is created and added to the nodeContent
-            ArrayList<CharSequence[]> nodeContentText = new ArrayList<>();
-            nodeContentText.add(new CharSequence[]{"text"});
-            nodeContentText.add(new CharSequence[]{nodeContentStringBuilder});
+            ScNodeContentText nodeContentText = new ScNodeContentText((byte) 0, nodeContentStringBuilder);
             nodeContent.add(nodeContentText);
         }
-
         return nodeContent;
     }
 

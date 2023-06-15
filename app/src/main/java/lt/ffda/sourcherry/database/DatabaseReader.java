@@ -18,6 +18,7 @@ import org.w3c.dom.Node;
 import java.util.ArrayList;
 
 import lt.ffda.sourcherry.model.ScNode;
+import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 import lt.ffda.sourcherry.model.ScSearchNode;
 
@@ -76,17 +77,10 @@ public interface DatabaseReader {
     ScNode getSingleMenuItem(String nodeUniqueID);
 
     /**
-     * Nodes that does not have tables in them will have just one ArrayList of CharSequence[] and will start with "text" as first part of the sequence
-     * Second part (1) can be added to SpannableStringBuilder that can be used in TextView without any other modifications
-     * "text" CharSequence[] has images and every other elements of the node except for tables
-     * If there are tables in the node it will be split into parts, each part with new table will indicated with text "table"
-     * That part needs to be displayed in TableView that it could be displayed in the in in better format for the user
-     * "table" CharSequence[] part has extra two fields (1 and 2) that has max and min column values extracted from table in CherryTree database
-     * The last part of the CharSequence[] has headers of the table (as it is in CherryTree database)
      * @param nodeUniqueID unique ID of the node that content has to be retrieved
-     * @return ArrayList of Arraylist of CharSequence[] that has to be used in combination with SpannableStringBuilder
+     * @return ArrayList of ScNodeContent interface implementing objects that contain node content
      */
-    ArrayList<ArrayList<CharSequence[]>> getNodeContent(String nodeUniqueID);
+    ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID);
 
     /**
      * Rich text formatting of the node content.

@@ -43,11 +43,12 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
-import java.util.ArrayList;
-
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.model.ScNodeContent;
+import lt.ffda.sourcherry.model.ScNodeContentTable;
+import lt.ffda.sourcherry.model.ScNodeContentText;
 
 public class NodeContentFragment extends Fragment {
     private LinearLayout contentFragmentLinearLayout;
@@ -140,12 +141,10 @@ public class NodeContentFragment extends Fragment {
             });
         }
 
-        for (ArrayList<CharSequence[]> part: mainViewModel.getNodeContent()) {
-            CharSequence[] type = part.get(0);
-            if (type[0].equals("text")) {
-                // This adds not only text, but images, codeboxes
-                CharSequence[] textContent = part.get(1);
-                SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) textContent[0];
+        for (ScNodeContent part: mainViewModel.getNodeContent()) {
+            if (part.getContentType() == 0) {
+                ScNodeContentText scNodeContentText = (ScNodeContentText) part;
+                SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) scNodeContentText.getContent();
                 TextView tv = new TextView(getActivity());
                 tv.setTextIsSelectable(true);
                 tv.setMovementMethod(LinkMovementMethod.getInstance()); // Needed to detect click/open links
@@ -158,22 +157,20 @@ public class NodeContentFragment extends Fragment {
                     }
                 });
             }
-            if (type[0].equals("table")) {
+            else {
                 HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
                 TableLayout table = new TableLayout(getActivity());
-
-                //// Getting max and min column values from table
-                // Multiplying by arbitrary number to make it look better.
+                ScNodeContentTable scNodeContentTable = (ScNodeContentTable) part;
+                // Multiplying by arbitrary number to make table cells look better.
                 // For some reason table that looks good in PC version looks worse on android
-                int colMax = (int) (Integer.parseInt((String) type[1]) * 1.3);
-                int colMin = (int) (Integer.parseInt((String) type[2]) * 1.3);
-                ////
+                int colMin = (int) (scNodeContentTable.getColMin() * 1.3);
+                int colMax = (int) (scNodeContentTable.getColMax() * 1.3);
 
                 // Wraps content in cell correctly
                 TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
 
                 //// Creates and formats header for the table
-                CharSequence[] tableHeaderCells = part.get(part.size() - 1);
+                CharSequence[] tableHeaderCells = scNodeContentTable.getContent().get(scNodeContentTable.getContent().size() - 1);
                 TableRow tableHeaderRow = new TableRow(getActivity());
 
                 for (CharSequence cell: tableHeaderCells) {
@@ -191,9 +188,9 @@ public class NodeContentFragment extends Fragment {
                 ////
 
                 //// Creates and formats data for the table
-                for (int row = 1; row < part.size() - 1; row++) {
+                for (int row = 1; row < scNodeContentTable.getContent().size() - 1; row++) {
                     TableRow tableRow = new TableRow(getActivity());
-                    CharSequence[] tableRowCells = part.get(row);
+                    CharSequence[] tableRowCells = scNodeContentTable.getContent().get(row);
                     for (CharSequence cell: tableRowCells) {
                         TextView cellTextView = new TextView(getActivity());
                         cellTextView.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));

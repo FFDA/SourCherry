@@ -44,12 +44,13 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
-import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.model.ScNodeContent;
+import lt.ffda.sourcherry.model.ScNodeContentText;
 
 public class NodeEditorFragment extends Fragment {
     private LinearLayout nodeEditorFragmentLinearLayout;
@@ -209,12 +210,11 @@ public class NodeEditorFragment extends Fragment {
             });
         }
 
-        for (ArrayList<CharSequence[]> part : mainViewModel.getNodeContent()) {
-            CharSequence[] type = part.get(0);
-            if (type[0].equals("text")) {
+        for (ScNodeContent part : mainViewModel.getNodeContent()) {
+            if (part.getContentType() == 0) {
                 // This adds not only text, but images, codeboxes
-                CharSequence[] textContent = part.get(1);
-                SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) textContent[0];
+                ScNodeContentText scNodeContentText = (ScNodeContentText) part;
+                SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) scNodeContentText.getContent();
                 EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
                 editText.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
                 editText.addTextChangedListener(textWatcher);

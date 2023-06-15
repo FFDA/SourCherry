@@ -17,10 +17,11 @@ import androidx.lifecycle.ViewModel;
 import java.util.ArrayList;
 
 import lt.ffda.sourcherry.model.ScNode;
+import lt.ffda.sourcherry.model.ScNodeContent;
 
 public class MainViewModel extends ViewModel {
     // Stores data, that should be kept during screen orientation change
-    private ArrayList<ArrayList<CharSequence[]>> nodeContent;
+    private ArrayList<ScNodeContent> nodeContent;
     private ArrayList<ScNode> nodes;
     private ArrayList<ScNode> tempNodes;
     private ArrayList<ScNode> tempSearchNodes;
@@ -34,7 +35,7 @@ public class MainViewModel extends ViewModel {
      * that will be loaded to display for user
      * @param nodeContent node content retrieved from database
      */
-    public void setNodeContent(ArrayList<ArrayList<CharSequence[]>> nodeContent) {
+    public void setNodeContent(ArrayList<ScNodeContent> nodeContent) {
         this.nodeContent = nodeContent;
     }
 
@@ -42,7 +43,7 @@ public class MainViewModel extends ViewModel {
      * Get current drawer menu items
      * @return drawer menu items
      */
-    public ArrayList<ArrayList<CharSequence[]>> getNodeContent() {
+    public ArrayList<ScNodeContent> getNodeContent() {
         return this.nodeContent;
     }
 
