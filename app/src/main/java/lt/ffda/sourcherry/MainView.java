@@ -144,7 +144,7 @@ public class MainView extends AppCompatActivity {
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         DatabaseReaderFactory databaseReaderFactory = new DatabaseReaderFactory();
         try {
-            this.reader = databaseReaderFactory.getReader(this, this.handler, this.sharedPreferences);
+            this.reader = databaseReaderFactory.getReader(this, this.handler, this.sharedPreferences, this.mainViewModel);
         } catch (IOException e) {
             Toast.makeText(this, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
             this.finish();
@@ -521,11 +521,7 @@ public class MainView extends AppCompatActivity {
             int itemID = item.getItemId();
             if (itemID == R.id.toolbar_button_edit_node) {
                 if (this.currentNode != null) {
-                    if (this.reader.isNodeRichText(this.currentNode.getUniqueId())) {
-                        Toast.makeText(this, R.string.toast_message_rich_text_node_editing_not_supported, Toast.LENGTH_SHORT).show();
-                    } else {
-                        this.openNodeEditor();
-                    }
+                    this.openNodeEditor();
                 } else {
                     Toast.makeText(this, R.string.toast_message_please_open_a_node, Toast.LENGTH_SHORT).show();
                 }

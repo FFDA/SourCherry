@@ -12,6 +12,7 @@ package lt.ffda.sourcherry.database;
 
 import android.text.SpannableStringBuilder;
 import android.text.style.ClickableSpan;
+import android.text.style.ImageSpan;
 
 import org.w3c.dom.Node;
 
@@ -115,9 +116,10 @@ public interface DatabaseReader {
      * It does not respond to touches in any way
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
+     * @param anchorValue value of the anchor attribute of the encoded_png tag
      * @return SpannableStringBuilder that has an image in it
      */
-    SpannableStringBuilder makeAnchorImageSpan();
+    SpannableStringBuilder makeAnchorImageSpan(String anchorValue);
 
     /**
      * Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
@@ -125,9 +127,10 @@ public interface DatabaseReader {
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
      * @param nodeUniqueID unique ID of the node that the link has to load
+     * @param linkAnchorName name of the anchor that opened node has to show. Has no effect in SourCherry
      * @return ClickableSpan that touched by user will load the other node
      */
-    ClickableSpan makeAnchorLinkSpan(String nodeUniqueID);
+    ClickableSpan makeAnchorLinkSpan(String nodeUniqueID, String linkAnchorName);
 
     /**
      * Creates and returns a span for a link to external file or folder
@@ -205,7 +208,7 @@ public interface DatabaseReader {
      * @param type pass 0 to get broken image span, pass 1 to get a broken latex span
      * @return ImageSpan with broken image image
      */
-    SpannableStringBuilder getBrokenImageSpan(int type);
+    ImageSpan getBrokenImageSpan(int type);
 
     /**
      * Checks database if the node exists in it
@@ -321,9 +324,8 @@ public interface DatabaseReader {
      * Writes node content to database
      * Supports only plain-text, automatic-syntax-highlighting nodes
      * @param nodeUniqueID unique ID of the node
-     * @param nodeContent new node content
      */
-    void saveNodeContent(String nodeUniqueID, String nodeContent);
+    void saveNodeContent(String nodeUniqueID);
 
     /**
      * Search for string in the database

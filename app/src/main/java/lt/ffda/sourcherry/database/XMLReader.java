@@ -38,7 +38,6 @@ import android.text.style.StyleSpan;
 import android.text.style.SubscriptSpan;
 import android.text.style.SuperscriptSpan;
 import android.text.style.TypefaceSpan;
-import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
 import android.view.View;
@@ -53,6 +52,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -71,6 +71,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import lt.ffda.sourcherry.MainView;
+import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.model.ScNodeContent;
@@ -78,6 +79,16 @@ import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 import lt.ffda.sourcherry.model.ScSearchNode;
+import lt.ffda.sourcherry.spans.ClickableSpanFile;
+import lt.ffda.sourcherry.spans.ClickableSpanLink;
+import lt.ffda.sourcherry.spans.ClickableSpanNode;
+import lt.ffda.sourcherry.spans.ImageSpanAnchor;
+import lt.ffda.sourcherry.spans.ImageSpanFile;
+import lt.ffda.sourcherry.spans.ImageSpanImage;
+import lt.ffda.sourcherry.spans.ImageSpanLatex;
+import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
+import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
+import lt.ffda.sourcherry.spans.URLSpanWebs;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class XMLReader implements DatabaseReader {
@@ -85,12 +96,14 @@ public class XMLReader implements DatabaseReader {
     private final Context context;
     private final Handler handler;
     private final String databaseUri;
+    private final MainViewModel mainViewModel;
 
-    public XMLReader(String databaseUri, InputStream is, Context context, Handler handler) {
+    public XMLReader(String databaseUri, InputStream is, Context context, Handler handler, MainViewModel mainViewModel) {
         // Creates a document that can be used to read tags with provided InputStream
         this.databaseUri = databaseUri;
         this.context = context;
         this.handler = handler;
+        this.mainViewModel = mainViewModel;
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
@@ -366,14 +379,11 @@ public class XMLReader implements DatabaseReader {
                         } else if (currentNodeType.equals("encoded_png")) {
                             // "encoded_png" might actually be image, attached files or anchors (just images that mark the position)
                             int charOffset = getCharOffset(currentNode);
-
                             if (currentNode.getAttributes().getNamedItem("filename") != null) {
                                 if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
                                     // For latex boxes
                                     SpannableStringBuilder latexImageSpan = makeLatexImageSpan(currentNode);
                                     nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
-                                    totalCharOffset += latexImageSpan.length() - 1;
-                                    continue;
                                 } else {
                                     // For actual attached files
                                     SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode, nodeUniqueID);
@@ -381,29 +391,27 @@ public class XMLReader implements DatabaseReader {
                                     totalCharOffset += attachedFileSpan.length() - 1;
                                 }
                             } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
-                                // It doesn't need node to be passed to it,
-                                // because there isn't any relevant information embedded into it
-                                SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan();
+                                SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
-                                totalCharOffset += anchorImageSpan.length() - 1;
                             } else {
                                 // Images
                                 SpannableStringBuilder imageSpan = makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
-                                totalCharOffset += imageSpan.length() - 1;
                             }
                         } else if (currentNodeType.equals("table")) {
                             int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
                             nodeTableCharOffsets.add(charOffset);
                             int[] cellMinMax = getTableMinMax(currentNode);
-                            nodeContentStringBuilder.insert(charOffset, " "); // Adding space for formatting reason
                             ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
                             NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
                             for (int row = 0; row < tableRowsNodes.getLength(); row++) {
                                 currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
                             }
-                            ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1]);
+                            ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], ((Element) currentNode).getAttribute("justification"));
                             nodeTables.add(scNodeContentTable);
+                            // Instead of adding space for formatting reason
+                            // it might be better to take one of totalCharOffset
+                            totalCharOffset -= 1;
                         }
                     }
                 } else {
@@ -454,80 +462,87 @@ public class XMLReader implements DatabaseReader {
             switch (attribute) {
                 case "strikethrough":
                     StrikethroughSpan sts = new StrikethroughSpan();
-                    formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     break;
                 case "foreground":
                     String foregroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting foreground color code from the tag
                     ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(foregroundColorOriginal));
-                    formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     break;
                 case "background":
                     String backgroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting background color code from the tag
                     BackgroundColorSpan bcs = new BackgroundColorSpan(Color.parseColor(backgroundColorOriginal));
-                    formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     break;
                 case "weight":
                     StyleSpan boldStyleSpan = new StyleSpan(Typeface.BOLD);
-                    formattedNodeText.setSpan(boldStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(boldStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     break;
                 case "style":
                     StyleSpan italicStyleSpan = new StyleSpan(Typeface.ITALIC);
-                    formattedNodeText.setSpan(italicStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(italicStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     break;
                 case "underline":
-                    formattedNodeText.setSpan(new UnderlineSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(new UnderlineSpan(), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     break;
                 case "scale":
                     String scaleValue = nodeAttributes.item(i).getTextContent();
                     switch (scaleValue) {
-                        case "h1": formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "h1":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             break;
-                        case "h2": formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "h2":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             break;
-                        case "h3": formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "h3":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             break;
-                        case "small": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "small":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(0.75f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             break;
-                        case "sup": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            formattedNodeText.setSpan(new SuperscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "sup":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            formattedNodeText.setSpan(new SuperscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             break;
-                        case "sub": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            formattedNodeText.setSpan(new SubscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "sub":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            formattedNodeText.setSpan(new SubscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             break;
                     }
                     break;
                 case "family":
-                    TypefaceSpan tf = new TypefaceSpan("monospace");
-                    formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    TypefaceSpanFamily tf = new TypefaceSpanFamily("monospace");
+                    formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     break;
                 case "link":
                     String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
                     if (attributeValue[0].equals("webs")) {
                         // Making links to open websites
-                        URLSpan us = new URLSpan(attributeValue[1]);
-                        formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        URLSpanWebs us = new URLSpanWebs(attributeValue[1]);
+                        formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     } else if (attributeValue[0].equals("node")) {
                         // Making links to open other nodes (Anchors)
-                        formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        String linkAnchorName = String.join(" ", Arrays.copyOfRange(attributeValue, 2, attributeValue.length));
+                        formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1], linkAnchorName), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     } else if (attributeValue[0].equals("file") || attributeValue[0].equals("fold")) {
                         // Making links to the file or folder
                         // It will not try to open the file, but just mark it, and display path to it on original system
-                        formattedNodeText.setSpan(this.makeFileFolderLinkSpan(attributeValue[0], attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        formattedNodeText.setSpan(this.makeFileFolderLinkSpan(attributeValue[0], attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     }
                     break;
                 case "justification":
                     String justification = nodeAttributes.item(i).getTextContent();
                     switch (justification) {
-                        case "right":   formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "right": formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             break;
-                        case "center":  formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "center": formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             break;
                     }
                     break;
                 case "indent":
                     int indent = Integer.parseInt(nodeAttributes.item(i).getTextContent()) * 40;
                     LeadingMarginSpan.Standard lmss = new LeadingMarginSpan.Standard(indent);
-                    formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                     break;
             }
         }
@@ -547,11 +562,18 @@ public class XMLReader implements DatabaseReader {
     public SpannableStringBuilder makeFormattedCodebox(Node node) {
         SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
         formattedCodebox.append(node.getTextContent());
-
         // Changes font
-        TypefaceSpan tf = new TypefaceSpan("monospace");
-        formattedCodebox.setSpan(tf, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
+        TypefaceSpanCodebox typefaceSpanCodebox = new TypefaceSpanCodebox("monospace");
+        // Saving codebox attribute to the span
+        Element element = (Element) node;
+        String justificationAttribute = element.getAttribute("justification");
+        typefaceSpanCodebox.setFrameWidth(Integer.parseInt(element.getAttribute("frame_width")));
+        typefaceSpanCodebox.setFrameHeight(Integer.parseInt(element.getAttribute("frame_height")));
+        typefaceSpanCodebox.setWidthInPixel(element.getAttribute("width_in_pixels").equals("1"));
+        typefaceSpanCodebox.setSyntaxHighlighting(element.getAttribute("syntax_highlighting"));
+        typefaceSpanCodebox.setHighlightBrackets(element.getAttribute("highlight_brackets").equals("1"));
+        typefaceSpanCodebox.setShowLineNumbers(element.getAttribute("show_line_numbers").equals("1"));
+        formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         if (node.getTextContent().contains("\n")) {
             // Adds vertical line in front the paragraph, to make it stand out as quote
             QuoteSpan qs;
@@ -560,17 +582,21 @@ public class XMLReader implements DatabaseReader {
             } else {
                 qs = new QuoteSpan(Color.RED);
             }
-            formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             // Changes background color
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                 LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-                formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             }
         } else {
             BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
-            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         }
-
+        if (justificationAttribute.equals("right")) {
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        } else if (justificationAttribute.equals("center")) {
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        }
         return formattedCodebox;
     }
 
@@ -602,7 +628,6 @@ public class XMLReader implements DatabaseReader {
             LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
             formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         }
-
         return formattedCodeNode;
     }
 
@@ -618,13 +643,13 @@ public class XMLReader implements DatabaseReader {
      */
     public SpannableStringBuilder makeImageSpan(Node node, String nodeUniqueID, String imageOffset) {
         SpannableStringBuilder formattedImage = new SpannableStringBuilder();
-
+        ImageSpanImage imageSpanImage;
         //* Adds image to the span
         try {
             formattedImage.append(" ");
-            byte[] decodedString = Base64.decode(node.getTextContent().trim(), Base64.DEFAULT);
+            byte[] decodedString = Base64.decode(node.getTextContent(), Base64.DEFAULT);
             Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-            Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
+            Drawable image = new BitmapDrawable(context.getResources(), decodedByte);
             image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
 
             int width = Resources.getSystem().getDisplayMetrics().widthPixels;
@@ -636,10 +661,8 @@ public class XMLReader implements DatabaseReader {
                 int newHeight = (int) (image.getIntrinsicHeight() * scale);
                 image.setBounds(0, 0, newWidth, newHeight);
             }
-
-            ImageSpan is = new ImageSpan(image);
-            formattedImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
+            imageSpanImage = new ImageSpanImage(image);
+            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             //** Detects image touches/clicks
             ClickableSpan imageClickableSpan = new ClickableSpan() {
                 @Override
@@ -648,14 +671,21 @@ public class XMLReader implements DatabaseReader {
                     ((MainView) context).openImageView(nodeUniqueID, imageOffset);
                 }
             };
-            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken image span to display in node content
+            imageSpanImage = (ImageSpanImage) this.getBrokenImageSpan(0);
+            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
         }
         //*
-
+        String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
+        if (justificationAttribute.equals("right")) {
+            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedImage.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        } else if (justificationAttribute.equals("center")) {
+            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedImage.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        }
         return formattedImage;
     }
 
@@ -669,7 +699,7 @@ public class XMLReader implements DatabaseReader {
      */
     public SpannableStringBuilder makeLatexImageSpan(Node node) {
         SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
-
+        ImageSpanLatex imageSpanLatex;
         //* Creates and adds image to the span
         try {
             // Embedded latex code has tags/code that is not recognized by jlatexmath-android
@@ -682,7 +712,7 @@ public class XMLReader implements DatabaseReader {
                 "\\begin{document}\n" +
                 "\\begin{align*}", "")
                 .replace("\\end{align*}\n\\end{document}", "")
-                .replaceAll("&=", "="); // Removing & sing, otherwise latex image fails to compile
+                .replaceAll("&=", "="); // Removing '&' sing, otherwise latex image fails to compile
 
             final JLatexMathDrawable latexDrawable = JLatexMathDrawable.builder(latexString)
                 .textSize(40)
@@ -702,9 +732,8 @@ public class XMLReader implements DatabaseReader {
                 int newHeight = (int) (latexDrawable.getIntrinsicHeight() * scale);
                 latexDrawable.setBounds(0, 0, newWidth, newHeight);
             }
-
-            ImageSpan is = new ImageSpan(latexDrawable);
-            formattedLatexImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            imageSpanLatex = new ImageSpanLatex(latexDrawable);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
 
             //** Detects image touches/clicks
             ClickableSpan imageClickableSpan = new ClickableSpan() {
@@ -714,15 +743,22 @@ public class XMLReader implements DatabaseReader {
                     ((MainView) XMLReader.this.context).openImageView(latexString);
                 }
             };
-            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken latex image span to display in node content
-            formattedLatexImage.append(this.getBrokenImageSpan(1));
+            imageSpanLatex = (ImageSpanLatex) this.getBrokenImageSpan(1);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_compile_latex));
         }
         //*
-
+        String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
+        if (justificationAttribute.equals("right")) {
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedLatexImage.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        } else if (justificationAttribute.equals("center")) {
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedLatexImage.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        }
+        imageSpanLatex.setLatexCode(node.getTextContent());
         return formattedLatexImage;
     }
 
@@ -736,61 +772,58 @@ public class XMLReader implements DatabaseReader {
      * @return SpannableStringBuilder that has spans with image and filename
      */
     public SpannableStringBuilder makeAttachedFileSpan(Node node, String nodeUniqueID) {
-
         String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
         String time = node.getAttributes().getNamedItem("time").getNodeValue();
-
         SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
-
         formattedAttachedFile.append(" "); // Needed to insert an image
-
-        //// Inserting image
+        // Inserting image
         Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        ////
-
+        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        attachedFileIcon.setFromDatabase(true);
+        attachedFileIcon.setNodeUniqueId(nodeUniqueID);
+        attachedFileIcon.setFilename(attachedFileFilename);
+        attachedFileIcon.setTimestamp(time);
+        attachedFileIcon.setOriginalOffset(node.getAttributes().getNamedItem("char_offset").getNodeValue());
+        formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         formattedAttachedFile.append(attachedFileFilename); // Appending filename
-
-        //// Detects touches on icon and filename
-        ClickableSpan imageClickableSpan = new ClickableSpan() {
-
+        // Detects touches on icon and filename
+        ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
             @Override
             public void onClick(@NonNull View widget) {
             // Launches function in MainView that checks if there is a default action in for attached files
             ((MainView) XMLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time);
             }
         };
-        formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
-        ////
-
+        formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE); // Setting clickableSpan on image
+        String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
+        if (justificationAttribute.equals("right")) {
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedAttachedFile.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        } else if (justificationAttribute.equals("center")) {
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedAttachedFile.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        }
         return formattedAttachedFile;
     }
 
     @Override
-    public SpannableStringBuilder makeAnchorImageSpan() {
+    public SpannableStringBuilder makeAnchorImageSpan(String anchorValue) {
         // Makes an image span that displays an anchor to mark position of it.
         // It does not respond to touches in any way
         SpannableStringBuilder anchorImageSpan = new SpannableStringBuilder();
         anchorImageSpan.append(" ");
-
-        //// Inserting image
+        // Inserting image
         Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_anchor_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        ////
-
+        ImageSpanAnchor attachedFileIcon = new ImageSpanAnchor(drawableAttachedFileIcon, Spanned.SPAN_INCLUSIVE_INCLUSIVE, anchorValue);
+        anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         return anchorImageSpan;
     }
 
     @Override
-    public ClickableSpan makeAnchorLinkSpan(String nodeUniqueID) {
+    public ClickableSpanNode makeAnchorLinkSpan(String nodeUniqueID, String linkAnchorName) {
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
-
-        return new ClickableSpan() {
+        ClickableSpanNode clickableSpanNode = new ClickableSpanNode() {
             @Override
             public void onClick(@NonNull View widget) {
                 ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
@@ -803,14 +836,18 @@ public class XMLReader implements DatabaseReader {
                 ds.setUnderlineText(true);
             }
         };
+        clickableSpanNode.setNodeUniqueID(nodeUniqueID);
+        if (linkAnchorName.length() > 0) {
+            clickableSpanNode.setLinkAnchorName(linkAnchorName);
+        }
+        return clickableSpanNode;
     }
 
     @Override
-    public ClickableSpan makeFileFolderLinkSpan(String type, String base64Filename) {
+    public ClickableSpanLink makeFileFolderLinkSpan(String type, String base64Filename) {
         // Creates and returns a span for a link to external file or folder
         // When user clicks on the link snackbar displays a path to the file that was saved in the original system
-
-        return new ClickableSpan() {
+        ClickableSpanLink clickableSpanLink = new ClickableSpanLink() {
             @Override
             public void onClick(@NonNull View widget) {
                 // Decoding of Base64 is done here
@@ -828,6 +865,9 @@ public class XMLReader implements DatabaseReader {
                 ds.setUnderlineText(true);
             }
         };
+        clickableSpanLink.setLinkType(type);
+        clickableSpanLink.setBase64Link(base64Filename);
+        return clickableSpanLink;
     }
 
     @Override
@@ -850,8 +890,8 @@ public class XMLReader implements DatabaseReader {
      * @return offset of the node content
      */
     public int getCharOffset(Node node) {
-        Element el = (Element) node;
-        return Integer.parseInt(el.getAttribute("char_offset"));
+        Element element = (Element) node;
+        return Integer.parseInt(element.getAttribute("char_offset"));
     }
 
     /**
@@ -907,7 +947,6 @@ public class XMLReader implements DatabaseReader {
                 }
             }
         }
-
         return null;
     }
 
@@ -966,26 +1005,22 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public SpannableStringBuilder getBrokenImageSpan(int type) {
+    public ImageSpan getBrokenImageSpan(int type) {
         // Returns an image span that is used to display as placeholder image
         // used when cursor window is to small to get an image blob
         // pass 0 to get broken image span, pass 1 to get broken latex span
-        SpannableStringBuilder brokenSpan = new SpannableStringBuilder();
-        brokenSpan.append(" ");
         Drawable drawableBrokenImage;
+        ImageSpan brokenImage;
         if (type == 0) {
             drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_image_48);
+            brokenImage = new ImageSpanImage(drawableBrokenImage);
         } else {
             drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_latex_48);
+            brokenImage = new ImageSpanLatex(drawableBrokenImage);
         }
-        //// Inserting image
-
+        // Inserting image
         drawableBrokenImage.setBounds(0,0, drawableBrokenImage.getIntrinsicWidth(), drawableBrokenImage.getIntrinsicHeight());
-        ImageSpan brokenImage = new ImageSpan(drawableBrokenImage, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        brokenSpan.setSpan(brokenImage,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        ////
-
-        return brokenSpan;
+        return brokenImage;
     }
 
     @Override
@@ -1432,18 +1467,242 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public void saveNodeContent(String nodeUniqueID, String nodeContent) {
+    public void saveNodeContent(String nodeUniqueID) {
+        Node node = null;
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
+            node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                this.deleteNodeContent(node);
-                Element element = this.doc.createElement("rich_text");
-                element.setTextContent(nodeContent);
-                node.appendChild(element);
-                this.writeIntoDatabase();
+                break;
             }
         }
+        if (node == null) {
+            this.displayToast(this.context.getString(R.string.toast_error_while_saving_node_content_not_found));
+            return;
+        }
+        int next; // The end of the current span and the start of the next one
+        int totalContentLength = 0; // Needed to calculate offset for the tag
+        int currentPartContentLength = 0; // Needed to calculate offset for the tag
+        // Extra cha offset. Because when I create nodeContent I had to take -1 off the totalCharOffset
+        // I have to add it when saving content to tags. Otherwise content in the CherryTree (and SourCherry)
+        // will look differently every time. In the end it will cause a crash.
+        int extraCharOffset = 0;
+        ArrayList<Element> normalNodes = new ArrayList<>(); // Store all normal tags in order
+        ArrayList<Element> offsetNodes = new ArrayList<>(); // Store all tags with char_offset attribute
+        // Can't get justification for all items that have offset (except tables), so the best next
+        // thing I can do is save last detected justification value and used it when creating those nodes
+        String lastFoundJustification = "left";
+        for (ScNodeContent scNodeContent: this.mainViewModel.getNodeContent()) {
+            if (scNodeContent.getContentType() == 0) {
+                // To add content of the the span that is being processed
+                // set addContent to true. Needed because not all elements of the node
+                // have content that is displayed for user in text form.
+                boolean addContent;
+                ScNodeContentText scNodeContentText = (ScNodeContentText) scNodeContent;
+                SpannableStringBuilder nodeContent = scNodeContentText.getContent();
+                // Iterating through the spans of the nodeContentText
+                // and adding information depending on Span class
+                // for more information on span open appropriate span class. Furthermore,
+                // other elements have different tag name than "rich_text". For those elements
+                // new (appropriate) tags will be created and added to appropriate list.
+                for (int i = 0; i < nodeContent.length(); i = next) {
+                    addContent = false;
+                    next = nodeContent.nextSpanTransition(i, nodeContent.length(), Object.class);
+                    Object[] spans = nodeContent.getSpans(i, next, Object.class);
+                    Element element = this.doc.createElement("rich_text");
+                    for (Object span : spans) {
+                        if (span instanceof AlignmentSpan) {
+                            AlignmentSpan alignmentSpan = (AlignmentSpan) span;
+                            if (alignmentSpan.getAlignment() == Layout.Alignment.ALIGN_CENTER) {
+                                element.setAttribute("justification", "center");
+                                lastFoundJustification = "center";
+                            } else if (alignmentSpan.getAlignment() == Layout.Alignment.ALIGN_OPPOSITE) {
+                                element.setAttribute("justification", "right");
+                                lastFoundJustification = "right";
+                            } else {
+                                element.setAttribute("justification", "left");
+                                lastFoundJustification = "left";
+                            }
+                        }
+                        if (span instanceof BackgroundColorSpan) {
+                            BackgroundColorSpan backgroundColorSpan = (BackgroundColorSpan) span;
+                            String backgroundColor = String.format("#%1$s", Integer.toHexString(backgroundColorSpan.getBackgroundColor()).substring(2));
+                            element.setAttribute("background", backgroundColor);
+                        }
+                        if (span instanceof ClickableSpanNode) {
+                            ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
+                            String attributeValue = String.format("node %1$s", clickableSpanNode.getNodeUniqueID());
+                            if (clickableSpanNode.getLinkAnchorName() != null) {
+                                attributeValue = String.format("%1$s %2$s", attributeValue, clickableSpanNode.getLinkAnchorName());
+                            }
+                            element.setAttribute("link", attributeValue);
+                        }
+                        if (span instanceof ClickableSpanLink) {
+                            ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
+                            element.setAttribute("link", String.format("%1$s %2$s", clickableSpanLink.getLinkType(), clickableSpanLink.getBase64Link()));
+                        }
+                        if (span instanceof ImageSpanFile) {
+                            // Attached file
+                            addContent = true;
+                            ImageSpanFile imageSpanFile = (ImageSpanFile) span;
+                            element = this.doc.createElement("encoded_png");
+                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
+                            element.setAttribute("justification", lastFoundJustification);
+                            element.setAttribute("filename", imageSpanFile.getFilename());
+                            element.setAttribute("time", String.valueOf(System.currentTimeMillis()));
+                            if (imageSpanFile.isFromDatabase()) {
+                                element.setTextContent(this.getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
+                            }
+                            offsetNodes.add(element);
+                            extraCharOffset += 1;
+                        }
+                        if (span instanceof ClickableSpanFile) {
+                            // Attached File text part
+                            addContent = true;
+                        }
+                        if (span instanceof ForegroundColorSpan) {
+                            ForegroundColorSpan foregroundColorSpan = (ForegroundColorSpan) span;
+                            String backgroundColor = String.format("#%1$s", Integer.toHexString(foregroundColorSpan.getForegroundColor()).substring(2));
+                            element.setAttribute("foreground", backgroundColor);
+                        }
+                        if (span instanceof ImageSpanAnchor) {
+                            addContent = true;
+                            element = this.doc.createElement("encoded_png");
+                            ImageSpanAnchor imageSpanAnchor = (ImageSpanAnchor) span;
+                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
+                            element.setAttribute("justification", lastFoundJustification);
+                            element.setAttribute("anchor", imageSpanAnchor.getAnchorName());
+                            offsetNodes.add(element);
+                            extraCharOffset += 1;
+                        }
+                        if (span instanceof ImageSpanImage) {
+                            addContent = true;
+                            element = this.doc.createElement("encoded_png");
+                            ImageSpanImage imageSpanImage = (ImageSpanImage) span;
+                            Drawable drawable = imageSpanImage.getDrawable();
+                            // Hopefully it's always a Bitmap drawable, because I get it from the same source
+                            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+                            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+                            String baseString = Base64.encodeToString(byteArrayOutputStream.toByteArray(),Base64.DEFAULT);
+                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
+                            element.setAttribute("justification", lastFoundJustification);
+                            element.setTextContent(baseString);
+                            offsetNodes.add(element);
+                            extraCharOffset += 1;
+                        }
+                        if (span instanceof ImageSpanLatex) {
+                            addContent = true;
+                            ImageSpanLatex imageSpanLatex = (ImageSpanLatex) span;
+                            element = this.doc.createElement("encoded_png");
+                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
+                            element.setAttribute("justification", lastFoundJustification);
+                            element.setAttribute("filename", "__ct_special.tex");
+                            element.setTextContent(imageSpanLatex.getLatexCode());
+                            offsetNodes.add(element);
+                            extraCharOffset += 1;
+                        }
+                        if (span instanceof LeadingMarginSpan) {
+                            LeadingMarginSpan leadingMarginSpan = (LeadingMarginSpan) span;
+                            int indent = leadingMarginSpan.getLeadingMargin(true) / 40;
+                            element.setAttribute("indent", String.valueOf(indent));
+                        }
+                        if (span instanceof TypefaceSpanCodebox) {
+                            addContent = true;
+                            element = this.doc.createElement("codebox");
+                            TypefaceSpanCodebox typefaceSpanCodebox = (TypefaceSpanCodebox) span;
+                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
+                            element.setAttribute("justification", lastFoundJustification);
+                            element.setAttribute("frame_width", String.valueOf(typefaceSpanCodebox.getFrameWidth()));
+                            element.setAttribute("frame_height", String.valueOf(typefaceSpanCodebox.getFrameHeight()));
+                            element.setAttribute("width_in_pixels", typefaceSpanCodebox.isWidthInPixel() ? "1" : "0");
+                            element.setAttribute("syntax_highlighting", typefaceSpanCodebox.getSyntaxHighlighting());
+                            element.setAttribute("highlight_brackets", typefaceSpanCodebox.isHighlightBrackets() ? "1" : "0");
+                            element.setAttribute("show_line_numbers", typefaceSpanCodebox.isShowLineNumbers() ? "1" : "0");
+                            element.setTextContent(nodeContent.subSequence(i, next).toString());
+                            offsetNodes.add(element);
+                            extraCharOffset += 1;
+                        }
+                        if (span instanceof RelativeSizeSpan) {
+                            RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
+                            float size = relativeSizeSpan.getSizeChange();
+                            if (size == 1.75f) {
+                                element.setAttribute("scale", "h1");
+                            } else if (size == 1.5f) {
+                                element.setAttribute("scale", "h2");
+                            } else if (size == 1.25f) {
+                                element.setAttribute("scale", "h3");
+                            } else if (size == 0.75f) {
+                                element.setAttribute("scale", "small");
+                            }
+                        }
+                        if (span instanceof StrikethroughSpan) {
+                            element.setAttribute("strikethrough", "true");
+                        }
+                        if (span instanceof StyleSpan) {
+                            StyleSpan styleSpan = (StyleSpan) span;
+                            if (styleSpan.getStyle() == Typeface.BOLD) {
+                                element.setAttribute("weight", "heavy");
+                            } else if (styleSpan.getStyle() == Typeface.ITALIC) {
+                                element.setAttribute("style", "italic");
+                            }
+                        }
+                        if (span instanceof SubscriptSpan) {
+                            element.setAttribute("scale", "sub");
+                        }
+                        if (span instanceof SuperscriptSpan) {
+                            element.setAttribute("scale", "sup");
+                        }
+                        if (span instanceof TypefaceSpanFamily) {
+                            element.setAttribute("family", "monospace");
+                        }
+                        if (span instanceof URLSpanWebs) {
+                            URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
+                            element.setAttribute("link", String.format("webs %1$s", urlSpanWebs.getURL()));
+                        }
+                        if (span instanceof UnderlineSpan) {
+                            element.setAttribute("underline", "single");
+                        }
+                    }
+                    if (!addContent) {
+                        element.setTextContent(nodeContent.subSequence(i, next).toString());
+                        // If span content is being added to the element it's length cave to be
+                        // has to be counted to length of the node
+                        currentPartContentLength += (next - i);
+                        normalNodes.add(element);
+                    }
+                }
+                totalContentLength += currentPartContentLength;
+                currentPartContentLength = 0;
+            } else {
+                ScNodeContentTable scNodeContentTable = (ScNodeContentTable) scNodeContent;
+                Element tableElement = this.doc.createElement("table");
+                tableElement.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
+                tableElement.setAttribute("justification", scNodeContentTable.getJustification());
+                tableElement.setAttribute("col_min", String.valueOf(scNodeContentTable.getColMin()));
+                tableElement.setAttribute("col_max", String.valueOf(scNodeContentTable.getColMax()));
+                for (CharSequence[] row : scNodeContentTable.getContent()) {
+                    Element rowElement = this.doc.createElement("row");
+                    for (CharSequence cell: row) {
+                        Element cellElement = this.doc.createElement("cell");
+                        cellElement.setTextContent(cell.toString());
+                        rowElement.appendChild(cellElement);
+                    }
+                    tableElement.appendChild(rowElement);
+                }
+                offsetNodes.add(tableElement);
+                extraCharOffset += 1;
+            }
+        }
+        this.deleteNodeContent(node);
+        for (Element element: normalNodes) {
+            node.appendChild(element);
+        }
+        for (Element element: offsetNodes) {
+            node.appendChild(element);
+        }
+        node.getAttributes().getNamedItem("ts_lastsave").setTextContent(String.valueOf(System.currentTimeMillis()));
+        this.writeIntoDatabase();
     }
 
     @Override
@@ -1727,5 +1986,26 @@ public class XMLReader implements DatabaseReader {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Finds and returns Base64 encoded String of the file in the provided node
+     * @param node node to search file for
+     * @param offset file's offset
+     * @param filename file's filename
+     * @return file data in Base64 String
+     */
+    private String getFileEncodedString(Node node, String offset, String filename) {
+        NodeList nodeList = node.getChildNodes();
+        Node fileNode;
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            fileNode = nodeList.item(i);
+            if (fileNode.getNodeName().equals("encoded_png")) {
+                if (fileNode.getAttributes().getNamedItem("char_offset").getTextContent().equals(offset) && fileNode.getAttributes().getNamedItem("filename").getTextContent().equals(filename)) {
+                    return fileNode.getTextContent();
+                }
+            }
+        }
+        return "";
     }
 }

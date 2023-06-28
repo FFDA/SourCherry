@@ -19,6 +19,7 @@ import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -28,7 +29,10 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
@@ -44,12 +48,14 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.model.ScNodeContent;
+import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
 
 public class NodeEditorFragment extends Fragment {
@@ -225,67 +231,76 @@ public class NodeEditorFragment extends Fragment {
                         NodeEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
                     }
                 });
+            } else {
+                HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
+                TableLayout table = new TableLayout(getActivity());
+                ScNodeContentTable scNodeContentTable = (ScNodeContentTable) part;
+                // Setting gravity for the table
+                LinearLayout.LayoutParams tableScrollViewParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
+                switch (scNodeContentTable.getJustification()) {
+                    case "right":
+                        tableScrollViewParams.gravity = Gravity.RIGHT;
+                        break;
+                    case "center":
+                        tableScrollViewParams.gravity = Gravity.CENTER;
+                        break;
+                    case "fill":
+                        tableScrollViewParams.gravity = Gravity.FILL;
+                        break;
+                }
+                tableScrollView.setLayoutParams(tableScrollViewParams);
+                // Multiplying by arbitrary number to make table cells look better.
+                // For some reason table that looks good in PC version looks worse on android
+                int colMin = (int) (scNodeContentTable.getColMin() * 1.3);
+                int colMax = (int) (scNodeContentTable.getColMax() * 1.3);
+                // Wraps content in cell correctly
+                TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+
+                //// Creates and formats header for the table
+                CharSequence[] tableHeaderCells = scNodeContentTable.getContent().get(scNodeContentTable.getContent().size() - 1);
+                TableRow tableHeaderRow = new TableRow(getActivity());
+                for (CharSequence cell: tableHeaderCells) {
+                    EditText headerTextView = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+                    headerTextView.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
+                    headerTextView.setMinWidth(colMin);
+                    headerTextView.setMaxWidth(colMax);
+                    headerTextView.setPadding(10,10,10,10);
+                    headerTextView.setLayoutParams(params);
+                    headerTextView.setText(cell);
+                    headerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                    tableHeaderRow.addView(headerTextView);
+                }
+                table.addView(tableHeaderRow);
+                ////
+
+                //// Creates and formats data for the table
+                for (int row = 0; row < scNodeContentTable.getContent().size() - 1; row++) {
+                    TableRow tableRow = new TableRow(getActivity());
+                    CharSequence[] tableRowCells = scNodeContentTable.getContent().get(row);
+                    for (CharSequence cell: tableRowCells) {
+                        EditText cellTextView = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+                        cellTextView.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
+                        cellTextView.setMinWidth(colMin);
+                        cellTextView.setMaxWidth(colMax);
+                        cellTextView.setPadding(10,10,10,10);
+                        cellTextView.setLayoutParams(params);
+                        cellTextView.setText(cell);
+                        cellTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                        tableRow.addView(cellTextView);
+                    }
+                    table.addView(tableRow);
+                }
+                ////
+
+                table.setBackground(getActivity().getDrawable(R.drawable.table_border));
+                tableScrollView.addView(table);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        NodeEditorFragment.this.nodeEditorFragmentLinearLayout.addView(tableScrollView);
+                    }
+                });
             }
-//            if (type[0].equals("table")) {
-//                HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
-//                TableLayout table = new TableLayout(getActivity());
-//
-//                //// Getting max and min column values from table
-//                // Multiplying by arbitrary number to make it look better.
-//                // For some reason table that looks good in PC version looks worse on android
-//                int colMax = (int) (Integer.parseInt((String) type[1]) * 1.3);
-//                int colMin = (int) (Integer.parseInt((String) type[2]) * 1.3);
-//                ////
-//
-//                // Wraps content in cell correctly
-//                TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
-//
-//                //// Creates and formats header for the table
-//                CharSequence[] tableHeaderCells = part.get(part.size() - 1);
-//                TableRow tableHeaderRow = new TableRow(getActivity());
-//
-//                for (CharSequence cell: tableHeaderCells) {
-//                    TextView headerTextView = new TextView(getActivity());
-//                    headerTextView.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
-//                    headerTextView.setMinWidth(colMin);
-//                    headerTextView.setMaxWidth(colMax);
-//                    headerTextView.setPadding(10,10,10,10);
-//                    headerTextView.setLayoutParams(params);
-//                    headerTextView.setText(cell);
-//                    headerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-//                    tableHeaderRow.addView(headerTextView);
-//                }
-//                table.addView(tableHeaderRow);
-//                ////
-//
-//                //// Creates and formats data for the table
-//                for (int row = 1; row < part.size() - 1; row++) {
-//                    TableRow tableRow = new TableRow(getActivity());
-//                    CharSequence[] tableRowCells = part.get(row);
-//                    for (CharSequence cell: tableRowCells) {
-//                        TextView cellTextView = new TextView(getActivity());
-//                        cellTextView.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
-//                        cellTextView.setMinWidth(colMin);
-//                        cellTextView.setMaxWidth(colMax);
-//                        cellTextView.setPadding(10,10,10,10);
-//                        cellTextView.setLayoutParams(params);
-//                        cellTextView.setText(cell);
-//                        cellTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-//                        tableRow.addView(cellTextView);
-//                    }
-//                    table.addView(tableRow);
-//                }
-//                ////
-//
-//                table.setBackground(getActivity().getDrawable(R.drawable.table_border));
-//                tableScrollView.addView(table);
-//                handler.post(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        NodeEditorFragment.this.nodeEditorFragmentLinearLayout.addView(tableScrollView);
-//                    }
-//                });
-//            }
         }
         // Shows keyboard if opened node for editing has less than 2 characters in the EditText
         this.handler.post(new Runnable() {
@@ -308,12 +323,69 @@ public class NodeEditorFragment extends Fragment {
      * the database
      */
     private void saveNodeContent() {
-        if (nodeEditorFragmentLinearLayout.getChildCount() == 1) {
-            this.changesSaved = true;
-            this.textChanged = false;
-            EditText editText = (EditText) this.nodeEditorFragmentLinearLayout.getChildAt(0);
-            ((MainView) getActivity()).getReader().saveNodeContent(getArguments().getString("nodeUniqueID"), editText.getText().toString());
+        this.changesSaved = true;
+        this.textChanged = false;
+        ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
+        for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
+            View view = this.nodeEditorFragmentLinearLayout.getChildAt(i);
+            // if it a table
+            if (view instanceof HorizontalScrollView) {
+                TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                String justification;
+                // Getting justification of the table
+                LinearLayout.LayoutParams tableScrollView = (LinearLayout.LayoutParams) view.getLayoutParams();
+                switch (tableScrollView.gravity) {
+                    case Gravity.RIGHT:
+                        justification = "right";
+                        break;
+                    case Gravity.CENTER:
+                        justification = "center";
+                        break;
+                    case Gravity.FILL:
+                        justification = "fill";
+                        break;
+                    default:
+                        justification = "left";
+                        break;
+                }
+                ArrayList<CharSequence[]> tableContent = new ArrayList<>();
+                // Getting table content
+                // Starting from second row, because header row has to be stored last in the database
+                for (int row = 1; row < tableLayout.getChildCount(); row++) {
+                    TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                    CharSequence[] rowCells = new CharSequence[tableRow.getChildCount()];
+                    for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                        EditText currentCell = (EditText) tableRow.getChildAt(cell);
+                        rowCells[cell] = currentCell.getText();
+                    }
+                    tableContent.add(rowCells);
+                }
+                // Getting table header
+                int colMin = 0;
+                int colMax = 0;
+                TableRow tableHeader = (TableRow) tableLayout.getChildAt(0);
+                CharSequence[] headerCells = new CharSequence[tableHeader.getChildCount()];
+                for (int cell = 0; cell < tableHeader.getChildCount(); cell++) {
+                    EditText currentCell = (EditText) tableHeader.getChildAt(0);
+                    headerCells[cell] = currentCell.getText();
+                    if (cell == 0) {
+                        // Getting colMin & colMan. Dividing by the same arbitrary
+                        // value it was multiplied when the table was created
+                        colMin = (int) (currentCell.getMinWidth() / 1.3);
+                        colMax = (int) (currentCell.getMaxWidth() / 1.3);
+                    }
+                }
+                tableContent.add(headerCells);
+                nodeContent.add(new ScNodeContentTable((byte) 1, tableContent, colMin, colMax, justification));
+            } else {
+                EditText editText = (EditText) view;
+                editText.clearComposingText();
+                nodeContent.add(new ScNodeContentText((byte) 0, (SpannableStringBuilder) editText.getText()));
+            }
         }
+        // Setting new node content
+        this.mainViewModel.setNodeContent(nodeContent);
+        ((MainView) getActivity()).getReader().saveNodeContent(getArguments().getString("nodeUniqueID"));
         this.addTextChangedListeners();
     }
 

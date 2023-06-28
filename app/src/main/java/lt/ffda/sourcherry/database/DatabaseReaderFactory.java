@@ -20,6 +20,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import lt.ffda.sourcherry.MainViewModel;
+
 /**
  * Defines a factory API that enables applications to obtain a database reader that
  * allows to read and write to CherryTree databases
@@ -36,7 +38,7 @@ public class DatabaseReaderFactory {
      * @return object implementing DatabaseReader interface
      * @throws IOException exceptions while opening XML type databases
      */
-    public DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences) throws IOException {
+    public DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences, MainViewModel mainViewModel) throws IOException {
         DatabaseReader databaseReader = null;
         String databaseString = sharedPreferences.getString("databaseUri", null);
         if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
@@ -44,7 +46,7 @@ public class DatabaseReaderFactory {
             if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                 // If file is xml
                 InputStream is = context.getContentResolver().openInputStream(Uri.parse(databaseString));
-                databaseReader = new XMLReader(databaseString, is, context, handler);
+                databaseReader = new XMLReader(databaseString, is, context, handler, mainViewModel);
                 is.close();
             }
         } else {
@@ -52,12 +54,12 @@ public class DatabaseReaderFactory {
             if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                 // If file is xml
                 InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
-                databaseReader = new XMLReader(databaseString, is, context, handler);
+                databaseReader = new XMLReader(databaseString, is, context, handler, mainViewModel);
                 is.close();
             } else {
                 // If file is sql (password protected or not)
                 SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READWRITE);
-                databaseReader = new SQLReader(sqlite, context, handler);
+                databaseReader = new SQLReader(sqlite, context, handler, mainViewModel);
             }
         }
         return databaseReader;

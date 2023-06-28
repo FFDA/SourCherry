@@ -19,6 +19,7 @@ import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
 import android.text.style.BackgroundColorSpan;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -156,23 +157,33 @@ public class NodeContentFragment extends Fragment {
                         NodeContentFragment.this.contentFragmentLinearLayout.addView(tv);
                     }
                 });
-            }
-            else {
+            } else {
                 HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
                 TableLayout table = new TableLayout(getActivity());
                 ScNodeContentTable scNodeContentTable = (ScNodeContentTable) part;
+                // Setting gravity for the table
+                LinearLayout.LayoutParams tableScrollViewParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
+                switch (scNodeContentTable.getJustification()) {
+                    case "right":
+                        tableScrollViewParams.gravity = Gravity.RIGHT;
+                        break;
+                    case "center":
+                        tableScrollViewParams.gravity = Gravity.CENTER;
+                        break;
+                    case "fill":
+                        tableScrollViewParams.gravity = Gravity.FILL;
+                        break;
+                }
+                tableScrollView.setLayoutParams(tableScrollViewParams);
                 // Multiplying by arbitrary number to make table cells look better.
                 // For some reason table that looks good in PC version looks worse on android
                 int colMin = (int) (scNodeContentTable.getColMin() * 1.3);
                 int colMax = (int) (scNodeContentTable.getColMax() * 1.3);
-
                 // Wraps content in cell correctly
                 TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
-
                 //// Creates and formats header for the table
                 CharSequence[] tableHeaderCells = scNodeContentTable.getContent().get(scNodeContentTable.getContent().size() - 1);
                 TableRow tableHeaderRow = new TableRow(getActivity());
-
                 for (CharSequence cell: tableHeaderCells) {
                     TextView headerTextView = new TextView(getActivity());
                     headerTextView.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
@@ -188,7 +199,7 @@ public class NodeContentFragment extends Fragment {
                 ////
 
                 //// Creates and formats data for the table
-                for (int row = 1; row < scNodeContentTable.getContent().size() - 1; row++) {
+                for (int row = 0; row < scNodeContentTable.getContent().size() - 1; row++) {
                     TableRow tableRow = new TableRow(getActivity());
                     CharSequence[] tableRowCells = scNodeContentTable.getContent().get(row);
                     for (CharSequence cell: tableRowCells) {

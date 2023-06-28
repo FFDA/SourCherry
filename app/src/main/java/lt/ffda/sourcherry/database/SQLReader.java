@@ -44,7 +44,6 @@ import android.text.style.StyleSpan;
 import android.text.style.SubscriptSpan;
 import android.text.style.SuperscriptSpan;
 import android.text.style.TypefaceSpan;
-import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
 import android.view.View;
@@ -55,18 +54,27 @@ import androidx.appcompat.content.res.AppCompatResources;
 import androidx.preference.PreferenceManager;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import lt.ffda.sourcherry.MainView;
+import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.model.ScNodeContent;
@@ -74,17 +82,29 @@ import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 import lt.ffda.sourcherry.model.ScSearchNode;
+import lt.ffda.sourcherry.spans.ClickableSpanFile;
+import lt.ffda.sourcherry.spans.ClickableSpanLink;
+import lt.ffda.sourcherry.spans.ClickableSpanNode;
+import lt.ffda.sourcherry.spans.ImageSpanAnchor;
+import lt.ffda.sourcherry.spans.ImageSpanFile;
+import lt.ffda.sourcherry.spans.ImageSpanImage;
+import lt.ffda.sourcherry.spans.ImageSpanLatex;
+import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
+import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
+import lt.ffda.sourcherry.spans.URLSpanWebs;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class SQLReader implements DatabaseReader {
     private final SQLiteDatabase sqlite;
     private final Context context;
     private final Handler handler;
+    private final MainViewModel mainViewModel;
 
-    public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler) {
+    public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler, MainViewModel mainViewModel) {
         this.context = context;
         this.sqlite = sqlite;
         this.handler = handler;
+        this.mainViewModel = mainViewModel;
     }
 
     @Override
@@ -375,34 +395,32 @@ public class SQLReader implements DatabaseReader {
                         int charOffset = codeboxTableImageCursor.getInt(0);
                         if (codeboxTableImageCursor.getInt(1) == 9) {
                             // Get image entry for current node_id and charOffset
-                            Cursor imageCursor = this.sqlite.query("image", new String[]{"anchor", "filename", "time"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
+                            Cursor imageCursor = this.sqlite.query("image", new String[]{"anchor", "filename", "time", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                             if (imageCursor.moveToFirst()) {
                                 if (!imageCursor.getString(0).isEmpty()) {
                                     // Text in column "anchor" (0) means that this line is for anchor
+                                    SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan(imageCursor.getString(0));
                                     imageCursor.close();
-                                    SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan();
                                     nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
-                                    totalCharOffset += anchorImageSpan.length() - 1;
                                     continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                                 }
                                 if (!imageCursor.getString(1).isEmpty()) {
                                     // Text in column "filename" (1) means that this line is for file OR LaTeX formula box
                                     if (!imageCursor.getString(1).equals("__ct_special.tex")) {
-                                        // If it is not LaTex file
-                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(nodeUniqueID, imageCursor.getString(1), String.valueOf(imageCursor.getDouble(2)));
+                                        // If it is not LaTex file (normal file)
+                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(nodeUniqueID, imageCursor.getString(1), String.valueOf(imageCursor.getDouble(2)), String.valueOf(charOffset), imageCursor.getString(3));
                                         imageCursor.close();
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                         totalCharOffset += attachedFileSpan.length() - 1;
                                         continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                                     } else {
                                         // For latex boxes
-                                        imageCursor.close();
                                         Cursor latexBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                                         latexBlobCursor.moveToFirst();
-                                        SpannableStringBuilder latexImageSpan = makeLatexImageSpan(latexBlobCursor.getBlob(0));
+                                        SpannableStringBuilder latexImageSpan = makeLatexImageSpan(latexBlobCursor.getBlob(0), imageCursor.getString(3));
+                                        imageCursor.close();
                                         latexBlobCursor.close();
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
-                                        totalCharOffset += latexImageSpan.length() - 1;
                                         continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                                     }
                                 }
@@ -424,15 +442,15 @@ public class SQLReader implements DatabaseReader {
                                     try {
                                         // Tries to move to get image blob from DB. Might me too big.
                                         imageBlobCursor.moveToFirst();
-                                        SpannableStringBuilder imageSpan = makeImageSpan(imageBlobCursor.getBlob(0), nodeUniqueID, String.valueOf(charOffset)); // Blob is the image in byte[] form
+                                        SpannableStringBuilder imageSpan = makeImageSpan(imageBlobCursor.getBlob(0), nodeUniqueID, String.valueOf(charOffset), cursor.getString(3)); // Blob is the image in byte[] form
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
-                                        totalCharOffset += imageSpan.length() - 1;
                                     } catch (Exception SQLiteBlobTooBigException) {
                                         // If image blob was to big for SQL Toast error message will be displayed
                                         // And placeholder image is placed
-                                        SpannableStringBuilder brokenImageSpan = getBrokenImageSpan(0);
+                                        SpannableStringBuilder brokenImageSpan = new SpannableStringBuilder();
+                                        brokenImageSpan.append(" ");
+                                        brokenImageSpan.setSpan(this.getBrokenImageSpan(0), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, brokenImageSpan);
-                                        totalCharOffset += brokenImageSpan.length() - 1;
                                         this.displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
                                     }
                                     imageBlobCursor.close();
@@ -442,9 +460,9 @@ public class SQLReader implements DatabaseReader {
                         } else if (codeboxTableImageCursor.getInt(1) == 7) {
                             // codebox row
                             // Get codebox entry for current node_id and charOffset
-                            Cursor codeboxCursor = this.sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
+                            Cursor codeboxCursor = this.sqlite.rawQuery("SELECT * FROM codebox WHERE node_id = ? AND offset = ?", new String[]{nodeUniqueID, String.valueOf(charOffset)});
                             if (codeboxCursor.moveToFirst()) {
-                                SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxCursor.getString(0));
+                                SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxCursor.getString(2), codeboxCursor.getString(3), codeboxCursor.getString(4), codeboxCursor.getInt(5), codeboxCursor.getInt(6), codeboxCursor.getInt(7) == 1, codeboxCursor.getInt(8) == 1, codeboxCursor.getInt(9) == 1);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
                                 codeboxCursor.close();
                                 totalCharOffset += codeboxText.length() - 1;
@@ -452,21 +470,23 @@ public class SQLReader implements DatabaseReader {
                         } else if (codeboxTableImageCursor.getInt(1) == 8) {
                             // table row
                             // Get table row entry for current node_id and charOffset
-                            Cursor tableCursor = this.sqlite.query("grid", new String[]{"txt", "col_min", "col_max"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
+                            Cursor tableCursor = this.sqlite.query("grid", new String[]{"txt", "col_min", "col_max", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                             if (tableCursor.moveToFirst()) {
                                 int tableCharOffset = charOffset + totalCharOffset; // Place where SpannableStringBuilder will be split
                                 nodeTableCharOffsets.add(tableCharOffset);
                                 int cellMin = tableCursor.getInt(1);
                                 int cellMax = tableCursor.getInt(2);
-                                nodeContentStringBuilder.insert(tableCharOffset, " "); // Adding space for formatting reason
                                 ArrayList<CharSequence[]> currentTableContent = new ArrayList<>();
                                 NodeList tableRowsNodes = getNodeFromString(tableCursor.getString(0), "table"); // All the rows of the table. Not like in XML database, there are not any empty text nodes to be filtered out
-                                tableCursor.close();
                                 for (int row = 0; row < tableRowsNodes.getLength(); row++) {
                                     currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
                                 }
-                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax);
+                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, tableCursor.getString(3));
+                                tableCursor.close();
                                 nodeTables.add(scNodeContentTable);
+                                // Instead of adding space for formatting reason
+                                // it might be better to take one of totalCharOffset
+                                totalCharOffset -= 1;
                             }
                         }
                     }
@@ -549,35 +569,42 @@ public class SQLReader implements DatabaseReader {
                 case "scale":
                     String scaleValue = nodeAttributes.item(i).getTextContent();
                     switch (scaleValue) {
-                        case "h1": formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "h1":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
-                        case "h2": formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "h2":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
-                        case "h3": formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "h3":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
-                        case "small": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "small":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(0.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
-                        case "sup": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "sup":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             formattedNodeText.setSpan(new SuperscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
-                        case "sub": formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        case "sub":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             formattedNodeText.setSpan(new SubscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
                     }
                     break;
                 case "family":
-                    TypefaceSpan tf = new TypefaceSpan("monospace");
+                    TypefaceSpanFamily tf = new TypefaceSpanFamily("monospace");
                     formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "link":
                     String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
                     if (attributeValue[0].equals("webs")) {
                         // Making links to open websites
-                        URLSpan us = new URLSpan(attributeValue[1]);
+                        URLSpanWebs us = new URLSpanWebs(attributeValue[1]);
                         formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     } else if (attributeValue[0].equals("node")) {
                         // Making links to open other nodes (Anchors)
-                        formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        String linkAnchorName = String.join(" ", Arrays.copyOfRange(attributeValue, 2, attributeValue.length));
+                        formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1], linkAnchorName), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     } else if (attributeValue[0].equals("file") || attributeValue[0].equals("fold")) {
                         // Making links to the file or folder
                         // It will not try to open the file, but just mark it, and display path to it on original system
@@ -608,19 +635,32 @@ public class SQLReader implements DatabaseReader {
      * Formatting depends on new line characters nodeContent string
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
+     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
      * @param nodeContent content of the codebox
+     * @param syntax type of syntax used in the codebox. It does not have any difference in SourCherry
+     * @param width width value of the codebox that was saved in the database. It does not have any effect in SourCherry
+     * @param height height value of the codebox that was saved in the database. It does not have any effect in SourCherry
+     * @param widthInPixels is width calculated in pixels or percentages value that was saved in the database. It does not have any effect in SourCherry
+     * @param highlightBrackets should codebox highlight brackets. Value should be retrieved from database. It does not have any effect in SourCherry
+     * @param showLineNumbers should codebox display line numbers. Value should be retrieved from database. It does not have any effect in SourCherry
      * @return SpannableStringBuilder that has spans marked for string formatting
      */
-    public SpannableStringBuilder makeFormattedCodebox(String nodeContent) {
+    public SpannableStringBuilder makeFormattedCodebox(String justification, String nodeContent, String syntax, int width, int height, boolean widthInPixels, boolean highlightBrackets, boolean showLineNumbers) {
         // Returns SpannableStringBuilder that has spans marked for string formatting
         SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
         formattedCodebox.append(nodeContent);
-
         // Changes font
-        TypefaceSpan tf = new TypefaceSpan("monospace");
-        formattedCodebox.setSpan(tf, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
+        TypefaceSpanCodebox typefaceSpanCodebox = new TypefaceSpanCodebox("monospace");
+        // Saving codebox attribute to the span
+        typefaceSpanCodebox.setFrameWidth(width);
+        typefaceSpanCodebox.setFrameHeight(height);
+        typefaceSpanCodebox.setWidthInPixel(widthInPixels);
+        typefaceSpanCodebox.setSyntaxHighlighting(syntax);
+        typefaceSpanCodebox.setHighlightBrackets(highlightBrackets);
+        typefaceSpanCodebox.setShowLineNumbers(showLineNumbers);
+//        formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         if (nodeContent.contains("\n")) {
+            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             // Adds vertical line in front the paragraph, to make it stand out as quote
             QuoteSpan qs;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -628,17 +668,22 @@ public class SQLReader implements DatabaseReader {
             } else {
                 qs = new QuoteSpan(Color.RED);
             }
-            formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             // Changes background color
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                 LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-                formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             }
         } else {
+            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
             formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
-
+        if (justification.equals("right")) {
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justification.equals("center")) {
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
         return formattedCodebox;
     }
 
@@ -675,22 +720,22 @@ public class SQLReader implements DatabaseReader {
      * @param imageBlob byte[] that has data for the image
      * @param nodeUniqueID unique ID of the node that has the image embedded
      * @param imageOffset offset of the image in the node
+     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
      * @return SpannableStringBuilder that has spans with image in them
      */
-    public SpannableStringBuilder makeImageSpan(byte[] imageBlob, String nodeUniqueID, String imageOffset) {
+    public SpannableStringBuilder makeImageSpan(byte[] imageBlob, String nodeUniqueID, String imageOffset, String justification) {
         // Returns SpannableStringBuilder that has spans with images in them
         // Images are decoded from byte array that was passed to the function
-
         SpannableStringBuilder formattedImage = new SpannableStringBuilder();
-
+        ImageSpanImage imageSpanImage;
         //* Adds image to the span
         try {
             formattedImage.append(" ");
             Bitmap decodedByte = BitmapFactory.decodeByteArray(imageBlob, 0, imageBlob.length);
             Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
             image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
-            ImageSpan is = new ImageSpan(image);
-            formattedImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            imageSpanImage = new ImageSpanImage(image);
+            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
             int width = Resources.getSystem().getDisplayMetrics().widthPixels;
             if (image.getIntrinsicWidth() > width) {
@@ -712,14 +757,18 @@ public class SQLReader implements DatabaseReader {
             };
             formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             //**
-
         } catch (Exception e) {
             // Displays a toast message and appends broken image span to display in node content
-            formattedImage.append(this.getBrokenImageSpan(0));
+            imageSpanImage = (ImageSpanImage) this.getBrokenImageSpan(0);
+            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.displayToast(context.getString(R.string.toast_error_failed_to_load_image));
         }
         //*
-
+        if (justification.equals("right")) {
+            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justification.equals("center")) {
+            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
         return formattedImage;
     }
 
@@ -728,12 +777,13 @@ public class SQLReader implements DatabaseReader {
      * This function should not be called directly from any other class
      * It is used in getNodeContent function
      * @param imageBlob byte[] that is actually a String that contains LaTex formula
+     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
      * @return SpannableStringBuilder that has span with Latex image in them
      */
-    public SpannableStringBuilder makeLatexImageSpan(byte[] imageBlob) {
+    public SpannableStringBuilder makeLatexImageSpan(byte[] imageBlob, String justification) {
         // Image is created from byte[] that is passed as an arguments
         SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
-
+        ImageSpanLatex imageSpanLatex;
         //* Creates and adds image to the span
         try {
             formattedLatexImage.append(" ");
@@ -744,7 +794,7 @@ public class SQLReader implements DatabaseReader {
                         "\\begin{document}\n" +
                         "\\begin{align*}", "")
                 .replace("\\end{align*}\n\\end{document}", "")
-                .replaceAll("&=", "="); // Removing & sign, otherwise latex image fails to compile
+                .replaceAll("&=", "="); // Removing '&' sing, otherwise latex image fails to compile
 
             final JLatexMathDrawable latexDrawable = JLatexMathDrawable.builder(latexString)
                     .textSize(40)
@@ -765,8 +815,8 @@ public class SQLReader implements DatabaseReader {
                 latexDrawable.setBounds(0, 0, newWidth, newHeight);
             }
 
-            ImageSpan is = new ImageSpan(latexDrawable);
-            formattedLatexImage.setSpan(is, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            imageSpanLatex = new ImageSpanLatex(latexDrawable);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
             //** Detects image touches/clicks
             ClickableSpan imageClickableSpan = new ClickableSpan() {
@@ -780,11 +830,17 @@ public class SQLReader implements DatabaseReader {
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken latex image span to display in node content
-            formattedLatexImage.append(this.getBrokenImageSpan(1));
+            imageSpanLatex = (ImageSpanLatex) this.getBrokenImageSpan(1);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.displayToast(context.getString(R.string.toast_error_failed_to_compile_latex));
         }
         //*
-
+        if (justification.equals("right")) {
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justification.equals("center")) {
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        imageSpanLatex.setLatexCode(new String(imageBlob));
         return formattedLatexImage;
     }
 
@@ -796,25 +852,26 @@ public class SQLReader implements DatabaseReader {
      * @param nodeUniqueID unique ID of the node that has file attached in it
      * @param attachedFileFilename filename of the attached file
      * @param time datetime of when file was attached to the node
+     * @param originalOffset offset value that the file was originally saved in the database with
+     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
      * @return Clickable spannableStringBuilder that has spans with image and filename
      */
-    public SpannableStringBuilder makeAttachedFileSpan(String nodeUniqueID, String attachedFileFilename, String time) {
+    public SpannableStringBuilder makeAttachedFileSpan(String nodeUniqueID, String attachedFileFilename, String time, String originalOffset, String justification) {
         SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
-
         formattedAttachedFile.append(" "); // Needed to insert image
-
-        //// Inserting image
+        // Inserting image
         Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        attachedFileIcon.setFromDatabase(true);
+        attachedFileIcon.setNodeUniqueId(nodeUniqueID);
+        attachedFileIcon.setFilename(attachedFileFilename);
+        attachedFileIcon.setTimestamp(time);
+        attachedFileIcon.setOriginalOffset(originalOffset);
         formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        ////
-
         formattedAttachedFile.append(attachedFileFilename); // Appending filename
-
-        //// Detects touches on icon and filename
-        ClickableSpan imageClickableSpan = new ClickableSpan() {
-
+        // Detects touches on icon and filename
+        ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
             @Override
             public void onClick(@NonNull View widget) {
             // Launches function in MainView that checks if there is a default action in for attached files
@@ -822,34 +879,33 @@ public class SQLReader implements DatabaseReader {
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
-        ////
-
+        if (justification.equals("right")) {
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justification.equals("center")) {
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
         return formattedAttachedFile;
     }
 
     @Override
-    public SpannableStringBuilder makeAnchorImageSpan() {
+    public SpannableStringBuilder makeAnchorImageSpan(String anchorValue) {
         // Makes an image span that displays an anchor to mark position of it.
         // It does not respond to touches in any way
         SpannableStringBuilder anchorImageSpan = new SpannableStringBuilder();
         anchorImageSpan.append(" ");
-
-        //// Inserting image
+        // Inserting image
         Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_anchor_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpan attachedFileIcon = new ImageSpan(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ImageSpanAnchor attachedFileIcon = new ImageSpanAnchor(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE, anchorValue);
         anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        ////
-
         return anchorImageSpan;
     }
 
     @Override
-    public ClickableSpan makeAnchorLinkSpan(String nodeUniqueID) {
+    public ClickableSpanNode makeAnchorLinkSpan(String nodeUniqueID, String linkAnchorName) {
         // Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
         // As in CherryTree it's foreground color #07841B
-
-        return new ClickableSpan() {
+        ClickableSpanNode clickableSpanNode = new ClickableSpanNode() {
             @Override
             public void onClick(@NonNull View widget) {
                 ((MainView) SQLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
@@ -862,14 +918,18 @@ public class SQLReader implements DatabaseReader {
                 ds.setUnderlineText(true);
             }
         };
+        clickableSpanNode.setNodeUniqueID(nodeUniqueID);
+        if (linkAnchorName.length() > 0) {
+            clickableSpanNode.setLinkAnchorName(linkAnchorName);
+        }
+        return clickableSpanNode;
     }
 
     @Override
-    public ClickableSpan makeFileFolderLinkSpan(String type, String base64Filename) {
+    public ClickableSpanLink makeFileFolderLinkSpan(String type, String base64Filename) {
         // Creates and returns a span for a link to external file or folder
         // When user clicks on the link snackbar displays a path to the file that was saved in the original system
-
-        return new ClickableSpan() {
+        ClickableSpanLink clickableSpanLink = new ClickableSpanLink() {
             @Override
             public void onClick(@NonNull View widget) {
                 // Decoding of Base64 is done here
@@ -887,6 +947,9 @@ public class SQLReader implements DatabaseReader {
                 ds.setUnderlineText(true);
             }
         };
+        clickableSpanLink.setLinkType(type);
+        clickableSpanLink.setBase64Link(base64Filename);
+        return clickableSpanLink;
     }
 
     @Override
@@ -1016,26 +1079,24 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public SpannableStringBuilder getBrokenImageSpan(int type) {
+    public ImageSpan getBrokenImageSpan(int type) {
         // Returns an image span that is used to display as placeholder image
         // used when cursor window is to small to get an image blob
         // pass 0 to get broken image span, pass 1 to get broken latex span
         SpannableStringBuilder brokenSpan = new SpannableStringBuilder();
         brokenSpan.append(" ");
         Drawable drawableBrokenImage;
+        ImageSpan brokenImage;
         if (type == 0) {
             drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_image_48);
+            brokenImage = new ImageSpanImage(drawableBrokenImage);
         } else {
             drawableBrokenImage =  AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_latex_48);
+            brokenImage = new ImageSpanLatex(drawableBrokenImage);
         }
         //// Inserting image
-
         drawableBrokenImage.setBounds(0,0, drawableBrokenImage.getIntrinsicWidth(), drawableBrokenImage.getIntrinsicHeight());
-        ImageSpan brokenImage = new ImageSpan(drawableBrokenImage, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        brokenSpan.setSpan(brokenImage,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        ////
-
-        return brokenSpan;
+        return brokenImage;
     }
 
     @Override
@@ -1571,10 +1632,350 @@ public class SQLReader implements DatabaseReader {
     }
 
     @Override
-    public void saveNodeContent(String nodeUniqueID, String nodeContent) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put("txt", nodeContent);
-        this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
+    public void saveNodeContent(String nodeUniqueID) {
+        if (this.isNodeRichText(nodeUniqueID)) {
+            Document doc;
+            Transformer transformer;
+            try {
+                doc = DocumentBuilderFactory
+                        .newInstance()
+                        .newDocumentBuilder()
+                        .newDocument();
+                transformer = TransformerFactory
+                        .newInstance()
+                        .newTransformer();
+            } catch (Exception e) {
+                this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
+                return;
+            }
+            StringWriter writer = new StringWriter();
+            int next; // The end of the current span and the start of the next one
+            int totalContentLength = 0; // Needed to calculate offset for the tag
+            int currentPartContentLength = 0; // Needed to calculate offset for the tag
+            // Extra cha offset. Because when I create nodeContent I had to take -1 off the totalCharOffset
+            // I have to add it when saving content to tags. Otherwise content in the CherryTree (and SourCherry)
+            // will look differently every time. In the end it will cause a crash.
+            int extraCharOffset = 0;
+            ArrayList<Element> normalNodes = new ArrayList<>(); // Store all normal tags in order
+            ArrayList<Integer> attachedFileOffset = new ArrayList<>();
+            // Can't get justification for all items that have offset (except tables), so the best next
+            // thing I can do is save last detected justification value and used it when creating those nodes
+            String lastFoundJustification = "left";
+            this.sqlite.beginTransaction();
+            // Deleting data from codebox and grid tables. It can be recreated from the nodeContent
+            this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("image", "node_id = ? AND time = 0", new String[]{nodeUniqueID});
+            try {
+                for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent()) {
+                    if (scNodeContent.getContentType() == 0) {
+                        // To add content of the the span that is being processed
+                        // set addContent to true. Needed because not all elements of the node
+                        // have content that is displayed for user in text form.
+                        boolean addContent;
+                        ScNodeContentText scNodeContentText = (ScNodeContentText) scNodeContent;
+                        SpannableStringBuilder nodeContent = scNodeContentText.getContent();
+                        // Iterating through the spans of the nodeContentText
+                        // and adding information depending on Span class
+                        // for more information on span open appropriate span class. Furthermore,
+                        // other elements have different tag name than "rich_text". For those elements
+                        // new (appropriate) tags will be created and added to appropriate list.
+                        for (int i = 0; i < nodeContent.length(); i = next) {
+                            addContent = false;
+                            next = nodeContent.nextSpanTransition(i, nodeContent.length(), Object.class);
+                            Object[] spans = nodeContent.getSpans(i, next, Object.class);
+                            Element element = doc.createElement("rich_text");
+                            for (Object span : spans) {
+                                if (span instanceof AlignmentSpan) {
+                                    AlignmentSpan alignmentSpan = (AlignmentSpan) span;
+                                    if (alignmentSpan.getAlignment() == Layout.Alignment.ALIGN_CENTER) {
+                                        element.setAttribute("justification", "center");
+                                        lastFoundJustification = "center";
+                                    } else if (alignmentSpan.getAlignment() == Layout.Alignment.ALIGN_OPPOSITE) {
+                                        element.setAttribute("justification", "right");
+                                        lastFoundJustification = "right";
+                                    } else {
+                                        lastFoundJustification = "left";
+                                    }
+                                }
+                                if (span instanceof BackgroundColorSpan) {
+                                    BackgroundColorSpan backgroundColorSpan = (BackgroundColorSpan) span;
+                                    String backgroundColor = String.format("#%1$s", Integer.toHexString(backgroundColorSpan.getBackgroundColor()).substring(2));
+                                    element.setAttribute("background", backgroundColor);
+                                }
+                                if (span instanceof ClickableSpanNode) {
+                                    ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
+                                    String attributeValue = String.format("node %1$s", clickableSpanNode.getNodeUniqueID());
+                                    if (clickableSpanNode.getLinkAnchorName() != null) {
+                                        attributeValue = String.format("%1$s %2$s", attributeValue, clickableSpanNode.getLinkAnchorName());
+                                    }
+                                    element.setAttribute("link", attributeValue);
+                                }
+                                if (span instanceof ClickableSpanLink) {
+                                    ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
+                                    element.setAttribute("link", String.format("%1$s %2$s", clickableSpanLink.getLinkType(), clickableSpanLink.getBase64Link()));
+                                }
+                                if (span instanceof ImageSpanFile) {
+                                    // Attached file
+                                    addContent = true;
+                                    ImageSpanFile imageSpanFile = (ImageSpanFile) span;
+                                    if (imageSpanFile.isFromDatabase()) {
+                                        // If file was loaded from the database, only it's offset and justification is changed
+                                        this.sqlite.beginTransaction();
+                                        try {
+                                            ContentValues contentValues = new ContentValues();
+                                            contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
+                                            contentValues.put("justification", lastFoundJustification);
+                                            // filename = '' is necessary to make sure that any other type of 'image' does not have
+                                            // the same offset. Just in face it was written in to database before current file.
+                                            // The same applies for check for '__ct_special.tex' - just in case the offset if for
+                                            // latex code
+                                            this.sqlite.update("image", contentValues, "node_id = ? AND offset = ? AND NOT filename = '' AND NOT filename = '__ct_special.tex'", new String[]{nodeUniqueID, imageSpanFile.getOriginalOffset()});
+                                            this.sqlite.setTransactionSuccessful();
+                                        } finally {
+                                            this.sqlite.endTransaction();
+                                        }
+                                    }
+                                    attachedFileOffset.add(currentPartContentLength + totalContentLength + extraCharOffset);
+                                    extraCharOffset += 1;
+                                }
+                                if (span instanceof ClickableSpanFile) {
+                                    // Attached File text part
+                                    addContent = true;
+                                }
+                                if (span instanceof ForegroundColorSpan) {
+                                    ForegroundColorSpan foregroundColorSpan = (ForegroundColorSpan) span;
+                                    String backgroundColor = String.format("#%1$s", Integer.toHexString(foregroundColorSpan.getForegroundColor()).substring(2));
+                                    element.setAttribute("foreground", backgroundColor);
+                                }
+                                if (span instanceof ImageSpanAnchor) {
+                                    addContent = true;
+                                    ImageSpanAnchor imageSpanAnchor = (ImageSpanAnchor) span;
+                                    this.sqlite.beginTransaction();
+                                    try {
+                                        ContentValues contentValues = new ContentValues();
+                                        contentValues.put("node_id", nodeUniqueID);
+                                        contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
+                                        contentValues.put("justification", lastFoundJustification);
+                                        contentValues.put("anchor", imageSpanAnchor.getAnchorName());
+                                        contentValues.put("filename", "");
+                                        contentValues.put("link", "");
+                                        contentValues.put("time", 0);
+                                        this.sqlite.insert("image", null, contentValues);
+                                        this.sqlite.setTransactionSuccessful();
+                                    } finally {
+                                        this.sqlite.endTransaction();
+                                    }
+                                    attachedFileOffset.add(currentPartContentLength + totalContentLength + extraCharOffset);
+                                    extraCharOffset += 1;
+                                }
+                                if (span instanceof ImageSpanImage) {
+                                    addContent = true;
+                                    ImageSpanImage imageSpanImage = (ImageSpanImage) span;
+                                    Drawable drawable = imageSpanImage.getDrawable();
+                                    // Hopefully it's always a Bitmap drawable, because I get it from the same source
+                                    Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+                                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+                                    this.sqlite.beginTransaction();
+                                    try {
+                                        ContentValues contentValues = new ContentValues();
+                                        contentValues.put("node_id", nodeUniqueID);
+                                        contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
+                                        contentValues.put("justification", lastFoundJustification);
+                                        contentValues.put("anchor", "");
+                                        contentValues.put("png", byteArrayOutputStream.toByteArray());
+                                        contentValues.put("filename", "");
+                                        contentValues.put("link", "");
+                                        contentValues.put("time", 0);
+                                        this.sqlite.insert("image", null, contentValues);
+                                        this.sqlite.setTransactionSuccessful();
+                                    } finally {
+                                        this.sqlite.endTransaction();
+                                    }
+                                    attachedFileOffset.add(currentPartContentLength + totalContentLength + extraCharOffset);
+                                    extraCharOffset += 1;
+                                }
+                                if (span instanceof ImageSpanLatex) {
+                                    addContent = true;
+                                    ImageSpanLatex imageSpanLatex = (ImageSpanLatex) span;
+                                    this.sqlite.beginTransaction();
+                                    try {
+                                        ContentValues contentValues = new ContentValues();
+                                        contentValues.put("node_id", nodeUniqueID);
+                                        contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
+                                        contentValues.put("justification", lastFoundJustification);
+                                        contentValues.put("anchor", "");
+                                        contentValues.put("png", imageSpanLatex.getLatexCode().getBytes());
+                                        contentValues.put("filename", "__ct_special.tex");
+                                        contentValues.put("link", "");
+                                        contentValues.put("time", 0);
+                                        this.sqlite.insert("image", null, contentValues);
+                                        this.sqlite.setTransactionSuccessful();
+                                    } finally {
+                                        this.sqlite.endTransaction();
+                                    }
+                                    attachedFileOffset.add(currentPartContentLength + totalContentLength + extraCharOffset);
+                                    extraCharOffset += 1;
+                                }
+                                if (span instanceof LeadingMarginSpan) {
+                                    LeadingMarginSpan leadingMarginSpan = (LeadingMarginSpan) span;
+                                    int indent = leadingMarginSpan.getLeadingMargin(true) / 40;
+                                    element.setAttribute("indent", String.valueOf(indent));
+                                }
+                                if (span instanceof TypefaceSpanCodebox) {
+                                    addContent = true;
+                                    TypefaceSpanCodebox typefaceSpanCodebox = (TypefaceSpanCodebox) span;
+                                    this.sqlite.beginTransaction();
+                                    try {
+                                        ContentValues contentValues = new ContentValues();
+                                        contentValues.put("node_id", nodeUniqueID);
+                                        contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
+                                        contentValues.put("justification", lastFoundJustification);
+                                        contentValues.put("txt", nodeContent.subSequence(i, next).toString());
+                                        contentValues.put("syntax", typefaceSpanCodebox.getSyntaxHighlighting());
+                                        contentValues.put("width", typefaceSpanCodebox.getFrameWidth());
+                                        contentValues.put("height", typefaceSpanCodebox.getFrameHeight());
+                                        contentValues.put("is_width_pix", typefaceSpanCodebox.isWidthInPixel());
+                                        contentValues.put("do_highl_bra", typefaceSpanCodebox.isHighlightBrackets());
+                                        contentValues.put("do_show_linenum", typefaceSpanCodebox.isShowLineNumbers());
+                                        this.sqlite.insert("codebox", null, contentValues);
+                                        this.sqlite.setTransactionSuccessful();
+                                    } finally {
+                                        this.sqlite.endTransaction();
+                                    }
+                                    extraCharOffset += 1;
+                                }
+                                if (span instanceof RelativeSizeSpan) {
+                                    RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
+                                    float size = relativeSizeSpan.getSizeChange();
+                                    if (size == 1.75f) {
+                                        element.setAttribute("scale", "h1");
+                                    } else if (size == 1.5f) {
+                                        element.setAttribute("scale", "h2");
+                                    } else if (size == 1.25f) {
+                                        element.setAttribute("scale", "h3");
+                                    } else if (size == 0.75f) {
+                                        element.setAttribute("scale", "small");
+                                    }
+                                }
+                                if (span instanceof StrikethroughSpan) {
+                                    element.setAttribute("strikethrough", "true");
+                                }
+                                if (span instanceof StyleSpan) {
+                                    StyleSpan styleSpan = (StyleSpan) span;
+                                    if (styleSpan.getStyle() == Typeface.BOLD) {
+                                        element.setAttribute("weight", "heavy");
+                                    } else if (styleSpan.getStyle() == Typeface.ITALIC) {
+                                        element.setAttribute("style", "italic");
+                                    }
+                                }
+                                if (span instanceof SubscriptSpan) {
+                                    element.setAttribute("scale", "sub");
+                                }
+                                if (span instanceof SuperscriptSpan) {
+                                    element.setAttribute("scale", "sup");
+                                }
+                                if (span instanceof TypefaceSpanFamily) {
+                                    element.setAttribute("family", "monospace");
+                                }
+                                if (span instanceof URLSpanWebs) {
+                                    URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
+                                    element.setAttribute("link", String.format("webs %1$s", urlSpanWebs.getURL()));
+                                }
+                                if (span instanceof UnderlineSpan) {
+                                    element.setAttribute("underline", "single");
+                                }
+                            }
+                            if (!addContent) {
+                                element.setTextContent(nodeContent.subSequence(i, next).toString());
+                                // If span content is being added to the element it's length cave to be
+                                // has to be counted to length of the node
+                                currentPartContentLength += (next - i);
+                                normalNodes.add(element);
+                            }
+                        }
+                        totalContentLength += currentPartContentLength;
+                        currentPartContentLength = 0;
+                    } else {
+                        ScNodeContentTable scNodeContentTable = (ScNodeContentTable) scNodeContent;
+                        Element table = doc.createElement("table");
+                        for (CharSequence[] row : scNodeContentTable.getContent()) {
+                            Element rowElement = doc.createElement("row");
+                            for (CharSequence cell : row) {
+                                Element cellElement = doc.createElement("cell");
+                                cellElement.setTextContent(cell.toString());
+                                rowElement.appendChild(cellElement);
+                            }
+                            table.appendChild(rowElement);
+                        }
+                        writer.getBuffer().setLength(0);
+                        writer.getBuffer().trimToSize();
+                        try {
+                            transformer.transform(new DOMSource(table), new StreamResult(writer));
+                        } catch (TransformerException e) {
+                            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_table));
+                            continue;
+                        }
+                        this.sqlite.beginTransaction();
+                        try {
+                            ContentValues contentValues = new ContentValues();
+                            contentValues.put("node_id", nodeUniqueID);
+                            contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
+                            contentValues.put("justification", scNodeContentTable.getJustification());
+                            contentValues.put("txt", writer.toString());
+                            contentValues.put("col_min", scNodeContentTable.getColMin());
+                            contentValues.put("col_max", scNodeContentTable.getColMax());
+                            this.sqlite.insert("grid", null, contentValues);
+                            this.sqlite.setTransactionSuccessful();
+                        } finally {
+                            this.sqlite.endTransaction();
+                        }
+                        extraCharOffset += 1;
+                    }
+                }
+                // Deleting all data from image table, that was removed by user from nodeContent
+                Cursor cursor = this.sqlite.query("image", new String[]{"offset"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null);
+                this.sqlite.beginTransaction();
+                try {
+                    while (cursor.moveToNext()) {
+                        if (!attachedFileOffset.contains(cursor.getInt(0))) {
+                            this.sqlite.delete("image", "node_id = ? AND offset = ?", new String[]{nodeUniqueID, cursor.getString(0)});
+                        }
+                    }
+                    this.sqlite.setTransactionSuccessful();
+                } finally {
+                    this.sqlite.endTransaction();
+                }
+                cursor.close();
+                Node node = doc.createElement("node");
+                for (Element element : normalNodes) {
+                    node.appendChild(element);
+                }
+                writer.getBuffer().setLength(0);
+                try {
+                    transformer.transform(new DOMSource(node), new StreamResult(writer));
+                } catch (TransformerException e) {
+                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
+                    return;
+                }
+                // Updating nodeContent - text
+                ContentValues contentValues = new ContentValues();
+                contentValues.put("txt", writer.toString());
+                contentValues.put("ts_lastsave", System.currentTimeMillis());
+                this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
+                this.sqlite.setTransactionSuccessful();
+            } finally {
+                this.sqlite.endTransaction();
+            }
+        } else {
+            ScNodeContentText scNodeContentText = (ScNodeContentText) this.mainViewModel.getNodeContent().get(0);
+            SpannableStringBuilder nodeContent = scNodeContentText.getContent();
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("txt", nodeContent.toString());
+            contentValues.put("ts_lastsave", System.currentTimeMillis());
+            this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
+        }
     }
 
     @Override

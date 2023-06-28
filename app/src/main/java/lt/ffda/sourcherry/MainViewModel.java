@@ -209,7 +209,7 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
-     * Deletes node content
+     * Deletes stored node content
      */
     public void deleteNodeContent() {
         this.nodeContent.clear();

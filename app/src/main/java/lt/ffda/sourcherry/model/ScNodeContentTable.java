@@ -17,6 +17,7 @@ public class ScNodeContentTable implements ScNodeContent {
     private ArrayList<CharSequence[]> content;
     private int colMin;
     private int colMax;
+    private String justification;
 
     /**
      * Constructor for ScNodeContent object that holds table's data of the node
@@ -24,12 +25,14 @@ public class ScNodeContentTable implements ScNodeContent {
      * @param content node's table content
      * @param colMin column min width
      * @param colMax column max width
+     * @param justification justification of the table and not it's content.
      */
-    public ScNodeContentTable(byte type, ArrayList<CharSequence[]> content, int colMin, int colMax) {
+    public ScNodeContentTable(byte type, ArrayList<CharSequence[]> content, int colMin, int colMax, String justification) {
         this.type = type;
         this.content = content;
         this.colMin = colMin;
         this.colMax = colMax;
+        this.justification = justification;
     }
 
     @Override
@@ -88,5 +91,22 @@ public class ScNodeContentTable implements ScNodeContent {
      */
     public void setColMax(int colMax) {
         this.colMax = colMax;
+    }
+
+    /**
+     * Return justification of the table. Possible values: left, center, right, fill.
+     * @return justification value
+     */
+    public String getJustification() {
+        return justification;
+    }
+
+    /**
+     * Setting justification value of the table, but not it's content.
+     * It is needed to save it back to the database.
+     * @param justification justification value. Possible values: left, center, right, fill.
+     */
+    public void setJustification(String justification) {
+        this.justification = justification;
     }
 }
