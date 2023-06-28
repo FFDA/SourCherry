@@ -462,87 +462,87 @@ public class XMLReader implements DatabaseReader {
             switch (attribute) {
                 case "strikethrough":
                     StrikethroughSpan sts = new StrikethroughSpan();
-                    formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "foreground":
                     String foregroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting foreground color code from the tag
                     ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(foregroundColorOriginal));
-                    formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "background":
                     String backgroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting background color code from the tag
                     BackgroundColorSpan bcs = new BackgroundColorSpan(Color.parseColor(backgroundColorOriginal));
-                    formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "weight":
                     StyleSpan boldStyleSpan = new StyleSpan(Typeface.BOLD);
-                    formattedNodeText.setSpan(boldStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    formattedNodeText.setSpan(boldStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "style":
                     StyleSpan italicStyleSpan = new StyleSpan(Typeface.ITALIC);
-                    formattedNodeText.setSpan(italicStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    formattedNodeText.setSpan(italicStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "underline":
-                    formattedNodeText.setSpan(new UnderlineSpan(), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    formattedNodeText.setSpan(new UnderlineSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "scale":
                     String scaleValue = nodeAttributes.item(i).getTextContent();
                     switch (scaleValue) {
                         case "h1":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
                         case "h2":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
                         case "h3":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
                         case "small":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(0.75f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            formattedNodeText.setSpan(new RelativeSizeSpan(0.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
                         case "sup":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                            formattedNodeText.setSpan(new SuperscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            formattedNodeText.setSpan(new SuperscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
                         case "sub":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                            formattedNodeText.setSpan(new SubscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            formattedNodeText.setSpan(new SubscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
                     }
                     break;
                 case "family":
                     TypefaceSpanFamily tf = new TypefaceSpanFamily("monospace");
-                    formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "link":
                     String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
                     if (attributeValue[0].equals("webs")) {
                         // Making links to open websites
                         URLSpanWebs us = new URLSpanWebs(attributeValue[1]);
-                        formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                        formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     } else if (attributeValue[0].equals("node")) {
                         // Making links to open other nodes (Anchors)
                         String linkAnchorName = String.join(" ", Arrays.copyOfRange(attributeValue, 2, attributeValue.length));
-                        formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1], linkAnchorName), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                        formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1], linkAnchorName), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     } else if (attributeValue[0].equals("file") || attributeValue[0].equals("fold")) {
                         // Making links to the file or folder
                         // It will not try to open the file, but just mark it, and display path to it on original system
-                        formattedNodeText.setSpan(this.makeFileFolderLinkSpan(attributeValue[0], attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                        formattedNodeText.setSpan(this.makeFileFolderLinkSpan(attributeValue[0], attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                     break;
                 case "justification":
                     String justification = nodeAttributes.item(i).getTextContent();
                     switch (justification) {
-                        case "right": formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                        case "right": formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
-                        case "center": formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                        case "center": formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
                     }
                     break;
                 case "indent":
                     int indent = Integer.parseInt(nodeAttributes.item(i).getTextContent()) * 40;
                     LeadingMarginSpan.Standard lmss = new LeadingMarginSpan.Standard(indent);
-                    formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
             }
         }
@@ -573,8 +573,8 @@ public class XMLReader implements DatabaseReader {
         typefaceSpanCodebox.setSyntaxHighlighting(element.getAttribute("syntax_highlighting"));
         typefaceSpanCodebox.setHighlightBrackets(element.getAttribute("highlight_brackets").equals("1"));
         typefaceSpanCodebox.setShowLineNumbers(element.getAttribute("show_line_numbers").equals("1"));
-        formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         if (node.getTextContent().contains("\n")) {
+            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             // Adds vertical line in front the paragraph, to make it stand out as quote
             QuoteSpan qs;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -589,13 +589,14 @@ public class XMLReader implements DatabaseReader {
                 formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             }
         } else {
+            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
-            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         if (justificationAttribute.equals("right")) {
-            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else if (justificationAttribute.equals("center")) {
-            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return formattedCodebox;
     }
@@ -621,12 +622,12 @@ public class XMLReader implements DatabaseReader {
 
         // Changes font
         TypefaceSpan tf = new TypefaceSpan("monospace");
-        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
         // Changes background color
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return formattedCodeNode;
     }
@@ -662,7 +663,7 @@ public class XMLReader implements DatabaseReader {
                 image.setBounds(0, 0, newWidth, newHeight);
             }
             imageSpanImage = new ImageSpanImage(image);
-            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             //** Detects image touches/clicks
             ClickableSpan imageClickableSpan = new ClickableSpan() {
                 @Override
@@ -671,20 +672,20 @@ public class XMLReader implements DatabaseReader {
                     ((MainView) context).openImageView(nodeUniqueID, imageOffset);
                 }
             };
-            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE); // Setting clickableSpan on image
+            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken image span to display in node content
             imageSpanImage = (ImageSpanImage) this.getBrokenImageSpan(0);
-            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
         }
         //*
         String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
         if (justificationAttribute.equals("right")) {
-            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedImage.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else if (justificationAttribute.equals("center")) {
-            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedImage.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return formattedImage;
     }
@@ -733,7 +734,7 @@ public class XMLReader implements DatabaseReader {
                 latexDrawable.setBounds(0, 0, newWidth, newHeight);
             }
             imageSpanLatex = new ImageSpanLatex(latexDrawable);
-            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
             //** Detects image touches/clicks
             ClickableSpan imageClickableSpan = new ClickableSpan() {
@@ -743,20 +744,20 @@ public class XMLReader implements DatabaseReader {
                     ((MainView) XMLReader.this.context).openImageView(latexString);
                 }
             };
-            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE); // Setting clickableSpan on image
+            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken latex image span to display in node content
             imageSpanLatex = (ImageSpanLatex) this.getBrokenImageSpan(1);
-            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_compile_latex));
         }
         //*
         String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
         if (justificationAttribute.equals("right")) {
-            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedLatexImage.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else if (justificationAttribute.equals("center")) {
-            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedLatexImage.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         imageSpanLatex.setLatexCode(node.getTextContent());
         return formattedLatexImage;
@@ -779,13 +780,13 @@ public class XMLReader implements DatabaseReader {
         // Inserting image
         Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         attachedFileIcon.setFromDatabase(true);
         attachedFileIcon.setNodeUniqueId(nodeUniqueID);
         attachedFileIcon.setFilename(attachedFileFilename);
         attachedFileIcon.setTimestamp(time);
         attachedFileIcon.setOriginalOffset(node.getAttributes().getNamedItem("char_offset").getNodeValue());
-        formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         formattedAttachedFile.append(attachedFileFilename); // Appending filename
         // Detects touches on icon and filename
         ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
@@ -795,12 +796,12 @@ public class XMLReader implements DatabaseReader {
             ((MainView) XMLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time);
             }
         };
-        formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE); // Setting clickableSpan on image
+        formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
         String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
         if (justificationAttribute.equals("right")) {
-            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedAttachedFile.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else if (justificationAttribute.equals("center")) {
-            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedAttachedFile.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return formattedAttachedFile;
     }
@@ -814,8 +815,8 @@ public class XMLReader implements DatabaseReader {
         // Inserting image
         Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_anchor_24);
         drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpanAnchor attachedFileIcon = new ImageSpanAnchor(drawableAttachedFileIcon, Spanned.SPAN_INCLUSIVE_INCLUSIVE, anchorValue);
-        anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        ImageSpanAnchor attachedFileIcon = new ImageSpanAnchor(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE, anchorValue);
+        anchorImageSpan.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return anchorImageSpan;
     }
 

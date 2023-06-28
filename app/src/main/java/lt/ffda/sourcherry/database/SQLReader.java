@@ -658,7 +658,6 @@ public class SQLReader implements DatabaseReader {
         typefaceSpanCodebox.setSyntaxHighlighting(syntax);
         typefaceSpanCodebox.setHighlightBrackets(highlightBrackets);
         typefaceSpanCodebox.setShowLineNumbers(showLineNumbers);
-//        formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         if (nodeContent.contains("\n")) {
             formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             // Adds vertical line in front the paragraph, to make it stand out as quote
