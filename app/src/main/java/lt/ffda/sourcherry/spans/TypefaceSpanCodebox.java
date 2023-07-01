@@ -12,19 +12,23 @@ package lt.ffda.sourcherry.spans;
 
 import android.text.style.TypefaceSpan;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
  * Span used to display codeboxes.
  * Holds additional values.
  */
-public class TypefaceSpanCodebox extends TypefaceSpan {
+public class TypefaceSpanCodebox extends TypefaceSpan implements Cloneable {
     private int frameWidth;
     private int frameHeight;
     private boolean widthInPixel;
     private String syntaxHighlighting;
     private boolean highlightBrackets;
     private boolean showLineNumbers;
+    private String spanContent;
+    private int newOffset;
+    private String justification;
 
     public TypefaceSpanCodebox(@Nullable String family) {
         super(family);
@@ -36,7 +40,7 @@ public class TypefaceSpanCodebox extends TypefaceSpan {
      * @return width of the codebox
      */
     public int getFrameWidth() {
-        return frameWidth;
+        return this.frameWidth;
     }
 
     /**
@@ -54,7 +58,7 @@ public class TypefaceSpanCodebox extends TypefaceSpan {
      * @return height of the codebox
      */
     public int getFrameHeight() {
-        return frameHeight;
+        return this.frameHeight;
     }
 
     /**
@@ -72,7 +76,7 @@ public class TypefaceSpanCodebox extends TypefaceSpan {
      * @return true - width is calculated int pixels, false - width is calculated in percentages
      */
     public boolean isWidthInPixel() {
-        return widthInPixel;
+        return this.widthInPixel;
     }
 
     /**
@@ -90,7 +94,7 @@ public class TypefaceSpanCodebox extends TypefaceSpan {
      * @return syntax highlighting value
      */
     public String getSyntaxHighlighting() {
-        return syntaxHighlighting;
+        return this.syntaxHighlighting;
     }
 
     /**
@@ -108,7 +112,7 @@ public class TypefaceSpanCodebox extends TypefaceSpan {
      * @return true - matching brackets is being highlighted
      */
     public boolean isHighlightBrackets() {
-        return highlightBrackets;
+        return this.highlightBrackets;
     }
 
     /**
@@ -126,15 +130,79 @@ public class TypefaceSpanCodebox extends TypefaceSpan {
      * @return true - line numbers are being shown
      */
     public boolean isShowLineNumbers() {
-        return showLineNumbers;
+        return this.showLineNumbers;
     }
 
     /**
      * Set codebox property: Show Line Numbers
      * Has no effect in SourCherry
-     * @return true - line numbers should be shown
+     * @param showLineNumbers true - line numbers should be shown
      */
     public void setShowLineNumbers(boolean showLineNumbers) {
         this.showLineNumbers = showLineNumbers;
+    }
+
+    /**
+     * Get span content. Used only in SQLReader to pass span content for sorting
+     * @return span content
+     */
+    public String getSpanContent() {
+        return this.spanContent;
+    }
+
+    /**
+     * Set span content. Used only in SQLReader to pass span content for sorting
+     * @param spanContent content that span marks
+     */
+    public void setSpanContent(String spanContent) {
+        this.spanContent = spanContent;
+    }
+
+    /**
+     * Get new offset of the element. It shows location where the element has to be inserted back
+     * into the node content when it is being recreated.
+     * @return element's offset
+     */
+    public int getNewOffset() {
+        return this.newOffset;
+    }
+
+    /**
+     * Set new offset of the element. It has to be calculated using the location of the span in the
+     * node content.
+     * @param newOffset element's offset
+     */
+    public void setNewOffset(int newOffset) {
+        this.newOffset = newOffset;
+    }
+
+    /**
+     * Get justification of the element
+     * @return justification of the elements
+     */
+    public String getJustification() {
+        return this.justification;
+    }
+
+    /**
+     * Set justification of the element
+     * @param justification element's justification ("left", "right", "center", "fill")
+     */
+    public void setJustification(String justification) {
+        this.justification = justification;
+    }
+
+    @NonNull
+    @Override
+    public TypefaceSpanCodebox clone() {
+        try {
+            TypefaceSpanCodebox codeboxClone = (TypefaceSpanCodebox) super.clone();
+            codeboxClone.syntaxHighlighting = ((TypefaceSpanCodebox) super.clone()).getSyntaxHighlighting();
+            codeboxClone.spanContent = ((TypefaceSpanCodebox) super.clone()).spanContent;
+            codeboxClone.justification = ((TypefaceSpanCodebox) super.clone()).justification;
+            return codeboxClone;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 }

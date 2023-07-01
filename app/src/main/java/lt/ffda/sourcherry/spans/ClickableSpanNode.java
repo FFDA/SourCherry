@@ -27,7 +27,7 @@ public abstract class ClickableSpanNode extends ClickableSpan {
      * @return unique ID of the node
      */
     public String getNodeUniqueID() {
-        return nodeUniqueID;
+        return this.nodeUniqueID;
     }
 
     /**
@@ -44,7 +44,7 @@ public abstract class ClickableSpanNode extends ClickableSpan {
      * @return anchor name
      */
     public String getLinkAnchorName() {
-        return linkAnchorName;
+        return this.linkAnchorName;
     }
 
     /**

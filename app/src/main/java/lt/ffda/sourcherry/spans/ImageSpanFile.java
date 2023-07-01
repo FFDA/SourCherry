@@ -25,6 +25,8 @@ public class ImageSpanFile extends ImageSpan {
     private String filename;
     private String timestamp;
     private String originalOffset;
+    private int newOffset;
+    private String justification;
 
     public ImageSpanFile(@NonNull Drawable drawable, int verticalAlignment) {
         super(drawable, verticalAlignment);
@@ -114,5 +116,39 @@ public class ImageSpanFile extends ImageSpan {
      */
     public void setOriginalOffset(String originalOffset) {
         this.originalOffset = originalOffset;
+    }
+
+    /**
+     * Get new offset of the element. It shows location where the element has to be inserted back
+     * into the node content when it is being recreated.
+     * @return element's offset
+     */
+    public int getNewOffset() {
+        return this.newOffset;
+    }
+
+    /**
+     * Set new offset of the element. It has to be calculated using the location of the span in the
+     * node content.
+     * @param newOffset element's offset
+     */
+    public void setNewOffset(int newOffset) {
+        this.newOffset = newOffset;
+    }
+
+    /**
+     * Get justification of the element
+     * @return justification of the elements
+     */
+    public String getJustification() {
+        return this.justification;
+    }
+
+    /**
+     * Set justification of the element
+     * @param justification element's justification ("left", "right", "center", "fill")
+     */
+    public void setJustification(String justification) {
+        this.justification = justification;
     }
 }

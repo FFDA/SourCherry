@@ -82,6 +82,7 @@ import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 import lt.ffda.sourcherry.model.ScSearchNode;
+import lt.ffda.sourcherry.spans.BackgroundColorSpanCustom;
 import lt.ffda.sourcherry.spans.ClickableSpanFile;
 import lt.ffda.sourcherry.spans.ClickableSpanLink;
 import lt.ffda.sourcherry.spans.ClickableSpanNode;
@@ -552,7 +553,7 @@ public class SQLReader implements DatabaseReader {
                     break;
                 case "background":
                     String backgroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting background color code from the tag
-                    BackgroundColorSpan bcs = new BackgroundColorSpan(Color.parseColor(backgroundColorOriginal));
+                    BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(Color.parseColor(backgroundColorOriginal));
                     formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "weight":
@@ -1651,12 +1652,8 @@ public class SQLReader implements DatabaseReader {
             int next; // The end of the current span and the start of the next one
             int totalContentLength = 0; // Needed to calculate offset for the tag
             int currentPartContentLength = 0; // Needed to calculate offset for the tag
-            // Extra cha offset. Because when I create nodeContent I had to take -1 off the totalCharOffset
-            // I have to add it when saving content to tags. Otherwise content in the CherryTree (and SourCherry)
-            // will look differently every time. In the end it will cause a crash.
-            int extraCharOffset = 0;
             ArrayList<Element> normalNodes = new ArrayList<>(); // Store all normal tags in order
-            ArrayList<Integer> attachedFileOffset = new ArrayList<>();
+            ArrayList<Object> offsetObjects = new ArrayList<>(); // Stores all objects with offset values to be processed later
             // Can't get justification for all items that have offset (except tables), so the best next
             // thing I can do is save last detected justification value and used it when creating those nodes
             String lastFoundJustification = "left";
@@ -1664,12 +1661,13 @@ public class SQLReader implements DatabaseReader {
             // Deleting data from codebox and grid tables. It can be recreated from the nodeContent
             this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
             this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+            // Deleting images, latex code (but not files) from database
             this.sqlite.delete("image", "node_id = ? AND time = 0", new String[]{nodeUniqueID});
             try {
                 for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent()) {
                     if (scNodeContent.getContentType() == 0) {
-                        // To add content of the the span that is being processed
-                        // set addContent to true. Needed because not all elements of the node
+                        // To not add content of the the span that is being processed
+                        // set addContent to false. Needed because not all elements of the node
                         // have content that is displayed for user in text form.
                         boolean addContent;
                         ScNodeContentText scNodeContentText = (ScNodeContentText) scNodeContent;
@@ -1680,7 +1678,7 @@ public class SQLReader implements DatabaseReader {
                         // other elements have different tag name than "rich_text". For those elements
                         // new (appropriate) tags will be created and added to appropriate list.
                         for (int i = 0; i < nodeContent.length(); i = next) {
-                            addContent = false;
+                            addContent = true;
                             next = nodeContent.nextSpanTransition(i, nodeContent.length(), Object.class);
                             Object[] spans = nodeContent.getSpans(i, next, Object.class);
                             Element element = doc.createElement("rich_text");
@@ -1696,156 +1694,64 @@ public class SQLReader implements DatabaseReader {
                                     } else {
                                         lastFoundJustification = "left";
                                     }
-                                }
-                                if (span instanceof BackgroundColorSpan) {
-                                    BackgroundColorSpan backgroundColorSpan = (BackgroundColorSpan) span;
+                                } else if (span instanceof BackgroundColorSpanCustom) {
+                                    BackgroundColorSpanCustom backgroundColorSpan = (BackgroundColorSpanCustom) span;
                                     String backgroundColor = String.format("#%1$s", Integer.toHexString(backgroundColorSpan.getBackgroundColor()).substring(2));
                                     element.setAttribute("background", backgroundColor);
-                                }
-                                if (span instanceof ClickableSpanNode) {
+                                } else if (span instanceof ClickableSpanNode) {
                                     ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
                                     String attributeValue = String.format("node %1$s", clickableSpanNode.getNodeUniqueID());
                                     if (clickableSpanNode.getLinkAnchorName() != null) {
                                         attributeValue = String.format("%1$s %2$s", attributeValue, clickableSpanNode.getLinkAnchorName());
                                     }
                                     element.setAttribute("link", attributeValue);
-                                }
-                                if (span instanceof ClickableSpanLink) {
+                                } else if (span instanceof ClickableSpanLink) {
                                     ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
                                     element.setAttribute("link", String.format("%1$s %2$s", clickableSpanLink.getLinkType(), clickableSpanLink.getBase64Link()));
-                                }
-                                if (span instanceof ImageSpanFile) {
+                                } else if (span instanceof ImageSpanFile) {
                                     // Attached file
-                                    addContent = true;
+                                    addContent = false;
                                     ImageSpanFile imageSpanFile = (ImageSpanFile) span;
-                                    if (imageSpanFile.isFromDatabase()) {
-                                        // If file was loaded from the database, only it's offset and justification is changed
-                                        this.sqlite.beginTransaction();
-                                        try {
-                                            ContentValues contentValues = new ContentValues();
-                                            contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
-                                            contentValues.put("justification", lastFoundJustification);
-                                            // filename = '' is necessary to make sure that any other type of 'image' does not have
-                                            // the same offset. Just in face it was written in to database before current file.
-                                            // The same applies for check for '__ct_special.tex' - just in case the offset if for
-                                            // latex code
-                                            this.sqlite.update("image", contentValues, "node_id = ? AND offset = ? AND NOT filename = '' AND NOT filename = '__ct_special.tex'", new String[]{nodeUniqueID, imageSpanFile.getOriginalOffset()});
-                                            this.sqlite.setTransactionSuccessful();
-                                        } finally {
-                                            this.sqlite.endTransaction();
-                                        }
-                                    }
-                                    attachedFileOffset.add(currentPartContentLength + totalContentLength + extraCharOffset);
-                                    extraCharOffset += 1;
-                                }
-                                if (span instanceof ClickableSpanFile) {
+                                    imageSpanFile.setNewOffset(currentPartContentLength + totalContentLength);
+                                    imageSpanFile.setJustification(lastFoundJustification);
+                                    offsetObjects.add(imageSpanFile);
+                                } else if (span instanceof ClickableSpanFile) {
                                     // Attached File text part
-                                    addContent = true;
-                                }
-                                if (span instanceof ForegroundColorSpan) {
+                                    addContent = false;
+                                } else if (span instanceof ForegroundColorSpan) {
                                     ForegroundColorSpan foregroundColorSpan = (ForegroundColorSpan) span;
                                     String backgroundColor = String.format("#%1$s", Integer.toHexString(foregroundColorSpan.getForegroundColor()).substring(2));
                                     element.setAttribute("foreground", backgroundColor);
-                                }
-                                if (span instanceof ImageSpanAnchor) {
-                                    addContent = true;
+                                } else if (span instanceof ImageSpanAnchor) {
+                                    addContent = false;
                                     ImageSpanAnchor imageSpanAnchor = (ImageSpanAnchor) span;
-                                    this.sqlite.beginTransaction();
-                                    try {
-                                        ContentValues contentValues = new ContentValues();
-                                        contentValues.put("node_id", nodeUniqueID);
-                                        contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
-                                        contentValues.put("justification", lastFoundJustification);
-                                        contentValues.put("anchor", imageSpanAnchor.getAnchorName());
-                                        contentValues.put("filename", "");
-                                        contentValues.put("link", "");
-                                        contentValues.put("time", 0);
-                                        this.sqlite.insert("image", null, contentValues);
-                                        this.sqlite.setTransactionSuccessful();
-                                    } finally {
-                                        this.sqlite.endTransaction();
-                                    }
-                                    attachedFileOffset.add(currentPartContentLength + totalContentLength + extraCharOffset);
-                                    extraCharOffset += 1;
-                                }
-                                if (span instanceof ImageSpanImage) {
-                                    addContent = true;
+                                    imageSpanAnchor.setNewOffset(currentPartContentLength + totalContentLength);
+                                    imageSpanAnchor.setJustification(lastFoundJustification);
+                                    offsetObjects.add(imageSpanAnchor);
+                                } else if (span instanceof ImageSpanImage) {
+                                    addContent = false;
                                     ImageSpanImage imageSpanImage = (ImageSpanImage) span;
-                                    Drawable drawable = imageSpanImage.getDrawable();
-                                    // Hopefully it's always a Bitmap drawable, because I get it from the same source
-                                    Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-                                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-                                    this.sqlite.beginTransaction();
-                                    try {
-                                        ContentValues contentValues = new ContentValues();
-                                        contentValues.put("node_id", nodeUniqueID);
-                                        contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
-                                        contentValues.put("justification", lastFoundJustification);
-                                        contentValues.put("anchor", "");
-                                        contentValues.put("png", byteArrayOutputStream.toByteArray());
-                                        contentValues.put("filename", "");
-                                        contentValues.put("link", "");
-                                        contentValues.put("time", 0);
-                                        this.sqlite.insert("image", null, contentValues);
-                                        this.sqlite.setTransactionSuccessful();
-                                    } finally {
-                                        this.sqlite.endTransaction();
-                                    }
-                                    attachedFileOffset.add(currentPartContentLength + totalContentLength + extraCharOffset);
-                                    extraCharOffset += 1;
-                                }
-                                if (span instanceof ImageSpanLatex) {
-                                    addContent = true;
+                                    imageSpanImage.setNewOffset(currentPartContentLength + totalContentLength);
+                                    imageSpanImage.setJustification(lastFoundJustification);
+                                    offsetObjects.add(imageSpanImage);
+                                } else if (span instanceof ImageSpanLatex) {
+                                    addContent = false;
                                     ImageSpanLatex imageSpanLatex = (ImageSpanLatex) span;
-                                    this.sqlite.beginTransaction();
-                                    try {
-                                        ContentValues contentValues = new ContentValues();
-                                        contentValues.put("node_id", nodeUniqueID);
-                                        contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
-                                        contentValues.put("justification", lastFoundJustification);
-                                        contentValues.put("anchor", "");
-                                        contentValues.put("png", imageSpanLatex.getLatexCode().getBytes());
-                                        contentValues.put("filename", "__ct_special.tex");
-                                        contentValues.put("link", "");
-                                        contentValues.put("time", 0);
-                                        this.sqlite.insert("image", null, contentValues);
-                                        this.sqlite.setTransactionSuccessful();
-                                    } finally {
-                                        this.sqlite.endTransaction();
-                                    }
-                                    attachedFileOffset.add(currentPartContentLength + totalContentLength + extraCharOffset);
-                                    extraCharOffset += 1;
-                                }
-                                if (span instanceof LeadingMarginSpan) {
-                                    LeadingMarginSpan leadingMarginSpan = (LeadingMarginSpan) span;
+                                    imageSpanLatex.setNewOffset(currentPartContentLength + totalContentLength);
+                                    imageSpanLatex.setJustification(lastFoundJustification);
+                                    offsetObjects.add(imageSpanLatex);
+                                } else if (span instanceof LeadingMarginSpan.Standard) {
+                                    LeadingMarginSpan.Standard leadingMarginSpan = (LeadingMarginSpan.Standard) span;
                                     int indent = leadingMarginSpan.getLeadingMargin(true) / 40;
                                     element.setAttribute("indent", String.valueOf(indent));
-                                }
-                                if (span instanceof TypefaceSpanCodebox) {
-                                    addContent = true;
-                                    TypefaceSpanCodebox typefaceSpanCodebox = (TypefaceSpanCodebox) span;
-                                    this.sqlite.beginTransaction();
-                                    try {
-                                        ContentValues contentValues = new ContentValues();
-                                        contentValues.put("node_id", nodeUniqueID);
-                                        contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
-                                        contentValues.put("justification", lastFoundJustification);
-                                        contentValues.put("txt", nodeContent.subSequence(i, next).toString());
-                                        contentValues.put("syntax", typefaceSpanCodebox.getSyntaxHighlighting());
-                                        contentValues.put("width", typefaceSpanCodebox.getFrameWidth());
-                                        contentValues.put("height", typefaceSpanCodebox.getFrameHeight());
-                                        contentValues.put("is_width_pix", typefaceSpanCodebox.isWidthInPixel());
-                                        contentValues.put("do_highl_bra", typefaceSpanCodebox.isHighlightBrackets());
-                                        contentValues.put("do_show_linenum", typefaceSpanCodebox.isShowLineNumbers());
-                                        this.sqlite.insert("codebox", null, contentValues);
-                                        this.sqlite.setTransactionSuccessful();
-                                    } finally {
-                                        this.sqlite.endTransaction();
-                                    }
-                                    extraCharOffset += 1;
-                                }
-                                if (span instanceof RelativeSizeSpan) {
+                                } else if (span instanceof TypefaceSpanCodebox) {
+                                    addContent = false;
+                                    TypefaceSpanCodebox typefaceSpanCodebox = ((TypefaceSpanCodebox) span).clone();
+                                    typefaceSpanCodebox.setSpanContent(nodeContent.subSequence(i, next).toString());
+                                    typefaceSpanCodebox.setNewOffset(currentPartContentLength + totalContentLength);
+                                    typefaceSpanCodebox.setJustification(lastFoundJustification);
+                                    offsetObjects.add(typefaceSpanCodebox);
+                                } else if (span instanceof RelativeSizeSpan) {
                                     RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
                                     float size = relativeSizeSpan.getSizeChange();
                                     if (size == 1.75f) {
@@ -1857,39 +1763,32 @@ public class SQLReader implements DatabaseReader {
                                     } else if (size == 0.75f) {
                                         element.setAttribute("scale", "small");
                                     }
-                                }
-                                if (span instanceof StrikethroughSpan) {
+                                } else if (span instanceof StrikethroughSpan) {
                                     element.setAttribute("strikethrough", "true");
-                                }
-                                if (span instanceof StyleSpan) {
+                                } else if (span instanceof StyleSpan) {
                                     StyleSpan styleSpan = (StyleSpan) span;
                                     if (styleSpan.getStyle() == Typeface.BOLD) {
                                         element.setAttribute("weight", "heavy");
                                     } else if (styleSpan.getStyle() == Typeface.ITALIC) {
                                         element.setAttribute("style", "italic");
                                     }
-                                }
-                                if (span instanceof SubscriptSpan) {
+                                } else if (span instanceof SubscriptSpan) {
                                     element.setAttribute("scale", "sub");
-                                }
-                                if (span instanceof SuperscriptSpan) {
+                                } else if (span instanceof SuperscriptSpan) {
                                     element.setAttribute("scale", "sup");
-                                }
-                                if (span instanceof TypefaceSpanFamily) {
+                                } else if (span instanceof TypefaceSpanFamily) {
                                     element.setAttribute("family", "monospace");
-                                }
-                                if (span instanceof URLSpanWebs) {
+                                } else if (span instanceof URLSpanWebs) {
                                     URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
                                     element.setAttribute("link", String.format("webs %1$s", urlSpanWebs.getURL()));
-                                }
-                                if (span instanceof UnderlineSpan) {
+                                } else if (span instanceof UnderlineSpan) {
                                     element.setAttribute("underline", "single");
                                 }
                             }
-                            if (!addContent) {
+                            if (addContent) {
                                 element.setTextContent(nodeContent.subSequence(i, next).toString());
-                                // If span content is being added to the element it's length cave to be
-                                // has to be counted to length of the node
+                                // If span content is being added to the element it's length
+                                // has to be added to the length of the node
                                 currentPartContentLength += (next - i);
                                 normalNodes.add(element);
                             }
@@ -1898,6 +1797,106 @@ public class SQLReader implements DatabaseReader {
                         currentPartContentLength = 0;
                     } else {
                         ScNodeContentTable scNodeContentTable = (ScNodeContentTable) scNodeContent;
+                        scNodeContentTable.setNewOffset(currentPartContentLength + totalContentLength);
+                        offsetObjects.add(scNodeContentTable);
+                    }
+                }
+                // Extra char offset. Because when app creates nodeContent it had to take -1
+                // off of the totalCharOffset, so while saving it has to add it back. Otherwise
+                // content in the CherryTree (and SourCherry) will look differently every time.
+                // In the end it will cause a crash.
+                int extraCharOffset = 0;
+                // Stores all attached file offsets. Later goes through all the node offset's in the
+                // image table. If it does not find an offset in the list - deletes it from the table
+                ArrayList<Integer> attachedFileOffset = new ArrayList<>();
+                TypefaceSpanCodebox collectedCodebox = null;
+                // Writing all offset elements to appropriate tables
+                for (Object offsetObject : offsetObjects) {
+                    if (offsetObject instanceof TypefaceSpanCodebox) {
+                        // When inserting text (user typing) inside QuoteSpan EditText for some
+                        // reason will create multiple spans following one another instead of one
+                        // long span. That will create multiple Codebox entries for the same codebox
+                        // in the database. Recreating codebox from multiple spans can produce
+                        // unexpected results. To fix it all spans that have the same offset have to
+                        // be merged into one.
+                        if (collectedCodebox == null) {
+                            // First time encountering codebox after writing another element
+                            collectedCodebox = (TypefaceSpanCodebox) offsetObject;
+                        } else {
+                            // Multiple consecutive codeboxes
+                            TypefaceSpanCodebox typefaceSpanCodebox = (TypefaceSpanCodebox) offsetObject;
+                            if (typefaceSpanCodebox.getNewOffset() == collectedCodebox.getNewOffset()) {
+                                // If offset is the same as in the previous codebox - merge content
+                                collectedCodebox.setSpanContent(collectedCodebox.getSpanContent() + typefaceSpanCodebox.getSpanContent());
+                            } else {
+                                // If offsets are different join write the previous codebox to
+                                // database and set the new one to the variable
+                                this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
+                                extraCharOffset++;
+                                collectedCodebox = typefaceSpanCodebox;
+                            }
+                        }
+                    } else if (offsetObject instanceof ImageSpanFile) {
+                        if (collectedCodebox != null) {
+                            // Previous element was a codebox - write to database and set to null
+                            this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
+                            extraCharOffset++;
+                            collectedCodebox = null;
+                        }
+                        ImageSpanFile imageSpanFile = (ImageSpanFile) offsetObject;
+                        if (imageSpanFile.isFromDatabase()) {
+                            // If file was loaded from the database, so only it's offset and justification changed
+                            this.sqlite.beginTransaction();
+                            try {
+                                ContentValues contentValues = new ContentValues();
+                                contentValues.put("offset", imageSpanFile.getNewOffset() + extraCharOffset);
+                                contentValues.put("justification", imageSpanFile.getJustification());
+                                // filename = '' is necessary to make sure that any other type of 'image' does not have
+                                // the same offset. Just in face it was written in to database before current file.
+                                // The same applies for check for '__ct_special.tex' - just in case the offset if for
+                                // latex code
+                                this.sqlite.update("image", contentValues, "node_id = ? AND offset = ? AND NOT filename = '' AND NOT filename = '__ct_special.tex'", new String[]{nodeUniqueID, imageSpanFile.getOriginalOffset()});
+                                this.sqlite.setTransactionSuccessful();
+                            } finally {
+                                this.sqlite.endTransaction();
+                            }
+                        }
+                        attachedFileOffset.add(imageSpanFile.getNewOffset() + extraCharOffset);
+                        extraCharOffset++;
+                    } else if (offsetObject instanceof ImageSpanAnchor) {
+                        //                        case "ImageSpanAnchor":
+                        if (collectedCodebox != null) {
+                            // Previous element was a codebox - write to database and set to null
+                            this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
+                            extraCharOffset++;
+                            collectedCodebox = null;
+                        }
+                        ImageSpanAnchor imageSpanAnchor = (ImageSpanAnchor) offsetObject;
+                        this.sqlite.beginTransaction();
+                        try {
+                            ContentValues contentValues = new ContentValues();
+                            contentValues.put("node_id", nodeUniqueID);
+                            contentValues.put("offset", imageSpanAnchor.getNewOffset() + extraCharOffset);
+                            contentValues.put("justification", imageSpanAnchor.getJustification());
+                            contentValues.put("anchor", imageSpanAnchor.getAnchorName());
+                            contentValues.put("filename", "");
+                            contentValues.put("link", "");
+                            contentValues.put("time", 0);
+                            this.sqlite.insert("image", null, contentValues);
+                            this.sqlite.setTransactionSuccessful();
+                        } finally {
+                            this.sqlite.endTransaction();
+                        }
+                        attachedFileOffset.add(imageSpanAnchor.getNewOffset() + extraCharOffset);
+                        extraCharOffset++;
+                    } else if (offsetObject instanceof ScNodeContentTable) {
+                        if (collectedCodebox != null) {
+                            // Previous element was a codebox - write to database and set to null
+                            this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
+                            extraCharOffset++;
+                            collectedCodebox = null;
+                        }
+                        ScNodeContentTable scNodeContentTable = (ScNodeContentTable) offsetObject;
                         Element table = doc.createElement("table");
                         for (CharSequence[] row : scNodeContentTable.getContent()) {
                             Element rowElement = doc.createElement("row");
@@ -1920,7 +1919,7 @@ public class SQLReader implements DatabaseReader {
                         try {
                             ContentValues contentValues = new ContentValues();
                             contentValues.put("node_id", nodeUniqueID);
-                            contentValues.put("offset", currentPartContentLength + totalContentLength + extraCharOffset);
+                            contentValues.put("offset", scNodeContentTable.getNewOffset() + extraCharOffset);
                             contentValues.put("justification", scNodeContentTable.getJustification());
                             contentValues.put("txt", writer.toString());
                             contentValues.put("col_min", scNodeContentTable.getColMin());
@@ -1930,8 +1929,70 @@ public class SQLReader implements DatabaseReader {
                         } finally {
                             this.sqlite.endTransaction();
                         }
-                        extraCharOffset += 1;
+                        extraCharOffset++;
+                    } else if (offsetObject instanceof ImageSpanLatex) {
+                        if (collectedCodebox != null) {
+                            // Previous element was a codebox - write to database and set to null
+                            this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
+                            extraCharOffset++;
+                            collectedCodebox = null;
+                        }
+                        ImageSpanLatex imageSpanLatex = (ImageSpanLatex) offsetObject;
+                        this.sqlite.beginTransaction();
+                        try {
+                            ContentValues contentValues = new ContentValues();
+                            contentValues.put("node_id", nodeUniqueID);
+                            contentValues.put("offset", imageSpanLatex.getNewOffset() + extraCharOffset);
+                            contentValues.put("justification", imageSpanLatex.getJustification());
+                            contentValues.put("anchor", "");
+                            contentValues.put("png", imageSpanLatex.getLatexCode().getBytes());
+                            contentValues.put("filename", "__ct_special.tex");
+                            contentValues.put("link", "");
+                            contentValues.put("time", 0);
+                            this.sqlite.insert("image", null, contentValues);
+                            this.sqlite.setTransactionSuccessful();
+                        } finally {
+                            this.sqlite.endTransaction();
+                        }
+                        attachedFileOffset.add(imageSpanLatex.getNewOffset() + extraCharOffset);
+                        extraCharOffset++;
+                    } else if (offsetObject instanceof ImageSpanImage) {
+                        if (collectedCodebox != null) {
+                            // Previous element was a codebox - write to database and set to null
+                            this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
+                            extraCharOffset++;
+                            collectedCodebox = null;
+                        }
+                        ImageSpanImage imageSpanImage = (ImageSpanImage) offsetObject;
+                        Drawable drawable = imageSpanImage.getDrawable();
+                        // Hopefully it's always a Bitmap drawable, because I get it from the same source
+                        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+                        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+                        this.sqlite.beginTransaction();
+                        try {
+                            ContentValues contentValues = new ContentValues();
+                            contentValues.put("node_id", nodeUniqueID);
+                            contentValues.put("offset", imageSpanImage.getNewOffset() + extraCharOffset);
+                            contentValues.put("justification", imageSpanImage.getJustification());
+                            contentValues.put("anchor", "");
+                            contentValues.put("png", byteArrayOutputStream.toByteArray());
+                            contentValues.put("filename", "");
+                            contentValues.put("link", "");
+                            contentValues.put("time", 0);
+                            this.sqlite.insert("image", null, contentValues);
+                            this.sqlite.setTransactionSuccessful();
+                        } finally {
+                            this.sqlite.endTransaction();
+                        }
+                        attachedFileOffset.add(imageSpanImage.getNewOffset() + extraCharOffset);
+                        extraCharOffset++;
                     }
+                }
+                if (collectedCodebox != null) {
+                    // Might be that last element if offsetObject was codebox - writting it to database
+                    this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
+                    collectedCodebox = null;
                 }
                 // Deleting all data from image table, that was removed by user from nodeContent
                 Cursor cursor = this.sqlite.query("image", new String[]{"offset"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null);
@@ -2338,6 +2399,33 @@ public class SQLReader implements DatabaseReader {
             return new ScSearchNode(cursor.getString(0), cursor.getString(1), isParent, hasSubnodes, isSubnode, query, resultCount, samples.toString());
         } else {
             return null;
+        }
+    }
+
+    /**
+     * Whites codebox entry in to codebox table
+     * @param nodeUniqueID unique ID of the node to which codebox belongs to
+     * @param typefaceSpanCodebox span holding most of the codebox data
+     * @param extraCharOffset codebox offset it has to be inserted into the node content
+     */
+    private void writeCodeboxToDatabase(String nodeUniqueID, TypefaceSpanCodebox typefaceSpanCodebox, int extraCharOffset) {
+        this.sqlite.beginTransaction();
+        try {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("node_id", nodeUniqueID);
+            contentValues.put("offset", typefaceSpanCodebox.getNewOffset() + extraCharOffset);
+            contentValues.put("justification", typefaceSpanCodebox.getJustification());
+            contentValues.put("txt", typefaceSpanCodebox.getSpanContent());
+            contentValues.put("syntax", typefaceSpanCodebox.getSyntaxHighlighting());
+            contentValues.put("width", typefaceSpanCodebox.getFrameWidth());
+            contentValues.put("height", typefaceSpanCodebox.getFrameHeight());
+            contentValues.put("is_width_pix", typefaceSpanCodebox.isWidthInPixel());
+            contentValues.put("do_highl_bra", typefaceSpanCodebox.isHighlightBrackets());
+            contentValues.put("do_show_linenum", typefaceSpanCodebox.isShowLineNumbers());
+            this.sqlite.insert("codebox", null, contentValues);
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
         }
     }
 }

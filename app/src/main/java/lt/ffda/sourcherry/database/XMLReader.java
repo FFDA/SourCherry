@@ -79,6 +79,7 @@ import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 import lt.ffda.sourcherry.model.ScSearchNode;
+import lt.ffda.sourcherry.spans.BackgroundColorSpanCustom;
 import lt.ffda.sourcherry.spans.ClickableSpanFile;
 import lt.ffda.sourcherry.spans.ClickableSpanLink;
 import lt.ffda.sourcherry.spans.ClickableSpanNode;
@@ -471,7 +472,7 @@ public class XMLReader implements DatabaseReader {
                     break;
                 case "background":
                     String backgroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting background color code from the tag
-                    BackgroundColorSpan bcs = new BackgroundColorSpan(Color.parseColor(backgroundColorOriginal));
+                    BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(Color.parseColor(backgroundColorOriginal));
                     formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "weight":
@@ -1481,225 +1482,251 @@ public class XMLReader implements DatabaseReader {
             this.displayToast(this.context.getString(R.string.toast_error_while_saving_node_content_not_found));
             return;
         }
-        int next; // The end of the current span and the start of the next one
-        int totalContentLength = 0; // Needed to calculate offset for the tag
-        int currentPartContentLength = 0; // Needed to calculate offset for the tag
-        // Extra cha offset. Because when I create nodeContent I had to take -1 off the totalCharOffset
-        // I have to add it when saving content to tags. Otherwise content in the CherryTree (and SourCherry)
-        // will look differently every time. In the end it will cause a crash.
-        int extraCharOffset = 0;
-        ArrayList<Element> normalNodes = new ArrayList<>(); // Store all normal tags in order
-        ArrayList<Element> offsetNodes = new ArrayList<>(); // Store all tags with char_offset attribute
-        // Can't get justification for all items that have offset (except tables), so the best next
-        // thing I can do is save last detected justification value and used it when creating those nodes
-        String lastFoundJustification = "left";
-        for (ScNodeContent scNodeContent: this.mainViewModel.getNodeContent()) {
-            if (scNodeContent.getContentType() == 0) {
-                // To add content of the the span that is being processed
-                // set addContent to true. Needed because not all elements of the node
-                // have content that is displayed for user in text form.
-                boolean addContent;
-                ScNodeContentText scNodeContentText = (ScNodeContentText) scNodeContent;
-                SpannableStringBuilder nodeContent = scNodeContentText.getContent();
-                // Iterating through the spans of the nodeContentText
-                // and adding information depending on Span class
-                // for more information on span open appropriate span class. Furthermore,
-                // other elements have different tag name than "rich_text". For those elements
-                // new (appropriate) tags will be created and added to appropriate list.
-                for (int i = 0; i < nodeContent.length(); i = next) {
-                    addContent = false;
-                    next = nodeContent.nextSpanTransition(i, nodeContent.length(), Object.class);
-                    Object[] spans = nodeContent.getSpans(i, next, Object.class);
-                    Element element = this.doc.createElement("rich_text");
-                    for (Object span : spans) {
-                        if (span instanceof AlignmentSpan) {
-                            AlignmentSpan alignmentSpan = (AlignmentSpan) span;
-                            if (alignmentSpan.getAlignment() == Layout.Alignment.ALIGN_CENTER) {
-                                element.setAttribute("justification", "center");
-                                lastFoundJustification = "center";
-                            } else if (alignmentSpan.getAlignment() == Layout.Alignment.ALIGN_OPPOSITE) {
-                                element.setAttribute("justification", "right");
-                                lastFoundJustification = "right";
-                            } else {
-                                element.setAttribute("justification", "left");
-                                lastFoundJustification = "left";
+        if (this.isNodeRichText(nodeUniqueID)) {
+            int next; // The end of the current span and the start of the next one
+            int totalContentLength = 0; // Needed to calculate offset for the tag
+            int currentPartContentLength = 0; // Needed to calculate offset for the tag
+            ArrayList<Element> normalNodes = new ArrayList<>(); // Store all normal tags in order
+            ArrayList<Element> offsetNodes = new ArrayList<>(); // Store all tags with char_offset attribute
+            // Can't get justification for all items that have offset (except tables), so the best next
+            // thing I can do is save last detected justification value and used it when creating those nodes
+            String lastFoundJustification = "left";
+            for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent()) {
+                if (scNodeContent.getContentType() == 0) {
+                    // To not add content of the the span that is being processed
+                    // set addContent to false. Needed because not all elements of the node
+                    // have content that is displayed for user in text form.
+                    boolean addContent;
+                    ScNodeContentText scNodeContentText = (ScNodeContentText) scNodeContent;
+                    SpannableStringBuilder nodeContent = scNodeContentText.getContent();
+                    // Iterating through the spans of the nodeContentText
+                    // and adding information depending on Span class
+                    // for more information on span open appropriate span class. Furthermore,
+                    // other elements have different tag name than "rich_text". For those elements
+                    // new (appropriate) tags will be created and added to appropriate list.
+                    for (int i = 0; i < nodeContent.length(); i = next) {
+                        addContent = true;
+                        next = nodeContent.nextSpanTransition(i, nodeContent.length(), Object.class);
+                        Object[] spans = nodeContent.getSpans(i, next, Object.class);
+                        Element element = this.doc.createElement("rich_text");
+                        for (Object span : spans) {
+                            if (span instanceof AlignmentSpan) {
+                                AlignmentSpan alignmentSpan = (AlignmentSpan) span;
+                                if (alignmentSpan.getAlignment() == Layout.Alignment.ALIGN_CENTER) {
+                                    element.setAttribute("justification", "center");
+                                    lastFoundJustification = "center";
+                                } else if (alignmentSpan.getAlignment() == Layout.Alignment.ALIGN_OPPOSITE) {
+                                    element.setAttribute("justification", "right");
+                                    lastFoundJustification = "right";
+                                } else {
+                                    element.setAttribute("justification", "left");
+                                    lastFoundJustification = "left";
+                                }
+                            } else if (span instanceof BackgroundColorSpanCustom) {
+                                BackgroundColorSpanCustom backgroundColorSpan = (BackgroundColorSpanCustom) span;
+                                String backgroundColor = String.format("#%1$s", Integer.toHexString(backgroundColorSpan.getBackgroundColor()).substring(2));
+                                element.setAttribute("background", backgroundColor);
+                            } else if (span instanceof ClickableSpanNode) {
+                                ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
+                                String attributeValue = String.format("node %1$s", clickableSpanNode.getNodeUniqueID());
+                                if (clickableSpanNode.getLinkAnchorName() != null) {
+                                    attributeValue = String.format("%1$s %2$s", attributeValue, clickableSpanNode.getLinkAnchorName());
+                                }
+                                element.setAttribute("link", attributeValue);
+                            } else if (span instanceof ClickableSpanLink) {
+                                ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
+                                element.setAttribute("link", String.format("%1$s %2$s", clickableSpanLink.getLinkType(), clickableSpanLink.getBase64Link()));
+                            } else if (span instanceof ImageSpanFile) {
+                                // Attached file
+                                addContent = false;
+                                ImageSpanFile imageSpanFile = (ImageSpanFile) span;
+                                element = this.doc.createElement("encoded_png");
+                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
+                                element.setAttribute("justification", lastFoundJustification);
+                                element.setAttribute("filename", imageSpanFile.getFilename());
+                                element.setAttribute("time", String.valueOf(System.currentTimeMillis()));
+                                if (imageSpanFile.isFromDatabase()) {
+                                    element.setTextContent(this.getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
+                                }
+                                offsetNodes.add(element);
+                            } else if (span instanceof ClickableSpanFile) {
+                                // Attached File text part
+                                addContent = false;
+                            } else if (span instanceof ForegroundColorSpan) {
+                                ForegroundColorSpan foregroundColorSpan = (ForegroundColorSpan) span;
+                                String backgroundColor = String.format("#%1$s", Integer.toHexString(foregroundColorSpan.getForegroundColor()).substring(2));
+                                element.setAttribute("foreground", backgroundColor);
+                            } else if (span instanceof ImageSpanAnchor) {
+                                addContent = false;
+                                element = this.doc.createElement("encoded_png");
+                                ImageSpanAnchor imageSpanAnchor = (ImageSpanAnchor) span;
+                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
+                                element.setAttribute("justification", lastFoundJustification);
+                                element.setAttribute("anchor", imageSpanAnchor.getAnchorName());
+                                offsetNodes.add(element);
+                            } else if (span instanceof ImageSpanImage) {
+                                addContent = false;
+                                element = this.doc.createElement("encoded_png");
+                                ImageSpanImage imageSpanImage = (ImageSpanImage) span;
+                                Drawable drawable = imageSpanImage.getDrawable();
+                                // Hopefully it's always a Bitmap drawable, because I get it from the same source
+                                Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+                                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                                bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+                                String baseString = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
+                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
+                                element.setAttribute("justification", lastFoundJustification);
+                                element.setTextContent(baseString);
+                                offsetNodes.add(element);
+                            } else if (span instanceof ImageSpanLatex) {
+                                addContent = false;
+                                ImageSpanLatex imageSpanLatex = (ImageSpanLatex) span;
+                                element = this.doc.createElement("encoded_png");
+                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
+                                element.setAttribute("justification", lastFoundJustification);
+                                element.setAttribute("filename", "__ct_special.tex");
+                                element.setTextContent(imageSpanLatex.getLatexCode());
+                                offsetNodes.add(element);
+                            } else if (span instanceof LeadingMarginSpan.Standard) {
+                                LeadingMarginSpan.Standard leadingMarginSpan = (LeadingMarginSpan.Standard) span;
+                                int indent = leadingMarginSpan.getLeadingMargin(true) / 40;
+                                element.setAttribute("indent", String.valueOf(indent));
+                            } else if (span instanceof TypefaceSpanCodebox) {
+                                addContent = false;
+                                element = this.doc.createElement("codebox");
+                                TypefaceSpanCodebox typefaceSpanCodebox = (TypefaceSpanCodebox) span;
+                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
+                                element.setAttribute("justification", lastFoundJustification);
+                                element.setAttribute("frame_width", String.valueOf(typefaceSpanCodebox.getFrameWidth()));
+                                element.setAttribute("frame_height", String.valueOf(typefaceSpanCodebox.getFrameHeight()));
+                                element.setAttribute("width_in_pixels", typefaceSpanCodebox.isWidthInPixel() ? "1" : "0");
+                                element.setAttribute("syntax_highlighting", typefaceSpanCodebox.getSyntaxHighlighting());
+                                element.setAttribute("highlight_brackets", typefaceSpanCodebox.isHighlightBrackets() ? "1" : "0");
+                                element.setAttribute("show_line_numbers", typefaceSpanCodebox.isShowLineNumbers() ? "1" : "0");
+                                element.setTextContent(nodeContent.subSequence(i, next).toString());
+                                offsetNodes.add(element);
+                            } else if (span instanceof RelativeSizeSpan) {
+                                RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
+                                float size = relativeSizeSpan.getSizeChange();
+                                if (size == 1.75f) {
+                                    element.setAttribute("scale", "h1");
+                                } else if (size == 1.5f) {
+                                    element.setAttribute("scale", "h2");
+                                } else if (size == 1.25f) {
+                                    element.setAttribute("scale", "h3");
+                                } else if (size == 0.75f) {
+                                    element.setAttribute("scale", "small");
+                                }
+                            } else if (span instanceof StrikethroughSpan) {
+                                element.setAttribute("strikethrough", "true");
+                            } else if (span instanceof StyleSpan) {
+                                StyleSpan styleSpan = (StyleSpan) span;
+                                if (styleSpan.getStyle() == Typeface.BOLD) {
+                                    element.setAttribute("weight", "heavy");
+                                } else if (styleSpan.getStyle() == Typeface.ITALIC) {
+                                    element.setAttribute("style", "italic");
+                                }
+                            } else if (span instanceof SubscriptSpan) {
+                                element.setAttribute("scale", "sub");
+                            } else if (span instanceof SuperscriptSpan) {
+                                element.setAttribute("scale", "sup");
+                            } else if (span instanceof TypefaceSpanFamily) {
+                                element.setAttribute("family", "monospace");
+                            } else if (span instanceof URLSpanWebs) {
+                                URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
+                                element.setAttribute("link", String.format("webs %1$s", urlSpanWebs.getURL()));
+                            } else if (span instanceof UnderlineSpan) {
+                                element.setAttribute("underline", "single");
                             }
                         }
-                        if (span instanceof BackgroundColorSpan) {
-                            BackgroundColorSpan backgroundColorSpan = (BackgroundColorSpan) span;
-                            String backgroundColor = String.format("#%1$s", Integer.toHexString(backgroundColorSpan.getBackgroundColor()).substring(2));
-                            element.setAttribute("background", backgroundColor);
-                        }
-                        if (span instanceof ClickableSpanNode) {
-                            ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
-                            String attributeValue = String.format("node %1$s", clickableSpanNode.getNodeUniqueID());
-                            if (clickableSpanNode.getLinkAnchorName() != null) {
-                                attributeValue = String.format("%1$s %2$s", attributeValue, clickableSpanNode.getLinkAnchorName());
-                            }
-                            element.setAttribute("link", attributeValue);
-                        }
-                        if (span instanceof ClickableSpanLink) {
-                            ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
-                            element.setAttribute("link", String.format("%1$s %2$s", clickableSpanLink.getLinkType(), clickableSpanLink.getBase64Link()));
-                        }
-                        if (span instanceof ImageSpanFile) {
-                            // Attached file
-                            addContent = true;
-                            ImageSpanFile imageSpanFile = (ImageSpanFile) span;
-                            element = this.doc.createElement("encoded_png");
-                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
-                            element.setAttribute("justification", lastFoundJustification);
-                            element.setAttribute("filename", imageSpanFile.getFilename());
-                            element.setAttribute("time", String.valueOf(System.currentTimeMillis()));
-                            if (imageSpanFile.isFromDatabase()) {
-                                element.setTextContent(this.getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
-                            }
-                            offsetNodes.add(element);
-                            extraCharOffset += 1;
-                        }
-                        if (span instanceof ClickableSpanFile) {
-                            // Attached File text part
-                            addContent = true;
-                        }
-                        if (span instanceof ForegroundColorSpan) {
-                            ForegroundColorSpan foregroundColorSpan = (ForegroundColorSpan) span;
-                            String backgroundColor = String.format("#%1$s", Integer.toHexString(foregroundColorSpan.getForegroundColor()).substring(2));
-                            element.setAttribute("foreground", backgroundColor);
-                        }
-                        if (span instanceof ImageSpanAnchor) {
-                            addContent = true;
-                            element = this.doc.createElement("encoded_png");
-                            ImageSpanAnchor imageSpanAnchor = (ImageSpanAnchor) span;
-                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
-                            element.setAttribute("justification", lastFoundJustification);
-                            element.setAttribute("anchor", imageSpanAnchor.getAnchorName());
-                            offsetNodes.add(element);
-                            extraCharOffset += 1;
-                        }
-                        if (span instanceof ImageSpanImage) {
-                            addContent = true;
-                            element = this.doc.createElement("encoded_png");
-                            ImageSpanImage imageSpanImage = (ImageSpanImage) span;
-                            Drawable drawable = imageSpanImage.getDrawable();
-                            // Hopefully it's always a Bitmap drawable, because I get it from the same source
-                            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-                            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-                            String baseString = Base64.encodeToString(byteArrayOutputStream.toByteArray(),Base64.DEFAULT);
-                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
-                            element.setAttribute("justification", lastFoundJustification);
-                            element.setTextContent(baseString);
-                            offsetNodes.add(element);
-                            extraCharOffset += 1;
-                        }
-                        if (span instanceof ImageSpanLatex) {
-                            addContent = true;
-                            ImageSpanLatex imageSpanLatex = (ImageSpanLatex) span;
-                            element = this.doc.createElement("encoded_png");
-                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
-                            element.setAttribute("justification", lastFoundJustification);
-                            element.setAttribute("filename", "__ct_special.tex");
-                            element.setTextContent(imageSpanLatex.getLatexCode());
-                            offsetNodes.add(element);
-                            extraCharOffset += 1;
-                        }
-                        if (span instanceof LeadingMarginSpan) {
-                            LeadingMarginSpan leadingMarginSpan = (LeadingMarginSpan) span;
-                            int indent = leadingMarginSpan.getLeadingMargin(true) / 40;
-                            element.setAttribute("indent", String.valueOf(indent));
-                        }
-                        if (span instanceof TypefaceSpanCodebox) {
-                            addContent = true;
-                            element = this.doc.createElement("codebox");
-                            TypefaceSpanCodebox typefaceSpanCodebox = (TypefaceSpanCodebox) span;
-                            element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
-                            element.setAttribute("justification", lastFoundJustification);
-                            element.setAttribute("frame_width", String.valueOf(typefaceSpanCodebox.getFrameWidth()));
-                            element.setAttribute("frame_height", String.valueOf(typefaceSpanCodebox.getFrameHeight()));
-                            element.setAttribute("width_in_pixels", typefaceSpanCodebox.isWidthInPixel() ? "1" : "0");
-                            element.setAttribute("syntax_highlighting", typefaceSpanCodebox.getSyntaxHighlighting());
-                            element.setAttribute("highlight_brackets", typefaceSpanCodebox.isHighlightBrackets() ? "1" : "0");
-                            element.setAttribute("show_line_numbers", typefaceSpanCodebox.isShowLineNumbers() ? "1" : "0");
+                        if (addContent) {
                             element.setTextContent(nodeContent.subSequence(i, next).toString());
-                            offsetNodes.add(element);
-                            extraCharOffset += 1;
-                        }
-                        if (span instanceof RelativeSizeSpan) {
-                            RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
-                            float size = relativeSizeSpan.getSizeChange();
-                            if (size == 1.75f) {
-                                element.setAttribute("scale", "h1");
-                            } else if (size == 1.5f) {
-                                element.setAttribute("scale", "h2");
-                            } else if (size == 1.25f) {
-                                element.setAttribute("scale", "h3");
-                            } else if (size == 0.75f) {
-                                element.setAttribute("scale", "small");
-                            }
-                        }
-                        if (span instanceof StrikethroughSpan) {
-                            element.setAttribute("strikethrough", "true");
-                        }
-                        if (span instanceof StyleSpan) {
-                            StyleSpan styleSpan = (StyleSpan) span;
-                            if (styleSpan.getStyle() == Typeface.BOLD) {
-                                element.setAttribute("weight", "heavy");
-                            } else if (styleSpan.getStyle() == Typeface.ITALIC) {
-                                element.setAttribute("style", "italic");
-                            }
-                        }
-                        if (span instanceof SubscriptSpan) {
-                            element.setAttribute("scale", "sub");
-                        }
-                        if (span instanceof SuperscriptSpan) {
-                            element.setAttribute("scale", "sup");
-                        }
-                        if (span instanceof TypefaceSpanFamily) {
-                            element.setAttribute("family", "monospace");
-                        }
-                        if (span instanceof URLSpanWebs) {
-                            URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
-                            element.setAttribute("link", String.format("webs %1$s", urlSpanWebs.getURL()));
-                        }
-                        if (span instanceof UnderlineSpan) {
-                            element.setAttribute("underline", "single");
+                            // If span content is being added to the element it's length
+                            // has to be added to the length of the node
+                            currentPartContentLength += (next - i);
+                            normalNodes.add(element);
                         }
                     }
-                    if (!addContent) {
-                        element.setTextContent(nodeContent.subSequence(i, next).toString());
-                        // If span content is being added to the element it's length cave to be
-                        // has to be counted to length of the node
-                        currentPartContentLength += (next - i);
-                        normalNodes.add(element);
+                    totalContentLength += currentPartContentLength;
+                    currentPartContentLength = 0;
+                } else {
+                    ScNodeContentTable scNodeContentTable = (ScNodeContentTable) scNodeContent;
+                    Element tableElement = this.doc.createElement("table");
+                    tableElement.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
+                    tableElement.setAttribute("justification", scNodeContentTable.getJustification());
+                    tableElement.setAttribute("col_min", String.valueOf(scNodeContentTable.getColMin()));
+                    tableElement.setAttribute("col_max", String.valueOf(scNodeContentTable.getColMax()));
+                    for (CharSequence[] row : scNodeContentTable.getContent()) {
+                        Element rowElement = this.doc.createElement("row");
+                        for (CharSequence cell : row) {
+                            Element cellElement = this.doc.createElement("cell");
+                            cellElement.setTextContent(cell.toString());
+                            rowElement.appendChild(cellElement);
+                        }
+                        tableElement.appendChild(rowElement);
                     }
+                    offsetNodes.add(tableElement);
                 }
-                totalContentLength += currentPartContentLength;
-                currentPartContentLength = 0;
-            } else {
-                ScNodeContentTable scNodeContentTable = (ScNodeContentTable) scNodeContent;
-                Element tableElement = this.doc.createElement("table");
-                tableElement.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength + extraCharOffset));
-                tableElement.setAttribute("justification", scNodeContentTable.getJustification());
-                tableElement.setAttribute("col_min", String.valueOf(scNodeContentTable.getColMin()));
-                tableElement.setAttribute("col_max", String.valueOf(scNodeContentTable.getColMax()));
-                for (CharSequence[] row : scNodeContentTable.getContent()) {
-                    Element rowElement = this.doc.createElement("row");
-                    for (CharSequence cell: row) {
-                        Element cellElement = this.doc.createElement("cell");
-                        cellElement.setTextContent(cell.toString());
-                        rowElement.appendChild(cellElement);
-                    }
-                    tableElement.appendChild(rowElement);
-                }
-                offsetNodes.add(tableElement);
-                extraCharOffset += 1;
             }
-        }
-        this.deleteNodeContent(node);
-        for (Element element: normalNodes) {
-            node.appendChild(element);
-        }
-        for (Element element: offsetNodes) {
+            this.deleteNodeContent(node);
+            for (Element element : normalNodes) {
+                node.appendChild(element);
+            }
+            // Extra char offset. Because when I created nodeContent I had to take -1 off the totalCharOffset
+            // I have to add it when saving content to tags. Otherwise content in the CherryTree (and SourCherry)
+            // will look differently every time. In the end it will cause a crash.
+            int extraCharOffset = 0;
+            Element collectedCodebox = null;
+            for (int i = 0; i < offsetNodes.size(); i++) {
+                if (offsetNodes.get(i).getNodeName().equals("codebox")) {
+                    // When inserting text (user typing) inside QuoteSpan EditText for some reason will create
+                    // multiple spans following one another instead of one long span. That will create multiple
+                    // Codebox spans. Recreating codebox from multiple spans can produce unexpected results.
+                    // To fix it all spans that have the same offset have to be merged into one.
+                    if (collectedCodebox == null) {
+                        // First time encountering codebox after writing another element
+                        collectedCodebox = offsetNodes.get(i);
+                    } else {
+                        // Multiple consecutive codeboxes
+                        Element element = offsetNodes.get(i);
+                        if (Integer.parseInt(collectedCodebox.getAttribute("char_offset")) == Integer.parseInt(element.getAttribute("char_offset"))) {
+                            // If offset is the same as in the previous codebox - merge content
+                            collectedCodebox.setTextContent(collectedCodebox.getTextContent() + element.getTextContent());
+                        } else {
+                            // Two consecutive codebox elements however belonging to separate codeboxes
+                            collectedCodebox.setAttribute("char_offset", String.valueOf(Integer.parseInt(collectedCodebox.getAttribute("char_offset")) + extraCharOffset));
+                            extraCharOffset++;
+                            node.appendChild(collectedCodebox);
+                            collectedCodebox = element;
+                        }
+                    }
+                } else {
+                    // Other type offset element
+                    if (collectedCodebox != null) {
+                        // Previous element was a codebox element
+                        collectedCodebox.setAttribute("char_offset", String.valueOf(Integer.parseInt(collectedCodebox.getAttribute("char_offset")) + extraCharOffset));
+                        node.appendChild(collectedCodebox);
+                        extraCharOffset++;
+                        collectedCodebox = null;
+                    }
+                    Element element = offsetNodes.get(i);
+                    element.setAttribute("char_offset", String.valueOf(Integer.parseInt(element.getAttribute("char_offset")) + extraCharOffset));
+                    node.appendChild(element);
+                    extraCharOffset++;
+                }
+            }
+            if (collectedCodebox != null) {
+                // Could be that codebox was the last element in offsetNodes list
+                collectedCodebox.setAttribute("char_offset", String.valueOf(Integer.parseInt(collectedCodebox.getAttribute("char_offset")) + extraCharOffset));
+                node.appendChild(collectedCodebox);
+                collectedCodebox = null;
+            }
+        } else {
+            ScNodeContentText scNodeContentText = (ScNodeContentText) this.mainViewModel.getNodeContent().get(0);
+            SpannableStringBuilder nodeContent = scNodeContentText.getContent();
+            Element element = this.doc.createElement("rich_text");
+            this.deleteNodeContent(node);
+            element.setTextContent(nodeContent.toString());
             node.appendChild(element);
         }
         node.getAttributes().getNamedItem("ts_lastsave").setTextContent(String.valueOf(System.currentTimeMillis()));

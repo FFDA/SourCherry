@@ -725,7 +725,6 @@ public class MainView extends AppCompatActivity {
 
     private void loadNodeContent() {
         FragmentManager fragmentManager = getSupportFragmentManager();
-
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
         // Sends ArrayList to fragment to be added added to view
@@ -1769,15 +1768,24 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
-     * Function used when closing NodeEditorFragment
-     * depending on passed boolean variable displayed node content
-     * will be reloaded or not.
+     * Function used when closing NodeEditorFragment depending on passed boolean variable displayed
+     * node content will be reloaded or not. Node content is not read from database but read from
+     * MainViewModel, because at avery save it is stored there before saving it into database.
      * Changes home button to hamburger button in toolbar
      * @param reloadContent true - reload node content
      */
     public void returnFromFragmentWithHomeButton(boolean reloadContent) {
         if (reloadContent) {
-            this.loadNodeContent();
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
+            // Sends ArrayList to fragment to be added added to view
+            this.setToolbarTitle(this.currentNode.getName());
+            this.executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    nodeContentFragment.loadContent();
+                }
+            });
         }
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
         onBackPressed();

@@ -18,6 +18,7 @@ public class ScNodeContentTable implements ScNodeContent {
     private int colMin;
     private int colMax;
     private String justification;
+    private int newOffset;
 
     /**
      * Constructor for ScNodeContent object that holds table's data of the node
@@ -108,5 +109,23 @@ public class ScNodeContentTable implements ScNodeContent {
      */
     public void setJustification(String justification) {
         this.justification = justification;
+    }
+
+    /**
+     * Get new offset of the element. It shows location where the element has to be inserted back
+     * into the node content when it is being recreated.
+     * @return element's offset
+     */
+    public int getNewOffset() {
+        return this.newOffset;
+    }
+
+    /**
+     * Set new offset of the element. It has to be calculated using the location of the span in the
+     * node content.
+     * @param newOffset element's offset
+     */
+    public void setNewOffset(int newOffset) {
+        this.newOffset = newOffset;
     }
 }
