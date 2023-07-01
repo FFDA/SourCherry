@@ -58,7 +58,7 @@ import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
 
-public class NodeEditorFragment extends Fragment {
+public class NodeContentEditorFragment extends Fragment {
     private LinearLayout nodeEditorFragmentLinearLayout;
     private MainViewModel mainViewModel;
     private Handler handler;
@@ -97,8 +97,8 @@ public class NodeEditorFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                NodeEditorFragment.this.textChanged = true;
-                NodeEditorFragment.this.removeTextChangedListeners();
+                NodeContentEditorFragment.this.textChanged = true;
+                NodeContentEditorFragment.this.removeTextChangedListeners();
             }
         };
 
@@ -118,7 +118,7 @@ public class NodeEditorFragment extends Fragment {
                     getActivity().onBackPressed();
                     return true;
                 } else if (menuItem.getItemId() == R.id.toolbar_button_save_node) {
-                    NodeEditorFragment.this.saveNodeContent();
+                    NodeContentEditorFragment.this.saveNodeContent();
                 }
                 return false;
             }
@@ -128,7 +128,7 @@ public class NodeEditorFragment extends Fragment {
             this.executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    NodeEditorFragment.this.loadContent();
+                    NodeContentEditorFragment.this.loadContent();
                 }
             });
         } else {
@@ -141,7 +141,7 @@ public class NodeEditorFragment extends Fragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    NodeEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
+                    NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
                 }
             });
         }
@@ -168,12 +168,12 @@ public class NodeEditorFragment extends Fragment {
     private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
         @Override
         public void handleOnBackPressed() {
-            if (NodeEditorFragment.this.textChanged) {
-                String unsavedChangesDefaultPreference = NodeEditorFragment.this.sharedPreferences.getString("preferences_unsaved_changes", null);
+            if (NodeContentEditorFragment.this.textChanged) {
+                String unsavedChangesDefaultPreference = NodeContentEditorFragment.this.sharedPreferences.getString("preferences_unsaved_changes", null);
                 if (unsavedChangesDefaultPreference == null || unsavedChangesDefaultPreference.equals("ask")) {
-                    NodeEditorFragment.this.createUnsavedChangesAlertDialog();
+                    NodeContentEditorFragment.this.createUnsavedChangesAlertDialog();
                 } else if (unsavedChangesDefaultPreference.equals("save")) {
-                    NodeEditorFragment.this.saveNodeContent();
+                    NodeContentEditorFragment.this.saveNodeContent();
                     View view = getActivity().getCurrentFocus();
                     if (view != null) {
                         InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -211,7 +211,7 @@ public class NodeEditorFragment extends Fragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    NodeEditorFragment.this.nodeEditorFragmentLinearLayout.removeAllViews();
+                    NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.removeAllViews();
                 }
             });
         }
@@ -228,7 +228,7 @@ public class NodeEditorFragment extends Fragment {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        NodeEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
+                        NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
                     }
                 });
             } else {
@@ -297,7 +297,7 @@ public class NodeEditorFragment extends Fragment {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        NodeEditorFragment.this.nodeEditorFragmentLinearLayout.addView(tableScrollView);
+                        NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.addView(tableScrollView);
                     }
                 });
             }
@@ -307,7 +307,7 @@ public class NodeEditorFragment extends Fragment {
             @Override
             public void run() {
                 if (mainViewModel.getNodeContent().size() == 1) {
-                    EditText editText = (EditText) NodeEditorFragment.this.nodeEditorFragmentLinearLayout.getChildAt(0);
+                    EditText editText = (EditText) NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getChildAt(0);
                     if (editText.getText().length() <= 1) {
                         editText.requestFocus();
                         WindowCompat.getInsetsController(getActivity().getWindow(), editText).show(WindowInsetsCompat.Type.ime());
@@ -440,21 +440,21 @@ public class NodeEditorFragment extends Fragment {
         builder.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                NodeEditorFragment.this.textChanged = false;
+                NodeContentEditorFragment.this.textChanged = false;
                 if (checkBox.isChecked()) {
-                    NodeEditorFragment.this.saveUnsavedChangesDialogChoice("exit");
+                    NodeContentEditorFragment.this.saveUnsavedChangesDialogChoice("exit");
                 }
-                NodeEditorFragment.this.getActivity().onBackPressed();
+                NodeContentEditorFragment.this.getActivity().onBackPressed();
             }
         });
         builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (checkBox.isChecked()) {
-                    NodeEditorFragment.this.saveUnsavedChangesDialogChoice("save");
+                    NodeContentEditorFragment.this.saveUnsavedChangesDialogChoice("save");
                 }
-                NodeEditorFragment.this.saveNodeContent();
-                NodeEditorFragment.this.getActivity().onBackPressed();
+                NodeContentEditorFragment.this.saveNodeContent();
+                NodeContentEditorFragment.this.getActivity().onBackPressed();
             }
         });
         builder.show();

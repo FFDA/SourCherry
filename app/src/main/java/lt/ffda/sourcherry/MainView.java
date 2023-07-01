@@ -97,7 +97,7 @@ import lt.ffda.sourcherry.dialogs.SaveOpenDialogFragment;
 import lt.ffda.sourcherry.fragments.CreateNodeFragment;
 import lt.ffda.sourcherry.fragments.ImageViewFragment;
 import lt.ffda.sourcherry.fragments.NodeContentFragment;
-import lt.ffda.sourcherry.fragments.NodeEditorFragment;
+import lt.ffda.sourcherry.fragments.NodeContentEditorFragment;
 import lt.ffda.sourcherry.fragments.MoveNodeFragment;
 import lt.ffda.sourcherry.fragments.NodePropertiesFragment;
 import lt.ffda.sourcherry.fragments.SearchFragment;
@@ -826,14 +826,18 @@ public class MainView extends AppCompatActivity {
      * @param node array that holds data of one drawer menu / currentNode item
      */
     public void openAnchorLink(ScNode node) {
-        if (this.findInNodeToggle) {
-            // Closes findInNode view to clear all variables
-            // Otherwise loaded node in some cases might display previous node's content
-            this.closeFindInNode();
+        if (node != null) {
+            if (this.findInNodeToggle) {
+                // Closes findInNode view to clear all variables
+                // Otherwise loaded node in some cases might display previous node's content
+                this.closeFindInNode();
+            }
+            this.currentNode = node;
+            this.resetMenuToCurrentNode();
+            this.loadNodeContent();
+        } else {
+            Toast.makeText(this, R.string.toast_error_node_does_not_exists, Toast.LENGTH_SHORT).show();
         }
-        this.currentNode = node;
-        this.resetMenuToCurrentNode();
-        this.loadNodeContent();
     }
 
     /**
@@ -1760,7 +1764,7 @@ public class MainView extends AppCompatActivity {
         bundle.putString("nodeUniqueID", this.currentNode.getUniqueId());
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
-                .add(R.id.main_view_fragment, NodeEditorFragment.class, bundle, "editNode")
+                .add(R.id.main_view_fragment, NodeContentEditorFragment.class, bundle, "editNode")
                 .addToBackStack("editNode")
                 .commit();
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu

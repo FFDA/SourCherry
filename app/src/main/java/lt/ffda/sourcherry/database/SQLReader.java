@@ -407,14 +407,7 @@ public class SQLReader implements DatabaseReader {
                                 }
                                 if (!imageCursor.getString(1).isEmpty()) {
                                     // Text in column "filename" (1) means that this line is for file OR LaTeX formula box
-                                    if (!imageCursor.getString(1).equals("__ct_special.tex")) {
-                                        // If it is not LaTex file (normal file)
-                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(nodeUniqueID, imageCursor.getString(1), String.valueOf(imageCursor.getDouble(2)), String.valueOf(charOffset), imageCursor.getString(3));
-                                        imageCursor.close();
-                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
-                                        totalCharOffset += attachedFileSpan.length() - 1;
-                                        continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
-                                    } else {
+                                    if (imageCursor.getString(1).equals("__ct_special.tex")) {
                                         // For latex boxes
                                         Cursor latexBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                                         latexBlobCursor.moveToFirst();
@@ -422,6 +415,13 @@ public class SQLReader implements DatabaseReader {
                                         imageCursor.close();
                                         latexBlobCursor.close();
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
+                                        continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                    } else {
+                                        // If it is not LaTex file (normal file)
+                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(nodeUniqueID, imageCursor.getString(1), String.valueOf(imageCursor.getDouble(2)), String.valueOf(charOffset), imageCursor.getString(3));
+                                        imageCursor.close();
+                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                        totalCharOffset += attachedFileSpan.length() - 1;
                                         continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                                     }
                                 }
