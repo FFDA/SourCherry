@@ -1042,16 +1042,16 @@ public class XMLReader implements DatabaseReader {
 
     @Override
     public int getNodeMaxID() {
-        int uniqueNodeID = -1;
+        int nodeUniqueID = -1;
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
-            int foundUniqueNodeID = Integer.parseInt(node.getAttributes().getNamedItem("unique_id").getNodeValue());
-            if (foundUniqueNodeID > uniqueNodeID) {
-                uniqueNodeID = foundUniqueNodeID;
+            int foundNodeUniqueID = Integer.parseInt(node.getAttributes().getNamedItem("unique_id").getNodeValue());
+            if (foundNodeUniqueID > nodeUniqueID) {
+                nodeUniqueID = foundNodeUniqueID;
             }
         }
-        return uniqueNodeID;
+        return nodeUniqueID;
     }
 
     /**

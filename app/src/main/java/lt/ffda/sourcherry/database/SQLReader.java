@@ -1118,18 +1118,18 @@ public class SQLReader implements DatabaseReader {
     public int getNodeMaxID() {
         Cursor cursor = this.sqlite.rawQuery("SELECT MAX(node_id) FROM node", null);
         cursor.moveToFirst();
-        int uniqueNodeID = cursor.getInt(0);
+        int nodeUniqueID = cursor.getInt(0);
         cursor.close();
-        return uniqueNodeID;
+        return nodeUniqueID;
     }
 
     /**
      * Get unique id of parent node of provided node
-     * @param uniqueNodeID unique ID of the node which parent unique ID to find
+     * @param nodeUniqueID unique ID of the node which parent unique ID to find
      * @return unique id of the node
      */
-    public int getParentNodeUniqueID(String uniqueNodeID) {
-        Cursor cursor = this.sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {uniqueNodeID});
+    public int getParentNodeUniqueID(String nodeUniqueID) {
+        Cursor cursor = this.sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {nodeUniqueID});
         cursor.moveToFirst();
         int parentNodeUniqueID = cursor.getInt(0);
         cursor.close();
@@ -1139,11 +1139,11 @@ public class SQLReader implements DatabaseReader {
     /**
      * Returns next available children's sequence number of the node
      * sequence number is used to order nodes in the drawer menu
-     * @param uniqueNodeID unique id of the node which next available children's sequence number to return
+     * @param nodeUniqueID unique id of the node which next available children's sequence number to return
      * @return next available sequence number
      */
-    private int getNewNodeSequenceNumber(String uniqueNodeID) {
-        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {uniqueNodeID});
+    private int getNewNodeSequenceNumber(String nodeUniqueID) {
+        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {nodeUniqueID});
         cursor.moveToFirst();
         int sequence = cursor.getInt(0);
         cursor.close();

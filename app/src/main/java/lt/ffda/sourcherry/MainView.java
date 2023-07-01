@@ -1498,7 +1498,7 @@ public class MainView extends AppCompatActivity {
         if (result != null) {
             try {
                 OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w"); // Output file
-                outputStream.write(reader.getFileByteArray(result.getExtras().getString("uniqueNodeID"), result.getExtras().getString("filename"), result.getExtras().getString("time")));
+                outputStream.write(reader.getFileByteArray(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time")));
                 outputStream.close();
             } catch (Exception e) {
                 Toast.makeText(this, R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();

@@ -37,7 +37,7 @@ public class ReturnSelectedFileUriForSaving extends ActivityResultContract<Strin
     @NonNull
     @Override
     public Intent createIntent(@NonNull Context context, String[] strings) {
-        // String[] has to be [FileMimeType, uniqueNodeID, attachedFileFilename, time]
+        // String[] has to be [FileMimeType, nodeUniqueID, attachedFileFilename, time]
         this.nodeUniqueID = strings[1];
         this.filename = strings[2];
         this.time = strings[3];
@@ -53,7 +53,7 @@ public class ReturnSelectedFileUriForSaving extends ActivityResultContract<Strin
         if (resultCode != Activity.RESULT_OK || result == null) {
             return null;
         }
-        result.putExtra("uniqueNodeID", this.nodeUniqueID);
+        result.putExtra("nodeUniqueID", this.nodeUniqueID);
         result.putExtra("filename", this.filename);
         result.putExtra("time", this.time);
         return result;
