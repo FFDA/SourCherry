@@ -66,7 +66,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -100,12 +102,16 @@ public class SQLReader implements DatabaseReader {
     private final Context context;
     private final Handler handler;
     private final MainViewModel mainViewModel;
+    private final DocumentBuilder documentBuilder;
 
-    public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler, MainViewModel mainViewModel) {
+    public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler, MainViewModel mainViewModel) throws ParserConfigurationException {
         this.context = context;
         this.sqlite = sqlite;
         this.handler = handler;
         this.mainViewModel = mainViewModel;
+        this.documentBuilder = DocumentBuilderFactory
+                .newInstance()
+                .newDocumentBuilder();
     }
 
     @Override
@@ -1032,13 +1038,9 @@ public class SQLReader implements DatabaseReader {
      */
     public NodeList getNodeFromString(String nodeString, String type) {
         try {
-            Document doc = DocumentBuilderFactory
-                    .newInstance()
-                    .newDocumentBuilder()
-                    .parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8))
-                    );
+            Document document = this.documentBuilder.parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8)));
             // It seems that there is always just one tag (<node> or <table>), so returning just the first one in the NodeList
-            return doc.getElementsByTagName(type).item(0).getChildNodes();
+            return document.getElementsByTagName(type).item(0).getChildNodes();
         } catch (Exception e) {
             this.displayToast(context.getString(R.string.toast_error_failed_to_convert_string_to_nodelist));
         }
@@ -1634,13 +1636,8 @@ public class SQLReader implements DatabaseReader {
     @Override
     public void saveNodeContent(String nodeUniqueID) {
         if (this.isNodeRichText(nodeUniqueID)) {
-            Document doc;
             Transformer transformer;
             try {
-                doc = DocumentBuilderFactory
-                        .newInstance()
-                        .newDocumentBuilder()
-                        .newDocument();
                 transformer = TransformerFactory
                         .newInstance()
                         .newTransformer();
@@ -1648,6 +1645,7 @@ public class SQLReader implements DatabaseReader {
                 this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
                 return;
             }
+            Document doc = this.documentBuilder.newDocument();
             StringWriter writer = new StringWriter();
             int next; // The end of the current span and the start of the next one
             int totalContentLength = 0; // Needed to calculate offset for the tag

@@ -89,6 +89,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import javax.xml.parsers.ParserConfigurationException;
+
 import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
@@ -147,6 +149,10 @@ public class MainView extends AppCompatActivity {
             this.reader = databaseReaderFactory.getReader(this, this.handler, this.sharedPreferences, this.mainViewModel);
         } catch (IOException e) {
             Toast.makeText(this, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
+            this.finish();
+            return;
+        } catch (ParserConfigurationException e) {
+            Toast.makeText(this, R.string.toast_error_failed_to_initiate_document_builder, Toast.LENGTH_SHORT).show();
             this.finish();
             return;
         }
