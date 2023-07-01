@@ -27,6 +27,8 @@
         android:layout_weight="1"
         android:textAlignment="textStart"
         android:textAllCaps="false"
+        android:maxLines="1"
+        android:ellipsize="middle"
         android:fontFamily="?android:attr/fontFamily"
         style="?android:attr/borderlessButtonStyle"
         android:textColor="?android:attr/textColorPrimary"/>
