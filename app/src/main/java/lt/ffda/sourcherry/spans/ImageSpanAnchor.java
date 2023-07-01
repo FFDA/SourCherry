@@ -23,13 +23,13 @@ import androidx.annotation.NonNull;
 public class ImageSpanAnchor extends ImageSpan {
     // Anchor attribute value of the encoded_png tag
     // It's anchor name that CherryTree used to scroll view to
-    private String anchorName;
+    private final String anchorName;
     private int newOffset;
     private String justification;
 
     /**
      * Constructor to create anchor image to be inserted into node content
-     * @param drawable drable of the anchor
+     * @param drawable drawable of the anchor
      * @param verticalAlignment alignment of the image in the line
      * @param anchorName Anchor attribute value of the encoded_png tag
      */

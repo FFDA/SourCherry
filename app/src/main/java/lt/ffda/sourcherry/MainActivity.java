@@ -446,7 +446,6 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.toast_error_database_does_not_exists, Toast.LENGTH_SHORT).show();
                 return;
             }
-
             if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
                 // Password protected databases
                 // Checks if there is a password in the password field before opening database

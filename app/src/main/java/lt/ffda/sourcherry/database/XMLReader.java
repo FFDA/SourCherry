@@ -919,11 +919,9 @@ public class XMLReader implements DatabaseReader {
     public int[] getCodeBoxHeightWidth(Node node) {
         // This returns int[] with in codebox tag embedded box dimensions
         // They will be used to guess what type of formatting to use
-
         Element el = (Element) node;
         int frameHeight = Integer.parseInt(el.getAttribute("frame_height"));
         int frameWidth = Integer.parseInt(el.getAttribute("frame_width"));
-
         return new int[] {frameHeight, frameWidth};
     }
 

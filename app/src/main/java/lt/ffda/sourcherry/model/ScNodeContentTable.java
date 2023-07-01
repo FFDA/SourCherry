@@ -56,7 +56,7 @@ public class ScNodeContentTable implements ScNodeContent {
 
     /**
      * Set node's table content
-     * @param content
+     * @param content node's table content
      */
     public void setContent(ArrayList<CharSequence[]> content) {
         this.content = content;
