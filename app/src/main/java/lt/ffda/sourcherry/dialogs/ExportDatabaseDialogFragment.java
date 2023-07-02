@@ -10,12 +10,15 @@
 
 package lt.ffda.sourcherry.dialogs;
 
+import android.content.ContentResolver;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -155,7 +158,7 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
                         public void run() {
                             try {
                                 InputStream inputStream = new FileInputStream(ExportDatabaseDialogFragment.this.sharedPreferences.getString("databaseUri", null));
-                                OutputStream outputStream = getContext().getContentResolver().openOutputStream(Uri.parse(getArguments().getString("exportFileUri")));
+                                OutputStream outputStream = getContext().getContentResolver().openOutputStream(Uri.parse(getArguments().getString("exportFileUri")), "wt");
                                 ExportDatabaseDialogFragment.this.exportDatabase(inputStream, outputStream);
                             } catch (FileNotFoundException e) {
                                 Toast.makeText(getContext(), R.string.toast_error_failed_to_open_input_or_output_stream, Toast.LENGTH_SHORT).show();
@@ -203,7 +206,7 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
             }
             Uri outputFileUri = Uri.parse(getArguments().getString("exportFileUri"));
             DocumentFile outputDocumentFile = DocumentFile.fromSingleUri(getContext(), outputFileUri);
-            String databaseFilename = outputDocumentFile.getName().substring(0, outputDocumentFile.getName().lastIndexOf('.') + 1);
+            String databaseFilename = outputDocumentFile.getName().substring(0, outputDocumentFile.getName().lastIndexOf('.'));
             File tmpCompressedDatabase = this.compressDatabase(databaseFilename + databaseExtensionOriginal);
             if (tmpCompressedDatabase != null) {
                 try {
@@ -211,8 +214,19 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
                     InputStream inputStream = new FileInputStream(tmpCompressedDatabase);
                     OutputStream outputStream = getContext().getContentResolver().openOutputStream(outputFileUri);
                     ExportDatabaseDialogFragment.this.exportDatabase(inputStream, outputStream);
-                    // Changing filename extension to match database type
-                    DocumentsContract.renameDocument(getContext().getContentResolver(), outputFileUri, databaseFilename + databaseExtensionCompressed);
+                    ContentResolver contentResolver = getContext().getContentResolver();
+                    String exportedDatabaseFilename = String.format("%1$s.%2$s", databaseFilename, databaseExtensionCompressed);
+                    // Changing filename extension to match database type if database is being exported to user selected file
+                    if (!this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
+                        Cursor cursor = contentResolver.query(outputFileUri, new String[]{MediaStore.MediaColumns.DISPLAY_NAME}, MediaStore.MediaColumns.DISPLAY_NAME + " = ?", new String[]{exportedDatabaseFilename}, null);
+                        if (cursor != null && cursor.moveToFirst()) {
+                            exportedDatabaseFilename = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s_%2$d.%3$s", databaseFilename, System.currentTimeMillis(), databaseExtensionCompressed);
+                        }
+                        if (cursor != null) {
+                            cursor.close();
+                        }
+                        DocumentsContract.renameDocument(contentResolver, outputFileUri, exportedDatabaseFilename);
+                    }
                 } catch (FileNotFoundException e) {
                     Toast.makeText(getContext(), R.string.toast_error_failed_to_open_input_or_output_stream, Toast.LENGTH_SHORT).show();
                     ExportDatabaseDialogFragment.this.dismiss();

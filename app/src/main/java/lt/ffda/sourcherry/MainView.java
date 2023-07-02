@@ -47,6 +47,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
@@ -2015,7 +2016,7 @@ public class MainView extends AppCompatActivity {
             Uri mirrorDatabaseFolderUri = Uri.parse(this.sharedPreferences.getString("mirrorDatabaseFolderUri", null));
             Uri mirrorDatabaseFolderChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mirrorDatabaseFolderUri, DocumentsContract.getTreeDocumentId(mirrorDatabaseFolderUri));
 
-            Cursor cursor = this.getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
+            Cursor cursor = this.getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{MediaStore.MediaColumns.DOCUMENT_ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.DATE_MODIFIED}, null, null, null);
             while (cursor != null && cursor.moveToNext()) {
                 if (cursor.getString(1).equals(this.sharedPreferences.getString("mirrorDatabaseFilename", null))) {
                     // if file with the Mirror Database File filename was wound inside Mirror Database Folder
@@ -2024,7 +2025,9 @@ public class MainView extends AppCompatActivity {
                     break;
                 }
             }
-            cursor.close();
+            if (cursor != null) {
+                cursor.close();
+            }
 
             // If found Mirror Database File is older or the same as the last time it was synchronized
             // copying is done immediately
