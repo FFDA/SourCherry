@@ -92,7 +92,7 @@ import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
-public class XMLReader implements DatabaseReader {
+public class XMLReader extends DatabaseReader {
     private Document doc;
     private final Context context;
     private final Handler handler;
@@ -447,107 +447,6 @@ public class XMLReader implements DatabaseReader {
             nodeContent.add(nodeContentText);
         }
         return nodeContent;
-    }
-
-    @Override
-    public SpannableStringBuilder makeFormattedRichText(Node node) {
-        // Returns SpannableStringBuilder that has spans marked for string formatting
-        // Formatting made based on nodes attribute
-        SpannableStringBuilder formattedNodeText = new SpannableStringBuilder();
-        formattedNodeText.append(node.getTextContent());
-
-        NamedNodeMap nodeAttributes = node.getAttributes(); // Gets all the passed node attributes as NodeList
-        for (int i = 0; i < nodeAttributes.getLength(); i++) {
-            String attribute = nodeAttributes.item(i).getNodeName();
-
-            switch (attribute) {
-                case "strikethrough":
-                    StrikethroughSpan sts = new StrikethroughSpan();
-                    formattedNodeText.setSpan(sts,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    break;
-                case "foreground":
-                    String foregroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting foreground color code from the tag
-                    ForegroundColorSpan fcs = new ForegroundColorSpan(Color.parseColor(foregroundColorOriginal));
-                    formattedNodeText.setSpan(fcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    break;
-                case "background":
-                    String backgroundColorOriginal = getValidColorCode(nodeAttributes.item(i).getTextContent()); // Extracting background color code from the tag
-                    BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(Color.parseColor(backgroundColorOriginal));
-                    formattedNodeText.setSpan(bcs,0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    break;
-                case "weight":
-                    StyleSpan boldStyleSpan = new StyleSpan(Typeface.BOLD);
-                    formattedNodeText.setSpan(boldStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    break;
-                case "style":
-                    StyleSpan italicStyleSpan = new StyleSpan(Typeface.ITALIC);
-                    formattedNodeText.setSpan(italicStyleSpan, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    break;
-                case "underline":
-                    formattedNodeText.setSpan(new UnderlineSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    break;
-                case "scale":
-                    String scaleValue = nodeAttributes.item(i).getTextContent();
-                    switch (scaleValue) {
-                        case "h1":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(1.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            break;
-                        case "h2":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(1.50f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            break;
-                        case "h3":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            break;
-                        case "small":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(0.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            break;
-                        case "sup":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            formattedNodeText.setSpan(new SuperscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            break;
-                        case "sub":
-                            formattedNodeText.setSpan(new RelativeSizeSpan(0.80f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            formattedNodeText.setSpan(new SubscriptSpan(), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            break;
-                    }
-                    break;
-                case "family":
-                    TypefaceSpanFamily tf = new TypefaceSpanFamily("monospace");
-                    formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    break;
-                case "link":
-                    String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
-                    if (attributeValue[0].equals("webs")) {
-                        // Making links to open websites
-                        URLSpanWebs us = new URLSpanWebs(attributeValue[1]);
-                        formattedNodeText.setSpan(us, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (attributeValue[0].equals("node")) {
-                        // Making links to open other nodes (Anchors)
-                        String linkAnchorName = String.join(" ", Arrays.copyOfRange(attributeValue, 2, attributeValue.length));
-                        formattedNodeText.setSpan(makeAnchorLinkSpan(attributeValue[1], linkAnchorName), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (attributeValue[0].equals("file") || attributeValue[0].equals("fold")) {
-                        // Making links to the file or folder
-                        // It will not try to open the file, but just mark it, and display path to it on original system
-                        formattedNodeText.setSpan(this.makeFileFolderLinkSpan(attributeValue[0], attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
-                    break;
-                case "justification":
-                    String justification = nodeAttributes.item(i).getTextContent();
-                    switch (justification) {
-                        case "right": formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            break;
-                        case "center": formattedNodeText.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            break;
-                    }
-                    break;
-                case "indent":
-                    int indent = Integer.parseInt(nodeAttributes.item(i).getTextContent()) * 40;
-                    LeadingMarginSpan.Standard lmss = new LeadingMarginSpan.Standard(indent);
-                    formattedNodeText.setSpan(lmss, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    break;
-            }
-        }
-        return formattedNodeText;
     }
 
     /**
@@ -973,27 +872,6 @@ public class XMLReader implements DatabaseReader {
     }
 
     @Override
-    public String getValidColorCode(String originalColorCode) {
-        // Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
-        // some colors can look like this #ffffffff0000 while other like this #ffff00 in the same file
-        // To always get normal color hash code (made from 7 symbols) is the purpose of this function
-
-        if (originalColorCode.length() == 7) {
-            // If length of color code is 7 symbols it should be a valid one
-            return originalColorCode;
-        } else {
-            // Creating a normal HEX color code, because XML tag has strange one with 13 symbols
-            StringBuilder validColorCode = new StringBuilder();
-            validColorCode.append("#");
-            validColorCode.append(originalColorCode.substring(1,3));
-            validColorCode.append(originalColorCode.substring(5,7));
-            validColorCode.append(originalColorCode.substring(9,11));
-
-            return validColorCode.toString();
-        }
-    }
-
-    @Override
     public void displayToast(String message) {
         // Displays a toast on main thread
         handler.post(new Runnable() {
@@ -1377,23 +1255,6 @@ public class XMLReader implements DatabaseReader {
         return tableContent;
     }
 
-    @Override
-    public StringBuilder convertTableRowToPlainText(Node tableRow) {
-        StringBuilder rowContent = new StringBuilder();
-        rowContent.append("|");
-        NodeList nodeList = tableRow.getChildNodes();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getNodeName().equals("cell")) {
-                rowContent.append(" ");
-                rowContent.append(node.getTextContent());
-                rowContent.append(" |");
-            }
-        }
-        rowContent.append("\n");
-        return rowContent;
-    }
-
     /**
      * Converts latex node content to a StringBuilder
      * used as part of convertRichTextNodeContentToPlainText function
@@ -1428,11 +1289,6 @@ public class XMLReader implements DatabaseReader {
         codeboxContent.append(getSeparator());
         codeboxContent.append("\n");
         return codeboxContent;
-    }
-
-    @Override
-    public String getSeparator() {
-        return "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
     }
 
     /**

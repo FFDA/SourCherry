@@ -356,6 +356,7 @@ public class NodeContentEditorFragment extends Fragment {
                     CharSequence[] rowCells = new CharSequence[tableRow.getChildCount()];
                     for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
                         EditText currentCell = (EditText) tableRow.getChildAt(cell);
+                        currentCell.clearComposingText();
                         rowCells[cell] = currentCell.getText();
                     }
                     tableContent.add(rowCells);
@@ -367,6 +368,7 @@ public class NodeContentEditorFragment extends Fragment {
                 CharSequence[] headerCells = new CharSequence[tableHeader.getChildCount()];
                 for (int cell = 0; cell < tableHeader.getChildCount(); cell++) {
                     EditText currentCell = (EditText) tableHeader.getChildAt(0);
+                    currentCell.clearComposingText();
                     headerCells[cell] = currentCell.getText();
                     if (cell == 0) {
                         // Getting colMin & colMan. Dividing by the same arbitrary
