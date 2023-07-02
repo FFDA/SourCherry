@@ -7,7 +7,7 @@
     <string name="button_select">Select</string>
     <string name="button_leave">Leave</string>
     <string name="text_password_label">Password</string>
-    <string name="text_message_no_database">Create or select a CherryTree database</string>
+    <string name="text_message_no_database">Select a CherryTree database</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="action_settings">Settings</string>
