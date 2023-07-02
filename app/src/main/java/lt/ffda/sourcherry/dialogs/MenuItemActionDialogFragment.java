@@ -10,6 +10,8 @@
 
 package lt.ffda.sourcherry.dialogs;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -91,7 +93,21 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonDeleteNode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.DELETE_NODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
+                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                builder.setTitle(R.string.menu_item_action_menu_delete_node);
+                builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+                builder.setPositiveButton(R.string.button_delete, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        MenuItemActionDialogFragment.this.sendResult(MenuItemAction.DELETE_NODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
+                    }
+                });
+                builder.show();
             }
         });
 
