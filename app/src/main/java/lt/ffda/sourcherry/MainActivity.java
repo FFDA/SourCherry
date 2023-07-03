@@ -106,10 +106,12 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if (intent.getAction().equals(Intent.ACTION_VIEW)) {
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, intent.getData());
+            if (databaseDocumentFile.getName().split("\\.").length < 2) {
+                Toast.makeText(this, R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
+                return;
+            }
             saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], intent.getData().toString());
-
             setMessageWithDatabaseName();
-
             String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
             if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {
                 // If database is not protected it can be opened without any user interaction
