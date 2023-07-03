@@ -2027,6 +2027,7 @@ public class MainView extends AppCompatActivity {
             }
             if (cursor != null) {
                 cursor.close();
+                // TODO: if file not found MirrorDatabase stop here
             }
 
             // If found Mirror Database File is older or the same as the last time it was synchronized

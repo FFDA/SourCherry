@@ -76,6 +76,7 @@
     <string name="toast_error_failed_to_create_entry_into_node_table">Failed to create entry into node table</string>
     <string name="toast_error_failed_to_create_entry_into_children_table">Failed to create entry into children table</string>
     <string name="toast_error_failed_to_export_database">Failed to export database</string>
+    <string name="toast_error_failed_to_rename_exported_database">Failed to rename exported database. File should end with (n).</string>
     <string name="toast_error_failed_to_extract_database">Failed to extract database</string>
     <string name="toast_error_failed_to_compress_database">Failed to compress database</string>
     <string name="toast_error_failed_to_open_extraction_output_stream">Failed to open extraction output stream</string>

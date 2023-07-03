@@ -12,13 +12,11 @@ package lt.ffda.sourcherry.dialogs;
 
 import android.content.ContentResolver;
 import android.content.SharedPreferences;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.DocumentsContract;
-import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -99,6 +97,10 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
         this.password2 = view.findViewById(R.id.dialog_fragment_export_database_password2);
         this.message = view.findViewById(R.id.dialog_fragment_export_database_message);
 
+        Uri outputFileUri = Uri.parse(getArguments().getString("exportFileUri"));
+        DocumentFile outputDocumentFile = DocumentFile.fromSingleUri(getContext(), outputFileUri);
+        ContentResolver contentResolver = getContext().getContentResolver();
+
         this.passwordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -128,6 +130,7 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
             public void onClick(View v) {
                 if (!ExportDatabaseDialogFragment.this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
                     try {
+                        // Deletes temporary file created by file picker if user decides to cancel export operation
                         DocumentsContract.deleteDocument(getContext().getContentResolver(), Uri.parse(getArguments().getString("exportFileUri")));
                     } catch (FileNotFoundException e) {
                         // If it fails to delete the file user will not be notified
@@ -146,20 +149,70 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
                 ExportDatabaseDialogFragment.this.enableUI(false);
                 getDialog().setCancelable(false);
                 if (passwordCheckBox.isChecked()) {
-                    ExportDatabaseDialogFragment.this.executor.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            ExportDatabaseDialogFragment.this.encryptDatabase();
-                        }
-                    });
+                    if (ExportDatabaseDialogFragment.this.password1.getText().toString().equals(ExportDatabaseDialogFragment.this.password2.getText().toString())) {
+                        ExportDatabaseDialogFragment.this.executor.execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                ExportDatabaseDialogFragment.this.encryptDatabase(outputFileUri, outputDocumentFile, contentResolver);
+                            }
+                        });
+                    } else {
+                        Toast.makeText(getContext(), R.string.toast_error_passwords_do_not_match, Toast.LENGTH_SHORT).show();
+                        ExportDatabaseDialogFragment.this.enableUI(true);
+                    }
                 } else {
                     ExportDatabaseDialogFragment.this.executor.execute(new Runnable() {
                         @Override
                         public void run() {
                             try {
+                                // To mark when actually file needs to be renamed. When renaming a
+                                // file to the same filename function adds "(n)" to the filename
+                                // before file extension
+                                boolean rename = false;
                                 InputStream inputStream = new FileInputStream(ExportDatabaseDialogFragment.this.sharedPreferences.getString("databaseUri", null));
                                 OutputStream outputStream = getContext().getContentResolver().openOutputStream(Uri.parse(getArguments().getString("exportFileUri")), "wt");
                                 ExportDatabaseDialogFragment.this.exportDatabase(inputStream, outputStream);
+                                String pickedFileName = outputDocumentFile.getName();
+                                if (ExportDatabaseDialogFragment.this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
+                                    // Getting extension of the file that MirrorDatabase will search
+                                    // for in MirrorDatabase folder
+                                    String databaseExtension = sharedPreferences.getString("mirrorDatabaseFilename", null).substring(sharedPreferences.getString("mirrorDatabaseFilename", null).lastIndexOf(".") + 1);
+                                    if (databaseExtension.equals("ctz")) {
+                                        // XML
+                                        databaseExtension = "ctd";
+                                        rename = true;
+                                    } else if (databaseExtension.equals("ctx")) {
+                                        // SQL
+                                        databaseExtension = "ctb";
+                                        rename = true;
+                                    }
+                                    SharedPreferences.Editor editor = ExportDatabaseDialogFragment.this.sharedPreferences.edit();
+                                    if (rename) {
+                                        // If file will be renamed filename in the settings have to be saved too
+                                        pickedFileName = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s.%2$s", pickedFileName.split("\\.")[0], databaseExtension);
+                                        editor.putString("mirrorDatabaseFilename", pickedFileName);
+                                    }
+                                    editor.putLong("mirrorDatabaseLastModified", System.currentTimeMillis());
+                                    editor.apply();
+                                } else {
+                                    // If there was the same filename as user wrote/accepted in the folder where user wants
+                                    // to save the file in android file picker appends "(1)" to the filename. That makes file
+                                    // Not recognizable to the SourCherry app.
+                                    if (outputDocumentFile.getName().endsWith(")")) {
+                                        pickedFileName = outputDocumentFile.getName().substring(0, outputDocumentFile.getName().lastIndexOf(" "));
+                                        String pickedFileExtension = pickedFileName.split("\\.")[1];
+                                        pickedFileName = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s_%2$d.%3$s", pickedFileName.split("\\.")[0], System.currentTimeMillis(), pickedFileExtension);
+                                        rename = true;
+                                    }
+                                }
+                                if (rename) {
+                                    try {
+                                        DocumentsContract.renameDocument(contentResolver, outputFileUri, pickedFileName);
+                                    } catch (Exception ex) {
+                                        Toast.makeText(getContext(), R.string.toast_error_failed_to_rename_exported_database, Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                                ExportDatabaseDialogFragment.this.dismiss();
                             } catch (FileNotFoundException e) {
                                 Toast.makeText(getContext(), R.string.toast_error_failed_to_open_input_or_output_stream, Toast.LENGTH_SHORT).show();
                                 ExportDatabaseDialogFragment.this.dismiss();
@@ -191,58 +244,71 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
      * Set up for compressing currently opened database to encrypted archive
      * Changes filename inside the archive to the one that user chose when prompted
      * for file location
+     * @param outputFileUri URI of the output file
+     * @param outputDocumentFile output file DocumentFile object
+     * @param contentResolver app content resolver
      */
-    private void encryptDatabase() {
-        if (this.password1.getText().toString().equals(this.password2.getText().toString())) {
-            // Setting appropriate file extension for archive
-            String databaseExtensionOriginal = this.sharedPreferences.getString("databaseFileExtension", null);
-            String databaseExtensionCompressed = null;
-            if (databaseExtensionOriginal.equals("ctd")) {
-                // XML
-                databaseExtensionCompressed = "ctz";
-            } else if (databaseExtensionOriginal.equals("ctb")) {
-                // SQL
-                databaseExtensionCompressed = "ctx";
-            }
-            Uri outputFileUri = Uri.parse(getArguments().getString("exportFileUri"));
-            DocumentFile outputDocumentFile = DocumentFile.fromSingleUri(getContext(), outputFileUri);
-            String databaseFilename = outputDocumentFile.getName().substring(0, outputDocumentFile.getName().lastIndexOf('.'));
-            File tmpCompressedDatabase = this.compressDatabase(databaseFilename + databaseExtensionOriginal);
-            if (tmpCompressedDatabase != null) {
-                try {
-                    // Opening streams
-                    InputStream inputStream = new FileInputStream(tmpCompressedDatabase);
-                    OutputStream outputStream = getContext().getContentResolver().openOutputStream(outputFileUri);
-                    ExportDatabaseDialogFragment.this.exportDatabase(inputStream, outputStream);
-                    ContentResolver contentResolver = getContext().getContentResolver();
-                    String exportedDatabaseFilename = String.format("%1$s.%2$s", databaseFilename, databaseExtensionCompressed);
-                    // Changing filename extension to match database type if database is being exported to user selected file
-                    if (!this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
-                        Cursor cursor = contentResolver.query(outputFileUri, new String[]{MediaStore.MediaColumns.DISPLAY_NAME}, MediaStore.MediaColumns.DISPLAY_NAME + " = ?", new String[]{exportedDatabaseFilename}, null);
-                        if (cursor != null && cursor.moveToFirst()) {
-                            exportedDatabaseFilename = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s_%2$d.%3$s", databaseFilename, System.currentTimeMillis(), databaseExtensionCompressed);
+    private void encryptDatabase(Uri outputFileUri, DocumentFile outputDocumentFile, ContentResolver contentResolver) {
+        String databaseExtensionOriginal = this.sharedPreferences.getString("databaseFileExtension", null);
+        String databaseExtensionCompressed = null;
+        if (databaseExtensionOriginal.equals("ctd")) {
+            // XML
+            databaseExtensionCompressed = "ctz";
+        } else if (databaseExtensionOriginal.equals("ctb")) {
+            // SQL
+            databaseExtensionCompressed = "ctx";
+        }
+        String databaseFilename = outputDocumentFile.getName().substring(0, outputDocumentFile.getName().lastIndexOf('.'));
+        File tmpCompressedDatabase = this.compressDatabase(String.format("%1$s.%2$s", databaseFilename, databaseExtensionOriginal));
+        if (tmpCompressedDatabase != null) {
+            try {
+                // Opening streams
+                InputStream inputStream = new FileInputStream(tmpCompressedDatabase);
+                OutputStream outputStream = getContext().getContentResolver().openOutputStream(outputFileUri, "wt");
+                ExportDatabaseDialogFragment.this.exportDatabase(inputStream, outputStream);
+                String exportedDatabaseFilename = String.format("%1$s.%2$s", databaseFilename, databaseExtensionCompressed);
+                if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
+                    SharedPreferences.Editor editor = ExportDatabaseDialogFragment.this.sharedPreferences.edit();
+                    String mirrorDatabaseFilename = this.sharedPreferences.getString("mirrorDatabaseFilename", null);
+                    String mirrorDatabaseFilenameExtension = mirrorDatabaseFilename.substring(mirrorDatabaseFilename.lastIndexOf(".") + 1);
+                    if (!mirrorDatabaseFilenameExtension.equals(databaseExtensionCompressed)) {
+                        // If extension of the new file does not match the one saved in the MirrorDatabase
+                        // settings - file will be renamed to match the extracted database and
+                        // settings will be updated to match it
+                        try {
+                            exportedDatabaseFilename = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s.%2$s", databaseFilename, databaseExtensionCompressed);
+                            DocumentsContract.renameDocument(contentResolver, outputFileUri, exportedDatabaseFilename);
+                        } catch (FileNotFoundException ex) {
+                            Toast.makeText(getContext(), R.string.toast_error_failed_to_rename_exported_database, Toast.LENGTH_SHORT).show();
                         }
-                        if (cursor != null) {
-                            cursor.close();
-                        }
-                        DocumentsContract.renameDocument(contentResolver, outputFileUri, exportedDatabaseFilename);
+                        editor.putString("mirrorDatabaseFilename", exportedDatabaseFilename);
                     }
-                } catch (FileNotFoundException e) {
-                    Toast.makeText(getContext(), R.string.toast_error_failed_to_open_input_or_output_stream, Toast.LENGTH_SHORT).show();
-                    ExportDatabaseDialogFragment.this.dismiss();
+                    editor.putLong("mirrorDatabaseLastModified", System.currentTimeMillis());
+                    editor.apply();
+                } else {
+                    // Changing filename extension to match database type if database is being exported to user selected file
+                    try {
+                        // Trying to rename to the file user specified
+                        DocumentsContract.renameDocument(contentResolver, outputFileUri, exportedDatabaseFilename);
+                    } catch (Exception e) {
+                        try {
+                            // If rename operation failed because there was already a file with that name
+                            // Trying to rename file with a timestamp
+                            exportedDatabaseFilename = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s_%2$d.%3$s", databaseFilename, System.currentTimeMillis(), databaseExtensionCompressed);
+                            DocumentsContract.renameDocument(contentResolver, outputFileUri, exportedDatabaseFilename);
+                        } catch (FileNotFoundException ex) {
+                            Toast.makeText(getContext(), R.string.toast_error_failed_to_rename_exported_database, Toast.LENGTH_SHORT).show();
+                        }
+                    }
                 }
-            } else {
-                Toast.makeText(getContext(), R.string.toast_error_failed_to_compress_database, Toast.LENGTH_SHORT).show();
                 this.dismiss();
+            } catch (FileNotFoundException e) {
+                Toast.makeText(getContext(), R.string.toast_error_failed_to_open_input_or_output_stream, Toast.LENGTH_SHORT).show();
+                ExportDatabaseDialogFragment.this.dismiss();
             }
         } else {
-            this.handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(getContext(), R.string.toast_error_passwords_do_not_match, Toast.LENGTH_SHORT).show();
-                    ExportDatabaseDialogFragment.this.enableUI(true);
-                }
-            });
+            Toast.makeText(getContext(), R.string.toast_error_failed_to_compress_database, Toast.LENGTH_SHORT).show();
+            this.dismiss();
         }
     }
 
@@ -313,7 +379,6 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
             // Cleaning up and closing
             inputStream.close();
             outputStream.close();
-            getDialog().dismiss();
         } catch (IOException e) {
             this.handler.post(new Runnable() {
                 @Override
