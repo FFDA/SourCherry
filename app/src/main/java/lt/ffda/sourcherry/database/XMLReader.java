@@ -366,53 +366,64 @@ public class XMLReader extends DatabaseReader {
                         // Loops through nodes of selected node
                         Node currentNode = nodeContentNodeList.item(x);
                         String currentNodeType = currentNode.getNodeName();
-                        if (currentNodeType.equals("rich_text")) {
-                            if (currentNode.hasAttributes()) {
-                                nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
-                            } else {
-                                nodeContentStringBuilder.append(currentNode.getTextContent());
-                            }
-                        } else if (currentNodeType.equals("codebox")) {
-                            int charOffset = getCharOffset(currentNode);
-                            SpannableStringBuilder codeboxText = makeFormattedCodebox(currentNode);
-                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
-                            totalCharOffset += codeboxText.length() - 1;
-                        } else if (currentNodeType.equals("encoded_png")) {
-                            // "encoded_png" might actually be image, attached files or anchors (just images that mark the position)
-                            int charOffset = getCharOffset(currentNode);
-                            if (currentNode.getAttributes().getNamedItem("filename") != null) {
-                                if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
-                                    // For latex boxes
-                                    SpannableStringBuilder latexImageSpan = makeLatexImageSpan(currentNode);
-                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
+                        switch (currentNodeType) {
+                            case "rich_text":
+                                if (currentNode.hasAttributes()) {
+                                    nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
                                 } else {
-                                    // For actual attached files
-                                    SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode, nodeUniqueID);
-                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
-                                    totalCharOffset += attachedFileSpan.length() - 1;
+                                    nodeContentStringBuilder.append(currentNode.getTextContent());
                                 }
-                            } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
-                                SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
-                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
-                            } else {
-                                // Images
-                                SpannableStringBuilder imageSpan = makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
-                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
+                                break;
+                            case "codebox": {
+                                int charOffset = getCharOffset(currentNode);
+                                SpannableStringBuilder codeboxText = makeFormattedCodebox(currentNode);
+                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
+                                totalCharOffset += codeboxText.length() - 1;
+                                break;
                             }
-                        } else if (currentNodeType.equals("table")) {
-                            int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
-                            nodeTableCharOffsets.add(charOffset);
-                            int[] cellMinMax = getTableMinMax(currentNode);
-                            ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
-                            NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
-                            for (int row = 0; row < tableRowsNodes.getLength(); row++) {
-                                currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
+                            case "encoded_png": {
+                                // "encoded_png" might actually be image, attached files or anchors (just images that mark the position)
+                                int charOffset = getCharOffset(currentNode);
+                                if (currentNode.getAttributes().getNamedItem("filename") != null) {
+                                    if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
+                                        // For latex boxes
+                                        SpannableStringBuilder latexImageSpan = makeLatexImageSpan(currentNode);
+                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
+                                    } else {
+                                        // For actual attached files
+                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode, nodeUniqueID);
+                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                        totalCharOffset += attachedFileSpan.length() - 1;
+                                    }
+                                } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
+                                    SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
+                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
+                                } else {
+                                    // Images
+                                    SpannableStringBuilder imageSpan = makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
+                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
+                                }
+                                break;
                             }
-                            ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], ((Element) currentNode).getAttribute("justification"));
-                            nodeTables.add(scNodeContentTable);
-                            // Instead of adding space for formatting reason
-                            // it might be better to take one of totalCharOffset
-                            totalCharOffset -= 1;
+                            case "table": {
+                                int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
+
+                                nodeTableCharOffsets.add(charOffset);
+                                int[] cellMinMax = getTableMinMax(currentNode);
+                                ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
+
+                                NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
+
+                                for (int row = 0; row < tableRowsNodes.getLength(); row++) {
+                                    currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
+                                }
+                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], ((Element) currentNode).getAttribute("justification"));
+                                nodeTables.add(scNodeContentTable);
+                                // Instead of adding space for formatting reason
+                                // it might be better to take one of totalCharOffset
+                                totalCharOffset -= 1;
+                                break;
+                            }
                         }
                     }
                 } else {

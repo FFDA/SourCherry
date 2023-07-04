@@ -192,7 +192,7 @@ public class SQLReader extends DatabaseReader {
 
     /**
      * Creates an ArrayList of ScNode objects that can be used to display nodes during drawer menu search/filter function
-     * ArrayList is creaded based on node.level value (to exclude node/subnodes from search)
+     * ArrayList is created based on node.level value (to exclude node/subnodes from search)
      * @param cursor SQL Cursor object that contains nodes from which to make a node list
      * @return ArrayList that contains all the nodes of the provided cursor object
      */
@@ -264,9 +264,8 @@ public class SQLReader extends DatabaseReader {
         } else {
             return null;
         }
-        String parentNodeUniqueID = nodeUniqueID;
-        boolean parentNodeHasSubnodes = hasSubnodes(parentNodeUniqueID);
-        ScNode node = new ScNode(parentNodeUniqueID, parentNodeName, true, parentNodeHasSubnodes, false);
+        boolean parentNodeHasSubnodes = hasSubnodes(nodeUniqueID);
+        ScNode node = new ScNode(nodeUniqueID, parentNodeName, true, parentNodeHasSubnodes, false);
         cursor.close();
         return node;
     }
@@ -466,7 +465,7 @@ public class SQLReader extends DatabaseReader {
                         } else if (codeboxTableImageCursor.getInt(1) == 7) {
                             // codebox row
                             // Get codebox entry for current node_id and charOffset
-                            Cursor codeboxCursor = this.sqlite.rawQuery("SELECT * FROM codebox WHERE node_id = ? AND offset = ?", new String[]{nodeUniqueID, String.valueOf(charOffset)});
+                            Cursor codeboxCursor = this.sqlite.rawQuery(new String("SELECT * FROM codebox WHERE node_id = ? AND offset = ?"), new String[]{nodeUniqueID, String.valueOf(charOffset)});
                             if (codeboxCursor.moveToFirst()) {
                                 SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxCursor.getString(2), codeboxCursor.getString(3), codeboxCursor.getString(4), codeboxCursor.getInt(5), codeboxCursor.getInt(6), codeboxCursor.getInt(7) == 1, codeboxCursor.getInt(8) == 1, codeboxCursor.getInt(9) == 1);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
@@ -1843,7 +1842,7 @@ public class SQLReader extends DatabaseReader {
                     }
                 }
                 if (collectedCodebox != null) {
-                    // Might be that last element if offsetObject was codebox - writting it to database
+                    // Might be that last element if offsetObject was codebox - writing it to database
                     this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
                     collectedCodebox = null;
                 }
