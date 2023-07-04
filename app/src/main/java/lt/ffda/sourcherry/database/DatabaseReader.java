@@ -290,9 +290,10 @@ public abstract class DatabaseReader {
      * @param nodeUniqueID unique ID of the node to which file was attached to
      * @param filename filename of the file attached to the node
      * @param time datetime of when the file was attached (saved by CherryTree)
+     * @param offset offset of the file where it has to be inserted in to node content
      * @return byte[] that contains a file
      */
-    public abstract byte[] getFileByteArray(String nodeUniqueID, String filename, String time);
+    public abstract byte[] getFileByteArray(String nodeUniqueID, String filename, String time, String offset);
 
     /**
      * Finds and extracts image from the database

@@ -45,6 +45,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
     private String nodeUniqueID;
     private String filename;
     private String time;
+    private String offset;
     private String fileMimeType;
     private CheckBox rememberChoice;
 
@@ -61,6 +62,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
         this.nodeUniqueID = getArguments().getString("nodeUniqueID", null);
         this.filename = getArguments().getString("filename", null); // Filename passed to fragment
         this.time = getArguments().getString("time");
+        this.offset = getArguments().getString("offset");
         this.fileMimeType = getArguments().getString("fileMimeType");
 
         //// Dialog fragment layout
@@ -144,7 +146,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
             // Writes Base64 encoded string to the temporary file
             FileOutputStream out = new FileOutputStream(tmpAttachedFile);
-            out.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));
+            out.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time, this.offset));
             out.close();
 
             // Getting Uri to share
@@ -167,7 +169,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
         if (result.getResultCode() == Activity.RESULT_OK) {
             try {
                 OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file
-                outputStream.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time));
+                outputStream.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time, this.offset));
                 outputStream.close();
             } catch (Exception e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();

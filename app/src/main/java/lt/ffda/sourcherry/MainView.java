@@ -47,7 +47,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.DocumentsContract;
-import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
@@ -1436,7 +1435,7 @@ public class MainView extends AppCompatActivity {
      * @param attachedFileFilename filename of the attached/embedded file
      * @param time timestamp that was saved to the database with the file
      */
-    public void saveOpenFile(String nodeUniqueID, String attachedFileFilename, String time) {
+    public void saveOpenFile(String nodeUniqueID, String attachedFileFilename, String time, String offset) {
         // Checks preferences if user choice default action for embedded files
         FileNameMap fileNameMap  = URLConnection.getFileNameMap();
         String fileMimeType = fileNameMap.getContentTypeFor(attachedFileFilename);
@@ -1453,6 +1452,7 @@ public class MainView extends AppCompatActivity {
             bundle.putString("nodeUniqueID", nodeUniqueID);
             bundle.putString("filename", attachedFileFilename);
             bundle.putString("time", time);
+            bundle.putString("offset", offset);
             bundle.putString("fileMimeType", fileMimeType);
 
             // Opening dialog fragment to ask user for a choice
@@ -1464,7 +1464,7 @@ public class MainView extends AppCompatActivity {
             saveFile.launch(new String[]{fileMimeType, nodeUniqueID, attachedFileFilename, time});
         } else {
             // Opens file with intent for other apps
-            this.openFile(fileMimeType, nodeUniqueID, attachedFileFilename, time);
+            this.openFile(fileMimeType, nodeUniqueID, attachedFileFilename, time, offset);
         }
     }
 
@@ -1474,8 +1474,9 @@ public class MainView extends AppCompatActivity {
      * @param nodeUniqueID unique ID of the node that has attached/embedded file
      * @param filename filename of the attached/embedded file
      * @param time timestamp that was saved to the database with the file
+     * @param offset offset of the file where it has to be inserted in to node content
      */
-    private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time) {
+    private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time, String offset) {
         try {
             String[] splitFilename = filename.split("\\.");
             // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
@@ -1484,7 +1485,7 @@ public class MainView extends AppCompatActivity {
 
             // Writes Base64 encoded string to the temporary file
             FileOutputStream out = new FileOutputStream(tmpAttachedFile);
-            out.write(reader.getFileByteArray(nodeUniqueID, filename, time));
+            out.write(reader.getFileByteArray(nodeUniqueID, filename, time, offset));
             out.close();
 
             // Getting Uri to share
@@ -1509,7 +1510,7 @@ public class MainView extends AppCompatActivity {
         if (result != null) {
             try {
                 OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w"); // Output file
-                outputStream.write(reader.getFileByteArray(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time")));
+                outputStream.write(reader.getFileByteArray(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time"), result.getExtras().getString("offset")));
                 outputStream.close();
             } catch (Exception e) {
                 Toast.makeText(this, R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();

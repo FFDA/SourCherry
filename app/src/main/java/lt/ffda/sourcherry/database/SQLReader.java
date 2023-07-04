@@ -778,7 +778,7 @@ public class SQLReader extends DatabaseReader {
             @Override
             public void onClick(@NonNull View widget) {
             // Launches function in MainView that checks if there is a default action in for attached files
-            ((MainView) SQLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time);
+            ((MainView) SQLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, originalOffset);
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -867,10 +867,10 @@ public class SQLReader extends DatabaseReader {
     }
 
     @Override
-    public byte[] getFileByteArray(String nodeUniqueID, String filename, String time) {
+    public byte[] getFileByteArray(String nodeUniqueID, String filename, String time, String offset) {
         // Returns byte array (stream) to be written to file or opened
 
-        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=?", new String[]{nodeUniqueID, filename, time}, null, null, null);
+        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=? AND offset=?", new String[]{nodeUniqueID, filename, time, offset}, null, null, null);
         // Getting user choice how big the cursor window should be
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);

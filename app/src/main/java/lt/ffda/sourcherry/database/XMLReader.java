@@ -686,6 +686,7 @@ public class XMLReader extends DatabaseReader {
     public SpannableStringBuilder makeAttachedFileSpan(Node node, String nodeUniqueID) {
         String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
         String time = node.getAttributes().getNamedItem("time").getNodeValue();
+        String offset = node.getAttributes().getNamedItem("char_offset").getNodeValue();
         SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
         formattedAttachedFile.append(" "); // Needed to insert an image
         // Inserting image
@@ -696,7 +697,7 @@ public class XMLReader extends DatabaseReader {
         attachedFileIcon.setNodeUniqueId(nodeUniqueID);
         attachedFileIcon.setFilename(attachedFileFilename);
         attachedFileIcon.setTimestamp(time);
-        attachedFileIcon.setOriginalOffset(node.getAttributes().getNamedItem("char_offset").getNodeValue());
+        attachedFileIcon.setOriginalOffset(offset);
         formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         formattedAttachedFile.append(attachedFileFilename); // Appending filename
         // Detects touches on icon and filename
@@ -704,7 +705,7 @@ public class XMLReader extends DatabaseReader {
             @Override
             public void onClick(@NonNull View widget) {
             // Launches function in MainView that checks if there is a default action in for attached files
-            ((MainView) XMLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time);
+            ((MainView) XMLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, offset);
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -836,7 +837,7 @@ public class XMLReader extends DatabaseReader {
     }
 
     @Override
-    public byte[] getFileByteArray(String nodeUniqueID, String filename, String time) {
+    public byte[] getFileByteArray(String nodeUniqueID, String filename, String time, String offset) {
         // Returns byte array (stream) to be written to file or opened
         NodeList nodeList = this.doc.getElementsByTagName("node");
 
@@ -848,7 +849,7 @@ public class XMLReader extends DatabaseReader {
                     Node currentNode = encodedpngNodeList.item(x);
                     if (currentNode.getAttributes().getNamedItem("filename") != null) { // Checks if node has the attribute, otherwise it's an image
                         if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals(filename)) { // If filename matches the one provided
-                            if (currentNode.getAttributes().getNamedItem("time").getNodeValue().equals(time)) { // Checks if index of the file matches the counter
+                            if (currentNode.getAttributes().getNamedItem("time").getNodeValue().equals(time) && currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(offset)) { // Checks if timestamp and offset matches the file
                                 // Will crash the app if file is big enough (11MB on my phone). No way to catch it as exception.
                                 return Base64.decode(currentNode.getTextContent(), Base64.DEFAULT);
                             }
