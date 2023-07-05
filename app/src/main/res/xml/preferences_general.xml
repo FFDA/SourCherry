@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ This file is part of SourCherry.
+  ~
+  ~ SourCherry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ SourCherry is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        android:key="auto_open"
+        android:title="@string/preferences_auto_open_title"
+        android:summary="@string/preferences_auto_open_summary"
+        android:defaultValue="false"/>
+
+    <SwitchPreferenceCompat
+        android:key="restore_last_node"
+        android:title="@string/preferences_restore_last_node_title"
+        android:defaultValue="false"/>
+
+    <ListPreference
+        android:key="preferences_save_open_file"
+        android:title="@string/preferences_default_file_action_title"
+        app:useSimpleSummaryProvider="true"
+        android:defaultValue="Ask"
+        android:entries="@array/save_open_file_entries"
+        android:entryValues="@array/save_open_file_entries"/>
+
+    <ListPreference
+        android:key="preferences_unsaved_changes"
+        android:title="@string/preferences_default_unsaved_changes_action_title"
+        app:useSimpleSummaryProvider="true"
+        android:defaultValue="ask"
+        android:entries="@array/unsaved_changes_entries"
+        android:entryValues="@array/unsaved_changes_entries_values"/>
+</PreferenceScreen>

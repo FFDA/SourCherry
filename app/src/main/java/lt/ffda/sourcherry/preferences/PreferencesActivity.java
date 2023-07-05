@@ -31,17 +31,23 @@ public class PreferencesActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_preferences);
-
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.preferences_activity_view, new PreferencesFragment())
-                .commit();
-
         // Displays toolbar
         Toolbar imageViewActivityToolbar = findViewById(R.id.preferences_activity_toolbar);
         setSupportActionBar(imageViewActivityToolbar);
         this.toolbar = getSupportActionBar();
         toolbar.setDisplayHomeAsUpEnabled(true); // Enables home (arrow back button)
+        if (savedInstanceState == null) {
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.preferences_activity_view, new PreferencesFragment())
+                    .commit();
+            this.changeTitle(getString(R.string.options_menu_item_settings));
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
         this.changeTitle(getString(R.string.options_menu_item_settings));
     }
 
@@ -67,6 +73,7 @@ public class PreferencesActivity extends AppCompatActivity implements
         fragment.setArguments(args);
         // Replace the existing Fragment with the new Fragment
         getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .replace(R.id.preferences_activity_view, fragment)
                 .addToBackStack(null)
                 .commit();
@@ -78,6 +85,8 @@ public class PreferencesActivity extends AppCompatActivity implements
      * @param title title of the activity
      */
     public void changeTitle(String title) {
-        toolbar.setTitle(title);
+        if (this.toolbar != null) {
+            this.toolbar.setTitle(title);
+        }
     }
 }

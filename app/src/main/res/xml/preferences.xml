@@ -8,74 +8,23 @@
   ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
   -->
 
-<PreferenceScreen
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
-
-    <SwitchPreferenceCompat
-        android:key="auto_open"
-        android:title="@string/preferences_auto_open_title"
-        android:summary="@string/preferences_auto_open_summary"
-        android:defaultValue="false"/>
-
-    <SwitchPreferenceCompat
-        android:key="restore_last_node"
-        android:title="@string/preferences_restore_last_node_title"
-        android:defaultValue="false"/>
-
-    <ListPreference
-        android:key="preferences_dark_mode"
-        android:title="@string/preferences_dark_mode_title"
-        app:useSimpleSummaryProvider="true"
-        android:defaultValue="System"
-        android:entries="@array/dark_mode_entries"
-        android:entryValues="@array/dark_mode_entries"/>
-
-    <ListPreference
-        android:key="preferences_save_open_file"
-        android:title="@string/preferences_default_file_action_title"
-        app:useSimpleSummaryProvider="true"
-        android:defaultValue="Ask"
-        android:entries="@array/save_open_file_entries"
-        android:entryValues="@array/save_open_file_entries"/>
-
-    <ListPreference
-        android:key="preferences_unsaved_changes"
-        android:title="@string/preferences_default_unsaved_changes_action_title"
-        app:useSimpleSummaryProvider="true"
-        android:defaultValue="ask"
-        android:entries="@array/unsaved_changes_entries"
-        android:entryValues="@array/unsaved_changes_entries_values"/>
-
-    <SeekBarPreference
-        android:key="preferences_text_size"
-        android:title="@string/preferences_text_size_title"
-        app:min="10"
-        android:max="25"
-        android:defaultValue="15"
-        app:showSeekBarValue="true"/>
-
-    <PreferenceCategory
-        android:key="preferences_category_padding"
-        android:title="@string/preferences_category_padding_title"
-        android:summary="@string/preferences_category_padding_summary">
-        <SeekBarPreference
-            android:key="preferences_category_padding_start"
-            android:title="@string/preferences_category_padding_start_title"
-            android:max="25"
-            android:defaultValue="5"
-            app:showSeekBarValue="true"/>
-        <SeekBarPreference
-            android:key="preferences_category_padding_end"
-            android:title="@string/preferences_category_padding_end_title"
-            android:max="25"
-            android:defaultValue="5"
-            app:showSeekBarValue="true"/>
-    </PreferenceCategory>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <Preference
-        android:key="preferences_screen_mirror_database"
-        android:title="@string/preferences_screen_mirror_database_title"
-        android:summary="@string/preferences_screen_mirror_database_screen_summary"
-        android:fragment="lt.ffda.sourcherry.preferences.PreferencesFragmentMirrorDatabase"/>
+        android:key="preferences_general"
+        android:title="@string/preferences_general"
+        android:summary="@string/preferences_general_summary"
+        android:fragment="lt.ffda.sourcherry.preferences.PreferencesGeneralFragment"/>
+
+    <Preference
+        android:key="preferences_appearance"
+        android:title="@string/preferences_appearance"
+        android:summary="@string/preferences_appearance_summary"
+        android:fragment="lt.ffda.sourcherry.preferences.PreferencesAppearanceFragment"/>
+
+    <Preference
+        android:key="preferences_database"
+        android:title="@string/preferences_database"
+        android:summary="@string/preferences_database_summary"
+        android:fragment="lt.ffda.sourcherry.preferences.PreferencesDatabaseFragment"/>
 </PreferenceScreen>

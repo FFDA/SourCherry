@@ -81,7 +81,7 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = requireActivity().getLayoutInflater();
         View view = inflater.inflate(R.layout.dialog_fragment_mirror_database_progress, null);
-        builder.setTitle(R.string.preferences_screen_mirror_database_title);
+        builder.setTitle(R.string.preferences_mirror_database_title);
         builder.setView(view);
 
         setCancelable(false); // Not allowing user to cancel the the dialog fragment

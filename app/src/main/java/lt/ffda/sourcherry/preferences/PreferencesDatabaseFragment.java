@@ -40,7 +40,7 @@ import java.util.Date;
 
 import lt.ffda.sourcherry.R;
 
-public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat {
+public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
     private SharedPreferences sharedPreferences;
     private SwitchPreferenceCompat mirrorDatabaseSwitch;
     private Preference mirrorDatabaseFolder;
@@ -49,8 +49,7 @@ public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat 
 
     @Override
     public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
-        this.setPreferencesFromResource(R.xml.preferences_mirror_database, rootKey);
-        ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_screen_mirror_database_title));
+        this.setPreferencesFromResource(R.xml.preferences_database, rootKey);
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         this.mirrorDatabaseSwitch = findPreference("mirror_database_switch");
@@ -68,23 +67,23 @@ public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat 
             if (lastModifiedDate > 0) {
                 this.mirrorDatabaseFileLastModified.setSummary(new Date(lastModifiedDate).toString());
             } else {
-                this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_screen_mirror_database_mirror_database_file_summary);
+                this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
             }
         }
-        this.mirrorDatabaseFolder.setSummary(this.sharedPreferences.getString("mirrorDatabaseFolderUri", getString(R.string.preferences_screen_mirror_database_mirror_database_folder_summary)));
-        this.mirrorDatabaseFile.setSummary(this.sharedPreferences.getString("mirrorDatabaseFilename", getString(R.string.preferences_screen_mirror_database_mirror_database_file_summary)));
+        this.mirrorDatabaseFolder.setSummary(this.sharedPreferences.getString("mirrorDatabaseFolderUri", getString(R.string.preferences_mirror_database_mirror_database_folder_summary)));
+        this.mirrorDatabaseFile.setSummary(this.sharedPreferences.getString("mirrorDatabaseFilename", getString(R.string.preferences_mirror_database_mirror_database_file_summary)));
 
         // Setting listener to enable/disable setting to select a mirror database file
         mirrorDatabaseSwitch.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
                 if ((Boolean) newValue) {
-                    PreferencesFragmentMirrorDatabase.this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_screen_mirror_database_mirror_database_file_summary);
-                    PreferencesFragmentMirrorDatabase.this.mirrorDatabaseFileLastModified.setVisible(true);
+                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
+                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setVisible(true);
                 } else {
-                    PreferencesFragmentMirrorDatabase.this.mirrorDatabaseFileLastModified.setVisible(false);
-                    PreferencesFragmentMirrorDatabase.this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_screen_mirror_database_mirror_database_file_summary);
-                    PreferencesFragmentMirrorDatabase.this.removeSavedMirrorDatabasePreferences();
+                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setVisible(false);
+                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
+                    PreferencesDatabaseFragment.this.removeSavedMirrorDatabasePreferences();
                 }
                 return true;
             }
@@ -112,7 +111,7 @@ public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat 
             mirrorDatabaseSwitch.setChecked(false);
             mirrorDatabaseSwitch.setEnabled(false);
             Preference mirrorDatabaseMessage = findPreference("mirror_database_message");
-            mirrorDatabaseMessage.setSummary(R.string.preferences_screen_mirror_database_message_summary_alternative_for_xml_database);
+            mirrorDatabaseMessage.setSummary(R.string.preferences_mirror_database_message_summary_alternative_for_xml_database);
         }
     }
 
@@ -138,20 +137,11 @@ public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat 
         requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
     }
 
-    /**
-     * Handles back button and back arrow presses for the fragment
-     */
-    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
-        @Override
-        public void handleOnBackPressed() {
-            if (PreferencesFragmentMirrorDatabase.this.mirrorDatabaseSwitch.isChecked() && PreferencesFragmentMirrorDatabase.this.mirrorDatabaseFile.getSummary().equals(getContext().getString(R.string.preferences_screen_mirror_database_mirror_database_file_summary))) {
-                createConfirmationDialog();
-            } else {
-                ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
-                getParentFragmentManager().popBackStack();
-            }
-        }
-    };
+    @Override
+    public void onResume() {
+        super.onResume();
+        ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_database));
+    }
 
     /**
      * Shows alert dialog to user with two options
@@ -159,12 +149,12 @@ public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat 
      */
     private void createConfirmationDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle(R.string.preferences_screen_mirror_database_mirror_database_file_summary);
+        builder.setTitle(R.string.preferences_mirror_database_mirror_database_file_summary);
         builder.setMessage(R.string.alert_dialog_warning_no_mirror_database_selected_message);
         builder.setPositiveButton(R.string.button_leave, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                PreferencesFragmentMirrorDatabase.this.mirrorDatabaseSwitch.setChecked(false);
+                PreferencesDatabaseFragment.this.mirrorDatabaseSwitch.setChecked(false);
                 ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
                 getParentFragmentManager().popBackStack();
             }
@@ -187,7 +177,7 @@ public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat 
         sharedPreferencesEditor.remove("mirrorDatabaseFilename");
         sharedPreferencesEditor.remove("mirrorDatabaseLastModified");
         sharedPreferencesEditor.commit();
-        this.mirrorDatabaseFile.setSummary(R.string.preferences_screen_mirror_database_mirror_database_file_summary);
+        this.mirrorDatabaseFile.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
     }
 
     /**
@@ -209,7 +199,7 @@ public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat 
                     sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", databaseMirrorDocumentFile.lastModified());
                     sharedPreferencesEditor.commit();
                     ////
-                    this.mirrorDatabaseFile.setSummary(this.sharedPreferences.getString("mirrorDatabaseFilename", getString(R.string.preferences_screen_mirror_database_mirror_database_file_summary)));
+                    this.mirrorDatabaseFile.setSummary(this.sharedPreferences.getString("mirrorDatabaseFilename", getString(R.string.preferences_mirror_database_mirror_database_file_summary)));
                     this.mirrorDatabaseFileLastModified.setSummary(new Date(this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)).toString());
                 } else {
                     Toast.makeText(getContext(), R.string.toast_message_incompatible_database_types, Toast.LENGTH_SHORT).show();
@@ -238,4 +228,19 @@ public class PreferencesFragmentMirrorDatabase extends PreferenceFragmentCompat 
             this.mirrorDatabaseFolder.setSummary(result.toString());
         }
     });
+
+    /**
+     * Handles back button and back arrow presses for the fragment
+     */
+    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
+        @Override
+        public void handleOnBackPressed() {
+            if (PreferencesDatabaseFragment.this.mirrorDatabaseSwitch.isChecked() && PreferencesDatabaseFragment.this.mirrorDatabaseFile.getSummary().equals(getContext().getString(R.string.preferences_mirror_database_mirror_database_file_summary))) {
+                createConfirmationDialog();
+            } else {
+                ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
+                getParentFragmentManager().popBackStack();
+            }
+        }
+    };
 }

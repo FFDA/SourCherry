@@ -59,7 +59,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        this.setNightMode();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            this.setNightMode();
+        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -92,10 +94,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        if (this.sharedPreferences.getBoolean("isChangingConfigurations", false)) {
-            this.resetIsChangingConfigurationsValue();
-        }
-
         // Creates internal and external folders for databases
         if (!(new File (getFilesDir(), "databases")).exists()) {
             (new File (getFilesDir(), "databases")).mkdirs();
@@ -120,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // If app weren't launched by selecting a database file from external app
             CheckBox checkboxAutoOpen = findViewById(R.id.checkBox_auto_open);
-            if (!this.sharedPreferences.getBoolean("isChangingConfigurations", false)) {
+            if (savedInstanceState == null) {
                 if (checkboxAutoOpen.isChecked()) {
                     // All these ifs are needed
                     // startMainViewActivity() has to be launched from FragmentDialog
@@ -153,11 +151,6 @@ public class MainActivity extends AppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         this.deleteTempFiles();
-        if (isChangingConfigurations()) {
-            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-            sharedPreferencesEditor.putBoolean("isChangingConfigurations", true);
-            sharedPreferencesEditor.apply();
-        }
     }
 
     @Override
@@ -571,15 +564,6 @@ public class MainActivity extends AppCompatActivity {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
                 break;
         }
-    }
-
-    /**
-     * Reset preference variable that marks that activity/app is restarting for configuration change
-     */
-    private void resetIsChangingConfigurationsValue() {
-        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-        sharedPreferencesEditor.putBoolean("isChangingConfigurations", false);
-        sharedPreferencesEditor.commit();
     }
 
     /**
