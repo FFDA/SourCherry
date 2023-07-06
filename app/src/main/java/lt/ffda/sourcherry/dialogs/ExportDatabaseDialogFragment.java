@@ -12,6 +12,7 @@ package lt.ffda.sourcherry.dialogs;
 
 import android.content.ContentResolver;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -97,10 +98,6 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
         this.password2 = view.findViewById(R.id.dialog_fragment_export_database_password2);
         this.message = view.findViewById(R.id.dialog_fragment_export_database_message);
 
-        Uri outputFileUri = Uri.parse(getArguments().getString("exportFileUri"));
-        DocumentFile outputDocumentFile = DocumentFile.fromSingleUri(getContext(), outputFileUri);
-        ContentResolver contentResolver = getContext().getContentResolver();
-
         this.passwordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -149,77 +146,18 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
                 ExportDatabaseDialogFragment.this.enableUI(false);
                 getDialog().setCancelable(false);
                 if (passwordCheckBox.isChecked()) {
-                    if (ExportDatabaseDialogFragment.this.password1.getText().toString().equals(ExportDatabaseDialogFragment.this.password2.getText().toString())) {
-                        ExportDatabaseDialogFragment.this.executor.execute(new Runnable() {
-                            @Override
-                            public void run() {
-                                ExportDatabaseDialogFragment.this.encryptDatabase(outputFileUri, outputDocumentFile, contentResolver);
-                            }
-                        });
-                    } else {
+                    if (!ExportDatabaseDialogFragment.this.password1.getText().toString().equals(ExportDatabaseDialogFragment.this.password2.getText().toString())) {
                         Toast.makeText(getContext(), R.string.toast_error_passwords_do_not_match, Toast.LENGTH_SHORT).show();
                         ExportDatabaseDialogFragment.this.enableUI(true);
+                        return;
                     }
-                } else {
-                    ExportDatabaseDialogFragment.this.executor.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                // To mark when actually file needs to be renamed. When renaming a
-                                // file to the same filename function adds "(n)" to the filename
-                                // before file extension
-                                boolean rename = false;
-                                InputStream inputStream = new FileInputStream(ExportDatabaseDialogFragment.this.sharedPreferences.getString("databaseUri", null));
-                                OutputStream outputStream = getContext().getContentResolver().openOutputStream(Uri.parse(getArguments().getString("exportFileUri")), "wt");
-                                ExportDatabaseDialogFragment.this.exportDatabase(inputStream, outputStream);
-                                String pickedFileName = outputDocumentFile.getName();
-                                if (ExportDatabaseDialogFragment.this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
-                                    // Getting extension of the file that MirrorDatabase will search
-                                    // for in MirrorDatabase folder
-                                    String databaseExtension = sharedPreferences.getString("mirrorDatabaseFilename", null).substring(sharedPreferences.getString("mirrorDatabaseFilename", null).lastIndexOf(".") + 1);
-                                    if (databaseExtension.equals("ctz")) {
-                                        // XML
-                                        databaseExtension = "ctd";
-                                        rename = true;
-                                    } else if (databaseExtension.equals("ctx")) {
-                                        // SQL
-                                        databaseExtension = "ctb";
-                                        rename = true;
-                                    }
-                                    SharedPreferences.Editor editor = ExportDatabaseDialogFragment.this.sharedPreferences.edit();
-                                    if (rename) {
-                                        // If file will be renamed filename in the settings have to be saved too
-                                        pickedFileName = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s.%2$s", pickedFileName.split("\\.")[0], databaseExtension);
-                                        editor.putString("mirrorDatabaseFilename", pickedFileName);
-                                    }
-                                    editor.putLong("mirrorDatabaseLastModified", System.currentTimeMillis());
-                                    editor.apply();
-                                } else {
-                                    // If there was the same filename as user wrote/accepted in the folder where user wants
-                                    // to save the file in android file picker appends "(1)" to the filename. That makes file
-                                    // Not recognizable to the SourCherry app.
-                                    if (outputDocumentFile.getName().endsWith(")")) {
-                                        pickedFileName = outputDocumentFile.getName().substring(0, outputDocumentFile.getName().lastIndexOf(" "));
-                                        String pickedFileExtension = pickedFileName.split("\\.")[1];
-                                        pickedFileName = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s_%2$d.%3$s", pickedFileName.split("\\.")[0], System.currentTimeMillis(), pickedFileExtension);
-                                        rename = true;
-                                    }
-                                }
-                                if (rename) {
-                                    try {
-                                        DocumentsContract.renameDocument(contentResolver, outputFileUri, pickedFileName);
-                                    } catch (Exception ex) {
-                                        Toast.makeText(getContext(), R.string.toast_error_failed_to_rename_exported_database, Toast.LENGTH_SHORT).show();
-                                    }
-                                }
-                                ExportDatabaseDialogFragment.this.dismiss();
-                            } catch (FileNotFoundException e) {
-                                Toast.makeText(getContext(), R.string.toast_error_failed_to_open_input_or_output_stream, Toast.LENGTH_SHORT).show();
-                                ExportDatabaseDialogFragment.this.dismiss();
-                            }
-                        }
-                    });
                 }
+                ExportDatabaseDialogFragment.this.executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        ExportDatabaseDialogFragment.this.exportDatabase();
+                    }
+                });
             }
         });
     }
@@ -241,89 +179,149 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
     }
 
     /**
-     * Set up for compressing currently opened database to encrypted archive
-     * Changes filename inside the archive to the one that user chose when prompted
-     * for file location
-     * @param outputFileUri URI of the output file
-     * @param outputDocumentFile output file DocumentFile object
-     * @param contentResolver app content resolver
+     * Exports database to external storage. Depending on user choices compresses it to password
+     * protected archive. Updates MirrorDatabase preferences if needed. If there is a file with the
+     * the same filename in the exporting folder and MirrorDatabase is enabled - it renames the old
+     * file (adds timestamp before the file extension), if MirrorDatabase is disabled - renames the
+     * new file (adds timestamp before the file extension).
      */
-    private void encryptDatabase(Uri outputFileUri, DocumentFile outputDocumentFile, ContentResolver contentResolver) {
-        String databaseExtensionOriginal = this.sharedPreferences.getString("databaseFileExtension", null);
-        String databaseExtensionCompressed = null;
-        if (databaseExtensionOriginal.equals("ctd")) {
-            // XML
-            databaseExtensionCompressed = "ctz";
-        } else if (databaseExtensionOriginal.equals("ctb")) {
-            // SQL
-            databaseExtensionCompressed = "ctx";
-        }
-        String databaseFilename = outputDocumentFile.getName().substring(0, outputDocumentFile.getName().lastIndexOf('.'));
-        File tmpCompressedDatabase = this.compressDatabase(String.format("%1$s.%2$s", databaseFilename, databaseExtensionOriginal));
-        if (tmpCompressedDatabase != null) {
+    private void exportDatabase() {
+        Uri outputFileUri = Uri.parse(getArguments().getString("exportFileUri"));
+        DocumentFile outputDocumentFile = DocumentFile.fromSingleUri(getContext(), outputFileUri);
+        String fullFilename = this.sharedPreferences.getString("databaseFilename", null);
+        ContentResolver contentResolver = getContext().getContentResolver();
+        InputStream inputStream;
+        OutputStream outputStream;
+        // Setting up input steam
+        if (this.passwordCheckBox.isChecked()) {
+            // If database is password protected - compress the file
+            File compressedDatabase = this.compressDatabase();
             try {
-                // Opening streams
-                InputStream inputStream = new FileInputStream(tmpCompressedDatabase);
-                OutputStream outputStream = getContext().getContentResolver().openOutputStream(outputFileUri, "wt");
-                ExportDatabaseDialogFragment.this.exportDatabase(inputStream, outputStream);
-                String exportedDatabaseFilename = String.format("%1$s.%2$s", databaseFilename, databaseExtensionCompressed);
-                if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
-                    SharedPreferences.Editor editor = ExportDatabaseDialogFragment.this.sharedPreferences.edit();
-                    String mirrorDatabaseFilename = this.sharedPreferences.getString("mirrorDatabaseFilename", null);
-                    String mirrorDatabaseFilenameExtension = mirrorDatabaseFilename.substring(mirrorDatabaseFilename.lastIndexOf(".") + 1);
-                    if (!mirrorDatabaseFilenameExtension.equals(databaseExtensionCompressed)) {
-                        // If extension of the new file does not match the one saved in the MirrorDatabase
-                        // settings - file will be renamed to match the extracted database and
-                        // settings will be updated to match it
-                        try {
-                            exportedDatabaseFilename = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s.%2$s", databaseFilename, databaseExtensionCompressed);
-                            DocumentsContract.renameDocument(contentResolver, outputFileUri, exportedDatabaseFilename);
-                        } catch (FileNotFoundException ex) {
-                            Toast.makeText(getContext(), R.string.toast_error_failed_to_rename_exported_database, Toast.LENGTH_SHORT).show();
+                inputStream = new FileInputStream(compressedDatabase);
+            } catch (FileNotFoundException e) {
+                this.dismiss();
+                Toast.makeText(getContext(), R.string.toast_error_failed_to_export_database, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Compressed (password protected) databases have a
+            // different filename extension based on their type
+            String databaseExtensionCompressed = null;
+            if (this.sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
+                // XML
+                databaseExtensionCompressed = "ctz";
+            } else {
+                // SQL
+                databaseExtensionCompressed = "ctx";
+            }
+            fullFilename = String.format("%1$s.%2$s", fullFilename.substring(0, fullFilename.lastIndexOf(".")), databaseExtensionCompressed);
+        } else {
+            try {
+                inputStream = new FileInputStream(this.sharedPreferences.getString("databaseUri", null));
+            } catch (FileNotFoundException e) {
+                this.dismiss();
+                Toast.makeText(getContext(), R.string.toast_error_failed_to_export_database, Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        // Setting up output stream. Uri is passed to the DialogFragment as an argument from
+        // MainView depending on if user chose a location or MirrorDatabase was turned on
+        try {
+            outputStream = getContext().getContentResolver().openOutputStream(outputFileUri, "wt");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        // Exporting database
+        this.exportFile(inputStream, outputStream);
+        // Rename file
+        if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
+            SharedPreferences.Editor editor = ExportDatabaseDialogFragment.this.sharedPreferences.edit();
+            String mirrorDatabaseFilename = this.sharedPreferences.getString("mirrorDatabaseFilename", null);
+            if (!mirrorDatabaseFilename.equals(fullFilename)) {
+                // If filename of the new file does not match the one saved in the MirrorDatabase
+                // settings - file will be renamed to match the new database filename and
+                // settings will be updated to match it
+                try {
+                    // First try to rename a database file
+                    Uri uri = DocumentsContract.renameDocument(contentResolver, outputFileUri, fullFilename);
+                    if (uri == null) {
+                        // Failed to rename the file. Most likely because there is file with the same
+                        // filename in the directory. Reading through files inside Mirror Database
+                        // folder and searching for the file
+                        Uri mirrorDatabaseFolderUri = Uri.parse(this.sharedPreferences.getString("mirrorDatabaseFolderUri", null));
+                        Uri mirrorDatabaseFolderChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mirrorDatabaseFolderUri, DocumentsContract.getTreeDocumentId(mirrorDatabaseFolderUri));
+                        Cursor cursor = contentResolver.query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
+                        while (cursor != null && cursor.moveToNext()) {
+                            if (cursor.getString(1).equals(fullFilename)) {
+                                // if file with the Mirror Database File filename was wound inside Mirror Database Folder
+                                // Renaming it with appended timestamp before file extension
+                                Uri offendingFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
+                                String filename = fullFilename.substring(0, fullFilename.lastIndexOf("."));
+                                String extension = fullFilename.substring(fullFilename.lastIndexOf(".") + 1);
+                                String newFullFilename = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s_%2$d.%3$s", filename, System.currentTimeMillis(), extension);
+                                DocumentsContract.renameDocument(contentResolver, offendingFileUri, newFullFilename);
+                                break;
+                            }
                         }
-                        editor.putString("mirrorDatabaseFilename", exportedDatabaseFilename);
+                        if (cursor != null) {
+                            cursor.close();
+                        }
+                        // Trying to rename database with the filename that other
+                        DocumentsContract.renameDocument(contentResolver, outputFileUri, fullFilename);
                     }
-                    editor.putLong("mirrorDatabaseLastModified", System.currentTimeMillis());
-                    editor.apply();
-                } else {
-                    // Changing filename extension to match database type if database is being exported to user selected file
-                    try {
-                        // Trying to rename to the file user specified
-                        DocumentsContract.renameDocument(contentResolver, outputFileUri, exportedDatabaseFilename);
-                    } catch (Exception e) {
+                } catch (Exception ex) {
+                    Toast.makeText(getContext(), R.string.toast_error_failed_to_rename_exported_database, Toast.LENGTH_SHORT).show();
+                    this.dismiss();
+                    return;
+                }
+                editor.putString("mirrorDatabaseFilename", fullFilename);
+            }
+            editor.putLong("mirrorDatabaseLastModified", System.currentTimeMillis());
+            editor.apply();
+        } else {
+            if (!outputDocumentFile.getName().equals(fullFilename)) {
+                try {
+                    // Trying to rename to the file user specified
+                    Uri uri = DocumentsContract.renameDocument(contentResolver, outputFileUri, fullFilename);
+                    if (uri == null) {
                         try {
                             // If rename operation failed because there was already a file with that name
                             // Trying to rename file with a timestamp
-                            exportedDatabaseFilename = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s_%2$d.%3$s", databaseFilename, System.currentTimeMillis(), databaseExtensionCompressed);
-                            DocumentsContract.renameDocument(contentResolver, outputFileUri, exportedDatabaseFilename);
+                            String filename = fullFilename.substring(0, fullFilename.lastIndexOf("."));
+                            String extension = fullFilename.substring(fullFilename.lastIndexOf(".") + 1);
+                            fullFilename = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s_%2$d.%3$s", filename, System.currentTimeMillis(), extension);
+                            DocumentsContract.renameDocument(contentResolver, outputFileUri, fullFilename);
                         } catch (FileNotFoundException ex) {
                             Toast.makeText(getContext(), R.string.toast_error_failed_to_rename_exported_database, Toast.LENGTH_SHORT).show();
                         }
                     }
+                } catch (Exception e) {
+                    try {
+                        // If rename operation failed because there was already a file with that name
+                        // Trying to rename file with a timestamp
+                        String filename = fullFilename.substring(0, fullFilename.lastIndexOf("."));
+                        String extension = fullFilename.substring(fullFilename.lastIndexOf(".") + 1);
+                        fullFilename = String.format(getResources().getConfiguration().getLocales().get(0), "%1$s_%2$d.%3$s", filename, System.currentTimeMillis(), extension);
+                        DocumentsContract.renameDocument(contentResolver, outputFileUri, fullFilename);
+                    } catch (FileNotFoundException ex) {
+                        Toast.makeText(getContext(), R.string.toast_error_failed_to_rename_exported_database, Toast.LENGTH_SHORT).show();
+                    }
                 }
-                this.dismiss();
-            } catch (FileNotFoundException e) {
-                Toast.makeText(getContext(), R.string.toast_error_failed_to_open_input_or_output_stream, Toast.LENGTH_SHORT).show();
-                ExportDatabaseDialogFragment.this.dismiss();
             }
-        } else {
-            Toast.makeText(getContext(), R.string.toast_error_failed_to_compress_database, Toast.LENGTH_SHORT).show();
-            this.dismiss();
         }
+        this.dismiss();
     }
 
     /**
      * Compresses currently opened database file to an encrypted archive
-     * @param filenameInsideArchive filename to use for database inside archive
      * @return File object with compressed database file
      */
-    private File compressDatabase(String filenameInsideArchive) {
+    private File compressDatabase() {
         File tmpCompressedDatabase = null;
         try {
-            String databaseFilename = this.sharedPreferences.getString("databaseFilename", null).split("\\.")[0];
+            String databaseFilename = this.sharedPreferences.getString("databaseFilename", null);
             tmpCompressedDatabase = File.createTempFile(databaseFilename, null);
             RandomAccessFile randomAccessFile = new RandomAccessFile(tmpCompressedDatabase, "rw");
-            OutCreateCallback outCreateCallback = new OutCreateCallback(filenameInsideArchive);
+            OutCreateCallback outCreateCallback = new OutCreateCallback(databaseFilename);
             IOutCreateArchive7z outArchive = SevenZip.openOutArchive7z();
             outArchive.setLevel(1);
             handler.post(new Runnable() {
@@ -350,7 +348,7 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
      * @param inputStream stream of the file to be exported
      * @param outputStream stream of the file to which database has to be exported to
      */
-    private void exportDatabase(InputStream inputStream, OutputStream outputStream){
+    private void exportFile(InputStream inputStream, OutputStream outputStream){
         try {
             handler.post(new Runnable() {
                 @Override
