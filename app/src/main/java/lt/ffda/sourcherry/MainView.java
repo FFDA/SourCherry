@@ -1951,7 +1951,7 @@ public class MainView extends AppCompatActivity {
                 if ((getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
                     // Changing background color of the canvas if drawing views from night mode
                     // Otherwise text wont be visible
-                    canvas.drawColor(getColor(R.color.night_theme_windowBackground));
+                    canvas.drawColor(getColor(R.color.window_background));
                 }
 
                 //* Drawing title to the canvas

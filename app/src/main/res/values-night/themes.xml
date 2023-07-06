@@ -12,12 +12,12 @@
         <!--  Status bar color.  -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!--  Customize your theme here.  -->
-        <item name="android:windowBackground">@color/night_theme_windowBackground</item>
+        <item name="android:windowBackground">@color/window_background</item>
     </style>
     <style name="CustomDialogFragment" parent="Theme.MaterialComponents.DayNight.Dialog">
         <!-- Customize your theme here. -->
         <!-- Only needed for this setting -->
-        <item name="android:windowBackground">@color/night_theme_windowBackground</item>
+        <item name="android:windowBackground">@color/window_background</item>
         <item name="android:windowNoTitle">false</item>
     </style>
 </resources>

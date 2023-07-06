@@ -14,5 +14,5 @@
     <color name="link_anchor">#07841B</color>
     <color name="link_file">#8B691C</color>
     <color name="link_folder">#7F7F8D</color>
-    <color name="night_theme_windowBackground">#535353</color>
+    <color name="window_background">#FFFFFFFF</color>
 </resources>
