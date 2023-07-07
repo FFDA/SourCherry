@@ -54,6 +54,7 @@ import java.util.concurrent.ExecutorService;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
@@ -387,7 +388,7 @@ public class NodeContentEditorFragment extends Fragment {
         }
         // Setting new node content
         this.mainViewModel.setNodeContent(nodeContent);
-        ((MainView) getActivity()).getReader().saveNodeContent(getArguments().getString("nodeUniqueID"));
+        DatabaseReaderFactory.getReader().saveNodeContent(getArguments().getString("nodeUniqueID"));
         this.addTextChangedListeners();
     }
 

@@ -144,9 +144,8 @@ public class MainView extends AppCompatActivity {
         SearchView searchView = findViewById(R.id.navigation_drawer_search);
 
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        DatabaseReaderFactory databaseReaderFactory = new DatabaseReaderFactory();
         try {
-            this.reader = databaseReaderFactory.getReader(this, this.handler, this.sharedPreferences, this.mainViewModel);
+            this.reader = DatabaseReaderFactory.getReader(this, this.handler, this.sharedPreferences, this.mainViewModel);
         } catch (IOException e) {
             Toast.makeText(this, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
             this.finish();
@@ -817,14 +816,6 @@ public class MainView extends AppCompatActivity {
             }
             this.adapter.notifyDataSetChanged();
         }
-    }
-
-    /**
-     * Returns database reader
-     * @return database reader
-     */
-    public DatabaseReader getReader() {
-        return this.reader;
     }
 
     /**
@@ -1748,7 +1739,7 @@ public class MainView extends AppCompatActivity {
         getSupportFragmentManager().popBackStack();
         MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
-        this.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
+        DatabaseReaderFactory.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
         mainViewModel.getNodes().get(position).setName(name);
         this.adapter.notifyItemChanged(position);
         if (this.currentNode != null && mainViewModel.getNodes().get(position).getUniqueId().equals(this.currentNode.getUniqueId())) {

@@ -32,6 +32,7 @@ import androidx.fragment.app.Fragment;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 
 public class NodePropertiesFragment extends Fragment {
@@ -55,7 +56,7 @@ public class NodePropertiesFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         String nodeUniqueID = getArguments().getString("nodeUniqueID");
-        ScNodeProperties nodeProperties = ((MainView) getActivity()).getReader().getNodeProperties(nodeUniqueID);
+        ScNodeProperties nodeProperties = DatabaseReaderFactory.getReader().getNodeProperties(nodeUniqueID);
 
         EditText editTextNodeName = view.findViewById(R.id.edit_text_node_name);
         editTextNodeName.setText(nodeProperties.getName());

@@ -34,7 +34,7 @@ import androidx.lifecycle.Lifecycle;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.ZoomableImageView;
-import lt.ffda.sourcherry.database.DatabaseReader;
+import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class ImageViewFragment extends Fragment {
@@ -89,9 +89,8 @@ public class ImageViewFragment extends Fragment {
     private void loadImage() {
         ZoomableImageView imageView = getView().findViewById(R.id.image_fragment_imageview);
         if (getArguments().getString("type").equals("image")) {
-            DatabaseReader reader = ((MainView) getActivity()).getReader();
             // Sets image to ImageView
-            byte[] imageByteArray = reader.getImageByteArray(getArguments().getString("nodeUniqueID"), getArguments().getString("imageOffset"));
+            byte[] imageByteArray = DatabaseReaderFactory.getReader().getImageByteArray(getArguments().getString("nodeUniqueID"), getArguments().getString("imageOffset"));
             if (imageByteArray != null) {
                 Bitmap decodedByte = BitmapFactory.decodeByteArray(imageByteArray, 0, imageByteArray.length);
                 Drawable image = new BitmapDrawable(this.getResources(),decodedByte);

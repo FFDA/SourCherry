@@ -36,12 +36,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 
-import lt.ffda.sourcherry.database.DatabaseReader;
-import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 
 public class SaveOpenDialogFragment extends DialogFragment {
-    private DatabaseReader reader;
     private String nodeUniqueID;
     private String filename;
     private String time;
@@ -56,8 +54,6 @@ public class SaveOpenDialogFragment extends DialogFragment {
         // For consistency and laziness buttons were mixed.
         // NeutralButton will cancel dialog and NegativeButton will be for saving the file
         super.onCreateDialog(savedInstanceState);
-
-        this.reader = ((MainView) getActivity()).getReader(); // reader from main MainView
 
         this.nodeUniqueID = getArguments().getString("nodeUniqueID", null);
         this.filename = getArguments().getString("filename", null); // Filename passed to fragment
@@ -146,7 +142,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
             // Writes Base64 encoded string to the temporary file
             FileOutputStream out = new FileOutputStream(tmpAttachedFile);
-            out.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time, this.offset));
+            out.write(DatabaseReaderFactory.getReader().getFileByteArray(this.nodeUniqueID, this.filename, this.time, this.offset));
             out.close();
 
             // Getting Uri to share
@@ -169,7 +165,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
         if (result.getResultCode() == Activity.RESULT_OK) {
             try {
                 OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file
-                outputStream.write(reader.getFileByteArray(this.nodeUniqueID, this.filename, this.time, this.offset));
+                outputStream.write(DatabaseReaderFactory.getReader().getFileByteArray(this.nodeUniqueID, this.filename, this.time, this.offset));
                 outputStream.close();
             } catch (Exception e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();

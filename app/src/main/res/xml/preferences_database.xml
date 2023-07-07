@@ -9,6 +9,7 @@
   -->
 
 <PreferenceScreen
+    android:key="preferences_database"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
@@ -56,4 +57,9 @@
                 android:data="https://github.com/FFDA/SourCherry/issues/13"/>
         </Preference>
     </PreferenceCategory>
+
+    <Preference
+        android:key="preference_vacuum_database"
+        android:title="@string/preferences_database_vacuum_title"
+        android:summary="@string/preferences_database_vacuum_summary"/>
 </PreferenceScreen>

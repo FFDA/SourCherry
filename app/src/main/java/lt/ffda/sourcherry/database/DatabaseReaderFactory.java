@@ -29,8 +29,8 @@ import lt.ffda.sourcherry.MainViewModel;
  * allows to read and write to CherryTree databases
  */
 public class DatabaseReaderFactory {
-
-    public DatabaseReaderFactory(){}
+    private static DatabaseReader databaseReader = null;
+    private DatabaseReaderFactory(){}
 
     /**
      * Creates an object that implements DatabaseReader interface depending on the database type
@@ -40,7 +40,7 @@ public class DatabaseReaderFactory {
      * @return object implementing DatabaseReader interface
      * @throws IOException exceptions while opening XML type databases
      */
-    public DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences, MainViewModel mainViewModel) throws IOException, ParserConfigurationException {
+    public static DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences, MainViewModel mainViewModel) throws IOException, ParserConfigurationException {
         DatabaseReader databaseReader = null;
         String databaseString = sharedPreferences.getString("databaseUri", null);
         if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
@@ -64,6 +64,16 @@ public class DatabaseReaderFactory {
                 databaseReader = new SQLReader(sqlite, context, handler, mainViewModel);
             }
         }
+        DatabaseReaderFactory.databaseReader = databaseReader;
+        return databaseReader;
+    }
+
+    /**
+     * Get last created reader by the factory. This function should be called only from MainView
+     * and it's fragments and Activities that were initiated by it
+     * @return database reader for the currently opened database
+     */
+    public static DatabaseReader getReader() {
         return databaseReader;
     }
 }

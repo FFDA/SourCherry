@@ -41,11 +41,10 @@ import java.util.concurrent.ExecutorService;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
-import lt.ffda.sourcherry.database.DatabaseReader;
+import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScSearchNode;
 
 public class SearchFragment extends Fragment {
-    private DatabaseReader reader;
     private Handler handler;
     private ExecutorService executor;
     private LinearLayout searchResultLinearLayout;
@@ -60,7 +59,6 @@ public class SearchFragment extends Fragment {
         this.searchProgressBar = view.findViewById(R.id.search_fragment_progressBar);
         this.searchResultLinearLayout = view.findViewById(R.id.search_fragment_results_linear_layout);
         this.resultCount = view.findViewById(R.id.search_fragment_result_count);
-        this.reader = ((MainView) getActivity()).getReader();
         this.handler = ((MainView) getActivity()).getHandler();
         this.executor = ((MainView) getActivity()).getExecutor();
         return view;
@@ -148,7 +146,7 @@ public class SearchFragment extends Fragment {
             }
         });
 
-        ArrayList<ScSearchNode> searchResult = this.reader.search(noSearch, query);
+        ArrayList<ScSearchNode> searchResult = DatabaseReaderFactory.getReader().search(noSearch, query);
 
         this.handler.post(new Runnable() {
             @Override

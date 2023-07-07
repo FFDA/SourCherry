@@ -141,6 +141,8 @@
     <string name="preferences_mirror_database_mirror_database_file_summary">No mirror file selected</string>
     <string name="preferences_mirror_database_mirror_database_file_last_modified_title">Mirror database last time modified</string>
     <string name="preferences_mirror_database_mirror_database_more_info">More information on GitHub</string>
+    <string name="preferences_database_vacuum_title">Vacuum SQL database</string>
+    <string name="preferences_database_vacuum_summary">Can reduce database size after removing large amount of data</string>
     <string name="mirror_database_fragment_enter_password_message">Please enter the password</string>
     <string name="navigation_drawer_button_back_content_description">Button BACK. Displayed when bookmarks are being showed to the user. When pressed - returns to menu that was displayed before user tapped bookmarks button.</string>
     <string name="navigation_drawer_button_up_content_description">Button UP. Displayed in normal navigation mode. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>

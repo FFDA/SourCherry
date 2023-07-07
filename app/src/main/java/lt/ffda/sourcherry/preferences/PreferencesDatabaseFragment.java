@@ -34,11 +34,14 @@ import androidx.lifecycle.Lifecycle;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
+import androidx.preference.PreferenceScreen;
 import androidx.preference.SwitchPreferenceCompat;
 
 import java.util.Date;
 
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.database.DatabaseReaderFactory;
+import lt.ffda.sourcherry.database.DatabaseVacuum;
 
 public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
     private SharedPreferences sharedPreferences;
@@ -112,6 +115,21 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
             mirrorDatabaseSwitch.setEnabled(false);
             Preference mirrorDatabaseMessage = findPreference("mirror_database_message");
             mirrorDatabaseMessage.setSummary(R.string.preferences_mirror_database_message_summary_alternative_for_xml_database);
+        }
+        Preference preferenceVacuumDatabase = findPreference("preference_vacuum_database");
+        String databaseExtension = this.sharedPreferences.getString("databaseFileExtension", "ctd");
+        if (databaseExtension.equals("ctd") || databaseExtension.equals("ctz")) {
+            PreferenceScreen preferenceScreen = findPreference("preferences_database");
+            preferenceScreen.removePreference(preferenceVacuumDatabase);
+        } else {
+            preferenceVacuumDatabase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(@NonNull Preference preference) {
+                    DatabaseVacuum databaseVacuum = (DatabaseVacuum) DatabaseReaderFactory.getReader();
+                    databaseVacuum.vacuum();
+                    return true;
+                }
+            });
         }
     }
 

@@ -96,7 +96,7 @@ import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
-public class SQLReader extends DatabaseReader {
+public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     private final SQLiteDatabase sqlite;
     private final Context context;
     private final Handler handler;
@@ -2285,5 +2285,10 @@ public class SQLReader extends DatabaseReader {
         } finally {
             this.sqlite.endTransaction();
         }
+    }
+
+    @Override
+    public void vacuum() {
+        this.sqlite.execSQL("VACUUM");
     }
 }

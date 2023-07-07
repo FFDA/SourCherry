@@ -9,6 +9,7 @@
   -->
 
 <PreferenceScreen
+    android:key="preferences_database"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
@@ -64,6 +65,10 @@
         app:min="2"
         android:max="500"
         android:defaultValue="15"
-        app:showSeekBarValue="true"
-        app:allowDividerAbove="true"/>
+        app:showSeekBarValue="true" />
+
+    <Preference
+        android:key="preference_vacuum_database"
+        android:title="@string/preferences_database_vacuum_title"
+        android:summary="@string/preferences_database_vacuum_summary" />
 </PreferenceScreen>

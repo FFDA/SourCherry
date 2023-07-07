@@ -10,7 +10,6 @@
 
 package lt.ffda.sourcherry.database;
 
-import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.Layout;
@@ -44,7 +43,6 @@ import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 
 public abstract class DatabaseReader {
-    private Context context;
 
     /**
      * Returns all nodes from the database. Used for search/filter function in drawer menu.

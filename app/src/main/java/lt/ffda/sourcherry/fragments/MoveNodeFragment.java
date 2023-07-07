@@ -27,14 +27,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MoveNodeFragmentItemAdapter;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNode;
 
 public class MoveNodeFragment extends Fragment {
-    private DatabaseReader reader;
     private ArrayList<ScNode> nodeList;
     private MoveNodeFragmentItemAdapter adapter;
     private int currentPosition; // currently marked node
@@ -49,8 +48,7 @@ public class MoveNodeFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        this.reader = ((MainView) getActivity()).getReader();
-        this.nodeList = reader.getMainNodes();
+        this.nodeList = DatabaseReaderFactory.getReader().getMainNodes();
         this.adapter = new MoveNodeFragmentItemAdapter(nodeList);
 
         TextView moveNodeTextviewTitle = view.findViewById(R.id.move_node_textview_title);
@@ -64,7 +62,7 @@ public class MoveNodeFragment extends Fragment {
             @Override
             public void onItemClick(View itemView, int position) {
                 if (nodeList.get(position).hasSubnodes()) {
-                    MoveNodeFragment.this.setNodes(reader.getSubnodes(nodeList.get(position).getUniqueId()));
+                    MoveNodeFragment.this.setNodes(DatabaseReaderFactory.getReader().getSubnodes(nodeList.get(position).getUniqueId()));
                 }
             }
         });
@@ -149,7 +147,7 @@ public class MoveNodeFragment extends Fragment {
      * @param nodeUniqueID unique node ID if the node which is currently at the top (parent node)
      */
     private void goNodeUp(String nodeUniqueID) {
-        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(nodeUniqueID);
+        ArrayList<ScNode> nodes = DatabaseReaderFactory.getReader().getParentWithSubnodes(nodeUniqueID);
         if (nodes != null && nodes.size() != this.nodeList.size()) {
             // If retrieved nodes are not null and array size do not match the one displayed
             // it is definitely not the same node so it can go up
@@ -170,7 +168,7 @@ public class MoveNodeFragment extends Fragment {
      * Displays a message if navigation is already at the top and does not reload the menu
      */
     private void goHome() {
-        ArrayList<ScNode> tempHomeNodes = this.reader.getMainNodes();
+        ArrayList<ScNode> tempHomeNodes = DatabaseReaderFactory.getReader().getMainNodes();
         // Compares node sizes, first and last nodeUniqueIDs in both arrays
         if (tempHomeNodes.size() == this.nodeList.size() && tempHomeNodes.get(0).getUniqueId().equals(this.nodeList.get(0).getUniqueId()) && tempHomeNodes.get(this.nodeList.size() -1).getUniqueId().equals(this.nodeList.get(this.nodeList.size() -1).getUniqueId())) {
             Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
