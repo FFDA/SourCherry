@@ -17,11 +17,11 @@ Anyone can compile this app by cloning this repository or download an apk compil
 ## Limitations
 
 * Use of SQL type database is ***strongly*** recommended. Users using large XML type database might experience OOM crashes that can't be mitigated.
-* Right now it can read databases and do basic editing of it. Most importantly it can't edit "Rich Text" nodes.
-* There is a possibility that not all text will be displayed.
-* Some text most definitely will be missing some formatting and it will look differently compared to how it looks in CherryTree.
+* Right now it can read databases and do basic editing of it. At this point it is possible to open for editing and save “Rich text” nodes without losing any formatting with one exception (needs more testing) there aren’t any UI elements to add any type of formatting to it. Moreover, to not lose any formatting when saving Rich-Text nodes two codeboxes should have at least a space between them, otherwise they will be saved, and display onwards, as one codebox.
+* There is a possibility that not all text will be displayed (Make a bog report)
+* Some text most definitely will be missing some formatting and it will look differently compared to how it looks in CherryTree. Notably the is no way of to display “Fill” text paragraph formatting in SourCherry.
 * Not all latex boxes might be displayed. From example latex code in CherryTree only code between ***\begin{align\*}*** and ***\end{align\*}*** tags is used (and only it should be modified). Rest of the code should not be edited in any way.
-* In some instances image will not be displayed and opening/saving attached might cause a crash. It depends on Android version and phone. Default size for Android SQL window size is 2mb. For Android9+ (>=API 28) I increased it to 15mb and it can be adjusted in settings up to 500mb. XML databases do not have any way to adjust files that can opened/saved, but it has bigger limit. In my experience it is 11mb.
+* In some instances image will not be displayed and opening/saving attached might cause a crash. It depends on Android version and phone. Default size for Android SQL window size is 2mb. For Android9+ (>=API 28) I increased it to 15mb and it can be adjusted in the settings up to 500mb. XML databases do not have any way to adjust files that can be opened/saved, but it has bigger limit. In my experience it is 11mb.
 
 ## Password protected databases
 
