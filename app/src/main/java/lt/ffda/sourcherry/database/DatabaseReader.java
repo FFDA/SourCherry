@@ -162,6 +162,15 @@ public abstract class DatabaseReader {
                         case "h3":
                             formattedNodeText.setSpan(new RelativeSizeSpan(1.25f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;
+                        case "h4":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.20f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                        case "h5":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.15f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
+                        case "h6":
+                            formattedNodeText.setSpan(new RelativeSizeSpan(1.10f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            break;
                         case "small":
                             formattedNodeText.setSpan(new RelativeSizeSpan(0.75f), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             break;

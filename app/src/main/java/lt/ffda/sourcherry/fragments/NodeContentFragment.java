@@ -11,6 +11,7 @@
 package lt.ffda.sourcherry.fragments;
 
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -146,17 +147,32 @@ public class NodeContentFragment extends Fragment {
             if (part.getContentType() == 0) {
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
                 SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) scNodeContentText.getContent();
-                TextView tv = new TextView(getActivity());
-                tv.setTextIsSelectable(true);
-                tv.setMovementMethod(LinkMovementMethod.getInstance()); // Needed to detect click/open links
-                tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
-                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        NodeContentFragment.this.contentFragmentLinearLayout.addView(tv);
-                    }
-                });
+                // Fix for Android 7 (SDK 24 & 25) crash when returning from NodeContentEditorFragment after saving content
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            TextView tv = new TextView(getActivity());
+                            tv.setTextIsSelectable(true);
+                            tv.setMovementMethod(LinkMovementMethod.getInstance()); // Needed to detect click/open links
+                            tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
+                            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, NodeContentFragment.this.sharedPreferences.getInt("preferences_text_size", 15));
+                            NodeContentFragment.this.contentFragmentLinearLayout.addView(tv);
+                        }
+                    });
+                } else {
+                    TextView tv = new TextView(getActivity());
+                    tv.setTextIsSelectable(true);
+                    tv.setMovementMethod(LinkMovementMethod.getInstance()); // Needed to detect click/open links
+                    tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
+                    tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            NodeContentFragment.this.contentFragmentLinearLayout.addView(tv);
+                        }
+                    });
+                }
             } else {
                 HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
                 TableLayout table = new TableLayout(getActivity());

@@ -1612,6 +1612,12 @@ public class SQLReader extends DatabaseReader {
                                         element.setAttribute("scale", "h2");
                                     } else if (size == 1.25f) {
                                         element.setAttribute("scale", "h3");
+                                    } else if (size == 1.20f) {
+                                        element.setAttribute("scale", "h4");
+                                    } else if (size == 1.15f) {
+                                        element.setAttribute("scale", "h5");
+                                    } else if (size == 1.10f) {
+                                        element.setAttribute("scale", "h6");
                                     } else if (size == 0.75f) {
                                         element.setAttribute("scale", "small");
                                     }
