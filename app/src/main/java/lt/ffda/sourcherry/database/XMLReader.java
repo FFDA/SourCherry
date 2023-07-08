@@ -411,13 +411,16 @@ public class XMLReader extends DatabaseReader {
                                 nodeTableCharOffsets.add(charOffset);
                                 int[] cellMinMax = getTableMinMax(currentNode);
                                 ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
-
+                                byte lightInterface = 0;
+                                if (!((Element) currentNode).getAttribute("is_light").equals("")) {
+                                    lightInterface = Byte.parseByte(((Element) currentNode).getAttribute("is_light"));
+                                }
                                 NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
 
                                 for (int row = 0; row < tableRowsNodes.getLength(); row++) {
                                     currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
                                 }
-                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], ((Element) currentNode).getAttribute("justification"));
+                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], lightInterface, ((Element) currentNode).getAttribute("justification"));
                                 nodeTables.add(scNodeContentTable);
                                 // Instead of adding space for formatting reason
                                 // it might be better to take one of totalCharOffset
@@ -1528,6 +1531,8 @@ public class XMLReader extends DatabaseReader {
                     tableElement.setAttribute("justification", scNodeContentTable.getJustification());
                     tableElement.setAttribute("col_min", String.valueOf(scNodeContentTable.getColMin()));
                     tableElement.setAttribute("col_max", String.valueOf(scNodeContentTable.getColMax()));
+                    tableElement.setAttribute("col_widths", "0,0"); // Hardcoding, because I haven't seen a different value
+                    tableElement.setAttribute("is_light", String.valueOf(scNodeContentTable.getLightInterface()));
                     for (CharSequence[] row : scNodeContentTable.getContent()) {
                         Element rowElement = this.doc.createElement("row");
                         for (CharSequence cell : row) {

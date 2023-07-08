@@ -33,7 +33,7 @@ import androidx.lifecycle.Lifecycle;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
-import lt.ffda.sourcherry.ZoomableImageView;
+import lt.ffda.sourcherry.customUiElements.ZoomableImageView;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 

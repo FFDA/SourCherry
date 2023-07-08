@@ -31,7 +31,6 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
-import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
@@ -54,6 +53,7 @@ import java.util.concurrent.ExecutorService;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.customUiElements.ScTableLayout;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeContentTable;
@@ -234,7 +234,7 @@ public class NodeContentEditorFragment extends Fragment {
                 });
             } else {
                 HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
-                TableLayout table = new TableLayout(getActivity());
+                ScTableLayout table = new ScTableLayout(getActivity());
                 ScNodeContentTable scNodeContentTable = (ScNodeContentTable) part;
                 // Setting gravity for the table
                 LinearLayout.LayoutParams tableScrollViewParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
@@ -250,6 +250,7 @@ public class NodeContentEditorFragment extends Fragment {
                         break;
                 }
                 tableScrollView.setLayoutParams(tableScrollViewParams);
+                table.setLightInterface(scNodeContentTable.getLightInterface());
                 // Multiplying by arbitrary number to make table cells look better.
                 // For some reason table that looks good in PC version looks worse on android
                 int colMin = (int) (scNodeContentTable.getColMin() * 1.3);
@@ -331,7 +332,7 @@ public class NodeContentEditorFragment extends Fragment {
             View view = this.nodeEditorFragmentLinearLayout.getChildAt(i);
             // if it a table
             if (view instanceof HorizontalScrollView) {
-                TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                ScTableLayout tableLayout = (ScTableLayout) ((HorizontalScrollView) view).getChildAt(0);
                 String justification;
                 // Getting justification of the table
                 LinearLayout.LayoutParams tableScrollView = (LinearLayout.LayoutParams) view.getLayoutParams();
@@ -379,7 +380,7 @@ public class NodeContentEditorFragment extends Fragment {
                     }
                 }
                 tableContent.add(headerCells);
-                nodeContent.add(new ScNodeContentTable((byte) 1, tableContent, colMin, colMax, justification));
+                nodeContent.add(new ScNodeContentTable((byte) 1, tableContent, colMin, colMax, tableLayout.getLightInterface(), justification));
             } else {
                 EditText editText = (EditText) view;
                 editText.clearComposingText();

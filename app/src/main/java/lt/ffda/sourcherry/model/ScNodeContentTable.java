@@ -18,6 +18,8 @@ public class ScNodeContentTable implements ScNodeContent {
     private int colMin;
     private int colMax;
     private String justification;
+    // This variable represent is_light element of table tag in CherryTree database
+    private byte lightInterface;
     private int newOffset;
 
     /**
@@ -28,11 +30,12 @@ public class ScNodeContentTable implements ScNodeContent {
      * @param colMax column max width
      * @param justification justification of the table and not it's content.
      */
-    public ScNodeContentTable(byte type, ArrayList<CharSequence[]> content, int colMin, int colMax, String justification) {
+    public ScNodeContentTable(byte type, ArrayList<CharSequence[]> content, int colMin, int colMax, byte lightInterface, String justification) {
         this.type = type;
         this.content = content;
         this.colMin = colMin;
         this.colMax = colMax;
+        this.lightInterface = lightInterface;
         this.justification = justification;
     }
 
@@ -109,6 +112,22 @@ public class ScNodeContentTable implements ScNodeContent {
      */
     public void setJustification(String justification) {
         this.justification = justification;
+    }
+
+    /**
+     * Is table table using lightweight interface
+     * @return 1 - if table using lightweight interface, 0 - otherwise
+     */
+    public byte getLightInterface() {
+        return this.lightInterface;
+    }
+
+    /**
+     * Setting what interface is used by the table
+     * @param lightInterface 1 - if table using lightweight interface, 0 - otherwise
+     */
+    public void setLightInterface(byte lightInterface) {
+        this.lightInterface = lightInterface;
     }
 
     /**

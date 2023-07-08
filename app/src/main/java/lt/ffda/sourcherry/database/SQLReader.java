@@ -336,7 +336,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
             if (nodeSyntax.equals("custom-colors")) {
                 // This is formatting for Rich Text and Plain Text nodes
-                NodeList nodeContentNodeList = getNodeFromString(cursor.getString(0), "node"); // Gets all the subnodes/childnodes of selected node
+                NodeList nodeContentNodeList = getDocumentFromString(cursor.getString(0)).getElementsByTagName("node").item(0).getChildNodes(); // Gets all the subnodes/childnodes of selected node
                 for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
                     // Loops through nodes of selected node
                     Node currentNode = nodeContentNodeList.item(x);
@@ -482,11 +482,18 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                 int cellMin = tableCursor.getInt(1);
                                 int cellMax = tableCursor.getInt(2);
                                 ArrayList<CharSequence[]> currentTableContent = new ArrayList<>();
-                                NodeList tableRowsNodes = getNodeFromString(tableCursor.getString(0), "table"); // All the rows of the table. Not like in XML database, there are not any empty text nodes to be filtered out
+                                // document.getElementsByTagName(type).item(0).getChildNodes();
+                                Document document = getDocumentFromString(tableCursor.getString(0));
+                                // All the rows of the table. Not like in XML database, there aren't any empty text nodes to be filtered out
+                                NodeList tableRowsNodes = document.getElementsByTagName("table").item(0).getChildNodes();
+                                byte lightInterface = 0;
+                                if (!((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light").equals("")) {
+                                    lightInterface = Byte.parseByte(((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light"));
+                                }
                                 for (int row = 0; row < tableRowsNodes.getLength(); row++) {
                                     currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
                                 }
-                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, tableCursor.getString(3));
+                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, lightInterface, tableCursor.getString(3));
                                 tableCursor.close();
                                 nodeTables.add(scNodeContentTable);
                                 // Instead of adding space for formatting reason
@@ -930,14 +937,11 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * With all the tags an attributes the same way as in XML document
      * So SQL document is just a XML document with extra steps
      * @param nodeString String object with all the information of the node or it's table
-     * @param type node type to select ("node" or "table")
      * @return NodeList object with content of the node
      */
-    public NodeList getNodeFromString(String nodeString, String type) {
+    public Document getDocumentFromString(String nodeString) {
         try {
-            Document document = this.documentBuilder.parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8)));
-            // It seems that there is always just one tag (<node> or <table>), so returning just the first one in the NodeList
-            return document.getElementsByTagName(type).item(0).getChildNodes();
+            return this.documentBuilder.parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             this.displayToast(context.getString(R.string.toast_error_failed_to_convert_string_to_nodelist));
         }
@@ -1362,7 +1366,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         // Getting text data of the node
         Cursor cursor = this.sqlite.query("node", new String[]{"txt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
         cursor.moveToFirst();
-        NodeList nodeList =  this.getNodeFromString(cursor.getString(0), "node");
+        NodeList nodeList =  getDocumentFromString(cursor.getString(0)).getElementsByTagName("node").item(0).getChildNodes();
         cursor.close();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
@@ -1422,7 +1426,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      */
     private StringBuilder convertTableContentToPlainText(String table) {
         StringBuilder tableContent = new StringBuilder();
-        NodeList nodeList = this.getNodeFromString(table, "table");
+        NodeList nodeList = this.getDocumentFromString(table).getElementsByTagName("table").item(0).getChildNodes();
         int tableRowCount = nodeList.getLength();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
@@ -1756,6 +1760,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         }
                         ScNodeContentTable scNodeContentTable = (ScNodeContentTable) offsetObject;
                         Element table = doc.createElement("table");
+                        table.setAttribute("col_widths", "0,0"); // Hardcoding, because I haven't seen a different value
+                        table.setAttribute("is_light", String.valueOf(scNodeContentTable.getLightInterface()));
                         for (CharSequence[] row : scNodeContentTable.getContent()) {
                             Element rowElement = doc.createElement("row");
                             for (CharSequence cell : row) {
@@ -2071,7 +2077,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
         if (nodeSyntax.equals("custom-colors")) {
             // This is formatting for Rich Text and Plain Text nodes
-            NodeList nodeContentNodeList = getNodeFromString(cursor.getString(2), "node"); // Gets all the subnodes/childnodes of selected node
+            // Gets all the subnodes/childnodes of selected node
+            NodeList nodeContentNodeList = getDocumentFromString(cursor.getString(0)).getElementsByTagName("node").item(0).getChildNodes();
             for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
                 // Loops through nodes/tags of selected node
                 nodeContent.append(nodeContentNodeList.item(x).getTextContent());
@@ -2155,8 +2162,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     } else if (codeboxTableImageCursor.getInt(2) == 8) {
                         StringBuilder tableContent = new StringBuilder();
                         // table row
-                        NodeList tableRows = getNodeFromString(codeboxTableImageCursor.getString(1), "table");
-
+                        NodeList tableRows = this.getDocumentFromString(codeboxTableImageCursor.getString(1)).getElementsByTagName("table").item(0).getChildNodes();
                         // Adding all rows to arraylist
                         ArrayList<String> tableRowArray = new ArrayList<>();
                         for (int row = 0; row < tableRows.getLength(); row++) {
