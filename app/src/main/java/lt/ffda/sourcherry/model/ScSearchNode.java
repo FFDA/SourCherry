@@ -28,12 +28,13 @@ public class ScSearchNode extends ScNode {
      * @param isParent is node a parent node. Parent node has a arrow indicating that it has subnodes
      * @param hasSubnodes does node has any subnodes. Node with subnodes has an arrow indicating it
      * @param isSubnode is node a subnode. Subnodes are indented in drawer menu
+     * @param isRichText is node's type is rich text
      * @param query query that was used to find a node
      * @param resultCount count of results in the node
      * @param resultSamples sample lines in the node with the query
      */
-    public ScSearchNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, String query, int resultCount, String resultSamples) {
-        super(uniqueId, name, isParent, hasSubnodes, isSubnode);
+    public ScSearchNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText, String query, int resultCount, String resultSamples) {
+        super(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText);
         this.query = query;
         this.resultCount = resultCount;
         this.resultSamples = resultSamples;
@@ -70,6 +71,7 @@ public class ScSearchNode extends ScNode {
         dest.writeInt(this.isParent() ? 1 : 0);
         dest.writeInt(this.hasSubnodes() ? 1 : 0);
         dest.writeInt(this.isSubnode() ? 1 : 0);
+        dest.writeInt(this.isRichText() ? 1 : 0);
         dest.writeString(this.query);
         dest.writeInt(this.resultCount);
         dest.writeString(this.resultSamples);
@@ -83,10 +85,11 @@ public class ScSearchNode extends ScNode {
             boolean isParent = source.readInt() == 1;
             boolean hasSubnodes = source.readInt() == 1;
             boolean isSubnode = source.readInt() == 1;
+            boolean isRichText = source.readInt() == 1;
             String query = source.readString();
             int resultCount = source.readInt();
             String resultSamples = source.readString();
-            return new ScSearchNode(uniqueId, name, isParent, hasSubnodes, isSubnode, query, resultCount, resultSamples);
+            return new ScSearchNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, query, resultCount, resultSamples);
         }
 
         @Override

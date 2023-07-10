@@ -117,7 +117,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     public ArrayList<ScNode> getAllNodes(boolean noSearch) {
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
-            Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
+            Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
             ArrayList<ScNode> nodes = this.returnSubnodeSearchArrayList(cursor);
             cursor.close();
             return nodes;
@@ -135,7 +135,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         // Used to display menu when app starts
         ArrayList<ScNode> nodes = null;
         try {
-            Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
+            Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
             nodes = returnSubnodeArrayList(cursor, false);
             cursor.close();
         } catch (Exception SQLiteException) {
@@ -148,7 +148,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     public ArrayList<ScNode> getBookmarkedNodes() {
         // Returns bookmarked nodes from the document
         // Returns null if there aren't any
-        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN bookmark ON node.node_id=bookmark.node_id ORDER BY bookmark.sequence ASC", null);
+        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt FROM node INNER JOIN bookmark ON node.node_id=bookmark.node_id ORDER BY bookmark.sequence ASC", null);
         if(cursor.getCount() == 0) {
             cursor.close();
             return null;
@@ -161,7 +161,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     @Override
     public ArrayList<ScNode> getSubnodes(String nodeUniqueID) {
         // Returns Subnodes of the node which nodeUniqueID is provided
-        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
+        Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
         ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, true);
         nodes.add(0, createParentNode(String.valueOf(nodeUniqueID)));
         cursor.close();
@@ -184,8 +184,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             String nodeUniqueID = cursor.getString(1);
             String nameValue = cursor.getString(0);
             boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+            boolean isRichText = cursor.getInt(2) == 1;
             // There is only one parent Node and its added manually in getSubNodes()
-            nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, isSubnode));
+            nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, isSubnode, isRichText));
         }
         return nodes;
     }
@@ -199,34 +200,36 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     public ArrayList<ScNode> returnSubnodeSearchArrayList(Cursor cursor) {
         ArrayList<ScNode> nodes = new ArrayList<>();
         while (cursor.moveToNext()) {
-            if (cursor.getInt(2) == 0) {
+            if (cursor.getInt(3) == 0) {
                 // If node and subnodes are not selected to be excluded from search
                 String nodeUniqueID = cursor.getString(1);
                 String nameValue = cursor.getString(0);
                 boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+                boolean isRichText = cursor.getInt(2) == 1;
                 // There are no "parent" nodes in search. All nodes displayed without indentation
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false));
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText));
                 if (hasSubnodes) {
-                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
                     nodes.addAll(returnSubnodeSearchArrayList(subCursor));
                     subCursor.close();
                 }
-            } else if (cursor.getInt(2) == 1) {
+            } else if (cursor.getInt(3) == 1) {
                 // If only node is selected to be excluded from search
                 String nodeUniqueID = cursor.getString(1);
                 boolean hasSubnodes = hasSubnodes(nodeUniqueID);
                 if (hasSubnodes) {
-                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.level FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
                     nodes.addAll(returnSubnodeSearchArrayList(subCursor));
                     subCursor.close();
                 }
-            } else if (cursor.getInt(2) == 2) {
+            } else if (cursor.getInt(3) == 2) {
                 // if only subnodes are selected to be excluded from search
                 String nodeUniqueID = cursor.getString(1);
                 String nameValue = cursor.getString(0);
                 boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+                boolean isRichText = cursor.getInt(2) == 1;
                 // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false));
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText));
             }
         }
         return nodes;
@@ -257,7 +260,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      */
     public ScNode createParentNode(String nodeUniqueID) {
         // Creates and returns the node that will be added to the node array as parent node
-        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{String.valueOf(nodeUniqueID)}, null, null,null);
+        Cursor cursor = this.sqlite.query("node", new String[]{"name", "is_richtxt"}, "node_id=?", new String[]{String.valueOf(nodeUniqueID)}, null, null,null);
         String parentNodeName;
         if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
             parentNodeName = cursor.getString(0);
@@ -265,7 +268,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             return null;
         }
         boolean parentNodeHasSubnodes = hasSubnodes(nodeUniqueID);
-        ScNode node = new ScNode(nodeUniqueID, parentNodeName, true, parentNodeHasSubnodes, false);
+        boolean isRichText = cursor.getInt(1) == 1;
+        ScNode node = new ScNode(nodeUniqueID, parentNodeName, true, parentNodeHasSubnodes, false, isRichText);
         cursor.close();
         return node;
     }
@@ -283,7 +287,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             if (nodeParentID.equals("0")) {
                 nodes = getMainNodes();
             } else {
-                cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeParentID)});
+                cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeParentID)});
                 nodes = returnSubnodeArrayList(cursor, true);
                 nodes.add(0, createParentNode(nodeParentID));
             }
@@ -296,16 +300,17 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     public ScNode getSingleMenuItem(String nodeUniqueID) {
         // Returns single menu item to be used when opening anchor links
         ScNode currentScNode = null;
-        Cursor cursor = this.sqlite.query("node", new String[]{"name"}, "node_id=?", new String[]{nodeUniqueID}, null, null,null);
+        Cursor cursor = this.sqlite.query("node", new String[]{"name", "is_richtxt"}, "node_id=?", new String[]{nodeUniqueID}, null, null,null);
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // Node name and unique_id always the same for the node
             String nameValue = cursor.getString(0);
+            boolean isRichText = cursor.getInt(1) == 1;
             if (hasSubnodes(nodeUniqueID)) {
                 // if node has subnodes, then it has to be opened as a parent node and displayed as such
-                currentScNode = new ScNode(nodeUniqueID, nameValue, true, true, false);
+                currentScNode = new ScNode(nodeUniqueID, nameValue, true, true, false, isRichText);
             } else {
                 // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-                currentScNode = new ScNode(nodeUniqueID, nameValue, false, false, true);
+                currentScNode = new ScNode(nodeUniqueID, nameValue, false, false, true, isRichText);
             }
         }
         cursor.close();
@@ -1145,7 +1150,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             displayToast(this.context.getString(R.string.toast_error_failed_to_create_entry_into_children_table));
             return null;
         }
-        return new ScNode(String.valueOf(newNodeUniqueID), name, false, false, isSubnode);
+        return new ScNode(String.valueOf(newNodeUniqueID), name, false, false, isSubnode, progLang.equals("custom-colors"));
     }
 
     @Override
@@ -1366,7 +1371,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         // Getting text data of the node
         Cursor cursor = this.sqlite.query("node", new String[]{"txt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
         cursor.moveToFirst();
-        NodeList nodeList =  getDocumentFromString(cursor.getString(0)).getElementsByTagName("node").item(0).getChildNodes();
+        NodeList nodeList =  this.getDocumentFromString(cursor.getString(0)).getElementsByTagName("node").item(0).getChildNodes();
         cursor.close();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
@@ -1483,17 +1488,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     @Override
-    public boolean isNodeRichText(String nodeUniqueID) {
-        Cursor cursor = this.sqlite.query("node", new String[]{"syntax"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null);
-        cursor.moveToFirst();
-        boolean result = cursor.getString(0).equals("custom-colors");
-        cursor.close();
-        return result;
-    }
-
-    @Override
     public void saveNodeContent(String nodeUniqueID) {
-        if (this.isNodeRichText(nodeUniqueID)) {
+        if (this.mainViewModel.getNodes().get(0).isRichText()) {
             Transformer transformer;
             try {
                 transformer = TransformerFactory
@@ -1917,7 +1913,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     boolean hasSubnode = this.hasSubnodes(nodeUniqueID);
                     // Main menu node will always be a parent
                     // Main menu item will always be displayed as a parent
-                    ScSearchNode result = findInNode(cursor, query, hasSubnode, true, false);
+                    ScSearchNode result = this.findInNode(cursor, query, hasSubnode, true, false);
                     if (result != null) {
                         searchResult.add(result);
                     }
@@ -1937,7 +1933,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     boolean hasSubnodes = this.hasSubnodes(nodeUniqueID);
                     // Main menu node will always be a parent
                     // Main menu item will always be displayed as parent
-                    ScSearchNode result = findInNode(cursor, query, hasSubnodes, true, false);
+                    ScSearchNode result = this.findInNode(cursor, query, hasSubnodes, true, false);
                     if (result != null) {
                         searchResult.add(result);
                     }
@@ -2021,7 +2017,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     isParent = true;
                     isSubnode = false;
                 }
-                ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+                ScSearchNode result = this.findInNode(cursor, query, hasSubnode, isParent, isSubnode);
                 if (result != null) {
                     searchResult.add(result);
                 }
@@ -2045,7 +2041,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     isParent = true;
                     isSubnode = false;
                 }
-                ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+                ScSearchNode result = this.findInNode(cursor, query, hasSubnode, isParent, isSubnode);
                 if (result != null) {
                     searchResult.add(result);
                 }
@@ -2078,7 +2074,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         if (nodeSyntax.equals("custom-colors")) {
             // This is formatting for Rich Text and Plain Text nodes
             // Gets all the subnodes/childnodes of selected node
-            NodeList nodeContentNodeList = getDocumentFromString(cursor.getString(0)).getElementsByTagName("node").item(0).getChildNodes();
+            NodeList nodeContentNodeList = this.getDocumentFromString(cursor.getString(2)).getElementsByTagName("node").item(0).getChildNodes();
             for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
                 // Loops through nodes/tags of selected node
                 nodeContent.append(nodeContentNodeList.item(x).getTextContent());
@@ -2260,7 +2256,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
         if (resultCount > 0) {
             // if node count of matches is more than 0 that a match of q query was found
-            return new ScSearchNode(cursor.getString(0), cursor.getString(1), isParent, hasSubnodes, isSubnode, query, resultCount, samples.toString());
+            return new ScSearchNode(cursor.getString(0), cursor.getString(1), isParent, hasSubnodes, isSubnode, cursor.getInt(6) == 1, query, resultCount, samples.toString());
         } else {
             return null;
         }

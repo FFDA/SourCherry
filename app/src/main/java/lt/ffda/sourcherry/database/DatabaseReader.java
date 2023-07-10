@@ -470,14 +470,6 @@ public abstract class DatabaseReader {
     }
 
     /**
-     * Checks if node's type is rich-text
-     * Used while rich-text node editing is not supported
-     * @param nodeUniqueID unique ID of the node to check
-     * @return true - node's type rich-text, false - other types
-     */
-    public abstract boolean isNodeRichText(String nodeUniqueID);
-
-    /**
      * Writes node content to database
      * Supports only plain-text, automatic-syntax-highlighting nodes
      * @param nodeUniqueID unique ID of the node

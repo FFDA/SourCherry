@@ -169,20 +169,25 @@ public class NodeContentEditorFragment extends Fragment {
             });
         }
 
-        ImageButton clearFormattingButton = view.findViewById(R.id.edit_node_fragment_button_row_clear_formatting);
-        clearFormattingButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                NodeContentEditorFragment.this.clearFormatting();
-            }
-        });
-        ImageButton foregroundColorButton = view.findViewById(R.id.edit_node_fragment_button_row_foreground_color);
-        foregroundColorButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                NodeContentEditorFragment.this.changeForegroundColor();
-            }
-        });
+        if (this.mainViewModel.getNodes().get(0).isRichText()) {
+            ImageButton clearFormattingButton = view.findViewById(R.id.edit_node_fragment_button_row_clear_formatting);
+            clearFormattingButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    NodeContentEditorFragment.this.clearFormatting();
+                }
+            });
+            ImageButton foregroundColorButton = view.findViewById(R.id.edit_node_fragment_button_row_foreground_color);
+            foregroundColorButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    NodeContentEditorFragment.this.changeForegroundColor();
+                }
+            });
+        } else {
+            LinearLayout buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row);
+            buttonRowLinearLayout.setVisibility(View.GONE);
+        }
     }
 
     @Override

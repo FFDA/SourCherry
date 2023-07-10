@@ -166,8 +166,9 @@ public class XMLReader extends DatabaseReader {
                 String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                 String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
                 boolean hasSubnode = hasSubnodes(node);
+                boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
                 // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false));
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false, isRichText));
             }
         }
 
@@ -217,8 +218,9 @@ public class XMLReader extends DatabaseReader {
                 String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                 String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
                 boolean hasSubnode = hasSubnodes(node);
+                boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
                 // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, isSubnode));
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, isSubnode, isRichText));
             }
         }
         return nodes;
@@ -274,7 +276,8 @@ public class XMLReader extends DatabaseReader {
         String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
         String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
         boolean hasSubnode = hasSubnodes(node);
-        return new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false);
+        boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
+        return new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false, isRichText);
     }
 
     /**
@@ -287,7 +290,8 @@ public class XMLReader extends DatabaseReader {
         String parentNodeUniqueID = parentNode.getAttributes().getNamedItem("unique_id").getNodeValue();
         String parentNodeName = parentNode.getAttributes().getNamedItem("name").getNodeValue();
         boolean parentNodeHasSubnode = hasSubnodes(parentNode);
-        return new ScNode(parentNodeUniqueID, parentNodeName, true, parentNodeHasSubnode, false);
+        boolean isRichText = parentNode.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
+        return new ScNode(parentNodeUniqueID, parentNodeName, true, parentNodeHasSubnode, false, isRichText);
     }
 
     @Override
@@ -325,12 +329,13 @@ public class XMLReader extends DatabaseReader {
                     // Node name and unique_id always the same for the node
                     String menuItemsNodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
                     String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+                    boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
                     if (hasSubnodes(node)) {
                         // if node has subnodes, then it has to be opened as a parent node and displayed as such
-                        return new ScNode(menuItemsNodeUniqueID, nameValue, true, true, false);
+                        return new ScNode(menuItemsNodeUniqueID, nameValue, true, true, false, isRichText);
                     } else {
                         // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-                        return new ScNode(menuItemsNodeUniqueID, nameValue, false, false, true);
+                        return new ScNode(menuItemsNodeUniqueID, nameValue, false, false, true, isRichText);
                     }
                 }
             }
@@ -1026,7 +1031,7 @@ public class XMLReader extends DatabaseReader {
             node.appendChild(newNode);
         }
         this.writeIntoDatabase();
-        return new ScNode(newNodeUniqueID, name,false, false, isSubNode);
+        return new ScNode(newNodeUniqueID, name,false, false, isSubNode, progLang.equals("custom-colors"));
     }
 
     @Override
@@ -1322,22 +1327,6 @@ public class XMLReader extends DatabaseReader {
     }
 
     @Override
-    public boolean isNodeRichText(String nodeUniqueID) {
-        boolean result = false;
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                if (node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors")) {
-                    result = true;
-                    break;
-                }
-            }
-        }
-        return result;
-    }
-
-    @Override
     public void saveNodeContent(String nodeUniqueID) {
         Node node = null;
         NodeList nodeList = this.doc.getElementsByTagName("node");
@@ -1351,7 +1340,7 @@ public class XMLReader extends DatabaseReader {
             this.displayToast(this.context.getString(R.string.toast_error_while_saving_node_content_not_found));
             return;
         }
-        if (this.isNodeRichText(nodeUniqueID)) {
+        if (this.mainViewModel.getNodes().get(0).isRichText()) {
             int next; // The end of the current span and the start of the next one
             int totalContentLength = 0; // Needed to calculate offset for the tag
             int currentPartContentLength = 0; // Needed to calculate offset for the tag
@@ -1834,6 +1823,7 @@ public class XMLReader extends DatabaseReader {
         int index = 0;
         String nodeName = null; // To display in results
         String nodeUniqueID = null; // That it could be returned to MainView to load selected node
+        boolean isRichText = false;
         StringBuilder samples = new StringBuilder(); // This will hold 3 samples to show to user
 
         // Removing all spaces and new line character from the node content string
@@ -1848,6 +1838,7 @@ public class XMLReader extends DatabaseReader {
                     // Settings node name and unique_id values that they could be returned with result
                     nodeName = node.getAttributes().getNamedItem("name").getNodeValue();
                     nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                    isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
                 }
 
                 if (resultCount < 3 ) {
@@ -1887,7 +1878,7 @@ public class XMLReader extends DatabaseReader {
 
         if (nodeName != null) {
             // if node name isn't null that means match for a query was found
-            return new ScSearchNode(nodeUniqueID, nodeName, isParent, hasSubnodes, isSubnode, query, resultCount, samples.toString());
+            return new ScSearchNode(nodeUniqueID, nodeName, isParent, hasSubnodes, isSubnode, isRichText, query, resultCount, samples.toString());
         } else {
             return null;
         }

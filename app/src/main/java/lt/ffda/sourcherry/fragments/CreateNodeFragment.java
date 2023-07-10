@@ -52,7 +52,7 @@ public class CreateNodeFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        this.radioGroupNodeType.check(R.id.radio_button_plain_text);
+        this.radioGroupNodeType.check(R.id.radio_button_rich_text);
         String nodeUniqueID = getArguments().getString("nodeUniqueID");
         int relation = getArguments().getInt("relation");
 

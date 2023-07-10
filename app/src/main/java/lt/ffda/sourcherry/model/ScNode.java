@@ -25,6 +25,7 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
     private boolean hasSubnodes;
     // Depending in this value node will look indented or not
     private boolean isSubnode;
+    private boolean isRichText;
 
     /**
      * Constructor for SourCherry node object. Changes previous method of keeping node's data in String[]{name, unique_id, has_subnodes, is_parent, is_subnode}
@@ -33,13 +34,15 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
      * @param isParent is node a parent node. Parent node has a arrow indicating that it has subnodes
      * @param hasSubnodes does node has any subnodes. Node with subnodes has an arrow indicating it
      * @param isSubnode is node a subnode. Subnodes are indented in drawer menu
+     * @param isRichText is node's type is rich text
      */
-    public ScNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode) {
+    public ScNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText) {
         this.uniqueId = uniqueId;
         this.name = name;
         this.isParent = isParent;
         this.hasSubnodes = hasSubnodes;
         this.isSubnode = isSubnode;
+        this.isRichText = isRichText;
     }
 
     public String getUniqueId() {
@@ -82,6 +85,14 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         this.isSubnode = isSubnode;
     }
 
+    public boolean isRichText() {
+        return this.isRichText;
+    }
+
+    public void setRichText(boolean richText) {
+        this.isRichText = richText;
+    }
+
     @Override
     public int compareTo(ScNode o) {
         return Integer.parseInt(this.uniqueId) - Integer.parseInt(o.getUniqueId());
@@ -99,6 +110,7 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         dest.writeInt(this.isParent ? 1 : 0);
         dest.writeInt(this.hasSubnodes ? 1 : 0);
         dest.writeInt(this.isSubnode ? 1 : 0);
+        dest.writeInt(this.isRichText ? 1 : 0);
     }
 
     public static final Parcelable.Creator<ScNode> CREATOR = new Parcelable.Creator<ScNode>() {
@@ -109,7 +121,8 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
             boolean isParent = source.readInt() == 1;
             boolean hasSubnodes = source.readInt() == 1;
             boolean isSubnode = source.readInt() == 1;
-            return new ScNode(uniqueId, name, isParent, hasSubnodes, isSubnode);
+            boolean isRichText = source.readInt() == 1;
+            return new ScNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText);
         }
 
         @Override
