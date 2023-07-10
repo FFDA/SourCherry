@@ -44,6 +44,7 @@ import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -79,6 +80,7 @@ import lt.ffda.sourcherry.spans.ClickableSpanNode;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
+import lt.ffda.sourcherry.utils.DpPxConverter;
 
 public class NodeContentEditorFragment extends Fragment {
     private LinearLayout nodeEditorFragmentLinearLayout;
@@ -188,6 +190,16 @@ public class NodeContentEditorFragment extends Fragment {
             LinearLayout buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row);
             buttonRowLinearLayout.setVisibility(View.GONE);
         }
+
+        // Tries to scroll screen to the same location where it was when user chose to open editor
+        ScrollView scrollView = view.findViewById(R.id.edit_node_fragment_scrollview);
+        ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                // Adds
+                scrollView.setScrollY(getArguments().getInt("scrollY") + DpPxConverter.dpToPx(40));
+            }
+        }, 150);
     }
 
     @Override

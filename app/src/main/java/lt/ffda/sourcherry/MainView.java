@@ -1760,7 +1760,9 @@ public class MainView extends AppCompatActivity {
      */
     private void openNodeEditor() {
         Bundle bundle = new Bundle();
+        ScrollView scrollView = findViewById(R.id.content_fragment_scrollview);
         bundle.putString("nodeUniqueID", this.currentNode.getUniqueId());
+        bundle.putInt("scrollY", scrollView.getScrollY());
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
                 .add(R.id.main_view_fragment, NodeContentEditorFragment.class, bundle, "editNode")

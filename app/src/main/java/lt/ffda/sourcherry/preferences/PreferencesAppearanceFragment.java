@@ -14,7 +14,6 @@ import static android.content.Context.UI_MODE_SERVICE;
 
 import android.app.UiModeManager;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
@@ -36,6 +35,7 @@ import androidx.preference.PreferenceManager;
 import androidx.preference.SeekBarPreference;
 
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.utils.DpPxConverter;
 
 public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
     SharedPreferences sharedPreferences;
@@ -87,7 +87,7 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
                 SharedPreferences.Editor sharedPrefEditor = PreferencesAppearanceFragment.this.sharedPreferences.edit();
-                sharedPrefEditor.putInt("paddingStart", dpToPx((int) newValue));
+                sharedPrefEditor.putInt("paddingStart", DpPxConverter.dpToPx((int) newValue));
                 sharedPrefEditor.commit();
                 return true;
             }
@@ -98,7 +98,7 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
                 SharedPreferences.Editor sharedPrefEditor = PreferencesAppearanceFragment.this.sharedPreferences.edit();
-                sharedPrefEditor.putInt("paddingEnd", dpToPx((int) newValue));
+                sharedPrefEditor.putInt("paddingEnd", DpPxConverter.dpToPx((int) newValue));
                 sharedPrefEditor.commit();
                 return true;
             }
@@ -148,22 +148,4 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
             getParentFragmentManager().popBackStack();
         }
     };
-
-    /**
-     * Converts provided PX value to DP and returns it
-     * @param paddingInPX padding value in PX to be converted
-     * @return padding value in DP
-     */
-    private int pxToDp(int paddingInPX) {
-        return (int) (paddingInPX / Resources.getSystem().getDisplayMetrics().density);
-    }
-
-    /**
-     * Converts provided DP value to PX and returns it
-     * @param paddingInDP padding value in DP to be converted
-     * @return padding value in PX
-     */
-    private int dpToPx(int paddingInDP) {
-        return (int) (paddingInDP * Resources.getSystem().getDisplayMetrics().density);
-    }
 }
