@@ -58,6 +58,7 @@
     <string name="toast_message_rich_text_node_editing_not_supported">Rich text node editing is not supported</string>
     <string name="toast_message_not_password_protected_xml_saves_changes_externally">Not password protected XML databases are already saved externally</string>
     <string name="toast_message_incompatible_database_types">Incompatible database types.</string>
+    <string name="toast_message_codebox_cant_be_formatted">Codebox can\'t be formatted</string>
     <string name="open_database_fragment_copying_database_message">Copying database to app-specific storage</string>
     <string name="open_database_fragment_extracting_database_message">Extracting database</string>
     <string name="toast_error_failed_to_save_file">Failed to save the file</string>
@@ -151,6 +152,8 @@
     <string name="navigation_drawer_button_bookmarks_content_description">Button BOOKMARKS. Displayed in normal and bookmark modes. When pressed - switch menu between normal and bookmark menus.</string>
     <string name="imported_databases_item_export_button_description">EXPORT DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to choose to encrypt with password and confirm of export operation.</string>
     <string name="imported_databases_item_delete_button_description">DELETE DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to confirm deletion.</string>
+    <string name="edit_node_fragment_button_row_clear_formatting">CLEAR FORMATTING. Clears formatting of selected text in Rich-Text node.</string>
+    <string name="edit_node_fragment_button_row_foreground_color">FOREGROUND COLOR. Changes foreground color of selected text in Rich-Text node.</string>
     <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
     <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>
     <string name="menu_item_action_content_description">Drawer menu item preferences. Displays settings icon. When clicked opens contextual menu.</string>

@@ -8,17 +8,48 @@
   ~
   ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
   -->
-
-<ScrollView android:id="@+id/edit_node_fragment_scrollview"
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="?android:attr/windowBackground">
 
-    <LinearLayout
-        android:id="@+id/node_edit_fragment_linearlayout"
+    <ScrollView
+        android:id="@+id/edit_node_fragment_scrollview"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/node_edit_fragment_linearlayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+    <LinearLayout
+        android:id="@+id/edit_node_fragment_button_row"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:background="@color/cherry_red_500"
+        android:orientation="horizontal">
+        <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_clear_formatting"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_clear_formatting"
+            android:src="@drawable/baseline_format_clear_24"/>
+        <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_foreground_color"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_foreground_color"
+            android:src="@drawable/baseline_format_color_text_24"/>
     </LinearLayout>
-</ScrollView>
+</LinearLayout>

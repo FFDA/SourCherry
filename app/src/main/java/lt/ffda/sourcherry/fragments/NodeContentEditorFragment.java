@@ -13,11 +13,23 @@ package lt.ffda.sourcherry.fragments;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.TextWatcher;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
+import android.text.style.SubscriptSpan;
+import android.text.style.SuperscriptSpan;
+import android.text.style.UnderlineSpan;
+import android.util.Base64;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -30,9 +42,11 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
@@ -50,6 +64,7 @@ import androidx.preference.PreferenceManager;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 
+import lt.ffda.sourcherry.CustomEditableFactory;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
@@ -58,6 +73,12 @@ import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
+import lt.ffda.sourcherry.spans.BackgroundColorSpanCustom;
+import lt.ffda.sourcherry.spans.ClickableSpanLink;
+import lt.ffda.sourcherry.spans.ClickableSpanNode;
+import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
+import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
+import lt.ffda.sourcherry.spans.URLSpanWebs;
 
 public class NodeContentEditorFragment extends Fragment {
     private LinearLayout nodeEditorFragmentLinearLayout;
@@ -136,6 +157,7 @@ public class NodeContentEditorFragment extends Fragment {
             this.textChanged = savedInstanceState.getBoolean("textChanged");
             this.changesSaved = savedInstanceState.getBoolean("changesSaved");
             EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+            editText.setEditableFactory(new CustomEditableFactory());
             editText.setText(savedInstanceState.getString("content"), TextView.BufferType.EDITABLE);
             editText.addTextChangedListener(textWatcher);
             editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
@@ -146,6 +168,21 @@ public class NodeContentEditorFragment extends Fragment {
                 }
             });
         }
+
+        ImageButton clearFormattingButton = view.findViewById(R.id.edit_node_fragment_button_row_clear_formatting);
+        clearFormattingButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                NodeContentEditorFragment.this.clearFormatting();
+            }
+        });
+        ImageButton foregroundColorButton = view.findViewById(R.id.edit_node_fragment_button_row_foreground_color);
+        foregroundColorButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                NodeContentEditorFragment.this.changeForegroundColor();
+            }
+        });
     }
 
     @Override
@@ -472,5 +509,337 @@ public class NodeContentEditorFragment extends Fragment {
         SharedPreferences.Editor editor = this.sharedPreferences.edit();
         editor.putString("preferences_unsaved_changes", choice);
         editor.apply();
+    }
+
+    /**
+     * Checks selected text for codeboxes
+     * @return true - if at least one codebox was found, false - otherwise
+     */
+    private boolean checkSelectionForCodebox() {
+        boolean codeboxExists = false;
+        EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+        Object[] spans = editText.getText().getSpans(editText.getSelectionStart(), editText.getSelectionEnd(), Object.class);
+        for (Object span: spans) {
+            if (span instanceof TypefaceSpanCodebox) {
+                codeboxExists = true;
+                break;
+            }
+        }
+        return codeboxExists;
+    }
+
+    /**
+     * Clears some formatting of selected text
+     */
+    private void clearFormatting() {
+        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+            int startOfSelection = editText.getSelectionStart();
+            int endOfSelection = editText.getSelectionEnd();
+            Object[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, Object.class);
+            if (this.checkSelectionForCodebox()) {
+                // As in CherryTree codebox can't be cleared using clear formatting
+                // It only should be deleted
+                Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            for (Object span: spans) {
+                if (span instanceof ForegroundColorSpan) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        int backgroundColor = ((ForegroundColorSpan) span).getForegroundColor();
+                        editText.getText().setSpan(new ForegroundColorSpan(backgroundColor), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(new ForegroundColorSpan(backgroundColor), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        int backgroundColor = ((ForegroundColorSpan) span).getForegroundColor();
+                        editText.getText().setSpan(new ForegroundColorSpan(backgroundColor), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        int backgroundColor = ((ForegroundColorSpan) span).getForegroundColor();
+                        editText.getText().setSpan(new ForegroundColorSpan(backgroundColor), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof BackgroundColorSpan) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
+                        editText.getText().setSpan(new BackgroundColorSpanCustom(backgroundColor), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(new BackgroundColorSpanCustom(backgroundColor), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
+                        editText.getText().setSpan(new BackgroundColorSpanCustom(backgroundColor), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
+                        editText.getText().setSpan(new BackgroundColorSpanCustom(backgroundColor), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof StrikethroughSpan) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(new StrikethroughSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(new StrikethroughSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(new StrikethroughSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(new StrikethroughSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof StyleSpan) {
+                    StyleSpan styleSpan = (StyleSpan) span;
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(this.createStyleSpan(styleSpan), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(this.createStyleSpan(styleSpan), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(this.createStyleSpan(styleSpan), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(this.createStyleSpan(styleSpan), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof RelativeSizeSpan) {
+                    RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
+                    float size = relativeSizeSpan.getSizeChange();
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(new RelativeSizeSpan(size), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(new RelativeSizeSpan(size), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(new RelativeSizeSpan(size), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(new RelativeSizeSpan(size), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof SubscriptSpan) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(new SubscriptSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(new SubscriptSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(new SubscriptSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(new SubscriptSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof SuperscriptSpan) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(new SuperscriptSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(new SuperscriptSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(new SuperscriptSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(new SuperscriptSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof TypefaceSpanFamily) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(new TypefaceSpanFamily("monospace"), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(new TypefaceSpanFamily("monospace"), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(new TypefaceSpanFamily("monospace"), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(new TypefaceSpanFamily("monospace"), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof UnderlineSpan) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(new UnderlineSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(new UnderlineSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(new UnderlineSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(new UnderlineSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof URLSpanWebs) {
+                    URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(new URLSpanWebs(urlSpanWebs.getURL()), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(new URLSpanWebs(urlSpanWebs.getURL()), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(new URLSpanWebs(urlSpanWebs.getURL()), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(new URLSpanWebs(urlSpanWebs.getURL()), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof ClickableSpanNode) {
+                    ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(this.createNodeLink(clickableSpanNode), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(this.createNodeLink(clickableSpanNode), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(this.createNodeLink(clickableSpanNode), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(this.createNodeLink(clickableSpanNode), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                } else if (span instanceof ClickableSpanLink) {
+                    ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+                        // If selection is inside the span
+                        editText.getText().setSpan(this.createFileFolderLink(clickableSpanLink), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        editText.getText().setSpan(this.createFileFolderLink(clickableSpanLink), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+                        // If start of selection is outside the span, but the end is inside
+                        editText.getText().setSpan(this.createFileFolderLink(clickableSpanLink), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else if (startOfSelection >= startOfSpan) {
+                        // If start if selection is inside of the span, but the end is outside
+                        editText.getText().setSpan(this.createFileFolderLink(clickableSpanLink), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    this.textChanged = true;
+                }
+            }
+        }
+    }
+
+    /**
+     * Changes selected text foreground color
+     */
+    private void changeForegroundColor() {
+        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+            if (this.checkSelectionForCodebox()) {
+                // As in CherryTree codebox can't be formatted
+                Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+            int start = editText.getSelectionStart();
+            int end = editText.getSelectionEnd();
+            ForegroundColorSpan fcs = new ForegroundColorSpan(getContext().getColor(R.color.cherry_blue_500));
+            editText.getText().setSpan(fcs, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            this.textChanged = true;
+        }
+    }
+
+    /**
+     * Creates new StyleSpan span object based on passed StyleSpan object as an argument
+     * @param styleSpan StyleSpan object to base new StyleSpan span on
+     * @return new StyleSpan object
+     */
+    private StyleSpan createStyleSpan(StyleSpan styleSpan) {
+        StyleSpan newStyleSpan = null;
+        if (styleSpan.getStyle() == Typeface.BOLD) {
+            newStyleSpan = new StyleSpan(Typeface.BOLD);
+        } else if (styleSpan.getStyle() == Typeface.ITALIC) {
+            newStyleSpan = new StyleSpan(Typeface.ITALIC);
+        }
+        return newStyleSpan;
+    }
+
+    /**
+     * Creates new ClickableSpanNode span object based on passed ClickableSpanNode object as an argument
+     * @param clickableSpanNode ClickableSpanNode object to base new ClickableSpanNode span on
+     * @return new ClickableSpanNode object
+     */
+    private ClickableSpanNode createNodeLink(ClickableSpanNode clickableSpanNode) {
+        // Needed to save context to memory. Otherwise will cause a crash
+        Context context = getContext();
+        ClickableSpanNode newClickableSpanNode = new ClickableSpanNode() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                ((MainView) context).openAnchorLink(DatabaseReaderFactory.getReader().getSingleMenuItem(clickableSpanNode.getNodeUniqueID()));
+            }
+
+            @Override
+            public void updateDrawState(TextPaint ds) {
+                // Formatting of span text
+                ds.setColor(context.getColor(R.color.link_anchor));
+                ds.setUnderlineText(true);
+            }
+        };
+        newClickableSpanNode.setLinkAnchorName(clickableSpanNode.getLinkAnchorName());
+        return newClickableSpanNode;
+    }
+
+    /**
+     * Creates new ClickableSpanLink span object based on passed ClickableSpanLink object as an argument
+     * @param clickableSpanLink ClickableSpanLink object to base new ClickableSpanLink span on
+     * @return new ClickableSpanLink object
+     */
+    private ClickableSpanLink createFileFolderLink(ClickableSpanLink clickableSpanLink) {
+        // Needed to save context to memory. Otherwise will cause a crash
+        Context context = getContext();
+        ClickableSpanLink newClickableSpanLink = new ClickableSpanLink() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                // Decoding of Base64 is done here
+                ((MainView) context).fileFolderLinkFilepath(new String(Base64.decode(clickableSpanLink.getBase64Link(), Base64.DEFAULT)));
+            }
+
+            @Override
+            public void updateDrawState(TextPaint ds) {
+                // Formatting of span text
+                if (clickableSpanLink.getLinkType().equals("file")) {
+                    ds.setColor(context.getColor(R.color.link_file));
+                } else {
+                    ds.setColor(context.getColor(R.color.link_folder));
+                }
+                ds.setUnderlineText(true);
+            }
+        };
+        newClickableSpanLink.setLinkType(clickableSpanLink.getLinkType());
+        newClickableSpanLink.setBase64Link(clickableSpanLink.getBase64Link());
+        return newClickableSpanLink;
     }
 }
