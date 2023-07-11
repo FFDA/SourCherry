@@ -1340,7 +1340,7 @@ public class XMLReader extends DatabaseReader {
             this.displayToast(this.context.getString(R.string.toast_error_while_saving_node_content_not_found));
             return;
         }
-        if (this.mainViewModel.getNodes().get(0).isRichText()) {
+        if (this.mainViewModel.getCurrentNode().isRichText()) {
             int next; // The end of the current span and the start of the next one
             int totalContentLength = 0; // Needed to calculate offset for the tag
             int currentPartContentLength = 0; // Needed to calculate offset for the tag

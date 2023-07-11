@@ -134,12 +134,17 @@ public class NodePropertiesFragment extends Fragment {
     }
 
     /**
-     * Convenience function to call createNewNode in MainView
+     * Convenience function to call updateNodeProperties in MainView
      * @param nodeUniqueID uniqueID of the node that new node will be created in relation with
      * @param progLangFromDatabase node's prog_lang property that was saved in the database when properties were opened
      */
     private void updateNode(String nodeUniqueID, String progLangFromDatabase) {
         String progLang = getNodeProgLangSelection();
+        if (progLang.equals("custom-colors")) {
+            ((MainView) getActivity()).getMainViewModel().getNodes().get(0).setRichText(true);
+        } else {
+            ((MainView) getActivity()).getMainViewModel().getNodes().get(0).setRichText(false);
+        }
         ((MainView) getActivity()).updateNodeProperties(getArguments().getInt("position"), nodeUniqueID, this.getNodeName(), progLang, getNoSearchMeState(), getNoSearchChState(), !progLangFromDatabase.equals(progLang));
     }
 

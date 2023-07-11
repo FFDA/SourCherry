@@ -69,6 +69,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -102,8 +103,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     private final Handler handler;
     private final MainViewModel mainViewModel;
     private final DocumentBuilder documentBuilder;
+    private final Transformer transformer;
 
-    public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler, MainViewModel mainViewModel) throws ParserConfigurationException {
+    public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler, MainViewModel mainViewModel) throws ParserConfigurationException, TransformerConfigurationException {
         this.context = context;
         this.sqlite = sqlite;
         this.handler = handler;
@@ -111,6 +113,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         this.documentBuilder = DocumentBuilderFactory
                 .newInstance()
                 .newDocumentBuilder();
+        this.transformer = TransformerFactory
+                .newInstance()
+                .newTransformer();
     }
 
     @Override
@@ -122,7 +127,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             cursor.close();
             return nodes;
         } else {
-            Cursor cursor = this.sqlite.query("node", new String[]{"name", "node_id"}, null, null, null, null, null);
+            Cursor cursor = this.sqlite.query("node", new String[]{"name", "node_id", "is_richtxt"}, null, null, null, null, null);
             ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, false);
             cursor.close();
             return nodes;
@@ -1095,7 +1100,11 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         ContentValues contentValues = new ContentValues();
         contentValues.put("node_id", newNodeUniqueID);
         contentValues.put("name", name);
-        contentValues.put("txt", "");
+        if (progLang.equals("custom-colors")) {
+            contentValues.put("txt", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><node/>");
+        } else {
+            contentValues.put("txt", "");
+        }
         contentValues.put("syntax", progLang);
         contentValues.put("tags", "");
         contentValues.put("is_ro", 0);
@@ -1343,16 +1352,33 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        Cursor cursorNodeType = this.sqlite.query("node", new String[]{"syntax"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-        cursorNodeType.moveToFirst();
-        String nodeType = cursorNodeType.getString(0);
-        cursorNodeType.close();
+        Cursor cursor = this.sqlite.query("node", new String[]{"txt", "is_richtxt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        cursor.moveToFirst();
+        boolean isRichText = cursor.getInt(1) == 1;
         ContentValues contentValues = new ContentValues();
         contentValues.put("name", name);
-        if (nodeType.equals("custom-colors") && !progLang.equals("custom-colors")) {
-            contentValues.put("txt", this.convertRichTextNodeContentToPlainText(nodeUniqueID).toString());
+        if (isRichText && !progLang.equals("custom-colors")) {
+            // If user chose to convert rich text type node to plain text or automatic system highlighting type
+            contentValues.put("txt", this.convertRichTextNodeContentToPlainText(cursor.getString(0), nodeUniqueID).toString());
+        } else if (!isRichText && progLang.equals("custom-colors")) {
+            // If user chose to convert plain text or automatic system highlighting type node to rich text type
+            StringWriter writer = new StringWriter();
+            Document doc = this.documentBuilder.newDocument();
+            Node node = doc.createElement("node");
+            Element element = doc.createElement("rich_text");
+            element.setTextContent(cursor.getString(0));
+            node.appendChild(element);
+            try {
+                this.transformer.transform(new DOMSource(node), new StreamResult(writer));
+            } catch (TransformerException e) {
+                this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
+                return;
+            }
+            contentValues.put("txt", writer.toString());
         }
+        cursor.close();
         contentValues.put("syntax", progLang);
+        contentValues.put("is_richtxt", progLang.equals("custom-colors") ? 1 : 0);
         contentValues.put("level", this.convertNoSearchToLevel(noSearchMe, noSearchCh));
         contentValues.put("ts_lastsave", String.valueOf(System.currentTimeMillis()));
         this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
@@ -1365,14 +1391,11 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param nodeUniqueID unique id of the node that needs to be converted
      * @return StringBuilder with all the node content without addition tags
      */
-    private StringBuilder convertRichTextNodeContentToPlainText(String nodeUniqueID) {
+    private StringBuilder convertRichTextNodeContentToPlainText(String txt, String nodeUniqueID) {
         StringBuilder nodeContent = new StringBuilder();
         int totalCharOffset = 0;
         // Getting text data of the node
-        Cursor cursor = this.sqlite.query("node", new String[]{"txt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-        cursor.moveToFirst();
-        NodeList nodeList =  this.getDocumentFromString(cursor.getString(0)).getElementsByTagName("node").item(0).getChildNodes();
-        cursor.close();
+        NodeList nodeList =  this.getDocumentFromString(txt).getElementsByTagName("node").item(0).getChildNodes();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             nodeContent.append(node.getTextContent());
@@ -1489,16 +1512,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public void saveNodeContent(String nodeUniqueID) {
-        if (this.mainViewModel.getNodes().get(0).isRichText()) {
-            Transformer transformer;
-            try {
-                transformer = TransformerFactory
-                        .newInstance()
-                        .newTransformer();
-            } catch (Exception e) {
-                this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
-                return;
-            }
+        if (this.mainViewModel.getCurrentNode().isRichText()) {
             Document doc = this.documentBuilder.newDocument();
             StringWriter writer = new StringWriter();
             int next; // The end of the current span and the start of the next one
@@ -1770,7 +1784,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         writer.getBuffer().setLength(0);
                         writer.getBuffer().trimToSize();
                         try {
-                            transformer.transform(new DOMSource(table), new StreamResult(writer));
+                            this.transformer.transform(new DOMSource(table), new StreamResult(writer));
                         } catch (TransformerException e) {
                             this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_table));
                             continue;

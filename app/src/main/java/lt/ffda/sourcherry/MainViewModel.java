@@ -21,6 +21,7 @@ import lt.ffda.sourcherry.model.ScNodeContent;
 
 public class MainViewModel extends ViewModel {
     // Stores data, that should be kept during screen orientation change
+    private ScNode currentNode = null;
     private ArrayList<ScNodeContent> nodeContent;
     private ArrayList<ScNode> nodes;
     private ArrayList<ScNode> tempNodes;
@@ -29,6 +30,22 @@ public class MainViewModel extends ViewModel {
     private ArrayList<SpannableStringBuilder> findInNodeStorage;
     // Stores results for FindInNode() int[textView index in findInNodeStorage, start index of matching substring, end index of matching substring]
     private ArrayList<int[]> findInNodeResultStorage;
+
+    /**
+     * Get currently opened node's ScNode object
+     * @return ScNode object of the currently opened node
+     */
+    public ScNode getCurrentNode() {
+        return this.currentNode;
+    }
+
+    /**
+     * Set currently opened node's ScNode object
+     * @param currentNode ScNode object of the currently opened node
+     */
+    public void setCurrentNode(ScNode currentNode) {
+        this.currentNode = currentNode;
+    }
 
     /**
      * Set currently opened node content

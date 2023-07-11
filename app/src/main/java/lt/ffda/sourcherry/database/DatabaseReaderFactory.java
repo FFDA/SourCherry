@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerConfigurationException;
 
 import lt.ffda.sourcherry.MainViewModel;
 
@@ -40,7 +41,7 @@ public class DatabaseReaderFactory {
      * @return object implementing DatabaseReader interface
      * @throws IOException exceptions while opening XML type databases
      */
-    public static DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences, MainViewModel mainViewModel) throws IOException, ParserConfigurationException {
+    public static DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences, MainViewModel mainViewModel) throws IOException, ParserConfigurationException, TransformerConfigurationException {
         DatabaseReader databaseReader = null;
         String databaseString = sharedPreferences.getString("databaseUri", null);
         if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {

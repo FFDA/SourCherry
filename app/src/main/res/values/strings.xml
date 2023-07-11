@@ -70,6 +70,7 @@
     <string name="toast_error_failed_to_compile_latex">Failed to compile latex code</string>
     <string name="toast_error_failed_to_read_database">Failed to read database</string>
     <string name="toast_error_failed_to_initiate_document_builder">Failed to initiate document builder</string>
+    <string name="toast_error_failed_to_initiate_transformer">Failed to initiate document transformer</string>
     <string name="toast_error_failed_to_convert_string_to_nodelist">Failed to convert String to Document</string>
     <string name="toast_error_failed_to_export_node_to_pdf">Failed to export node to PDF</string>
     <string name="toast_error_failed_to_save_database_changes">Failed to save database changes</string>

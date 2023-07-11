@@ -171,7 +171,7 @@ public class NodeContentEditorFragment extends Fragment {
             });
         }
 
-        if (this.mainViewModel.getNodes().get(0).isRichText()) {
+        if (this.mainViewModel.getCurrentNode().isRichText()) {
             ImageButton clearFormattingButton = view.findViewById(R.id.edit_node_fragment_button_row_clear_formatting);
             clearFormattingButton.setOnClickListener(new View.OnClickListener() {
                 @Override
