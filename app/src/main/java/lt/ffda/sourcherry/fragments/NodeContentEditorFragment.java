@@ -65,7 +65,6 @@ import androidx.preference.PreferenceManager;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 
-import lt.ffda.sourcherry.CustomEditableFactory;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
@@ -148,28 +147,31 @@ public class NodeContentEditorFragment extends Fragment {
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
         this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
+        ScrollView scrollView = view.findViewById(R.id.edit_node_fragment_scrollview);
         if (savedInstanceState == null) {
-            this.executor.execute(new Runnable() {
+            // Tries to scroll screen to the same location where it was when user chose to open editor
+            ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    NodeContentEditorFragment.this.loadContent();
+                    scrollView.setScrollY(getArguments().getInt("scrollY") + DpPxConverter.dpToPx(40));
                 }
-            });
+            }, 150);
         } else {
-            this.textChanged = savedInstanceState.getBoolean("textChanged");
-            this.changesSaved = savedInstanceState.getBoolean("changesSaved");
-            EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
-            editText.setEditableFactory(new CustomEditableFactory());
-            editText.setText(savedInstanceState.getString("content"), TextView.BufferType.EDITABLE);
-            editText.addTextChangedListener(textWatcher);
-            editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-            handler.post(new Runnable() {
+            // Tries to scroll screen to the same location where it was when user rotated device
+            ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
+                    scrollView.setScrollY(savedInstanceState.getInt("scrollY") + DpPxConverter.dpToPx(40));
                 }
-            });
+            }, 150);
+            ((MainView) getContext()).disableDrawerMenu();
         }
+        this.executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                NodeContentEditorFragment.this.loadContent();
+            }
+        });
 
         if (this.mainViewModel.getCurrentNode().isRichText()) {
             ImageButton clearFormattingButton = view.findViewById(R.id.edit_node_fragment_button_row_clear_formatting);
@@ -190,26 +192,14 @@ public class NodeContentEditorFragment extends Fragment {
             LinearLayout buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row);
             buttonRowLinearLayout.setVisibility(View.GONE);
         }
-
-        // Tries to scroll screen to the same location where it was when user chose to open editor
-        ScrollView scrollView = view.findViewById(R.id.edit_node_fragment_scrollview);
-        ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                // Adds
-                scrollView.setScrollY(getArguments().getInt("scrollY") + DpPxConverter.dpToPx(40));
-            }
-        }, 150);
     }
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (this.changesSaved || this.textChanged) {
-            outState.putBoolean("textChanged", this.textChanged);
-            outState.putBoolean("changesSaved", this.changesSaved);
-            EditText editText = (EditText) this.nodeEditorFragmentLinearLayout.getChildAt(0);
-            outState.putString("content", editText.getText().toString());
+        ScrollView scrollView = getView().findViewById(R.id.edit_node_fragment_scrollview);
+        if (scrollView != null) {
+            outState.putInt("scrollY", scrollView.getScrollY());
         }
     }
 

@@ -1323,12 +1323,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     private void deleteNodeChildren(String nodeUniqueID) {
         this.sqlite.beginTransaction();
         try {
-        this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
-        this.sqlite.delete("children", "node_id = ?", new String[]{nodeUniqueID});
-        this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
-        this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
-        this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
-        this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("children", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
             this.sqlite.setTransactionSuccessful();
         } finally {
             this.sqlite.endTransaction();
@@ -1355,33 +1355,45 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         Cursor cursor = this.sqlite.query("node", new String[]{"txt", "is_richtxt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
         cursor.moveToFirst();
         boolean isRichText = cursor.getInt(1) == 1;
-        ContentValues contentValues = new ContentValues();
-        contentValues.put("name", name);
-        if (isRichText && !progLang.equals("custom-colors")) {
-            // If user chose to convert rich text type node to plain text or automatic system highlighting type
-            contentValues.put("txt", this.convertRichTextNodeContentToPlainText(cursor.getString(0), nodeUniqueID).toString());
-        } else if (!isRichText && progLang.equals("custom-colors")) {
-            // If user chose to convert plain text or automatic system highlighting type node to rich text type
-            StringWriter writer = new StringWriter();
-            Document doc = this.documentBuilder.newDocument();
-            Node node = doc.createElement("node");
-            Element element = doc.createElement("rich_text");
-            element.setTextContent(cursor.getString(0));
-            node.appendChild(element);
-            try {
-                this.transformer.transform(new DOMSource(node), new StreamResult(writer));
-            } catch (TransformerException e) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
-                return;
+        this.sqlite.beginTransaction();
+        try {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("name", name);
+            if (isRichText && !progLang.equals("custom-colors")) {
+                // If user chose to convert rich text type node to plain text or automatic system highlighting type
+                contentValues.put("txt", this.convertRichTextNodeContentToPlainText(cursor.getString(0), nodeUniqueID).toString());
+                this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
+                this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+                this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
+                contentValues.put("has_codebox", 0);
+                contentValues.put("has_table", 0);
+                contentValues.put("has_image", 0);
+            } else if (!isRichText && progLang.equals("custom-colors")) {
+                // If user chose to convert plain text or automatic system highlighting type node to rich text type
+                StringWriter writer = new StringWriter();
+                Document doc = this.documentBuilder.newDocument();
+                Node node = doc.createElement("node");
+                Element element = doc.createElement("rich_text");
+                element.setTextContent(cursor.getString(0));
+                node.appendChild(element);
+                try {
+                    this.transformer.transform(new DOMSource(node), new StreamResult(writer));
+                } catch (TransformerException e) {
+                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
+                    return;
+                }
+                contentValues.put("txt", writer.toString());
             }
-            contentValues.put("txt", writer.toString());
+            cursor.close();
+            contentValues.put("syntax", progLang);
+            contentValues.put("is_richtxt", progLang.equals("custom-colors") ? 1 : 0);
+            contentValues.put("level", this.convertNoSearchToLevel(noSearchMe, noSearchCh));
+            contentValues.put("ts_lastsave", String.valueOf(System.currentTimeMillis()));
+            this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
         }
-        cursor.close();
-        contentValues.put("syntax", progLang);
-        contentValues.put("is_richtxt", progLang.equals("custom-colors") ? 1 : 0);
-        contentValues.put("level", this.convertNoSearchToLevel(noSearchMe, noSearchCh));
-        contentValues.put("ts_lastsave", String.valueOf(System.currentTimeMillis()));
-        this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
     }
 
     /**

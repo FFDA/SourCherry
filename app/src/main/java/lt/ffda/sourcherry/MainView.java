@@ -140,7 +140,7 @@ public class MainView extends AppCompatActivity {
         // drawer layout instance to toggle the menu icon to open
         // drawer and back button to close drawer
         this.drawerLayout = findViewById(R.id.drawer_layout);
-        actionBarDrawerToggle = new ActionBarDrawerToggle(this, this.drawerLayout, R.string.nav_open, R.string.nav_close);
+        this.actionBarDrawerToggle = new ActionBarDrawerToggle(this, this.drawerLayout, R.string.nav_open, R.string.nav_close);
         SearchView searchView = findViewById(R.id.navigation_drawer_search);
 
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -1716,6 +1716,24 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
+     * Prepares DrawerLayout for fragments that should not allow user to open the drawer
+     * Hide DrawerLayout completely
+     */
+    private void hideDrawerMenu() {
+        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        getSupportActionBar().hide(); // Hides action bar
+    }
+
+    /**
+     * Prepares DrawerLayout for fragments that should not allow user to open the drawer
+     * Shows back (home) arrow instead of hamburger icon
+     */
+    public void disableDrawerMenu() {
+        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        this.actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+    }
+
+    /**
      * Opens a fragment with information about the node
      * @param nodeUniqueID unique ID of the node of which properties has to be shown
      * @param position node's position in drawer menu as reported by adapter
@@ -1730,9 +1748,7 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, NodePropertiesFragment.class, bundle, "moveNode")
                 .addToBackStack("nodeProperties")
                 .commit();
-        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        getSupportActionBar().hide(); // Hides action bar
+        this.hideDrawerMenu();
     }
 
     /**
@@ -1747,7 +1763,7 @@ public class MainView extends AppCompatActivity {
      */
     public void updateNodeProperties(int position, String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh, boolean reloadNodeContent) {
         getSupportFragmentManager().popBackStack();
-        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
         DatabaseReaderFactory.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
         this.mainViewModel.getNodes().get(position).setName(name);
@@ -1778,8 +1794,7 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, NodeContentEditorFragment.class, bundle, "editNode")
                 .addToBackStack("editNode")
                 .commit();
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+        this.disableDrawerMenu();
     }
 
     /**
@@ -1843,8 +1858,7 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
                 .addToBackStack("imageView")
                 .commit();
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+        this.disableDrawerMenu();
     }
 
     /**
@@ -1861,8 +1875,7 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
                 .addToBackStack("imageView")
                 .commit();
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+        this.disableDrawerMenu();
     }
 
     /**
@@ -1877,8 +1890,7 @@ public class MainView extends AppCompatActivity {
                 .addToBackStack("search")
                 .commit();
         this.setToolbarTitle("Search");
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+        this.disableDrawerMenu();
     }
 
     /**
