@@ -587,7 +587,7 @@ public class MainView extends AppCompatActivity {
         // at earlier point app will crash
         super.onResume();
         if (this.currentNode != null) {
-            this.setToolbarTitle(this.currentNode.getUniqueId());
+            this.setToolbarTitle(this.currentNode.getName());
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyItemChanged(this.currentNodePosition);
             this.loadNodeContent();

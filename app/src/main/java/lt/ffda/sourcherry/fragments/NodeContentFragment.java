@@ -89,6 +89,18 @@ public class NodeContentFragment extends Fragment {
         }, getViewLifecycleOwner() , Lifecycle.State.RESUMED);
         // Registers listener for back button clicks
         this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.callbackDisplayToastBeforeExit);
+
+        if (savedInstanceState != null) {
+            // Tries to scroll screen to the same location where it was when screen orientation happened
+            ScrollView scrollView = view.findViewById(R.id.content_fragment_scrollview);
+            this.handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    // Adds
+                    scrollView.setScrollY(savedInstanceState.getInt("scrollY"));
+                }
+            }, 150);
+        }
     }
 
     @Override
@@ -97,6 +109,13 @@ public class NodeContentFragment extends Fragment {
 
         // Top and bottom paddings are always the same: 14px (5dp)
         this.contentFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ScrollView scrollView = getView().findViewById(R.id.content_fragment_scrollview);
+        outState.putInt("scrollY", scrollView.getScrollY());
     }
 
     /**
