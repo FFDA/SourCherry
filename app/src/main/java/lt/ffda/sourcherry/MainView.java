@@ -864,7 +864,11 @@ public class MainView extends AppCompatActivity {
         if (this.mainViewModel.getNodes().size() == 0 || !this.mainViewModel.getNodes().get(0).isParent()) {
             this.launchCreateNewNodeFragment("0", 1);
         } else {
-            this.launchCreateNewNodeFragment(this.mainViewModel.getCurrentNode().getUniqueId(), 1);
+            if (this.mainViewModel.getNodes().get(0).isParent()) {
+                this.launchCreateNewNodeFragment(this.mainViewModel.getNodes().get(0).getUniqueId(), 1);
+            } else {
+                this.launchCreateNewNodeFragment(this.mainViewModel.getNodes().get(0).getUniqueId(), 1);
+            }
         }
     }
 

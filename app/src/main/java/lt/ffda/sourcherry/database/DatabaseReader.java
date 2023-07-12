@@ -367,7 +367,7 @@ public abstract class DatabaseReader {
 
     /**
      * Creates new node and writes changes to the database
-     * @param nodeUniqueID unique ID of the node that new node will be created in relation with
+     * @param nodeUniqueID unique ID of the node that new node will be created in relation with. Pass 0 to create node in main menu
      * @param relation relation to the node. 0 - sibling, 1 - subnode
      * @param name node name
      * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
