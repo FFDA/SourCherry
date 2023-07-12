@@ -86,6 +86,22 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
+     * Finds node's position in drawer menu
+     * @param nodeUniqueID unique ID of the node which position has to found
+     * @return posotion of the node in drawer menu
+     */
+    public int getNodePositionInMenu(String nodeUniqueID) {
+        int position = -1;
+        for (int i = 0; i < this.nodes.size(); i++) {
+            if (this.getNodes().get(i).getUniqueId().equals(nodeUniqueID)) {
+                position = i;
+                break;
+            }
+        }
+        return position;
+    }
+
+    /**
      * Sets temporary drawer menu node storage to null
      */
     public void resetTempNodes() {

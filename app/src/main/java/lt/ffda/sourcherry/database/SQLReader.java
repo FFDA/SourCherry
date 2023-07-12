@@ -1278,7 +1278,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             cursorMove.close();
             // Moving to new parent
             ContentValues contentValues = new ContentValues();
-            contentValues.put("father_id", Integer.parseInt(destinationNodeUniqueID));
+            contentValues.put("father_id", destinationNodeUniqueID);
             contentValues.put("sequence", newAvailableParentSequencePosition);
             this.sqlite.update("children", contentValues, "node_id = ?", new String[]{targetNodeUniqueID});
             this.fixChildrenNodeSequence(targetParentUniqueID);
@@ -1300,15 +1300,15 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
             this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
             this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
+            Cursor childrenNodeUniqueID = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+            while (childrenNodeUniqueID.moveToNext()) {
+                this.deleteNodeChildren(childrenNodeUniqueID.getString(0));
+            }
+            childrenNodeUniqueID.close();
             this.sqlite.setTransactionSuccessful();
         } finally {
             this.sqlite.endTransaction();
         }
-        Cursor childrenNodeUniqueID = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-        while (childrenNodeUniqueID.moveToNext()) {
-            this.deleteNodeChildren(childrenNodeUniqueID.getString(0));
-        }
-        childrenNodeUniqueID.close();
         this.fixChildrenNodeSequence(parentNodeUniqueID);
         this.fixBookmarkNodeSequence();
     }
@@ -1329,15 +1329,15 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
             this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
             this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
+            Cursor childrenNodeUniqueID = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+            while (childrenNodeUniqueID.moveToNext()) {
+                this.deleteNodeChildren(childrenNodeUniqueID.getString(0));
+            }
+            childrenNodeUniqueID.close();
             this.sqlite.setTransactionSuccessful();
         } finally {
             this.sqlite.endTransaction();
         }
-        Cursor childrenNodeUniqueID = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-        while (childrenNodeUniqueID.moveToNext()) {
-            this.deleteNodeChildren(childrenNodeUniqueID.getString(0));
-        }
-        childrenNodeUniqueID.close();
     }
 
     @Override

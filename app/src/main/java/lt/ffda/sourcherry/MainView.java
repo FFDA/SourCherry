@@ -750,7 +750,7 @@ public class MainView extends AppCompatActivity {
      * node in variables.
      * Reset drawer menu to main menu.
      */
-    private void removeNodeContent() {
+    private void removeNodeContent(int position) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         // Gets instance of the fragment
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
@@ -763,11 +763,11 @@ public class MainView extends AppCompatActivity {
             }
         });
         // Removes all other references to node in UI and variables
-        this.mainViewModel.setNodes(this.reader.getMainNodes());
         this.mainViewModel.setCurrentNode(null);
+        this.mainViewModel.getNodes().remove(position);
         this.currentNodePosition = RecyclerView.NO_POSITION;
         this.adapter.markItemSelected(currentNodePosition);
-        this.adapter.notifyDataSetChanged();
+        this.adapter.notifyItemRemoved(position);
     }
 
     /**
@@ -802,7 +802,7 @@ public class MainView extends AppCompatActivity {
      */
     private void resetMenuToCurrentNode() {
         if (this.mainViewModel.getCurrentNode() != null) {
-            if (MainView.this.mainViewModel.getCurrentNode().hasSubnodes()) { // Checks if node is marked to have subnodes
+            if (MainView.this.mainViewModel.getCurrentNode().hasSubnodes()) {
                 this.mainViewModel.setNodes(this.reader.getSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
                 this.currentNodePosition = 0;
                 this.adapter.markItemSelected(this.currentNodePosition);
@@ -1641,16 +1641,26 @@ public class MainView extends AppCompatActivity {
     public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
         getSupportFragmentManager().popBackStack();
         MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        MainView.this.drawerLayout.open();
         getSupportActionBar().show();
         this.reader.moveNode(targetNodeUniqueID, destinationNodeUniqueID);
         if (this.mainViewModel.getCurrentNode() == null) {
-            this.mainViewModel.setNodes(this.reader.getMainNodes());
+            int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
+            int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
+            this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
+            this.mainViewModel.getNodes().remove(targetNodePosition);
+            this.adapter.notifyItemRemoved(targetNodePosition);
+            this.adapter.notifyItemChanged(destinationNodePosition);
         } else {
             if (this.mainViewModel.getNodes().size() <= 2) {
                 this.mainViewModel.setCurrentNode(this.reader.getSingleMenuItem(this.mainViewModel.getCurrentNode().getUniqueId()));
+                this.resetMenuToCurrentNode();
+            } else {
+                int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
+                this.mainViewModel.getNodes().remove(targetNodePosition);
+                this.adapter.notifyItemRemoved(targetNodePosition);
             }
         }
-        this.resetMenuToCurrentNode();
     }
 
     /**
@@ -1665,7 +1675,7 @@ public class MainView extends AppCompatActivity {
         this.reader.deleteNode(nodeUniqueID);
         if (this.mainViewModel.getCurrentNode() != null && nodeUniqueID.equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
             // Currently displayed node was selected for deletion
-            this.removeNodeContent();
+            this.removeNodeContent(position);
         } else {
             if (this.filterNodeToggle) {
                 // Necessary, otherwise it will show up again in other searches until
@@ -1679,9 +1689,10 @@ public class MainView extends AppCompatActivity {
                 this.removeNodeFromTempNodes(nodeUniqueID);
             }
             // Another node in drawer menu was selected for deletion
-            if (this.mainViewModel.getNodes().size() <= 2 && this.mainViewModel.getCurrentNode() != null) {
-                this.mainViewModel.getCurrentNode().setHasSubnodes(false);
-                this.resetMenuToCurrentNode();
+            if (this.mainViewModel.getNodes().size() <= 2) {
+                this.mainViewModel.getNodes().get(0).setHasSubnodes(false);
+                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId()));
+                this.adapter.notifyDataSetChanged();
             } else {
                 this.mainViewModel.getNodes().remove(position);
                 this.adapter.notifyItemRemoved(position);
