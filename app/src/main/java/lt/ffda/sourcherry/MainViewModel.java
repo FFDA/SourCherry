@@ -12,6 +12,7 @@ package lt.ffda.sourcherry;
 
 import android.text.SpannableStringBuilder;
 
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.util.ArrayList;
@@ -19,10 +20,12 @@ import java.util.ArrayList;
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.model.ScNodeContent;
 
+/**
+ * Stores data, that should be kept during screen orientation change
+ */
 public class MainViewModel extends ViewModel {
-    // Stores data, that should be kept during screen orientation change
     private ScNode currentNode = null;
-    private ArrayList<ScNodeContent> nodeContent;
+    private MutableLiveData<ArrayList<ScNodeContent>> nodeContent;
     private ArrayList<ScNode> nodes;
     private ArrayList<ScNode> tempNodes;
     private ArrayList<ScNode> tempSearchNodes;
@@ -30,6 +33,17 @@ public class MainViewModel extends ViewModel {
     private ArrayList<SpannableStringBuilder> findInNodeStorage;
     // Stores results for FindInNode() int[textView index in findInNodeStorage, start index of matching substring, end index of matching substring]
     private ArrayList<int[]> findInNodeResultStorage;
+
+    /**
+     * LiveData object that stores node content data. Use objects functions to get and set the data.
+     * @return LiveData object with node content
+     */
+    public MutableLiveData<ArrayList<ScNodeContent>> getNodeContent() {
+        if (this.nodeContent == null) {
+            this.nodeContent = new MutableLiveData<>();
+        }
+        return this.nodeContent;
+    }
 
     /**
      * Get currently opened node's ScNode object
@@ -45,23 +59,6 @@ public class MainViewModel extends ViewModel {
      */
     public void setCurrentNode(ScNode currentNode) {
         this.currentNode = currentNode;
-    }
-
-    /**
-     * Set currently opened node content
-     * that will be loaded to display for user
-     * @param nodeContent node content retrieved from database
-     */
-    public void setNodeContent(ArrayList<ScNodeContent> nodeContent) {
-        this.nodeContent = nodeContent;
-    }
-
-    /**
-     * Get current drawer menu items
-     * @return drawer menu items
-     */
-    public ArrayList<ScNodeContent> getNodeContent() {
-        return this.nodeContent;
     }
 
     /**
@@ -242,9 +239,9 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
-     * Deletes stored node content
+     * Deletes stored node content by setting it to empty ArrayList
      */
     public void deleteNodeContent() {
-        this.nodeContent.clear();
+        this.nodeContent.postValue(new ArrayList<>());
     }
 }

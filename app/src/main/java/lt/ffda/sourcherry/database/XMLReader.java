@@ -1349,7 +1349,7 @@ public class XMLReader extends DatabaseReader {
             // Can't get justification for all items that have offset (except tables), so the best next
             // thing I can do is save last detected justification value and used it when creating those nodes
             String lastFoundJustification = "left";
-            for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent()) {
+            for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent().getValue()) {
                 if (scNodeContent.getContentType() == 0) {
                     // To not add content of the the span that is being processed
                     // set addContent to false. Needed because not all elements of the node
@@ -1588,7 +1588,7 @@ public class XMLReader extends DatabaseReader {
                 collectedCodebox = null;
             }
         } else {
-            ScNodeContentText scNodeContentText = (ScNodeContentText) this.mainViewModel.getNodeContent().get(0);
+            ScNodeContentText scNodeContentText = (ScNodeContentText) this.mainViewModel.getNodeContent().getValue().get(0);
             SpannableStringBuilder nodeContent = scNodeContentText.getContent();
             Element element = this.doc.createElement("rich_text");
             this.deleteNodeContent(node);

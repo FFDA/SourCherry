@@ -109,7 +109,7 @@ import lt.ffda.sourcherry.preferences.PreferencesActivity;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
 
-public class MainView extends AppCompatActivity {
+public class MainView extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private ActionBarDrawerToggle actionBarDrawerToggle;
     private DatabaseReader reader;
@@ -517,6 +517,7 @@ public class MainView extends AppCompatActivity {
 
             }
         });
+        PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -592,7 +593,6 @@ public class MainView extends AppCompatActivity {
             this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyItemChanged(this.currentNodePosition);
-            this.loadNodeContent();
         }
 
         if (this.filterNodeToggle) {
@@ -611,19 +611,29 @@ public class MainView extends AppCompatActivity {
 
     @Override
     public void onStop() {
-        super.onStop();
         if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.mainViewModel.getCurrentNode() != null) {
             // Saving current nodeUniqueID to be able to load it on next startup
             SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
             sharedPreferencesEditor.putString("last_node_unique_id", this.mainViewModel.getCurrentNode().getUniqueId());
             sharedPreferencesEditor.apply();
         }
+        super.onStop();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        PreferenceManager.getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(this);
         this.executor.shutdownNow();
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals("preferences_text_size")) {
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
+            nodeContentFragment.loadContent();
+        }
     }
 
     /**
@@ -731,16 +741,11 @@ public class MainView extends AppCompatActivity {
     }
 
     private void loadNodeContent() {
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        // Gets instance of the fragment
-        NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-        // Sends ArrayList to fragment to be added added to view
         this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
         this.executor.execute(new Runnable() {
             @Override
             public void run() {
-                MainView.this.mainViewModel.setNodeContent(MainView.this.reader.getNodeContent(MainView.this.mainViewModel.getCurrentNode().getUniqueId()));
-                nodeContentFragment.loadContent();
+                MainView.this.mainViewModel.getNodeContent().postValue(MainView.this.reader.getNodeContent(MainView.this.mainViewModel.getCurrentNode().getUniqueId()));
             }
         });
     }

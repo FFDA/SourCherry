@@ -59,6 +59,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
@@ -101,6 +102,18 @@ public class NodeContentEditorFragment extends Fragment {
         this.handler = ((MainView) getActivity()).getHandler();
         this.executor = ((MainView) getActivity()).getExecutor();
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {
+            @Override
+            public void onChanged(ArrayList<ScNodeContent> scNodeContents) {
+                NodeContentEditorFragment.this.executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        NodeContentEditorFragment.this.loadContent();
+                    }
+                });
+            }
+        };
+        this.mainViewModel.getNodeContent().observe(getViewLifecycleOwner(), contentObserver);
         return view;
     }
 
@@ -166,12 +179,6 @@ public class NodeContentEditorFragment extends Fragment {
             }, 150);
             ((MainView) getContext()).disableDrawerMenu();
         }
-        this.executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                NodeContentEditorFragment.this.loadContent();
-            }
-        });
 
         if (this.mainViewModel.getCurrentNode().isRichText()) {
             ImageButton clearFormattingButton = view.findViewById(R.id.edit_node_fragment_button_row_clear_formatting);
@@ -261,7 +268,7 @@ public class NodeContentEditorFragment extends Fragment {
             });
         }
 
-        for (ScNodeContent part : mainViewModel.getNodeContent()) {
+        for (ScNodeContent part : mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 // This adds not only text, but images, codeboxes
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
@@ -352,7 +359,7 @@ public class NodeContentEditorFragment extends Fragment {
         this.handler.post(new Runnable() {
             @Override
             public void run() {
-                if (mainViewModel.getNodeContent().size() == 1) {
+                if (mainViewModel.getNodeContent().getValue().size() == 1) {
                     EditText editText = (EditText) NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getChildAt(0);
                     if (editText.getText().length() <= 1) {
                         editText.requestFocus();
@@ -432,7 +439,7 @@ public class NodeContentEditorFragment extends Fragment {
             }
         }
         // Setting new node content
-        this.mainViewModel.setNodeContent(nodeContent);
+        this.mainViewModel.getNodeContent().setValue(nodeContent);
         DatabaseReaderFactory.getReader().saveNodeContent(getArguments().getString("nodeUniqueID"));
         this.addTextChangedListeners();
     }

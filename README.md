@@ -22,6 +22,7 @@ Anyone can compile this app by cloning this repository or download an apk compil
 * Some text most definitely will be missing some formatting and it will look differently compared to how it looks in CherryTree. Notably the is no way of to display “Fill” text paragraph formatting in SourCherry.
 * Not all latex boxes might be displayed. From example latex code in CherryTree only code between ***\begin{align\*}*** and ***\end{align\*}*** tags is used (and only it should be modified). Rest of the code should not be edited in any way.
 * In some instances image will not be displayed and opening/saving attached might cause a crash. It depends on Android version and phone. Default size for Android SQL window size is 2mb. For Android9+ (>=API 28) I increased it to 15mb and it can be adjusted in the settings up to 500mb. XML databases do not have any way to adjust files that can be opened/saved, but it has bigger limit. In my experience it is 11mb.
+* Unsaved data in Node Editor will be lost during configuration changes (screen orientation change, theme change, etc).
 
 ## Password protected databases
 

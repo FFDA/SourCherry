@@ -42,8 +42,11 @@ import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
+
+import java.util.ArrayList;
 
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
@@ -69,6 +72,13 @@ public class NodeContentFragment extends Fragment {
         this.handler = ((MainView) getActivity()).getHandler();
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         this.backToExit = false;
+        final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {
+            @Override
+            public void onChanged(ArrayList<ScNodeContent> scNodeContents) {
+                NodeContentFragment.this.loadContent();
+            }
+        };
+        this.mainViewModel.getNodeContent().observe(getViewLifecycleOwner(), contentObserver);
         return rootView;
     }
 
@@ -106,7 +116,6 @@ public class NodeContentFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-
         // Top and bottom paddings are always the same: 14px (5dp)
         this.contentFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
     }
@@ -126,7 +135,6 @@ public class NodeContentFragment extends Fragment {
     OnBackPressedCallback callbackDisplayToastBeforeExit = new OnBackPressedCallback(true /* enabled by default */) {
         @Override
         public void handleOnBackPressed() {
-
             if (backToExit) { // If button back was already pressed once
                 getActivity().finish();
                 return;
@@ -152,6 +160,9 @@ public class NodeContentFragment extends Fragment {
     };
 
     public void loadContent() {
+        if (this.mainViewModel.getNodeContent().getValue() == null) {
+            return;
+        }
         // Clears layout just in case. Most of the time it is needed
         if (this.contentFragmentLinearLayout != null) {
             handler.post(new Runnable() {
@@ -162,7 +173,7 @@ public class NodeContentFragment extends Fragment {
             });
         }
 
-        for (ScNodeContent part: mainViewModel.getNodeContent()) {
+        for (ScNodeContent part: this.mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
                 SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) scNodeContentText.getContent();

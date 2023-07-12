@@ -1542,7 +1542,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             // Deleting images, latex code (but not files) from database
             this.sqlite.delete("image", "node_id = ? AND time = 0", new String[]{nodeUniqueID});
             try {
-                for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent()) {
+                for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent().getValue()) {
                     if (scNodeContent.getContentType() == 0) {
                         // To not add content of the the span that is being processed
                         // set addContent to false. Needed because not all elements of the node
@@ -1915,7 +1915,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 this.sqlite.endTransaction();
             }
         } else {
-            ScNodeContentText scNodeContentText = (ScNodeContentText) this.mainViewModel.getNodeContent().get(0);
+            ScNodeContentText scNodeContentText = (ScNodeContentText) this.mainViewModel.getNodeContent().getValue().get(0);
             SpannableStringBuilder nodeContent = scNodeContentText.getContent();
             ContentValues contentValues = new ContentValues();
             contentValues.put("txt", nodeContent.toString());
