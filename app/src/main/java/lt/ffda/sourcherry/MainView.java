@@ -751,31 +751,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Removes node content from view and all references to
-     * node in variables.
-     * Reset drawer menu to main menu.
-     */
-    private void removeNodeContent(int position) {
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        // Gets instance of the fragment
-        NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-        this.setToolbarTitle("SourCherry");
-        // Removes all node content
-        this.executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                nodeContentFragment.removeLoadedNodeContent();
-            }
-        });
-        // Removes all other references to node in UI and variables
-        this.mainViewModel.setCurrentNode(null);
-        this.mainViewModel.getNodes().remove(position);
-        this.currentNodePosition = RecyclerView.NO_POSITION;
-        this.adapter.markItemSelected(currentNodePosition);
-        this.adapter.notifyItemRemoved(position);
-    }
-
-    /**
      * Sets toolbar title to the provided string
      * @param title new title for the toolbar
      */
@@ -1670,39 +1645,106 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
 
     /**
      * Deletes node from database, removes node from the drawer menu
-     * if deleted node is not currently opened (selected)
-     * or if node is currently opened reloads drawer menu to main menu,
-     * removes nodeContent and resets action bar title
+     * or loads another one that's more appropriate,
+     * removes nodeContent and resets action bar title if opened node was deleted
      * @param nodeUniqueID unique ID of the node to delete
      * @param position node's position in drawer menu as reported by adapter
      */
     private void deleteNode(String nodeUniqueID, int position) {
-        this.reader.deleteNode(nodeUniqueID);
+        if (this.filterNodeToggle) {
+            // Necessary, otherwise it will show up again in other searches until
+            // the search function is turn off and on again
+            this.removeNodeFromTempSearchNodes(nodeUniqueID);
+        }
+        if (this.bookmarksToggle) {
+            // In case deleted node was in the drawer menu that user opened bookmarks form
+            // If user comes back to that menu (exists bookmarks) without selecting a
+            // bookmarked node to open - deleted node would be visible
+            this.removeNodeFromTempNodes(nodeUniqueID);
+        }
         if (this.mainViewModel.getCurrentNode() != null && nodeUniqueID.equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
             // Currently displayed node was selected for deletion
-            this.removeNodeContent(position);
+            this.mainViewModel.deleteNodeContent();
+            this.setToolbarTitle("SourCherry");
+            this.currentNodePosition = RecyclerView.NO_POSITION;
+            this.adapter.markItemSelected(this.currentNodePosition);
+            ArrayList<ScNode> newMenu = this.reader.getParentWithSubnodes(
+                            this.mainViewModel.getCurrentNode().getUniqueId()).stream()
+                            .filter(n -> !n.getUniqueId().equals(nodeUniqueID))
+                            .collect(Collectors.toCollection(ArrayList::new)
+            );
+            if (newMenu.size() == 1) {
+                newMenu = this.findNextParentWithSubnodes(newMenu.get(0).getUniqueId());
+            }
+            this.mainViewModel.setNodes(newMenu);
+            this.adapter.notifyDataSetChanged();
+            this.mainViewModel.setCurrentNode(null);
         } else {
-            if (this.filterNodeToggle) {
-                // Necessary, otherwise it will show up again in other searches until
-                // the search function is turn off and on again
-                this.removeNodeFromTempSearchNodes(nodeUniqueID);
-            }
-            if (this.bookmarksToggle) {
-                // In case deleted node was in the drawer menu that user opened bookmarks form
-                // If user comes back to that menu (exists bookmarks) without selecting a
-                // bookmarked node to open - deleted node would be visible
-                this.removeNodeFromTempNodes(nodeUniqueID);
-            }
-            // Another node in drawer menu was selected for deletion
-            if (this.mainViewModel.getNodes().size() <= 2) {
-                this.mainViewModel.getNodes().get(0).setHasSubnodes(false);
-                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId()));
+            this.mainViewModel.getNodes().remove(position);
+            if (this.mainViewModel.getNodes().size() < 2) {
+                ArrayList<ScNode> newMenu;
+                if (position == 0) {
+                    newMenu = this.reader.getParentWithSubnodes(nodeUniqueID);
+                } else {
+                    newMenu = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId());
+                }
+                // Deleted node can still be in newMenu list it needs to be removed
+                Iterator<ScNode> iterator = newMenu.iterator();
+                while (iterator.hasNext()) {
+                    ScNode currentNode = iterator.next();
+                    if (currentNode.getUniqueId().equals(nodeUniqueID)) {
+                        iterator.remove();
+                        break;
+                    }
+                }
+                if (mainViewModel.getCurrentNode() != null) {
+                    // If node is opened it has to be selected as such
+                    int newPosition = -1;
+                    for (int i = 0; i < newMenu.size(); i++) {
+                        if (newMenu.get(i).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId())) {
+                            newMenu.get(i).setHasSubnodes(false);
+                        }
+                        if (this.mainViewModel.getCurrentNode() != null) {
+                            if (newMenu.get(i).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
+                                newPosition = i;
+                            }
+                        }
+                    }
+                    this.adapter.markItemSelected(newPosition);
+                    this.currentNodePosition = newPosition;
+                }
+                this.mainViewModel.setNodes(newMenu); // Displaying new nodes in DrawerMenu
                 this.adapter.notifyDataSetChanged();
             } else {
-                this.mainViewModel.getNodes().remove(position);
                 this.adapter.notifyItemRemoved(position);
             }
         }
+        this.reader.deleteNode(nodeUniqueID);
+    }
+
+    /**
+     * Goes up the node tree looking for a parent node with subnodes until it reaches main menu
+     * Used when deleting node that is currently opened
+     * @param nodeUniqueID unique ID of the node that should be a parent
+     * @return ScNode object list that can be added to DrawerMenu
+     */
+    private ArrayList<ScNode> findNextParentWithSubnodes(String nodeUniqueID) {
+        ArrayList<ScNode> mainMenu = this.reader.getMainNodes();
+        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(nodeUniqueID);
+        if (mainMenu == null) {
+            return null; // TODO: what will happen in this situation
+        }
+        while (mainMenu.get(0).getUniqueId().equals(nodes.get(0).getUniqueId())) {
+            if (nodes.size() > 1) {
+                break;
+            }
+            nodes = this.reader.getParentWithSubnodes(nodes.get(0).getUniqueId());
+        }
+        nodes.stream()
+                .filter(node -> node.getUniqueId().equals(nodeUniqueID))
+                .findFirst()
+                .ifPresent(node -> node.setHasSubnodes(false));
+        return nodes;
     }
 
     /**
