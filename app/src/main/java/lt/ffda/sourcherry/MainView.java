@@ -178,6 +178,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 } else {
                     this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
                 }
+                this.loadNodeContent();
                 this.setCurrentNodePosition();
             } else {
                 this.currentNodePosition = -1;
@@ -1637,6 +1638,11 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 this.resetMenuToCurrentNode();
             } else {
                 int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
+                int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
+                if (destinationNodePosition != -1) {
+                    this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
+                    this.adapter.notifyItemChanged(destinationNodePosition);
+                }
                 this.mainViewModel.getNodes().remove(targetNodePosition);
                 this.adapter.notifyItemRemoved(targetNodePosition);
             }
