@@ -420,7 +420,7 @@ public class NodeContentEditorFragment extends Fragment {
                 TableRow tableHeader = (TableRow) tableLayout.getChildAt(0);
                 CharSequence[] headerCells = new CharSequence[tableHeader.getChildCount()];
                 for (int cell = 0; cell < tableHeader.getChildCount(); cell++) {
-                    EditText currentCell = (EditText) tableHeader.getChildAt(0);
+                    EditText currentCell = (EditText) tableHeader.getChildAt(cell);
                     currentCell.clearComposingText();
                     headerCells[cell] = currentCell.getText();
                     if (cell == 0) {
