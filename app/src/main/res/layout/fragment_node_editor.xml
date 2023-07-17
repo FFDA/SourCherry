@@ -43,6 +43,15 @@
             android:contentDescription="@string/edit_node_fragment_button_row_clear_formatting"
             android:src="@drawable/baseline_format_clear_24"/>
         <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_color_picker"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_color_picker"
+            android:src="@drawable/baseline_color_picker_24"/>
+        <ImageButton
             android:id="@+id/edit_node_fragment_button_row_foreground_color"
             android:layout_width="40dp"
             android:layout_height="match_parent"

@@ -81,6 +81,9 @@ import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 import lt.ffda.sourcherry.utils.DpPxConverter;
+import lt.ffda.sourcherry.utils.ColorPickerPresets;
+import me.jfenn.colorpickerdialog.dialogs.ColorPickerDialog;
+import me.jfenn.colorpickerdialog.interfaces.OnColorPickedListener;
 
 public class NodeContentEditorFragment extends Fragment {
     private LinearLayout nodeEditorFragmentLinearLayout;
@@ -91,6 +94,7 @@ public class NodeContentEditorFragment extends Fragment {
     private boolean textChanged = false;
     private boolean changesSaved = false;
     private TextWatcher textWatcher;
+    private int color;
 
     @Nullable
     @Override
@@ -102,6 +106,7 @@ public class NodeContentEditorFragment extends Fragment {
         this.handler = ((MainView) getActivity()).getHandler();
         this.executor = ((MainView) getActivity()).getExecutor();
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        this.color = this.sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
         final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {
             @Override
             public void onChanged(ArrayList<ScNodeContent> scNodeContents) {
@@ -186,6 +191,37 @@ public class NodeContentEditorFragment extends Fragment {
                 @Override
                 public void onClick(View v) {
                     NodeContentEditorFragment.this.clearFormatting();
+                }
+            });
+            ImageButton colorPicker = view.findViewById(R.id.edit_node_fragment_button_row_color_picker);
+            colorPicker.setColorFilter(this.color);
+            colorPicker.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    new ColorPickerDialog()
+                            .withColor(NodeContentEditorFragment.this.color)
+                            .withPresets(
+                                    ColorPickerPresets.BLUE.getColor(),
+                                    ColorPickerPresets.GREEN.getColor(),
+                                    ColorPickerPresets.YELLOW.getColor(),
+                                    ColorPickerPresets.ORANGE.getColor(),
+                                    ColorPickerPresets.RED.getColor(),
+                                    ColorPickerPresets.VIOLET.getColor(),
+                                    ColorPickerPresets.BROWN.getColor(),
+                                    ColorPickerPresets.WHITE.getColor(),
+                                    ColorPickerPresets.BLACK.getColor()
+                            )
+                            .withListener(new OnColorPickedListener<ColorPickerDialog>() {
+                                @Override
+                                public void onColorPicked(@Nullable ColorPickerDialog pickerView, int color) {
+                                    NodeContentEditorFragment.this.color = color;
+                                    SharedPreferences.Editor editor = NodeContentEditorFragment.this.sharedPreferences.edit();
+                                    colorPicker.setColorFilter(color);
+                                    editor.putInt("colorPickerColor", color);
+                                    editor.apply();
+                                }
+                            })
+                            .show(getParentFragmentManager(), "colorPicker");
                 }
             });
             ImageButton foregroundColorButton = view.findViewById(R.id.edit_node_fragment_button_row_foreground_color);
@@ -780,7 +816,7 @@ public class NodeContentEditorFragment extends Fragment {
             EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
             int start = editText.getSelectionStart();
             int end = editText.getSelectionEnd();
-            ForegroundColorSpan fcs = new ForegroundColorSpan(getContext().getColor(R.color.cherry_blue_500));
+            ForegroundColorSpan fcs = new ForegroundColorSpan(this.color);
             editText.getText().setSpan(fcs, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.textChanged = true;
         }

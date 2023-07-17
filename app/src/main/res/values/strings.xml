@@ -96,7 +96,7 @@
     <string name="options_menu_item_about">About</string>
     <string name="options_menu_about_licence">Published under GPL v3</string>
     <string name="options_menu_about_libraries_title">Software used</string>
-    <string name="options_menu_about_libraries_content" translatable="false">7-Zip-JBinding-4Android - https://github.com/omicronapps/7-Zip-JBinding-4Android\nJLatexMath Android - https://github.com/noties/jlatexmath-android</string>
+    <string name="options_menu_about_libraries_content" translatable="false">7-Zip-JBinding-4Android - https://github.com/omicronapps/7-Zip-JBinding-4Android\nJLatexMath Android - https://github.com/noties/jlatexmath-android\nColorPickerDialog - https://github.com/fennifith/ColorPickerDialog</string>
     <string name="options_menu_about_activity_github" translatable="false">GitHub - https://github.com/FFDA/SourCherry</string>
     <string name="options_menu_about_version_code">%1$s (%2$d)</string>
     <string name="options_menu_item_external_storage">Use external storage</string>
@@ -154,6 +154,7 @@
     <string name="imported_databases_item_export_button_description">EXPORT DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to choose to encrypt with password and confirm of export operation.</string>
     <string name="imported_databases_item_delete_button_description">DELETE DATABASE. Displayed next to imported database name. When pressed opens a dialog window for user to confirm deletion.</string>
     <string name="edit_node_fragment_button_row_clear_formatting">CLEAR FORMATTING. Clears formatting of selected text in Rich-Text node.</string>
+    <string name="edit_node_fragment_button_row_color_picker">COLOR PICKER. Opens another dialog to choose a color that foreground/background should be changed to when suing appropriate function.</string>
     <string name="edit_node_fragment_button_row_foreground_color">FOREGROUND COLOR. Changes foreground color of selected text in Rich-Text node.</string>
     <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
     <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>
