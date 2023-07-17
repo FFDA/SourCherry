@@ -29,12 +29,16 @@ public class ScSearchNode extends ScNode {
      * @param hasSubnodes does node has any subnodes. Node with subnodes has an arrow indicating it
      * @param isSubnode is node a subnode. Subnodes are indented in drawer menu
      * @param isRichText is node's type is rich text
+     * @param isBold is node name text should be in bold
+     * @param foregroundColor foreground color of the node name text
+     * @param iconId node icon id
+     * @param isReadOnly is node read only
      * @param query query that was used to find a node
      * @param resultCount count of results in the node
      * @param resultSamples sample lines in the node with the query
      */
-    public ScSearchNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText, String query, int resultCount, String resultSamples) {
-        super(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText);
+    public ScSearchNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText, boolean isBold, String foregroundColor, int iconId, boolean isReadOnly, String query, int resultCount, String resultSamples) {
+        super(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
         this.query = query;
         this.resultCount = resultCount;
         this.resultSamples = resultSamples;
@@ -86,10 +90,14 @@ public class ScSearchNode extends ScNode {
             boolean hasSubnodes = source.readInt() == 1;
             boolean isSubnode = source.readInt() == 1;
             boolean isRichText = source.readInt() == 1;
+            boolean isBold = source.readInt() == 1;
+            String foregoundColor = source.readString();
+            int iconId = source.readInt();
+            boolean isReadOnly = source.readInt() == 1;
             String query = source.readString();
             int resultCount = source.readInt();
             String resultSamples = source.readString();
-            return new ScSearchNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, query, resultCount, resultSamples);
+            return new ScSearchNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregoundColor, iconId, isReadOnly, query, resultCount, resultSamples);
         }
 
         @Override

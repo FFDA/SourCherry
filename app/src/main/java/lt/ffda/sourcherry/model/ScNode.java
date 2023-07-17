@@ -26,6 +26,10 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
     // Depending in this value node will look indented or not
     private boolean isSubnode;
     private boolean isRichText;
+    private boolean isBold;
+    private String foregroundColor;
+    private int iconId; // "Use Selected Icon" in CherryTree node properties menu
+    private boolean isReadOnly;
 
     /**
      * Constructor for SourCherry node object. Changes previous method of keeping node's data in String[]{name, unique_id, has_subnodes, is_parent, is_subnode}
@@ -35,14 +39,22 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
      * @param hasSubnodes does node has any subnodes. Node with subnodes has an arrow indicating it
      * @param isSubnode is node a subnode. Subnodes are indented in drawer menu
      * @param isRichText is node's type is rich text
+     * @param isBold is node name text should be in bold
+     * @param foregroundColor foreground color of the node name text
+     * @param iconId node icon id
+     * @param isReadOnly is node read only
      */
-    public ScNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText) {
+    public ScNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText, boolean isBold, String foregroundColor, int iconId, boolean isReadOnly) {
         this.uniqueId = uniqueId;
         this.name = name;
         this.isParent = isParent;
         this.hasSubnodes = hasSubnodes;
         this.isSubnode = isSubnode;
         this.isRichText = isRichText;
+        this.isBold = isBold;
+        this.foregroundColor = foregroundColor;
+        this.iconId = iconId;
+        this.isReadOnly = isReadOnly;
     }
 
     public String getUniqueId() {
@@ -93,6 +105,71 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         this.isRichText = richText;
     }
 
+    /**
+     * Check property if node name text should be in bold
+     * "Bold" checkbox in CherryTree
+     * @return true - text should be bold, else - false
+     */
+    public boolean isBold() {
+        return isBold;
+    }
+
+    /**
+     * Set property if node name text should be in bold
+     * @param bold true - text should be bold, else - false
+     */
+    public void setBold(boolean bold) {
+        isBold = bold;
+    }
+
+    /**
+     * Get foreground color of the node name text
+     * @return color hex
+     */
+    public String getForegroundColor() {
+        return foregroundColor;
+    }
+
+    /**
+     * Set foreground color of the node name text
+     * @param foregroundColor color hex
+     */
+    public void setForegroundColor(String foregroundColor) {
+        this.foregroundColor = foregroundColor;
+    }
+
+    /**
+     * Get node icon id
+     * @return icon id
+     */
+    public int getIconId() {
+        return iconId;
+    }
+
+    /**
+     * Set node icon id
+     * @param iconId icon id
+     */
+    public void setIconId(int iconId) {
+        this.iconId = iconId;
+    }
+
+    /**
+     * Check if node is read only
+     * @return true - node is read only, else - false
+     */
+    public boolean isReadOnly() {
+        return isReadOnly;
+    }
+
+    /**
+     * Set node read only
+     * @param readOnly true - node is read only, else - false
+     */
+    public void setReadOnly(boolean readOnly) {
+        isReadOnly = readOnly;
+    }
+
     @Override
     public int compareTo(ScNode o) {
         return Integer.parseInt(this.uniqueId) - Integer.parseInt(o.getUniqueId());
@@ -111,6 +188,10 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         dest.writeInt(this.hasSubnodes ? 1 : 0);
         dest.writeInt(this.isSubnode ? 1 : 0);
         dest.writeInt(this.isRichText ? 1 : 0);
+        dest.writeInt(this.isBold ? 1 : 0);
+        dest.writeString(this.foregroundColor);
+        dest.writeInt(this.iconId);
+        dest.writeInt(this.isReadOnly ? 1 : 0);
     }
 
     public static final Parcelable.Creator<ScNode> CREATOR = new Parcelable.Creator<ScNode>() {
@@ -122,7 +203,11 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
             boolean hasSubnodes = source.readInt() == 1;
             boolean isSubnode = source.readInt() == 1;
             boolean isRichText = source.readInt() == 1;
-            return new ScNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText);
+            boolean isBold = source.readInt() == 1;
+            String foregroundColor = source.readString();
+            int iconId = source.readInt();
+            boolean isReadOnly = source.readInt() == 1;
+            return new ScNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
         }
 
         @Override
