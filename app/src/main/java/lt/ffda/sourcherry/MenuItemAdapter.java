@@ -171,6 +171,12 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
             menuItemPadding.setVisibility(View.GONE);
         }
 
+        if (!nodeList.get(position).getForegroundColor().equals("")) {
+            menuItemText.setTextColor(Color.parseColor(nodeList.get(position).getForegroundColor()));
+        } else {
+            menuItemText.setTextColor(Color.BLACK);
+        }
+
         menuItemText.setText(nodeName);
     }
 
