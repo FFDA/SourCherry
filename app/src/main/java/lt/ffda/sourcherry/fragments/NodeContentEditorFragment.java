@@ -238,6 +238,13 @@ public class NodeContentEditorFragment extends Fragment {
                     NodeContentEditorFragment.this.changeBackgroundColor();
                 }
             });
+            ImageButton italicButton = view.findViewById(R.id.edit_node_fragment_button_row_italic);
+            italicButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    NodeContentEditorFragment.this.toggleFontItalic();
+                }
+            });
         } else {
             LinearLayout buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row);
             buttonRowLinearLayout.setVisibility(View.GONE);
@@ -849,6 +856,38 @@ public class NodeContentEditorFragment extends Fragment {
     }
 
     /**
+     * Makes selected font italic if there isn't any italic text in selection.
+     * Otherwise it will remove italic text in selected part of the text.
+     */
+    private void toggleFontItalic() {
+        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+            if (this.checkSelectionForCodebox()) {
+                // As in CherryTree codebox can't be formatted
+                Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+            int startOfSelection = editText.getSelectionStart();
+            int endOfSelection = editText.getSelectionEnd();
+            StyleSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StyleSpan.class);
+            if (spans.length > 0) {
+                for (StyleSpan span: spans) {
+                    if (span.getStyle() == Typeface.ITALIC) {
+                        int startOfSpan = editText.getText().getSpanStart(span);
+                        int endOfSpan = editText.getText().getSpanEnd(span);
+                        editText.getText().removeSpan(span);
+                        this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpan(Typeface.ITALIC), new StyleSpan(Typeface.ITALIC));
+                    }
+                }
+            } else {
+                StyleSpan italicStyleSpan = new StyleSpan(Typeface.ITALIC);
+                editText.getText().setSpan(italicStyleSpan, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                this.textChanged = true;
+            }
+        }
+    }
+
+    /**
      * Creates new StyleSpan span object based on passed StyleSpan object as an argument
      * @param styleSpan StyleSpan object to base new StyleSpan span on
      * @return new StyleSpan object
@@ -917,5 +956,31 @@ public class NodeContentEditorFragment extends Fragment {
         newClickableSpanLink.setLinkType(clickableSpanLink.getLinkType());
         newClickableSpanLink.setBase64Link(clickableSpanLink.getBase64Link());
         return newClickableSpanLink;
+    }
+
+    /**
+     * Applies provided span to the text to the portion of the span that is outside of the selected text
+     * It needs to have two spans because any span object can be used only once
+     * @param startOfSelection index of the text at the start of selection
+     * @param endOfSelection index of the text at the end of selection
+     * @param startOfSpan index of the start of the span
+     * @param endOfSpan index of the end of the span
+     * @param span1 span to reapply
+     * @param span2 span to reapply
+     */
+    private void reapplySpanOutsideSelection(int startOfSelection, int endOfSelection, int startOfSpan, int endOfSpan, Object span1, Object span2) {
+        EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+        if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
+            // If selection is inside the span
+            Object tt = new Object();
+            editText.getText().setSpan(span1, startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            editText.getText().setSpan(span2, endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
+            // If start of selection is outside the span, but the end is inside
+            editText.getText().setSpan(span1, endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (startOfSelection >= startOfSpan) {
+            // If start if selection is inside of the span, but the end is outside
+            editText.getText().setSpan(span1, startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
     }
 }
