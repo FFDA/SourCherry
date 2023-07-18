@@ -1012,7 +1012,7 @@ public class XMLReader extends DatabaseReader {
             }
         }
         String newNodeUniqueID = String.valueOf(getNodeMaxID() + 1);
-        String timestamp = String.valueOf(System.currentTimeMillis());
+        String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
 
         // Creating new node with all necessary tags
         Element newNode = this.doc.createElement("node");
@@ -1210,7 +1210,7 @@ public class XMLReader extends DatabaseReader {
                 properties.getNamedItem("prog_lang").setNodeValue(progLang);
                 properties.getNamedItem("nosearch_me").setNodeValue(noSearchMe);
                 properties.getNamedItem("nosearch_ch").setNodeValue(noSearchCh);
-                properties.getNamedItem("ts_lastsave").setNodeValue(String.valueOf(System.currentTimeMillis()));
+                properties.getNamedItem("ts_lastsave").setNodeValue(String.valueOf(System.currentTimeMillis() / 1000));
                 break;
             }
         }
@@ -1422,7 +1422,7 @@ public class XMLReader extends DatabaseReader {
                                 element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
                                 element.setAttribute("justification", lastFoundJustification);
                                 element.setAttribute("filename", imageSpanFile.getFilename());
-                                element.setAttribute("time", String.valueOf(System.currentTimeMillis()));
+                                element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
                                 if (imageSpanFile.isFromDatabase()) {
                                     element.setTextContent(this.getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
                                 }
@@ -1615,7 +1615,7 @@ public class XMLReader extends DatabaseReader {
             element.setTextContent(nodeContent.toString());
             node.appendChild(element);
         }
-        node.getAttributes().getNamedItem("ts_lastsave").setTextContent(String.valueOf(System.currentTimeMillis()));
+        node.getAttributes().getNamedItem("ts_lastsave").setTextContent(String.valueOf(System.currentTimeMillis() / 1000));
         this.writeIntoDatabase();
     }
 

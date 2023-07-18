@@ -1131,7 +1131,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         // Updating node table
         int newNodeUniqueID = this.getNodeMaxID() + 1;
         byte level = convertNoSearchToLevel(noSearchMe, noSearchCh);
-        String timeStamp = String.valueOf(System.currentTimeMillis());
+        String timeStamp = String.valueOf(System.currentTimeMillis() / 1000);
         ContentValues contentValues = new ContentValues();
         contentValues.put("node_id", newNodeUniqueID);
         contentValues.put("name", name);
@@ -1423,7 +1423,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             contentValues.put("syntax", progLang);
             contentValues.put("is_richtxt", progLang.equals("custom-colors") ? 1 : 0);
             contentValues.put("level", this.convertNoSearchToLevel(noSearchMe, noSearchCh));
-            contentValues.put("ts_lastsave", String.valueOf(System.currentTimeMillis()));
+            contentValues.put("ts_lastsave", String.valueOf(System.currentTimeMillis() / 1000));
             this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
             this.sqlite.setTransactionSuccessful();
         } finally {
@@ -1943,7 +1943,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 // Updating nodeContent - text
                 ContentValues contentValues = new ContentValues();
                 contentValues.put("txt", writer.toString());
-                contentValues.put("ts_lastsave", System.currentTimeMillis());
+                contentValues.put("ts_lastsave", System.currentTimeMillis() / 1000);
                 this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
                 this.sqlite.setTransactionSuccessful();
             } finally {
@@ -1954,7 +1954,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             SpannableStringBuilder nodeContent = scNodeContentText.getContent();
             ContentValues contentValues = new ContentValues();
             contentValues.put("txt", nodeContent.toString());
-            contentValues.put("ts_lastsave", System.currentTimeMillis());
+            contentValues.put("ts_lastsave", System.currentTimeMillis() / 1000);
             this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
         }
     }
