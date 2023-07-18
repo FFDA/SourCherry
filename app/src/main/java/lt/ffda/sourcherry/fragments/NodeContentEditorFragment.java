@@ -600,6 +600,10 @@ public class NodeContentEditorFragment extends Fragment {
             EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
             int startOfSelection = editText.getSelectionStart();
             int endOfSelection = editText.getSelectionEnd();
+            if (endOfSelection - startOfSelection == 0) {
+                // No text selected
+                return;
+            }
             Object[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, Object.class);
             if (this.checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be cleared using clear formatting
@@ -706,6 +710,10 @@ public class NodeContentEditorFragment extends Fragment {
             EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
             int startOfSelection = editText.getSelectionStart();
             int endOfSelection = editText.getSelectionEnd();
+            if (endOfSelection - startOfSelection == 0) {
+                // No text selected
+                return;
+            }
             ForegroundColorSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, ForegroundColorSpan.class);
             if (spans.length > 0) {
                 for (ForegroundColorSpan span: spans) {
@@ -735,6 +743,10 @@ public class NodeContentEditorFragment extends Fragment {
             EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
             int startOfSelection = editText.getSelectionStart();
             int endOfSelection = editText.getSelectionEnd();
+            if (endOfSelection - startOfSelection == 0) {
+                // No text selected
+                return;
+            }
             BackgroundColorSpanCustom[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, BackgroundColorSpanCustom.class);
             if (spans.length > 0) {
                 for (BackgroundColorSpanCustom span: spans) {
@@ -742,7 +754,7 @@ public class NodeContentEditorFragment extends Fragment {
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     int backgroundColor = span.getBackgroundColor();
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(backgroundColor), new ForegroundColorSpan(backgroundColor));
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
                 }
             }
             BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(this.color);
@@ -765,6 +777,10 @@ public class NodeContentEditorFragment extends Fragment {
             EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
             int startOfSelection = editText.getSelectionStart();
             int endOfSelection = editText.getSelectionEnd();
+            if (endOfSelection - startOfSelection == 0) {
+                // No text selected
+                return;
+            }
             StyleSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StyleSpan.class);
             if (spans.length > 0) {
                 for (StyleSpan span: spans) {
