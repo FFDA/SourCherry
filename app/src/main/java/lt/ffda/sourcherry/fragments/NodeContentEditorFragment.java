@@ -23,6 +23,7 @@ import android.text.TextPaint;
 import android.text.TextWatcher;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.LeadingMarginSpan;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
@@ -691,6 +692,9 @@ public class NodeContentEditorFragment extends Fragment {
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, this.createFileFolderLink(clickableSpanLink), this.createFileFolderLink(clickableSpanLink));
+                    this.textChanged = true;
+                } else if (span instanceof LeadingMarginSpan.Standard) {
+                    editText.getText().removeSpan(span);
                     this.textChanged = true;
                 }
             }
