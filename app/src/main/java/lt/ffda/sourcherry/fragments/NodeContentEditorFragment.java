@@ -239,6 +239,13 @@ public class NodeContentEditorFragment extends Fragment {
                     NodeContentEditorFragment.this.changeBackgroundColor();
                 }
             });
+            ImageButton boldButton = view.findViewById(R.id.edit_node_fragment_button_row_bold);
+            boldButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    NodeContentEditorFragment.this.toggleFontBold();
+                }
+            });
             ImageButton italicButton = view.findViewById(R.id.edit_node_fragment_button_row_italic);
             italicButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -776,6 +783,42 @@ public class NodeContentEditorFragment extends Fragment {
             }
             BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(this.color);
             editText.getText().setSpan(bcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            this.textChanged = true;
+        }
+    }
+
+    /**
+     * Makes selected font bold if there isn't any bold text in selection.
+     * Otherwise it will remove bold text in selected part of the text.
+     */
+    private void toggleFontBold() {
+        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+            if (this.checkSelectionForCodebox()) {
+                // As in CherryTree codebox can't be formatted
+                Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+            int startOfSelection = editText.getSelectionStart();
+            int endOfSelection = editText.getSelectionEnd();
+            if (endOfSelection - startOfSelection == 0) {
+                // No text selected
+                return;
+            }
+            StyleSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StyleSpan.class);
+            if (spans.length > 0) {
+                for (StyleSpan span: spans) {
+                    if (span.getStyle() == Typeface.BOLD) {
+                        int startOfSpan = editText.getText().getSpanStart(span);
+                        int endOfSpan = editText.getText().getSpanEnd(span);
+                        editText.getText().removeSpan(span);
+                        this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpan(Typeface.BOLD), new StyleSpan(Typeface.BOLD));
+                    }
+                }
+            } else {
+                StyleSpan italicStyleSpan = new StyleSpan(Typeface.BOLD);
+                editText.getText().setSpan(italicStyleSpan, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
             this.textChanged = true;
         }
     }
