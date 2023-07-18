@@ -319,7 +319,7 @@ public class NodeContentEditorFragment extends Fragment {
             });
         }
 
-        for (ScNodeContent part : mainViewModel.getNodeContent().getValue()) {
+        for (ScNodeContent part : this.mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 // This adds not only text, but images, codeboxes
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
@@ -328,7 +328,7 @@ public class NodeContentEditorFragment extends Fragment {
                 editText.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
                 editText.addTextChangedListener(textWatcher);
                 editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-                handler.post(new Runnable() {
+                this.handler.post(new Runnable() {
                     @Override
                     public void run() {
                         NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
@@ -405,6 +405,19 @@ public class NodeContentEditorFragment extends Fragment {
                     }
                 });
             }
+        }
+        // If last NodeContent elements is a table it won't be possible to add text after it
+        // Adding an extra EditText to allow user to continue typing after last table element
+        if (this.mainViewModel.getNodeContent().getValue().get(this.mainViewModel.getNodeContent().getValue().size() - 1).getContentType() == 1) {
+            EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+            editText.addTextChangedListener(textWatcher);
+            editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+            this.handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
+                }
+            });
         }
         // Shows keyboard if opened node for editing has less than 2 characters in the EditText
         this.handler.post(new Runnable() {
