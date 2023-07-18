@@ -95,7 +95,6 @@ import lt.ffda.sourcherry.spans.ImageSpanLatex;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
-import lt.ffda.sourcherry.utils.ColorConverter;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class SQLReader extends DatabaseReader implements DatabaseVacuum {
@@ -194,7 +193,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
             String foregoundColor = "";
             if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
-                foregoundColor = ColorConverter.rgb24intToRgb24str((cursor.getInt(2) >> 3) & 0xffffff);
+                foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
             }
             int iconId = cursor.getInt(4) >> 1;
             boolean isReadOnly = (cursor.getInt(4) & 0x01) == 1;
@@ -222,7 +221,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
                 String foregoundColor = "";
                 if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
-                    foregoundColor = ColorConverter.rgb24intToRgb24str((cursor.getInt(2) >> 3) & 0xffffff);
+                    foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
                 }
                 int iconId = cursor.getInt(5) >> 1;
                 boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
@@ -251,7 +250,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
                 String foregoundColor = "";
                 if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
-                    foregoundColor = ColorConverter.rgb24intToRgb24str((cursor.getInt(2) >> 3) & 0xffffff);
+                    foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
                 }
                 int iconId = cursor.getInt(5) >> 1;
                 boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
@@ -299,7 +298,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         boolean isBold = ((cursor.getInt(1) >> 1) & 0x01) == 1;
         String foregoundColor = "";
         if (((cursor.getInt(1) >> 2) & 0x01) == 1) {
-            foregoundColor = ColorConverter.rgb24intToRgb24str((cursor.getInt(2) >> 3) & 0xffffff);
+            foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
         }
         int iconId = cursor.getInt(3) >> 1;
         boolean isReadOnly = (cursor.getInt(3) & 0x01) == 1;
@@ -342,7 +341,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             boolean isBold = ((cursor.getInt(1) >> 1) & 0x01) == 1;
             String foregoundColor = "";
             if (((cursor.getInt(1) >> 2) & 0x01) == 1) {
-                foregoundColor = ColorConverter.rgb24intToRgb24str((cursor.getInt(2) >> 3) & 0xffffff);
+                foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
             }
             int iconId = cursor.getInt(3) >> 1;
             boolean isReadOnly = (cursor.getInt(3) & 0x01) == 1;
@@ -2321,7 +2320,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             boolean isBold = ((cursor.getInt(6) >> 1) & 0x01) == 1;
             String foregoundColor = "";
             if (((cursor.getInt(6) >> 2) & 0x01) == 1) {
-                foregoundColor = ColorConverter.rgb24intToRgb24str((cursor.getInt(2) >> 3) & 0xffffff);
+                foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
             }
             int iconId = cursor.getInt(5) >> 1;
             boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
