@@ -231,6 +231,13 @@ public class NodeContentEditorFragment extends Fragment {
                     NodeContentEditorFragment.this.changeForegroundColor();
                 }
             });
+            ImageButton backgroundColorButton = view.findViewById(R.id.edit_node_fragment_button_row_background_color);
+            backgroundColorButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    NodeContentEditorFragment.this.changeBackgroundColor();
+                }
+            });
         } else {
             LinearLayout buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row);
             buttonRowLinearLayout.setVisibility(View.GONE);
@@ -817,6 +824,25 @@ public class NodeContentEditorFragment extends Fragment {
             int start = editText.getSelectionStart();
             int end = editText.getSelectionEnd();
             ForegroundColorSpan fcs = new ForegroundColorSpan(this.color);
+            editText.getText().setSpan(fcs, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            this.textChanged = true;
+        }
+    }
+
+    /**
+     * Changes selected text background color
+     */
+    private void changeBackgroundColor() {
+        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+            if (this.checkSelectionForCodebox()) {
+                // As in CherryTree codebox can't be formatted
+                Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+            int start = editText.getSelectionStart();
+            int end = editText.getSelectionEnd();
+            BackgroundColorSpanCustom fcs = new BackgroundColorSpanCustom(this.color);
             editText.getText().setSpan(fcs, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.textChanged = true;
         }
