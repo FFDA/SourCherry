@@ -704,10 +704,20 @@ public class NodeContentEditorFragment extends Fragment {
                 return;
             }
             EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int start = editText.getSelectionStart();
-            int end = editText.getSelectionEnd();
+            int startOfSelection = editText.getSelectionStart();
+            int endOfSelection = editText.getSelectionEnd();
+            ForegroundColorSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, ForegroundColorSpan.class);
+            if (spans.length > 0) {
+                for (ForegroundColorSpan span: spans) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    int foregroundColor = span.getForegroundColor();
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
+                }
+            }
             ForegroundColorSpan fcs = new ForegroundColorSpan(this.color);
-            editText.getText().setSpan(fcs, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            editText.getText().setSpan(fcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.textChanged = true;
         }
     }
@@ -723,10 +733,20 @@ public class NodeContentEditorFragment extends Fragment {
                 return;
             }
             EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int start = editText.getSelectionStart();
-            int end = editText.getSelectionEnd();
-            BackgroundColorSpanCustom fcs = new BackgroundColorSpanCustom(this.color);
-            editText.getText().setSpan(fcs, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            int startOfSelection = editText.getSelectionStart();
+            int endOfSelection = editText.getSelectionEnd();
+            BackgroundColorSpanCustom[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, BackgroundColorSpanCustom.class);
+            if (spans.length > 0) {
+                for (BackgroundColorSpanCustom span: spans) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    int backgroundColor = span.getBackgroundColor();
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(backgroundColor), new ForegroundColorSpan(backgroundColor));
+                }
+            }
+            BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(this.color);
+            editText.getText().setSpan(bcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.textChanged = true;
         }
     }
@@ -758,8 +778,8 @@ public class NodeContentEditorFragment extends Fragment {
             } else {
                 StyleSpan italicStyleSpan = new StyleSpan(Typeface.ITALIC);
                 editText.getText().setSpan(italicStyleSpan, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                this.textChanged = true;
             }
+            this.textChanged = true;
         }
     }
 
