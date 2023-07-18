@@ -612,72 +612,28 @@ public class NodeContentEditorFragment extends Fragment {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        int backgroundColor = ((ForegroundColorSpan) span).getForegroundColor();
-                        editText.getText().setSpan(new ForegroundColorSpan(backgroundColor), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(new ForegroundColorSpan(backgroundColor), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        int backgroundColor = ((ForegroundColorSpan) span).getForegroundColor();
-                        editText.getText().setSpan(new ForegroundColorSpan(backgroundColor), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        int backgroundColor = ((ForegroundColorSpan) span).getForegroundColor();
-                        editText.getText().setSpan(new ForegroundColorSpan(backgroundColor), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    int foregroundColor = ((ForegroundColorSpan) span).getForegroundColor();
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
                     this.textChanged = true;
                 } else if (span instanceof BackgroundColorSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
-                        editText.getText().setSpan(new BackgroundColorSpanCustom(backgroundColor), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(new BackgroundColorSpanCustom(backgroundColor), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
-                        editText.getText().setSpan(new BackgroundColorSpanCustom(backgroundColor), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
-                        editText.getText().setSpan(new BackgroundColorSpanCustom(backgroundColor), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
                     this.textChanged = true;
                 } else if (span instanceof StrikethroughSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(new StrikethroughSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(new StrikethroughSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(new StrikethroughSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(new StrikethroughSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
                     this.textChanged = true;
                 } else if (span instanceof StyleSpan) {
                     StyleSpan styleSpan = (StyleSpan) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(this.createStyleSpan(styleSpan), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(this.createStyleSpan(styleSpan), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(this.createStyleSpan(styleSpan), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(this.createStyleSpan(styleSpan), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, this.createStyleSpan(styleSpan), this.createStyleSpan(styleSpan));
                     this.textChanged = true;
                 } else if (span instanceof RelativeSizeSpan) {
                     RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
@@ -685,132 +641,52 @@ public class NodeContentEditorFragment extends Fragment {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(new RelativeSizeSpan(size), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(new RelativeSizeSpan(size), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(new RelativeSizeSpan(size), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(new RelativeSizeSpan(size), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new RelativeSizeSpan(size), new RelativeSizeSpan(size));
                     this.textChanged = true;
                 } else if (span instanceof SubscriptSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(new SubscriptSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(new SubscriptSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(new SubscriptSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(new SubscriptSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SubscriptSpan(), new SubscriptSpan());
                     this.textChanged = true;
                 } else if (span instanceof SuperscriptSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(new SuperscriptSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(new SuperscriptSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(new SuperscriptSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(new SuperscriptSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SuperscriptSpan(), new SuperscriptSpan());
                     this.textChanged = true;
                 } else if (span instanceof TypefaceSpanFamily) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(new TypefaceSpanFamily("monospace"), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(new TypefaceSpanFamily("monospace"), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(new TypefaceSpanFamily("monospace"), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(new TypefaceSpanFamily("monospace"), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new TypefaceSpanFamily("monospace"), new TypefaceSpanFamily("monospace"));
                     this.textChanged = true;
                 } else if (span instanceof UnderlineSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(new UnderlineSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(new UnderlineSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(new UnderlineSpan(), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(new UnderlineSpan(), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new UnderlineSpan(), new UnderlineSpan());
                     this.textChanged = true;
                 } else if (span instanceof URLSpanWebs) {
                     URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(new URLSpanWebs(urlSpanWebs.getURL()), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(new URLSpanWebs(urlSpanWebs.getURL()), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(new URLSpanWebs(urlSpanWebs.getURL()), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(new URLSpanWebs(urlSpanWebs.getURL()), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new URLSpanWebs(urlSpanWebs.getURL()), new URLSpanWebs(urlSpanWebs.getURL()));
                     this.textChanged = true;
                 } else if (span instanceof ClickableSpanNode) {
                     ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(this.createNodeLink(clickableSpanNode), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(this.createNodeLink(clickableSpanNode), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(this.createNodeLink(clickableSpanNode), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(this.createNodeLink(clickableSpanNode), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, this.createNodeLink(clickableSpanNode), this.createNodeLink(clickableSpanNode));
                     this.textChanged = true;
                 } else if (span instanceof ClickableSpanLink) {
                     ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
-                        // If selection is inside the span
-                        editText.getText().setSpan(this.createFileFolderLink(clickableSpanLink), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        editText.getText().setSpan(this.createFileFolderLink(clickableSpanLink), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
-                        // If start of selection is outside the span, but the end is inside
-                        editText.getText().setSpan(this.createFileFolderLink(clickableSpanLink), endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    } else if (startOfSelection >= startOfSpan) {
-                        // If start if selection is inside of the span, but the end is outside
-                        editText.getText().setSpan(this.createFileFolderLink(clickableSpanLink), startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, this.createFileFolderLink(clickableSpanLink), this.createFileFolderLink(clickableSpanLink));
                     this.textChanged = true;
                 }
             }
@@ -972,7 +848,6 @@ public class NodeContentEditorFragment extends Fragment {
         EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
         if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
             // If selection is inside the span
-            Object tt = new Object();
             editText.getText().setSpan(span1, startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             editText.getText().setSpan(span2, endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
