@@ -11,7 +11,6 @@
 package lt.ffda.sourcherry.fragments;
 
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -106,8 +105,14 @@ public class NodeContentFragment extends Fragment {
             this.handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    // Adds
-                    scrollView.setScrollY(savedInstanceState.getInt("scrollY"));
+                    double aspectRatio = (double) scrollView.getHeight() / scrollView.getWidth();
+                    // Dividing or multiplying aspectRatio by random numbers to get more precise scroll position
+                    if (aspectRatio < 1) {
+                        aspectRatio /= 0.6;
+                    } else {
+                        aspectRatio *= 0.82;
+                    }
+                    scrollView.setScrollY((int) (savedInstanceState.getInt("scrollY") * aspectRatio));
                 }
             }, 150);
         }

@@ -170,20 +170,29 @@ public class NodeContentEditorFragment extends Fragment {
         ScrollView scrollView = view.findViewById(R.id.edit_node_fragment_scrollview);
         if (savedInstanceState == null) {
             // Tries to scroll screen to the same location where it was when user chose to open editor
-            ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    scrollView.setScrollY(getArguments().getInt("scrollY") + DpPxConverter.dpToPx(40));
-                }
-            }, 150);
+                ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        scrollView.setScrollY(getArguments().getInt("scrollY"));
+                    }
+                }, 150);
         } else {
             // Tries to scroll screen to the same location where it was when user rotated device
-            ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    scrollView.setScrollY(savedInstanceState.getInt("scrollY") + DpPxConverter.dpToPx(40));
-                }
-            }, 150);
+            if (savedInstanceState.getInt("scrollY") != 0) {
+                ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        double aspectRatio = (double) scrollView.getHeight() / scrollView.getWidth();
+                        // Dividing or multiplying aspectRatio by random numbers to get more precise scroll position
+                        if (aspectRatio < 1) {
+                            aspectRatio /= 0.52;
+                        } else {
+                            aspectRatio *= 0.87;
+                        }
+                        scrollView.setScrollY((int) (savedInstanceState.getInt("scrollY") * aspectRatio));
+                    }
+                }, 150);
+            }
             ((MainView) getContext()).disableDrawerMenu();
         }
 
