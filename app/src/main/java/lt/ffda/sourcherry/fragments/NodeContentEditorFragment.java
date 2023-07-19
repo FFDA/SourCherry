@@ -261,6 +261,13 @@ public class NodeContentEditorFragment extends Fragment {
                     NodeContentEditorFragment.this.toggleFontUnderline();
                 }
             });
+            ImageButton strikethoughButton = view.findViewById(R.id.edit_node_fragment_button_row_strikethrough);
+            strikethoughButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    NodeContentEditorFragment.this.toggleFontStrikethrough();
+                }
+            });
         } else {
             LinearLayout buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row);
             buttonRowLinearLayout.setVisibility(View.GONE);
@@ -894,6 +901,39 @@ public class NodeContentEditorFragment extends Fragment {
                 }
             } else {
                 editText.getText().setSpan(new UnderlineSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            this.textChanged = true;
+        }
+    }
+
+    /**
+     * Makes selected text strikethrough if there isn't any struckthrough text in selection.
+     * Otherwise it will remove strikethrough property of the text in selected part of the text.
+     */
+    private void toggleFontStrikethrough() {
+        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+            if (this.checkSelectionForCodebox()) {
+                // As in CherryTree codebox can't be formatted
+                Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+            int startOfSelection = editText.getSelectionStart();
+            int endOfSelection = editText.getSelectionEnd();
+            if (endOfSelection - startOfSelection == 0) {
+                // No text selected
+                return;
+            }
+            StrikethroughSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StrikethroughSpan.class);
+            if (spans.length > 0) {
+                for (StrikethroughSpan span: spans) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
+                }
+            } else {
+                editText.getText().setSpan(new StrikethroughSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             this.textChanged = true;
         }
