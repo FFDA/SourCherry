@@ -12,6 +12,7 @@ package lt.ffda.sourcherry;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +21,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
@@ -97,10 +99,14 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     private OnActionIconClickListener onActionIconClickListener;
     private int selectedPos = RecyclerView.NO_POSITION;
     private final Context context;
+    private final int textColorSecondary;
 
     public MenuItemAdapter(ArrayList<ScNode> nodeList, Context context) {
         this.nodeList = nodeList;
         this.context = context;
+        TypedValue typedValue = new TypedValue();
+        this.context.getTheme().resolveAttribute(android.R.attr.textColorSecondary, typedValue, true);
+        textColorSecondary = ContextCompat.getColor(this.context, typedValue.resourceId);
     }
 
     public interface OnItemClickListener {
@@ -174,7 +180,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         if (!nodeList.get(position).getForegroundColor().equals("")) {
             menuItemText.setTextColor(Color.parseColor(nodeList.get(position).getForegroundColor()));
         } else {
-            menuItemText.setTextColor(Color.BLACK);
+            menuItemText.setTextColor(textColorSecondary);
         }
 
         menuItemText.setText(nodeName);
