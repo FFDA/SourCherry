@@ -254,6 +254,13 @@ public class NodeContentEditorFragment extends Fragment {
                     NodeContentEditorFragment.this.toggleFontItalic();
                 }
             });
+            ImageButton underlineButton = view.findViewById(R.id.edit_node_fragment_button_row_underline);
+            underlineButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    NodeContentEditorFragment.this.toggleFontUnderline();
+                }
+            });
         } else {
             LinearLayout buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row);
             buttonRowLinearLayout.setVisibility(View.GONE);
@@ -795,7 +802,7 @@ public class NodeContentEditorFragment extends Fragment {
 
     /**
      * Makes selected font bold if there isn't any bold text in selection.
-     * Otherwise it will remove bold text in selected part of the text.
+     * Otherwise it will remove bold text  property of the in selected part of the text.
      */
     private void toggleFontBold() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
@@ -828,7 +835,7 @@ public class NodeContentEditorFragment extends Fragment {
 
     /**
      * Makes selected font italic if there isn't any italic text in selection.
-     * Otherwise it will remove italic text in selected part of the text.
+     * Otherwise it will remove italic property of the text in selected part of the text.
      */
     private void toggleFontItalic() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
@@ -854,6 +861,39 @@ public class NodeContentEditorFragment extends Fragment {
                 }
             } else {
                 editText.getText().setSpan(new StyleSpanItalic(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            this.textChanged = true;
+        }
+    }
+
+    /**
+     * Makes selected text underlined if there isn't any underlined text in selection.
+     * Otherwise it will remove underlined property of the text in selected part of the text.
+     */
+    private void toggleFontUnderline() {
+        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+            if (this.checkSelectionForCodebox()) {
+                // As in CherryTree codebox can't be formatted
+                Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+            int startOfSelection = editText.getSelectionStart();
+            int endOfSelection = editText.getSelectionEnd();
+            if (endOfSelection - startOfSelection == 0) {
+                // No text selected
+                return;
+            }
+            UnderlineSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, UnderlineSpan.class);
+            if (spans.length > 0) {
+                for (UnderlineSpan span: spans) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new UnderlineSpan(), new UnderlineSpan());
+                }
+            } else {
+                editText.getText().setSpan(new UnderlineSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             this.textChanged = true;
         }

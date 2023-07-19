@@ -159,6 +159,7 @@
     <string name="edit_node_fragment_button_row_background_color">BACKGROUND COLOR. Changes background color of selected text in Rich-Text node.</string>
     <string name="edit_node_fragment_button_row_bold">BOLD. Toggle Bold font in selected text on and off.</string>
     <string name="edit_node_fragment_button_row_italic">ITALIC. Toggle Italic font in selected text on and off.</string>
+    <string name="edit_node_fragment_button_row_underline">UNDERLINE. Toggle Underline font in selected text on and off.</string>
     <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
     <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>
     <string name="menu_item_action_content_description">Drawer menu item preferences. Displays settings icon. When clicked opens contextual menu.</string>
