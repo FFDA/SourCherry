@@ -13,7 +13,6 @@ package lt.ffda.sourcherry.fragments;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
@@ -78,6 +77,8 @@ import lt.ffda.sourcherry.model.ScNodeContentText;
 import lt.ffda.sourcherry.spans.BackgroundColorSpanCustom;
 import lt.ffda.sourcherry.spans.ClickableSpanLink;
 import lt.ffda.sourcherry.spans.ClickableSpanNode;
+import lt.ffda.sourcherry.spans.StyleSpanBold;
+import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
@@ -653,12 +654,17 @@ public class NodeContentEditorFragment extends Fragment {
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
                     this.textChanged = true;
-                } else if (span instanceof StyleSpan) {
-                    StyleSpan styleSpan = (StyleSpan) span;
+                } else if (span instanceof StyleSpanBold) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, this.createStyleSpan(styleSpan), this.createStyleSpan(styleSpan));
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanBold(), new StyleSpanBold());
+                    this.textChanged = true;
+                } else if (span instanceof StyleSpanItalic) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanItalic(), new StyleSpanItalic());
                     this.textChanged = true;
                 } else if (span instanceof RelativeSizeSpan) {
                     RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
@@ -805,19 +811,16 @@ public class NodeContentEditorFragment extends Fragment {
                 // No text selected
                 return;
             }
-            StyleSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StyleSpan.class);
+            StyleSpanBold[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StyleSpanBold.class);
             if (spans.length > 0) {
-                for (StyleSpan span: spans) {
-                    if (span.getStyle() == Typeface.BOLD) {
-                        int startOfSpan = editText.getText().getSpanStart(span);
-                        int endOfSpan = editText.getText().getSpanEnd(span);
-                        editText.getText().removeSpan(span);
-                        this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpan(Typeface.BOLD), new StyleSpan(Typeface.BOLD));
-                    }
+                for (StyleSpanBold span: spans) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanBold(), new StyleSpanBold());
                 }
             } else {
-                StyleSpan italicStyleSpan = new StyleSpan(Typeface.BOLD);
-                editText.getText().setSpan(italicStyleSpan, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                editText.getText().setSpan(new StyleSpanBold(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             this.textChanged = true;
         }
@@ -841,37 +844,19 @@ public class NodeContentEditorFragment extends Fragment {
                 // No text selected
                 return;
             }
-            StyleSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StyleSpan.class);
+            StyleSpanItalic[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StyleSpanItalic.class);
             if (spans.length > 0) {
                 for (StyleSpan span: spans) {
-                    if (span.getStyle() == Typeface.ITALIC) {
-                        int startOfSpan = editText.getText().getSpanStart(span);
-                        int endOfSpan = editText.getText().getSpanEnd(span);
-                        editText.getText().removeSpan(span);
-                        this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpan(Typeface.ITALIC), new StyleSpan(Typeface.ITALIC));
-                    }
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanItalic(), new StyleSpanItalic());
                 }
             } else {
-                StyleSpan italicStyleSpan = new StyleSpan(Typeface.ITALIC);
-                editText.getText().setSpan(italicStyleSpan, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                editText.getText().setSpan(new StyleSpanItalic(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             this.textChanged = true;
         }
-    }
-
-    /**
-     * Creates new StyleSpan span object based on passed StyleSpan object as an argument
-     * @param styleSpan StyleSpan object to base new StyleSpan span on
-     * @return new StyleSpan object
-     */
-    private StyleSpan createStyleSpan(StyleSpan styleSpan) {
-        StyleSpan newStyleSpan = null;
-        if (styleSpan.getStyle() == Typeface.BOLD) {
-            newStyleSpan = new StyleSpan(Typeface.BOLD);
-        } else if (styleSpan.getStyle() == Typeface.ITALIC) {
-            newStyleSpan = new StyleSpan(Typeface.ITALIC);
-        }
-        return newStyleSpan;
     }
 
     /**

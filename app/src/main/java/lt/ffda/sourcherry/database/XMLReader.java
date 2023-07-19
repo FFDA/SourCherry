@@ -15,7 +15,6 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -34,7 +33,6 @@ import android.text.style.LineBackgroundSpan;
 import android.text.style.QuoteSpan;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
-import android.text.style.StyleSpan;
 import android.text.style.SubscriptSpan;
 import android.text.style.SuperscriptSpan;
 import android.text.style.TypefaceSpan;
@@ -87,6 +85,8 @@ import lt.ffda.sourcherry.spans.ImageSpanAnchor;
 import lt.ffda.sourcherry.spans.ImageSpanFile;
 import lt.ffda.sourcherry.spans.ImageSpanImage;
 import lt.ffda.sourcherry.spans.ImageSpanLatex;
+import lt.ffda.sourcherry.spans.StyleSpanBold;
+import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
@@ -1503,13 +1503,10 @@ public class XMLReader extends DatabaseReader {
                                 }
                             } else if (span instanceof StrikethroughSpan) {
                                 element.setAttribute("strikethrough", "true");
-                            } else if (span instanceof StyleSpan) {
-                                StyleSpan styleSpan = (StyleSpan) span;
-                                if (styleSpan.getStyle() == Typeface.BOLD) {
-                                    element.setAttribute("weight", "heavy");
-                                } else if (styleSpan.getStyle() == Typeface.ITALIC) {
-                                    element.setAttribute("style", "italic");
-                                }
+                            } else if (span instanceof StyleSpanBold) {
+                                element.setAttribute("weight", "heavy");
+                            } else if (span instanceof StyleSpanItalic) {
+                                element.setAttribute("style", "italic");
                             } else if (span instanceof SubscriptSpan) {
                                 element.setAttribute("scale", "sub");
                             } else if (span instanceof SuperscriptSpan) {
