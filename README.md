@@ -41,6 +41,7 @@ For the same reason (SAF) that prevents file extraction without saving files ins
 
 * 7-Zip-JBinding-4Android - https://github.com/omicronapps/7-Zip-JBinding-4Android
 * JLatexMath Android - https://github.com/noties/jlatexmath-android
+* ColorPickerDialog - https://github.com/fennifith/ColorPickerDialog
 
 ## Privacy policy
 
