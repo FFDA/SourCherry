@@ -82,7 +82,6 @@ import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
-import lt.ffda.sourcherry.utils.DpPxConverter;
 import lt.ffda.sourcherry.utils.ColorPickerPresets;
 import me.jfenn.colorpickerdialog.dialogs.ColorPickerDialog;
 import me.jfenn.colorpickerdialog.interfaces.OnColorPickedListener;
@@ -384,6 +383,7 @@ public class NodeContentEditorFragment extends Fragment {
                 }
                 tableScrollView.setLayoutParams(tableScrollViewParams);
                 table.setLightInterface(scNodeContentTable.getLightInterface());
+                table.setColWidths(scNodeContentTable.getColWidths());
                 // Multiplying by arbitrary number to make table cells look better.
                 // For some reason table that looks good in PC version looks worse on android
                 int colMin = (int) (scNodeContentTable.getColMin() * 1.3);
@@ -526,7 +526,7 @@ public class NodeContentEditorFragment extends Fragment {
                     }
                 }
                 tableContent.add(headerCells);
-                nodeContent.add(new ScNodeContentTable((byte) 1, tableContent, colMin, colMax, tableLayout.getLightInterface(), justification));
+                nodeContent.add(new ScNodeContentTable((byte) 1, tableContent, colMin, colMax, tableLayout.getLightInterface(), justification, tableLayout.getColWidths()));
             } else {
                 EditText editText = (EditText) view;
                 editText.clearComposingText();

@@ -538,7 +538,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                 for (int row = 0; row < tableRowsNodes.getLength(); row++) {
                                     currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
                                 }
-                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, lightInterface, tableCursor.getString(3));
+                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, lightInterface, tableCursor.getString(3), ((Element) document.getElementsByTagName("table").item(0)).getAttribute("col_widths"));
                                 tableCursor.close();
                                 nodeTables.add(scNodeContentTable);
                                 // Instead of adding space for formatting reason
@@ -1814,7 +1814,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         }
                         ScNodeContentTable scNodeContentTable = (ScNodeContentTable) offsetObject;
                         Element table = doc.createElement("table");
-                        table.setAttribute("col_widths", "0,0"); // Hardcoding, because I haven't seen a different value
+                        table.setAttribute("col_widths", scNodeContentTable.getColWidths());
                         table.setAttribute("is_light", String.valueOf(scNodeContentTable.getLightInterface()));
                         for (CharSequence[] row : scNodeContentTable.getContent()) {
                             Element rowElement = doc.createElement("row");

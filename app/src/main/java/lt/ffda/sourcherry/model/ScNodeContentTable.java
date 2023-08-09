@@ -15,12 +15,14 @@ import java.util.ArrayList;
 public class ScNodeContentTable implements ScNodeContent {
     private byte type;
     private ArrayList<CharSequence[]> content;
-    private int colMin;
-    private int colMax;
+    private int colMin; // Has no effect in SourCherry
+    private int colMax; // Has no effect in SourCherry
     private String justification;
     // This variable represent is_light element of table tag in CherryTree database
+    // Has no affect in SourCherry
     private byte lightInterface;
     private int newOffset;
+    private String colWidths; // Has no effect in SourCherry
 
     /**
      * Constructor for ScNodeContent object that holds table's data of the node
@@ -28,15 +30,18 @@ public class ScNodeContentTable implements ScNodeContent {
      * @param content node's table content
      * @param colMin column min width
      * @param colMax column max width
-     * @param justification justification of the table and not it's content.
+     * @param lightInterface 1 - light interface is used in, 0 - otherwise
+     * @param justification justification of the table and not it's content
+     * @param colWidths comma separated values representing individual width of the table columns
      */
-    public ScNodeContentTable(byte type, ArrayList<CharSequence[]> content, int colMin, int colMax, byte lightInterface, String justification) {
+    public ScNodeContentTable(byte type, ArrayList<CharSequence[]> content, int colMin, int colMax, byte lightInterface, String justification, String colWidths) {
         this.type = type;
         this.content = content;
         this.colMin = colMin;
         this.colMax = colMax;
         this.lightInterface = lightInterface;
         this.justification = justification;
+        this.colWidths = colWidths;
     }
 
     @Override
@@ -146,5 +151,21 @@ public class ScNodeContentTable implements ScNodeContent {
      */
     public void setNewOffset(int newOffset) {
         this.newOffset = newOffset;
+    }
+
+    /**
+     * Get width of every value
+     * @return comma separated values of column width. 0 means user did not modify the column width and default should be used
+     */
+    public String getColWidths() {
+        return colWidths;
+    }
+
+    /**
+     * Set widths for individual table columns.
+     * @param colWidths Values for each column has to be comma separated. Default value - 0, other positive value - user changed value
+     */
+    public void setColWidths(String colWidths) {
+        this.colWidths = colWidths;
     }
 }

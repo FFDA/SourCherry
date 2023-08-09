@@ -15,6 +15,7 @@ import android.widget.TableLayout;
 
 public class ScTableLayout extends TableLayout {
     private byte lightInterface;
+    private String colWidths;
     public ScTableLayout(Context context) {
         super(context);
     }
@@ -33,5 +34,21 @@ public class ScTableLayout extends TableLayout {
      */
     public void setLightInterface(byte light) {
         this.lightInterface = light;
+    }
+
+    /**
+     * Getting what column widths should be used in CherryTree
+     * @return comma separated values for each column. 0 - default value, otherwise - user set value
+     */
+    public String getColWidths() {
+        return colWidths;
+    }
+
+    /**
+     * Setting what column widths should be used in CherryTree. This value has no effect in SourCherry
+     * @param colWidths comma separated values for each column. 0 - default value, otherwise - user set value
+     */
+    public void setColWidths(String colWidths) {
+        this.colWidths = colWidths;
     }
 }
