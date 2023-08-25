@@ -31,6 +31,8 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 
+import java.io.InputStream;
+
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.customUiElements.ZoomableImageView;
@@ -90,10 +92,10 @@ public class ImageViewFragment extends Fragment {
         ZoomableImageView imageView = getView().findViewById(R.id.image_fragment_imageview);
         if (getArguments().getString("type").equals("image")) {
             // Sets image to ImageView
-            byte[] imageByteArray = DatabaseReaderFactory.getReader().getImageByteArray(getArguments().getString("nodeUniqueID"), getArguments().getString("imageOffset"));
-            if (imageByteArray != null) {
-                Bitmap decodedByte = BitmapFactory.decodeByteArray(imageByteArray, 0, imageByteArray.length);
-                Drawable image = new BitmapDrawable(this.getResources(),decodedByte);
+            InputStream inputStream = DatabaseReaderFactory.getReader().getImageInputStream(getArguments().getString("nodeUniqueID"), getArguments().getString("control"));
+            if (inputStream != null) {
+                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                Drawable image = new BitmapDrawable(this.getResources(),bitmap);
                 imageView.setImageDrawable(image);
             } else {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_load_image, Toast.LENGTH_SHORT).show();

@@ -62,7 +62,7 @@ public class MoveNodeFragment extends Fragment {
             @Override
             public void onItemClick(View itemView, int position) {
                 if (nodeList.get(position).hasSubnodes()) {
-                    MoveNodeFragment.this.setNodes(DatabaseReaderFactory.getReader().getSubnodes(nodeList.get(position).getUniqueId()));
+                    MoveNodeFragment.this.setNodes(DatabaseReaderFactory.getReader().getMenu(nodeList.get(position).getUniqueId()));
                 }
             }
         });

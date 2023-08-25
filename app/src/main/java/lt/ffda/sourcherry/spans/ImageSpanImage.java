@@ -21,6 +21,7 @@ import androidx.annotation.NonNull;
 public class ImageSpanImage extends ImageSpan {
     private int newOffset;
     private String justification;
+    private String sha256sum;
 
     public ImageSpanImage(@NonNull Drawable drawable) {
         super(drawable);
@@ -58,5 +59,22 @@ public class ImageSpanImage extends ImageSpan {
      */
     public void setJustification(String justification) {
         this.justification = justification;
+    }
+
+
+    /**
+     * Get sha256sum value of the file. It is only used in Multifile databases as a filename in filesystem
+     * @return sha256sum value of the file
+     */
+    public String getSha256sum() {
+        return sha256sum;
+    }
+
+    /**
+     * Set sha256sum value of the file. It is only used in Multifile databases as a filename in filesystem
+     * @param sha256sum sha256sum value of the file
+     */
+    public void setSha256sum(String sha256sum) {
+        this.sha256sum = sha256sum;
     }
 }

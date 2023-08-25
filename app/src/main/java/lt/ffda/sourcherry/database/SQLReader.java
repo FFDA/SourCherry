@@ -58,6 +58,7 @@ import org.w3c.dom.NodeList;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -106,8 +107,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     private final Transformer transformer;
 
     public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler, MainViewModel mainViewModel) throws ParserConfigurationException, TransformerConfigurationException {
-        this.context = context;
         this.sqlite = sqlite;
+        this.context = context;
         this.handler = handler;
         this.mainViewModel = mainViewModel;
         this.documentBuilder = DocumentBuilderFactory
@@ -164,7 +165,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     @Override
-    public ArrayList<ScNode> getSubnodes(String nodeUniqueID) {
+    public ArrayList<ScNode> getMenu(String nodeUniqueID) {
         // Returns Subnodes of the node which nodeUniqueID is provided
         Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
         ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, true);
@@ -180,7 +181,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * In that case isSubnode should passed as false
      * If true this value will make node look indented
      * @param cursor SQL Cursor object that contains nodes from which to make a node list
-     * @param isSubnode true - means that node is not a subnode and should not be displayed indented in the drawer menu. false - apposite of that
+     * @param isSubnode true - means that node is a subnode and should not be displayed indented in the drawer menu. false - apposite of that
      * @return ArrayList of node's subnodes.
      */
     public ArrayList<ScNode> returnSubnodeArrayList(Cursor cursor, boolean isSubnode) {
@@ -339,18 +340,18 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             String nameValue = cursor.getString(0);
             boolean isRichText = cursor.getString(2).equals("custom-colors");
             boolean isBold = ((cursor.getInt(1) >> 1) & 0x01) == 1;
-            String foregoundColor = "";
+            String foregroundColor = "";
             if (((cursor.getInt(1) >> 2) & 0x01) == 1) {
-                foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+                foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
             }
             int iconId = cursor.getInt(3) >> 1;
             boolean isReadOnly = (cursor.getInt(3) & 0x01) == 1;
             if (hasSubnodes(nodeUniqueID)) {
                 // if node has subnodes, then it has to be opened as a parent node and displayed as such
-                currentScNode = new ScNode(nodeUniqueID, nameValue, true, true, false, isRichText, isBold, foregoundColor, iconId, isReadOnly);
+                currentScNode = new ScNode(nodeUniqueID, nameValue, true, true, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
             } else {
                 // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-                currentScNode = new ScNode(nodeUniqueID, nameValue, false, false, true, isRichText, isBold, foregoundColor, iconId, isReadOnly);
+                currentScNode = new ScNode(nodeUniqueID, nameValue, false, false, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
             }
         }
         cursor.close();
@@ -361,7 +362,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     public ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID) {
         // Original XML document has newline characters marked (hopefully it's the same with SQL database)
         // Returns ArrayList of objects implementing ScNodeContent interface
-        ArrayList<ScNodeContent> nodeContent = new ArrayList<>(); // The one that will be returned
+        ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
         ArrayList<ScNodeContentTable> nodeTables = new ArrayList<>(); // Temporary for table storage
         ArrayList<Integer> nodeTableCharOffsets = new ArrayList<>();
@@ -536,7 +537,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                     lightInterface = Byte.parseByte(((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light"));
                                 }
                                 for (int row = 0; row < tableRowsNodes.getLength(); row++) {
-                                    currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
+                                    currentTableContent.add(this.getTableRow(tableRowsNodes.item(row)));
                                 }
                                 ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, lightInterface, tableCursor.getString(3), ((Element) document.getElementsByTagName("table").item(0)).getAttribute("col_widths"));
                                 tableCursor.close();
@@ -908,21 +909,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     @Override
-    public CharSequence[] getTableRow(Node row) {
-        // Returns CharSequence[] of the node's "cell" element text
-        NodeList rowCellNodes = row.getChildNodes();
-        CharSequence[] rowCells = new CharSequence[rowCellNodes.getLength()];
-        for (int cell = 0; cell < rowCellNodes.getLength(); cell++) {
-            rowCells[cell] = String.valueOf(rowCellNodes.item(cell).getTextContent());
-        }
-        return rowCells;
-    }
-
-    @Override
-    public byte[] getFileByteArray(String nodeUniqueID, String filename, String time, String offset) {
+    public InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control) {
         // Returns byte array (stream) to be written to file or opened
 
-        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=? AND offset=?", new String[]{nodeUniqueID, filename, time, offset}, null, null, null);
+        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=? AND offset=?", new String[]{nodeUniqueID, filename, time, control}, null, null, null);
         // Getting user choice how big the cursor window should be
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
@@ -939,7 +929,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 cursorWindow = 2;
             }
             cursor.move(1);
-            return cursor.getBlob(0);
+            return new ByteArrayInputStream(cursor.getBlob(0));
         } catch (Exception SQLiteBlobTooBigException) {
             this.displayToast(context.getString(R.string.toast_error_failed_to_open_file_large, cursorWindow));
             return null;
@@ -949,9 +939,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     @Override
-    public byte[] getImageByteArray(String nodeUniqueID, String offset) {
+    public InputStream getImageInputStream(String nodeUniqueID, String control) {
         // Returns image byte array to be displayed in ImageViewFragment because some of the images are too big to pass in a bundle
-        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, offset}, null, null, null);
+        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, control}, null, null, null);
         // Getting user choice how big the cursor window should be
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
@@ -968,7 +958,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 cursorWindow = 2;
             }
             cursor.move(1);
-            return cursor.getBlob(0);
+            return new ByteArrayInputStream(cursor.getBlob(0));
         } catch (Exception SQLiteBlobTooBigException) {
             this.displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
             return null;
@@ -1015,10 +1005,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         Drawable drawableBrokenImage;
         ImageSpan brokenImage;
         if (type == 0) {
-            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_image_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_image_48);
             brokenImage = new ImageSpanImage(drawableBrokenImage);
         } else {
-            drawableBrokenImage =  AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_latex_48);
+            drawableBrokenImage =  AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_latex_48);
             brokenImage = new ImageSpanLatex(drawableBrokenImage);
         }
         //// Inserting image
@@ -1245,8 +1235,15 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         }
     }
 
-    @Override
-    public boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
+    /**
+     * Checks if node is a subnode if another node
+     * Not really sure if it does not return false positives
+     * However all my tests worked
+     * @param targetNodeUniqueID unique ID of the node that needs to be check if it's a parent node
+     * @param destinationNodeUniqueID unique ID of the node that has to be check if it's a child
+     * @return true - if target node is a parent of destination node
+     */
+    private boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
         ArrayList<String> heredity = new ArrayList<>();
         heredity.add(destinationNodeUniqueID);
         while (true) {
@@ -1294,7 +1291,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     @Override
     public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
         if (areNodesRelated(targetNodeUniqueID, destinationNodeUniqueID)) {
-            displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
+            this.displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
         } else {
             // Getting current parent node's unique ID of the target node
             Cursor cursorTargetParent = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{targetNodeUniqueID}, null, null, null, null);

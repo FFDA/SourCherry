@@ -42,7 +42,6 @@ public class DatabaseReaderFactory {
      * @throws IOException exceptions while opening XML type databases
      */
     public static DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences, MainViewModel mainViewModel) throws IOException, ParserConfigurationException, TransformerConfigurationException {
-        DatabaseReader databaseReader = null;
         String databaseString = sharedPreferences.getString("databaseUri", null);
         if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
             // If file is in external storage
@@ -51,6 +50,9 @@ public class DatabaseReaderFactory {
                 InputStream is = context.getContentResolver().openInputStream(Uri.parse(databaseString));
                 databaseReader = new XMLReader(databaseString, is, context, handler, mainViewModel);
                 is.close();
+            } else if (sharedPreferences.getString("databaseFileExtension", null).equals("multi")) {
+                // Multi-file storage
+                databaseReader = new MultiReader(Uri.parse(databaseString), context, handler, mainViewModel);
             }
         } else {
             // If file is in internal app storage
@@ -61,11 +63,10 @@ public class DatabaseReaderFactory {
                 is.close();
             } else {
                 // If file is sql (password protected or not)
-                SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(Uri.parse(databaseString).getPath(), null, SQLiteDatabase.OPEN_READWRITE);
+                SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(databaseString, null, SQLiteDatabase.OPEN_READWRITE);
                 databaseReader = new SQLReader(sqlite, context, handler, mainViewModel);
             }
         }
-        DatabaseReaderFactory.databaseReader = databaseReader;
         return databaseReader;
     }
 

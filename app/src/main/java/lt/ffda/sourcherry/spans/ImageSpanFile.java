@@ -27,6 +27,7 @@ public class ImageSpanFile extends ImageSpan {
     private String originalOffset;
     private int newOffset;
     private String justification;
+    private String sha256sum;
 
     public ImageSpanFile(@NonNull Drawable drawable, int verticalAlignment) {
         super(drawable, verticalAlignment);
@@ -150,5 +151,21 @@ public class ImageSpanFile extends ImageSpan {
      */
     public void setJustification(String justification) {
         this.justification = justification;
+    }
+
+    /**
+     * Get sha256sum value of the file. It is only used in Multifile databases as a filename in filesystem
+     * @return sha256sum value of the file
+     */
+    public String getSha256sum() {
+        return sha256sum;
+    }
+
+    /**
+     * Set sha256sum value of the file. It is only used in Multifile databases as a filename in filesystem
+     * @param sha256sum sha256sum value of the file
+     */
+    public void setSha256sum(String sha256sum) {
+        this.sha256sum = sha256sum;
     }
 }

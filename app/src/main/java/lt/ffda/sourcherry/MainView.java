@@ -80,6 +80,7 @@ import com.google.android.material.snackbar.Snackbar;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
@@ -174,7 +175,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 // Restores node on startup if user set this in settings
                 this.mainViewModel.setCurrentNode(this.reader.getSingleMenuItem(this.sharedPreferences.getString("last_node_unique_id", null)));
                 if (this.mainViewModel.getCurrentNode().hasSubnodes()) { // Checks if menu has subnodes and creates appropriate menu
-                    this.mainViewModel.setNodes(this.reader.getSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
+                    this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
                 } else {
                     this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
                 }
@@ -641,7 +642,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
      * Clears existing menu and recreate with submenu of the currentNode
      */
     private void openSubmenu() {
-        this.mainViewModel.setNodes(this.reader.getSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
+        this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
         this.currentNodePosition = 0;
         this.adapter.markItemSelected(this.currentNodePosition);
         this.adapter.notifyDataSetChanged();
@@ -769,11 +770,9 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
      */
     private void filterNodes(String query) {
         this.mainViewModel.setNodes(this.mainViewModel.getTempSearchNodes());
-
         ArrayList<ScNode> filteredNodes = this.mainViewModel.getNodes().stream()
                 .filter(node -> node.getName().toLowerCase().contains(query.toLowerCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
-
         this.mainViewModel.setNodes(filteredNodes);
         this.adapter.notifyDataSetChanged();
     }
@@ -784,7 +783,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     private void resetMenuToCurrentNode() {
         if (this.mainViewModel.getCurrentNode() != null) {
             if (MainView.this.mainViewModel.getCurrentNode().hasSubnodes()) {
-                this.mainViewModel.setNodes(this.reader.getSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
+                this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
                 this.currentNodePosition = 0;
                 this.adapter.markItemSelected(this.currentNodePosition);
             } else {
@@ -1420,8 +1419,9 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
      * @param nodeUniqueID unique ID of the node that has attached/embedded file
      * @param attachedFileFilename filename of the attached/embedded file
      * @param time timestamp that was saved to the database with the file
+     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
      */
-    public void saveOpenFile(String nodeUniqueID, String attachedFileFilename, String time, String offset) {
+    public void saveOpenFile(String nodeUniqueID, String attachedFileFilename, String time, String control) {
         // Checks preferences if user choice default action for embedded files
         FileNameMap fileNameMap  = URLConnection.getFileNameMap();
         String fileMimeType = fileNameMap.getContentTypeFor(attachedFileFilename);
@@ -1438,7 +1438,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             bundle.putString("nodeUniqueID", nodeUniqueID);
             bundle.putString("filename", attachedFileFilename);
             bundle.putString("time", time);
-            bundle.putString("offset", offset);
+            bundle.putString("offset", control);
             bundle.putString("fileMimeType", fileMimeType);
 
             // Opening dialog fragment to ask user for a choice
@@ -1450,7 +1450,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             saveFile.launch(new String[]{fileMimeType, nodeUniqueID, attachedFileFilename, time});
         } else {
             // Opens file with intent for other apps
-            this.openFile(fileMimeType, nodeUniqueID, attachedFileFilename, time, offset);
+            this.openFile(fileMimeType, nodeUniqueID, attachedFileFilename, time, control);
         }
     }
 
@@ -1460,9 +1460,9 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
      * @param nodeUniqueID unique ID of the node that has attached/embedded file
      * @param filename filename of the attached/embedded file
      * @param time timestamp that was saved to the database with the file
-     * @param offset offset of the file where it has to be inserted in to node content
+     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
      */
-    private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time, String offset) {
+    private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time, String control) {
         try {
             String[] splitFilename = filename.split("\\.");
             // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
@@ -1470,8 +1470,14 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             File tmpAttachedFile = File.createTempFile(splitFilename[0], "." + splitFilename[splitFilename.length - 1]); // Temporary file that will shared
 
             // Writes Base64 encoded string to the temporary file
+            InputStream in = this.reader.getFileInputStream(nodeUniqueID, filename, time, control);
             FileOutputStream out = new FileOutputStream(tmpAttachedFile);
-            out.write(reader.getFileByteArray(nodeUniqueID, filename, time, offset));
+            byte[] buf = new byte[4 * 1024];
+            int length;
+            while ((length = in.read(buf)) != -1) {
+                out.write(buf, 0, length);
+            }
+            in.close();
             out.close();
 
             // Getting Uri to share
@@ -1495,8 +1501,14 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     ActivityResultLauncher<String[]> saveFile = registerForActivityResult(new ReturnSelectedFileUriForSaving(), result -> {
         if (result != null) {
             try {
+                InputStream inputStream = this.reader.getFileInputStream(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time"), result.getExtras().getString("offset"));
                 OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w"); // Output file
-                outputStream.write(reader.getFileByteArray(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time"), result.getExtras().getString("offset")));
+                byte[] buf = new byte[4 * 1024];
+                int length;
+                while ((length = inputStream.read(buf)) != -1) {
+                    outputStream.write(buf, 0, length);
+                }
+                inputStream.close();
                 outputStream.close();
             } catch (Exception e) {
                 Toast.makeText(this, R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
@@ -1913,13 +1925,13 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     /**
      * Function to launch fragment with enlarged image
      * @param nodeUniqueID unique ID of the node that image is embedded into
-     * @param imageOffset offset of the image in the node content
+     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
      */
-    public void openImageView(String nodeUniqueID, String imageOffset) {
+    public void openImageView(String nodeUniqueID, String control) {
         Bundle bundle = new Bundle();
         bundle.putString("type", "image");
         bundle.putString("nodeUniqueID", nodeUniqueID);
-        bundle.putString("imageOffset", imageOffset);
+        bundle.putString("control", control);
         getSupportFragmentManager().beginTransaction()
                 .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .setReorderingAllowed(true)

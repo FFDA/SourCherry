@@ -25,10 +25,12 @@ import android.text.style.SubscriptSpan;
 import android.text.style.SuperscriptSpan;
 import android.text.style.UnderlineSpan;
 
+import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -64,22 +66,12 @@ public abstract class DatabaseReader {
     public abstract ArrayList<ScNode> getBookmarkedNodes();
 
     /**
-     * Returns first level subnodes of the node which nodeUniqueID is provided
+     * Returns ScNode list that can be displayed as a DrawerMenu. Node with nodeUniqueID provided as
+     * an argument will be made as the Parent node.
      * @param nodeUniqueID unique ID of the node which subnodes to return
      * @return ArrayList of node's subnodes.
      */
-    public abstract ArrayList<ScNode> getSubnodes(String nodeUniqueID);
-
-//    ArrayList<String[]> returnSubnodeArrayList(NodeList nodeList, String isSubnode);
-//    // This function scans provided NodeList and
-//    // returns ArrayList with nested String Arrays that
-//    // holds individual menu items
-
-//    boolean hasSubnodes(Node node);
-//    // Checks if provided node has nested "node" tag
-
-//    String[] createParentNode(Node parentNode);
-//    // Creates and returns the node that will be added to the node array as parent node
+    public abstract ArrayList<ScNode> getMenu(String nodeUniqueID);
 
     /**
      * Checks if it is possible to go up in document's node tree from given node
@@ -275,39 +267,34 @@ public abstract class DatabaseReader {
      * @param row Node object that contains one row of the table
      * @return CharSequence[] of the node's "cell" element text
      */
-    public abstract CharSequence[] getTableRow(Node row);
-
-//    int getCharOffset(Node node);
-//    // Returns character offset value that is used in codebox and encoded_png tags
-//    // It is needed to add text in the correct location
-//    // One needs to -1 from the value to make it work
-//    // I don't have and idea why
-
-//    CharSequence[] getTableMaxMin(Node node);
-//    // They will be used to set min and max width for table cell
-
-//    int[] getCodeBoxHeightWidth(Node node);
-//    // This returns int[] with in codebox tag embedded box dimensions
-//    // They will be used to guess what type of formatting to use
+    public CharSequence[] getTableRow(Node row) {
+        // Returns CharSequence[] of the node's "cell" element text
+        NodeList rowCellNodes = ((Element) row).getElementsByTagName("cell");
+        CharSequence[] rowCells = new CharSequence[rowCellNodes.getLength()];
+        for (int cell = 0; cell < rowCellNodes.getLength(); cell++) {
+            rowCells[cell] = String.valueOf(rowCellNodes.item(cell).getTextContent());
+        }
+        return rowCells;
+    }
 
     /**
      * Returns byte array (stream) of the embedded file in the database to be written to file or opened
      * @param nodeUniqueID unique ID of the node to which file was attached to
      * @param filename filename of the file attached to the node
      * @param time datetime of when the file was attached (saved by CherryTree)
-     * @param offset offset of the file where it has to be inserted in to node content
-     * @return byte[] that contains a file
+     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
+     * @return input steam of the file
      */
-    public abstract byte[] getFileByteArray(String nodeUniqueID, String filename, String time, String offset);
+    public abstract InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control);
 
     /**
      * Finds and extracts image from the database
      * Used in ImageViewFragment because some images can be too large to pass in the bundle
      * @param nodeUniqueID unique ID of the node in which image was embedded into
-     * @param offset offset of the image in the node
-     * @return byte[] that contains an image
+     * @param control control value of the image to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
+     * @return input stream of the image
      */
-    public abstract byte[] getImageByteArray(String nodeUniqueID, String offset);
+    public abstract InputStream getImageInputStream(String nodeUniqueID, String control);
 
     /**
      * Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
@@ -395,16 +382,6 @@ public abstract class DatabaseReader {
     public abstract void removeNodeFromBookmarks(String nodeUniqueID);
 
     /**
-     * Checks if node is a subnode if another node
-     * Not really sure if it does not return false positives
-     * However all my tests worked
-     * @param targetNodeUniqueID unique ID of the node that needs to be check if it's a parent node
-     * @param destinationNodeUniqueID unique ID of the node that has to be check if it's a child
-     * @return true - if target node is a parent of destination node
-     */
-    public abstract boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID);
-
-    /**
      * Moves node to different location of the document tree
      * @param targetNodeUniqueID unique ID of the node that user chose to move
      * @param destinationNodeUniqueID unique ID of the node that has to be a parent of the target node
@@ -477,8 +454,8 @@ public abstract class DatabaseReader {
     /**
      * Search for string in the database
      * @param noSearch true - skip nodes marked excluded
-     * @param search string to search in database
+     * @param query string to search in database
      * @return search ArrayList of search result objects
      */
-    public abstract ArrayList<ScSearchNode> search(Boolean noSearch, String search);
+    public abstract ArrayList<ScSearchNode> search(Boolean noSearch, String query);
 }

@@ -10,12 +10,15 @@
 
 package lt.ffda.sourcherry.preferences;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceManager;
 
 import lt.ffda.sourcherry.R;
 
@@ -28,6 +31,11 @@ public class PreferencesFragment extends PreferenceFragmentCompat {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (sharedPreferences.getString("databaseFileExtension", "").equals("multi")) {
+            Preference preference = findPreference("preferences_database");
+            preference.setVisible(false);
+        }
         super.onViewCreated(view, savedInstanceState);
     }
 }

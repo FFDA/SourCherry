@@ -32,6 +32,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.DocumentsContract;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -179,11 +180,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Register activity for user to select a multi-file database folder
+     * Gets permanent read and write permissions for selected folder
+     * Saves necessary data in the preferences displays name of the folder to user
+     */
+    ActivityResultLauncher<Uri> getDatabaseMulti = registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), result -> {
+        if (result != null) {
+            getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            DocumentFile databaseFolder = DocumentFile.fromTreeUri(this, result);
+            this.saveDatabaseToPrefs("shared", databaseFolder.getName(), "multi", result.toString());
+            this.resetMirrorDatabasePreferences();
+            this.setMessageWithDatabaseName();
+        }
+    });
+
+    /**
+     * Launches activity for user to select a folder of multi file database
+     * @param view button that was clicked
+     */
+    public void openGetMultiFileDatabase(View view) {
+        this.getDatabaseMulti.launch(null);
+    }
+
+    /**
      * Registers activity for user to select a document
      * Gets permanent read and write permissions for selected document
-     * Saved necessary data in the preferences
+     * Saves necessary data in the preferences
      */
-    ActivityResultLauncher<String[]> getDatabase = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
+    ActivityResultLauncher<String[]> getDatabaseSingle = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
         if (result != null) {
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
             String databaseFileExtension = databaseDocumentFile.getName().split("\\.")[1];
@@ -201,11 +225,11 @@ public class MainActivity extends AppCompatActivity {
     });
 
     /**
-     * Launches activity for user to select a database
+     * Launches activity for user to select a single file database
      * @param view button that was clicked
      */
-    public void openGetDatabase(View view) {
-        getDatabase.launch(new String[]{"*/*",});
+    public void openGetSingleFileDatabase(View view) {
+        this.getDatabaseSingle.launch(new String[]{"*/*",});
     }
 
     /**
@@ -432,8 +456,11 @@ public class MainActivity extends AppCompatActivity {
      */
     private void openDatabase() {
         String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
-        if (this.sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
-            // A check for external databases that they still exists and app still able to read it
+        if (this.sharedPreferences.getString("databaseStorageType", null).equals("internal") || databaseFileExtension.equals("multi")) {
+            // If database is in app-specific storage there is no need for any processing
+            this.startMainViewActivity();
+        } else {
+            // A check for external databases that they still exists
             // If the check fails message for user is displayed and MainView activity will not open
             Uri databaseUri = Uri.parse(this.sharedPreferences.getString("databaseUri", null));
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, databaseUri);
@@ -469,9 +496,6 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this,R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
             }
-        } else {
-            // If database is in app-specific storage there is no need for any processing
-            this.startMainViewActivity();
         }
     }
 
@@ -491,7 +515,7 @@ public class MainActivity extends AppCompatActivity {
      * Saves passed information about database to preferences
      * @param databaseStorageType values can be "shared" or "internal"
      * @param databaseFilename database filename with extension
-     * @param databaseFileExtension database extension
+     * @param databaseFileExtension database extension. Should match the file selected. SQLite: ctb, ctx (protected). XML: ctd, ctz (protected), multi-file: multi
      * @param databaseUri uri for shared databases and path for internal databases
      */
     private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
@@ -575,13 +599,11 @@ public class MainActivity extends AppCompatActivity {
         Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
         long mirrorDatabaseDocumentFileLastModified = 0;
         String mirrorDatabaseFileExtension = null;
-
         String mirrorDatabaseFolderUriString = this.sharedPreferences.getString("mirrorDatabaseFolderUri", null);
         if (mirrorDatabaseFolderUriString != null) {
             // Reading through files inside Mirror Database Folder
             Uri mirrorDatabaseFolderUri = Uri.parse(mirrorDatabaseFolderUriString);
             Uri mirrorDatabaseFolderChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mirrorDatabaseFolderUri, DocumentsContract.getTreeDocumentId(mirrorDatabaseFolderUri));
-
             Cursor cursor = this.getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
             while (cursor != null && cursor.moveToNext()) {
                 if (cursor.getString(1).equals(this.sharedPreferences.getString("mirrorDatabaseFilename", null))) {

@@ -50,6 +50,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -175,9 +176,7 @@ public class XMLReader extends DatabaseReader {
                 nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
             }
         }
-
         Collections.sort(nodes);
-
         if (nodes.size() == 0) {
             return null;
         } else {
@@ -186,7 +185,7 @@ public class XMLReader extends DatabaseReader {
     }
 
     @Override
-    public ArrayList<ScNode> getSubnodes(String nodeUniqueID) {
+    public ArrayList<ScNode> getMenu(String nodeUniqueID) {
         // Returns Subnodes of the node which nodeUniqueID is provided
         ArrayList<ScNode> nodes = new ArrayList<>();
         NodeList nodeList = this.doc.getElementsByTagName("node");
@@ -365,7 +364,7 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID) {
-        ArrayList<ScNodeContent> nodeContent = new ArrayList<>(); // The one that will be returned
+        ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
         ArrayList<ScNodeContentTable> nodeTables = new ArrayList<>(); // Temporary for table storage
         ArrayList<Integer> nodeTableCharOffsets = new ArrayList<>();
@@ -400,8 +399,8 @@ public class XMLReader extends DatabaseReader {
                                 }
                                 break;
                             case "codebox": {
-                                int charOffset = getCharOffset(currentNode);
-                                SpannableStringBuilder codeboxText = makeFormattedCodebox(currentNode);
+                                int charOffset = this.getCharOffset(currentNode);
+                                SpannableStringBuilder codeboxText = this.makeFormattedCodebox(currentNode);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
                                 totalCharOffset += codeboxText.length() - 1;
                                 break;
@@ -412,20 +411,20 @@ public class XMLReader extends DatabaseReader {
                                 if (currentNode.getAttributes().getNamedItem("filename") != null) {
                                     if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
                                         // For latex boxes
-                                        SpannableStringBuilder latexImageSpan = makeLatexImageSpan(currentNode);
+                                        SpannableStringBuilder latexImageSpan = this.makeLatexImageSpan(currentNode);
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
                                     } else {
                                         // For actual attached files
-                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode, nodeUniqueID);
+                                        SpannableStringBuilder attachedFileSpan = this.makeAttachedFileSpan(currentNode, nodeUniqueID);
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                         totalCharOffset += attachedFileSpan.length() - 1;
                                     }
                                 } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
-                                    SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
+                                    SpannableStringBuilder anchorImageSpan = this.makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
                                     nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
                                 } else {
                                     // Images
-                                    SpannableStringBuilder imageSpan = makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
+                                    SpannableStringBuilder imageSpan = this.makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
                                     nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                                 }
                                 break;
@@ -433,7 +432,7 @@ public class XMLReader extends DatabaseReader {
                             case "table": {
                                 int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
                                 nodeTableCharOffsets.add(charOffset);
-                                int[] cellMinMax = getTableMinMax(currentNode);
+                                int[] cellMinMax = this.getTableMinMax(currentNode);
                                 ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
                                 byte lightInterface = 0;
                                 if (!((Element) currentNode).getAttribute("is_light").equals("")) {
@@ -441,7 +440,7 @@ public class XMLReader extends DatabaseReader {
                                 }
                                 NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
                                 for (int row = 0; row < tableRowsNodes.getLength(); row++) {
-                                    currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
+                                    currentTableContent.add(this.getTableRow(tableRowsNodes.item(row)));
                                 }
                                 ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], lightInterface, ((Element) currentNode).getAttribute("justification"), ((Element) currentNode).getAttribute("col_widths"));
                                 nodeTables.add(scNodeContentTable);
@@ -809,17 +808,6 @@ public class XMLReader extends DatabaseReader {
         return clickableSpanLink;
     }
 
-    @Override
-    public CharSequence[] getTableRow(Node row) {
-        // Returns CharSequence[] of the node's "cell" element text
-        NodeList rowCellNodes = ((Element) row).getElementsByTagName("cell");
-        CharSequence[] rowCells = new CharSequence[rowCellNodes.getLength()];
-        for (int cell = 0; cell < rowCellNodes.getLength(); cell++) {
-            rowCells[cell] = String.valueOf(rowCellNodes.item(cell).getTextContent());
-        }
-        return rowCells;
-    }
-
     /**
      * Returns character offset value that is used in codebox and encoded_png tags
      * It is needed to add text in the correct location
@@ -843,7 +831,6 @@ public class XMLReader extends DatabaseReader {
         Element el = (Element) node;
         int colMin = Integer.parseInt(el.getAttribute("col_min"));
         int colMax = Integer.parseInt(el.getAttribute("col_max"));
-
         return new int[] {colMin, colMax};
     }
 
@@ -863,10 +850,9 @@ public class XMLReader extends DatabaseReader {
     }
 
     @Override
-    public byte[] getFileByteArray(String nodeUniqueID, String filename, String time, String offset) {
+    public InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control) {
         // Returns byte array (stream) to be written to file or opened
         NodeList nodeList = this.doc.getElementsByTagName("node");
-
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
@@ -875,9 +861,9 @@ public class XMLReader extends DatabaseReader {
                     Node currentNode = encodedpngNodeList.item(x);
                     if (currentNode.getAttributes().getNamedItem("filename") != null) { // Checks if node has the attribute, otherwise it's an image
                         if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals(filename)) { // If filename matches the one provided
-                            if (currentNode.getAttributes().getNamedItem("time").getNodeValue().equals(time) && currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(offset)) { // Checks if timestamp and offset matches the file
+                            if (currentNode.getAttributes().getNamedItem("time").getNodeValue().equals(time) && currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(control)) { // Checks if timestamp and offset matches the file
                                 // Will crash the app if file is big enough (11MB on my phone). No way to catch it as exception.
-                                return Base64.decode(currentNode.getTextContent(), Base64.DEFAULT);
+                                return new ByteArrayInputStream(Base64.decode(currentNode.getTextContent(), Base64.DEFAULT));
                             }
                         }
                     }
@@ -888,10 +874,9 @@ public class XMLReader extends DatabaseReader {
     }
 
     @Override
-    public byte[] getImageByteArray(String nodeUniqueID, String offset) {
+    public InputStream getImageInputStream(String nodeUniqueID, String control) {
         // Returns image byte array to be displayed in ImageViewFragment because some of the images are too big to pass in a bundle
         NodeList nodeList = this.doc.getElementsByTagName("node");
-
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
@@ -899,8 +884,8 @@ public class XMLReader extends DatabaseReader {
                 for (int x = 0; x < encodedpngNodeList.getLength(); x++) {
                     Node currentNode = encodedpngNodeList.item(x);
                     if (currentNode.getAttributes().getNamedItem("filename") == null) { // Checks if node has the attribute "filename". If it does - it's a file
-                        if (currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(offset)) { // If offset matches the one provided
-                            return Base64.decode(currentNode.getTextContent(), Base64.DEFAULT);
+                        if (currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(control)) { // If control matches the one provided
+                            return new ByteArrayInputStream(Base64.decode(currentNode.getTextContent(), Base64.DEFAULT));
                         }
                     }
                 }
@@ -928,10 +913,10 @@ public class XMLReader extends DatabaseReader {
         Drawable drawableBrokenImage;
         ImageSpan brokenImage;
         if (type == 0) {
-            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_image_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_image_48);
             brokenImage = new ImageSpanImage(drawableBrokenImage);
         } else {
-            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_latex_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_latex_48);
             brokenImage = new ImageSpanLatex(drawableBrokenImage);
         }
         // Inserting image
@@ -1085,8 +1070,15 @@ public class XMLReader extends DatabaseReader {
         writeIntoDatabase();
     }
 
-    @Override
-    public boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
+    /**
+     * Checks if node is a subnode if another node
+     * Not really sure if it does not return false positives
+     * However all my tests worked
+     * @param targetNodeUniqueID unique ID of the node that needs to be check if it's a parent node
+     * @param destinationNodeUniqueID unique ID of the node that has to be check if it's a child
+     * @return true - if target node is a parent of destination node
+     */
+    private boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
         ArrayList<String> heredity = new ArrayList<>();
 
         NodeList nodeList = this.doc.getElementsByTagName("node");
@@ -1718,7 +1710,6 @@ public class XMLReader extends DatabaseReader {
             if (nodeList.item(i).getNodeName().equals("node")) {
                 // If node is a "node" and not some other tag
                 boolean hasSubnodes = this.hasSubnodes(nodeList.item(i));
-
                 if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
                     // If user haven't marked to skip current node - searches through its content
                     boolean isParent;

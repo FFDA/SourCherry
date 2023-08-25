@@ -34,6 +34,7 @@ import androidx.preference.PreferenceManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 import lt.ffda.sourcherry.R;
@@ -139,15 +140,18 @@ public class SaveOpenDialogFragment extends DialogFragment {
             // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
             // most important that it will have correct extension
             File tmpAttachedFile = File.createTempFile(splitFilename[0], "." + splitFilename[splitFilename.length - 1]); // Temporary file that will shared
-
             // Writes Base64 encoded string to the temporary file
+            InputStream in = DatabaseReaderFactory.getReader().getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
             FileOutputStream out = new FileOutputStream(tmpAttachedFile);
-            out.write(DatabaseReaderFactory.getReader().getFileByteArray(this.nodeUniqueID, this.filename, this.time, this.offset));
+            byte[] buf = new byte[4 * 1024];
+            int length;
+            while ((length = in.read(buf)) != -1) {
+                out.write(buf, 0, length);
+            }
+            in.close();
             out.close();
-
             // Getting Uri to share
             Uri tmpFileUri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", tmpAttachedFile);
-
             // Intent to open file
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_VIEW);
@@ -164,8 +168,14 @@ public class SaveOpenDialogFragment extends DialogFragment {
         // Saves attached file to the user selected file
         if (result.getResultCode() == Activity.RESULT_OK) {
             try {
-                OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file
-                outputStream.write(DatabaseReaderFactory.getReader().getFileByteArray(this.nodeUniqueID, this.filename, this.time, this.offset));
+                InputStream inputStream = DatabaseReaderFactory.getReader().getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
+                OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w");
+                byte[] buf = new byte[4 * 1024];
+                int length;
+                while ((length = inputStream.read(buf)) != -1) {
+                    outputStream.write(buf, 0, length);
+                }
+                inputStream.close();
                 outputStream.close();
             } catch (Exception e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
