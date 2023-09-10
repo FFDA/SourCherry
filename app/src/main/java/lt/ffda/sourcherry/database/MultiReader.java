@@ -48,13 +48,17 @@ import androidx.appcompat.content.res.AppCompatResources;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -64,7 +68,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -106,6 +109,7 @@ public class MultiReader extends DatabaseReader {
     private final Handler handler;
     private final MainViewModel mainViewModel;
     private final DocumentBuilder documentBuilder;
+    private Document drawerMenu;
 
     public MultiReader(Uri mainFolderUri, Context context, Handler handler, MainViewModel mainViewModel) throws ParserConfigurationException {
         this.mainFolderUri = mainFolderUri;
@@ -119,31 +123,17 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public ArrayList<ScNode> getAllNodes(boolean noSearch) {
-        ArrayList<ScNode> nodeList;
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            if (noSearch) {
-                nodeList = new ArrayList<>();
-                while (cursor != null && cursor.moveToNext()) {
-                    if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                        try (Cursor childrenCursor = this.getNodeChildrenCursor(cursor.getString(0))) {
-                            nodeList.addAll(this.returnSubnodeSearchArrayList(childrenCursor));
-                        }
-                    }
-                }
-            } else {
-                nodeList = this.returnSubnodeSearchIncludeAllArrayList(cursor);
-            }
+        if (noSearch) {
+            return this.returnSubnodeSearchArrayList(this.drawerMenu.getElementsByTagName("sourcherry").item(0).getChildNodes());
+        } else {
+            return this.returnSubnodeArrayList(this.drawerMenu.getElementsByTagName("node"), false);
         }
-        return nodeList;
     }
 
     @Override
     public ArrayList<ScNode> getMainNodes() {
-        ArrayList<ScNode> nodes;
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            nodes = returnSubnodeArrayList(cursor, false);
-        }
-        return nodes;
+        NodeList nodelist = drawerMenu.getElementsByTagName("sourcherry").item(0).getChildNodes();
+        return this.returnSubnodeArrayList(nodelist, false);
     }
 
     @Override
@@ -161,7 +151,7 @@ public class MultiReader extends DatabaseReader {
                                     .collect(Collectors.toList());
                         }
                     } catch (IOException e) {
-                        this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
+                        this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
                     }
                     break;
                 }
@@ -172,53 +162,66 @@ public class MultiReader extends DatabaseReader {
             } else {
                 nodes = new ArrayList<>();
             }
-            cursor.moveToPosition(-1); // Returning to the start of the cursor that would be possible to iterate again
-            while (cursor.moveToNext()) {
-                if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                    if (bookmarksIds.contains(cursor.getString(2))) {
-                        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                        try (Cursor childrenCursor = this.context.getContentResolver().query(
-                                childrenUri,
-                                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                                null,
-                                null,
-                                null
-                        )) {
-                            nodes.add(this.createSingleMenuItem(childrenCursor, false, false));
-                        }
-                    }
-                    if (nodes.size() < bookmarksIds.size()) {
-                        // If not all bookmarks were found
-                        nodes.addAll(this.searchForNode(cursor.getString(0), bookmarksIds));
-                    } else {
-                        break;
-                    }
-                }
+        }
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node item = nodeList.item(i);
+            if (bookmarksIds.contains(item.getAttributes().getNamedItem("unique_id").getNodeValue())) {
+                nodes.add(this.createSingleMenuItem(item, false, false));
+            }
+            if (nodes.size() >= bookmarksIds.size()) {
+                break;
             }
         }
-        return this.sortNodes(nodes, bookmarksIds.toArray(new String[0]));
+        return nodes;
     }
 
     @Override
     public ArrayList<ScNode> getMenu(String nodeUniqueID) {
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            return this.createMenu(cursor, nodeUniqueID);
+        ArrayList<ScNode> nodes = new ArrayList<>();
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node item = nodeList.item(i);
+            if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                nodes.add(this.createSingleMenuItem(item, true, false));
+                nodes.addAll(this.returnSubnodeArrayList(item.getChildNodes(), true));
+            }
         }
+        return nodes;
     }
 
     @Override
     public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
-        Uri mainMenuItemUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            return this.createParentWithSubnodes(cursor, nodeUniqueID, mainMenuItemUri);
+        ArrayList<ScNode> nodes = null;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                Node parentNode = node.getParentNode();
+                if (parentNode == null) {
+                    return nodes;
+                } else if (parentNode.getNodeName().equals("sourcherry")) {
+                    nodes = this.getMainNodes();
+                } else {
+                    nodes = this.returnSubnodeArrayList(parentNode.getChildNodes(), true);
+                    nodes.add(0, this.createParentNode(parentNode));
+                }
+            }
         }
+        return nodes;
     }
 
     @Override
     public ScNode getSingleMenuItem(String nodeUniqueID) {
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            return this.findSingleMenuItem(cursor, nodeUniqueID);
+        ScNode node = null;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node item = nodeList.item(i);
+            if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                node = this.createSingleMenuItem(item);
+            }
         }
+        return node;
     }
 
     @Override
@@ -227,10 +230,7 @@ public class MultiReader extends DatabaseReader {
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary storage for text, codebox, image formatting
         ArrayList<ScNodeContentTable> nodeTables = new ArrayList<>(); // Temporary storage for tables
         ArrayList<Integer> nodeTableCharOffsets = new ArrayList<>();
-        Cursor nodeContentCursor;
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            nodeContentCursor = this.getNodeChildrenCursor(cursor, nodeUniqueID);
-        }
+        Cursor nodeContentCursor = this.getNodeChildrenCursor(nodeUniqueID);
         if (nodeContentCursor == null) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_find_node_content));
         }
@@ -401,7 +401,7 @@ public class MultiReader extends DatabaseReader {
             }
 
             @Override
-            public void updateDrawState(TextPaint ds) {
+            public void updateDrawState(@NonNull TextPaint ds) {
                 // Formatting of span text
                 if (type.equals("file")) {
                     ds.setColor(context.getColor(R.color.link_file));
@@ -418,16 +418,12 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control) {
-        Cursor nodeContentCursor;
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            nodeContentCursor = this.getNodeChildrenCursor(cursor, nodeUniqueID);
+        try (Cursor nodeContentCursor = this.getNodeChildrenCursor(nodeUniqueID)) {
             while (nodeContentCursor.moveToNext()) {
                 if (!nodeContentCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR) && nodeContentCursor.getString(2).substring(0, nodeContentCursor.getString(2).lastIndexOf(".")).equals(control)) {
                     try {
-                        InputStream inputStream = this.context.getContentResolver().openInputStream(
+                        return this.context.getContentResolver().openInputStream(
                                 DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, nodeContentCursor.getString(0)));
-                        nodeContentCursor.close();
-                        return inputStream;
                     } catch (FileNotFoundException e) {
                         this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
                     }
@@ -439,15 +435,12 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public InputStream getImageInputStream(String nodeUniqueID, String control) {
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            Cursor nodeContentCursor = this.getNodeChildrenCursor(cursor, nodeUniqueID);
+        try (Cursor nodeContentCursor = this.getNodeChildrenCursor(nodeUniqueID)) {
             while (nodeContentCursor.moveToNext()) {
                 if (!nodeContentCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR) && nodeContentCursor.getString(2).substring(0, nodeContentCursor.getString(2).lastIndexOf(".")).equals(control)) {
                     try {
-                        InputStream inputStream = this.context.getContentResolver().openInputStream(
+                        return this.context.getContentResolver().openInputStream(
                                 DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, nodeContentCursor.getString(0)));
-                        nodeContentCursor.close();
-                        return inputStream;
                     } catch (FileNotFoundException e) {
                         this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
                     }
@@ -490,45 +483,31 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public boolean doesNodeExist(String nodeUniqueID) {
-        boolean exists = false;
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            while (cursor.moveToNext()) {
-                if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                    if (cursor.getString(2).equals(nodeUniqueID)) {
-                        exists = true;
-                        break;
-                    }
-                    try (Cursor childrenCursor = this.getNodeChildrenCursor(cursor.getString(0))) {
-                        exists = this.checkIfNodeExits(childrenCursor, nodeUniqueID);
-                        if (exists) {
-                            break;
-                        }
-                    }
-                }
+        if (nodeUniqueID == null) {
+            return false;
+        }
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                return true;
             }
         }
-        return exists;
+        return false;
     }
 
     @Override
     public int getNodeMaxID() {
-        int maxId = -1;
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            while (cursor.moveToNext()) {
-                if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                    if (cursor.getInt(2) > maxId) {
-                        maxId = cursor.getInt(2);
-                    }
-                    try (Cursor childrenCursor = this.getNodeChildrenCursor(cursor.getString(0))) {
-                        int foundMaxId = this.searchForMaxId(childrenCursor);
-                        if (foundMaxId > maxId) {
-                            maxId = foundMaxId;
-                        }
-                    }
-                }
+        int maxID = -1;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            int foundNodeUniqueID = Integer.parseInt(node.getAttributes().getNamedItem("unique_id").getNodeValue());
+            if (foundNodeUniqueID > maxID) {
+                maxID = foundNodeUniqueID;
             }
         }
-        return maxId;
+        return maxID;
     }
 
     @Override
@@ -536,27 +515,29 @@ public class MultiReader extends DatabaseReader {
         ScNode scNode = null;
         try {
             String newNodeUniqueID = String.valueOf(this.getNodeMaxID() + 1);
+            Node node;
             Uri parentUri;
-            Uri newNodeNodeXmlUri;
-            // If node is created in MainMenu it shouldn't be displayed as a subnode
-            boolean isSubNode = !nodeUniqueID.equals("0");
-            // Creating subfolder and node.xml file for new node.
-            if (relation == 0) {
-                // Sibling. New folder has to be created for a parent of the selected node and
-                // parent's subnodes.lst has to be sorted in a way that new folder would be after
-                // the newly added folder/node
-                Uri mainMenuUri = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
-                try (Cursor cursor = this.getMainNodesCursor()) {
-                    parentUri = this.getNodeParentUri(mainMenuUri, cursor, nodeUniqueID);
-                }
+            boolean isSubnode = true;
+            if (nodeUniqueID.equals("0")) {
+                // User chose to create node in MainMenu
+                node = this.drawerMenu.getElementsByTagName("sourcherry").item(0);
+                parentUri = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, node.getAttributes().getNamedItem("saf_id").getNodeValue());
             } else {
-                // Subnode. New folder has to be created as a subfolder of the selected node
-                if (nodeUniqueID.equals("0")) {
-                    parentUri = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
-                } else {
-                    try (Cursor cursor = this.getMainNodesCursor()) {
-                        parentUri = this.getNodeUri(cursor, nodeUniqueID);
+                node = this.findSingleNode(nodeUniqueID);
+                if (relation == 0) {
+                    // Sibling. New folder has to be created for a parent of the selected node and
+                    // parent's subnodes.lst has to be sorted in a way that new folder would be after
+                    // the newly added folder/node
+                    if (node.getParentNode().getNodeName().equals("sourcherry")) {
+                        // If node actually is in main menu
+                        isSubnode = false;
                     }
+                    parentUri = DocumentsContract.buildDocumentUriUsingTree(
+                            this.mainFolderUri,
+                            node.getParentNode().getAttributes().getNamedItem("saf_id").getNodeValue()
+                    );
+                } else {
+                    parentUri = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, node.getAttributes().getNamedItem("saf_id").getNodeValue());
                 }
             }
             if (parentUri == null) {
@@ -573,7 +554,7 @@ public class MultiReader extends DatabaseReader {
                 this.displayToast(this.context.getString(R.string.toast_error_failed_to_create_node));
                 return null;
             }
-            newNodeNodeXmlUri = DocumentsContract.createDocument(
+            Uri newNodeNodeXmlUri = DocumentsContract.createDocument(
                     this.context.getContentResolver(),
                     newNodeFolderUri,
                     "text/xml",
@@ -605,12 +586,39 @@ public class MultiReader extends DatabaseReader {
             try (OutputStream outputStream = this.context.getContentResolver().openOutputStream(newNodeNodeXmlUri)) {
                 this.saveChanges(newCherryTreeNode, outputStream);
             }
+            // Creating new drawerMenu.xml item
+            Element newDrawerMenuItem = this.drawerMenu.createElement("node");
+            newDrawerMenuItem.setAttribute("unique_id", newNodeUniqueID);
+            newDrawerMenuItem.setAttribute("name", name);
+            newDrawerMenuItem.setAttribute("has_subnodes", "0");
+            newDrawerMenuItem.setAttribute("prog_lang", progLang);
+            newDrawerMenuItem.setAttribute("nosearch_me", noSearchMe);
+            newDrawerMenuItem.setAttribute("nosearch_ch", noSearchCh);
+            newDrawerMenuItem.setAttribute("is_rich_text", progLang.equals("custom-colors") ? "1" : "0");
+            newDrawerMenuItem.setAttribute("is_bold", "0");
+            newDrawerMenuItem.setAttribute("foreground_color", "");
+            newDrawerMenuItem.setAttribute("icon_id", "0");
+            newDrawerMenuItem.setAttribute("readonly", "0");
+            newDrawerMenuItem.setAttribute("saf_id", DocumentsContract.getDocumentId(newNodeFolderUri));
             if (relation == 0) {
                 this.addNodeToLst(DocumentsContract.getDocumentId(parentUri), nodeUniqueID, newNodeUniqueID);
+                if (!node.getParentNode().getNodeName().equals("sourcherry")) {
+                    ((Element) node.getParentNode()).setAttribute("has_subnodes", "1");
+                }
+                if (node.getNextSibling() == null) {
+                    node.getParentNode().appendChild(newDrawerMenuItem);
+                } else {
+                    node.getParentNode().insertBefore(newDrawerMenuItem, node.getNextSibling());
+                }
             } else {
                 this.addNodeToLst(DocumentsContract.getDocumentId(parentUri), newNodeUniqueID);
+                if (!node.getNodeName().equals("sourcherry")) {
+                    ((Element) node).setAttribute("has_subnodes", "1");
+                }
+                node.appendChild(newDrawerMenuItem);
             }
-            scNode = new ScNode(newNodeUniqueID, name,false, false, isSubNode, progLang.equals("custom-colors"), false, "", 0, false);
+            this.saveDrawerMenuToStorage();
+            scNode = new ScNode(newNodeUniqueID, name,false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
         } catch (IOException e) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_create_node));
         }
@@ -682,7 +690,7 @@ public class MultiReader extends DatabaseReader {
                         .collect(Collectors.joining(",")));
             }
         } catch (IOException e) {
-            this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, "bookmarks.lst"));
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "bookmarks.lst"));
         }
     }
 
@@ -693,42 +701,85 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            Uri[] uris = this.getMoveNodeUris(cursor, new ArrayList<>(Arrays.asList(targetNodeUniqueID, destinationNodeUniqueID)), new Uri[3], DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri)));
-            Uri result = null;
-            try {
-                result = DocumentsContract.moveDocument(
-                        this.context.getContentResolver(),
-                        uris[0],
-                        uris[2],
-                        uris[1]
-                );
-            } catch (FileNotFoundException e) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
-            }
-            if (result == null) {
-                this.displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
-                return;
-            }
-            // Removing unique node ID from subnodes.lst in source folder
-            this.removeNodeFromLst(DocumentsContract.getDocumentId(uris[2]), targetNodeUniqueID, "subnodes.lst");
-            // Adding unique node ID to subnodes.lst in destination folder
-            this.addNodeToLst(DocumentsContract.getDocumentId(uris[1]), targetNodeUniqueID);
+        Node targetNode = null;
+        Node destinationNode = null;
+        // User chose to move the node to main menu
+        if (destinationNodeUniqueID.equals("0")) {
+            NodeList nodeList = this.drawerMenu.getElementsByTagName("sourcherry");
+            destinationNode = nodeList.item(0);
         }
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            // Goes through the nodes until target and destination nodes are found
+            if (targetNode == null || destinationNode == null) {
+                Node node = nodeList.item(i);
+                if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(targetNodeUniqueID)) {
+                    targetNode = nodeList.item(i);
+                }
+                if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(destinationNodeUniqueID)) {
+                    destinationNode = nodeList.item(i);
+                }
+            } else {
+                break;
+            }
+        }
+        // Checks for when user wants to move node to the same parent node
+        // In XML file it causes a crash
+        if (destinationNode.getNodeName().equals("sourcherry") && targetNode.getParentNode().getNodeName().equals("sourcherry")) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
+            return;
+        }
+        Node parentNodeUniqueID = targetNode.getParentNode().getAttributes().getNamedItem("unique_id");
+        if (parentNodeUniqueID != null && parentNodeUniqueID.getNodeValue().equals(destinationNodeUniqueID)) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
+            return;
+        }
+        // Proceeding with the move
+        Uri sourceDocumentUri = this.getNodeUri(targetNode);
+        Uri sourchParentDocumentUri = this.getNodeUri(targetNode.getParentNode());
+        Uri targetPerentDocumentUri = this.getNodeUri(destinationNode);
+        Uri result;
+        try {
+            result = DocumentsContract.moveDocument(
+                    this.context.getContentResolver(),
+                    sourceDocumentUri,
+                    sourchParentDocumentUri,
+                    targetPerentDocumentUri
+            );
+        } catch (FileNotFoundException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
+            return;
+        }
+        if (result == null) {
+            this.displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
+            return;
+        }
+        // Removing unique node ID from subnodes.lst in source folder
+        this.removeNodeFromLst(DocumentsContract.getDocumentId(sourchParentDocumentUri), targetNodeUniqueID, "subnodes.lst");
+        // Adding unique node ID to subnodes.lst in destination folder
+        this.addNodeToLst(DocumentsContract.getDocumentId(targetPerentDocumentUri), targetNodeUniqueID);
+        // Updating drawer_menu cache
+        if (!targetNode.getParentNode().getNodeName().equals("sourcherry")) {
+            if (targetNode.getParentNode().getChildNodes().getLength() < 2) {
+                ((Element) targetNode.getParentNode()).setAttribute("has_subnodes", "0");
+            }
+        }
+        ((Element) targetNode).setAttribute("saf_id", DocumentsContract.getTreeDocumentId(result));
+        destinationNode.appendChild(targetNode);
+        if (!destinationNode.getNodeName().equals("sourcherry")) {
+            ((Element) destinationNode).setAttribute("has_subnodes", "1");
+        }
+        this.saveDrawerMenuToStorage();
     }
 
     @Override
     public void deleteNode(String nodeUniqueID) {
         try {
-            Uri nodeParentUri;
-            Uri nodeUri;
-            try (Cursor cursor = this.getMainNodesCursor()) {
-                nodeUri = this.getNodeUri(cursor, nodeUniqueID);
-                cursor.moveToPosition(-1);
-                Uri mainMenuUri = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
-                nodeParentUri = this.getNodeParentUri(mainMenuUri, cursor, nodeUniqueID);
-            }
-            if (nodeUri == null) {
+            Node node = this.findSingleNode(nodeUniqueID);
+            Node parentNode = node.getParentNode();
+            Uri nodeParentUri = this.getNodeUri(parentNode);
+            Uri nodeUri = this.getNodeUri(node);
+            if (nodeUri == null || nodeParentUri == null) {
                 this.displayToast(this.context.getString(R.string.toast_error_failed_to_delete_node));
             } else {
                 DocumentsContract.deleteDocument(
@@ -738,6 +789,11 @@ public class MultiReader extends DatabaseReader {
                 this.removeNodeFromBookmarks(nodeUniqueID);
                 this.removeNodeFromLst(DocumentsContract.getDocumentId(nodeParentUri), nodeUniqueID, "subnodes.lst");
             }
+            parentNode.removeChild(node);
+            if (parentNode.getChildNodes().getLength() < 1) {
+                ((Element) parentNode).setAttribute("has_subnodes", "0");
+            }
+            this.saveDrawerMenuToStorage();
         } catch (FileNotFoundException e) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_delete_node));
         }
@@ -745,28 +801,11 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public ScNodeProperties getNodeProperties(String nodeUniqueID) {
-        String name = null;
-        String progLang = null;
-        byte noSearchMe = 0;
-        byte noSearchCh = 0;
-        Cursor mainNodesCursor = this.getMainNodesCursor();
-        try (Cursor cursor = this.getNodeChildrenCursor(mainNodesCursor, nodeUniqueID)) {
-            while (cursor.moveToNext()) {
-                if (cursor.getString(2).equals("node.xml")) {
-                    InputStream inputStream = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)));
-                    Node node = this.documentBuilder.parse(inputStream).getElementsByTagName("node").item(0);
-                    name = node.getAttributes().getNamedItem("name").getNodeValue();
-                    progLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
-                    noSearchMe = Byte.parseByte(node.getAttributes().getNamedItem("nosearch_me").getNodeValue());
-                    noSearchCh = Byte.parseByte(node.getAttributes().getNamedItem("nosearch_ch").getNodeValue());
-                    inputStream.close();
-                    break;
-                }
-            }
-        } catch (IOException | SAXException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_get_node_properties));
-        }
-        mainNodesCursor.close();
+        Node node = this.findSingleNode(nodeUniqueID);
+        String name = node.getAttributes().getNamedItem("name").getNodeValue();
+        String progLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
+        byte noSearchMe = Byte.parseByte(node.getAttributes().getNamedItem("nosearch_me").getNodeValue());
+        byte noSearchCh = Byte.parseByte(node.getAttributes().getNamedItem("nosearch_ch").getNodeValue());
         if (name == null) {
             return null;
         } else {
@@ -776,8 +815,8 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        Cursor mainNodesCursor = this.getMainNodesCursor();
-        try (Cursor cursor = this.getNodeChildrenCursor(mainNodesCursor, nodeUniqueID)) {
+        Node drawerMenuItem = this.findSingleNode(nodeUniqueID);
+        try (Cursor cursor = this.getNodeChildrenCursor(drawerMenuItem)) {
             while (cursor.moveToNext()) {
                 if (cursor.getString(2).equals("node.xml")) {
                     InputStream inputStream = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)));
@@ -805,15 +844,17 @@ public class MultiReader extends DatabaseReader {
         } catch (IOException | SAXException e) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_get_node_properties));
         }
-        mainNodesCursor.close();
+        Element element = (Element) drawerMenuItem;
+        element.setAttribute("name", name);
+        element.setAttribute("prog_lang", progLang);
+        element.setAttribute("nosearch_me", noSearchMe);
+        element.setAttribute("nosearch_ch", noSearchCh);
+        this.saveDrawerMenuToStorage();
     }
 
     @Override
     public void saveNodeContent(String nodeUniqueID) {
-        Cursor cursor;
-        try (Cursor mainChildrenCursor = this.getMainNodesCursor()) {
-            cursor = getNodeChildrenCursor(mainChildrenCursor, nodeUniqueID);
-        }
+        Cursor cursor = this.getNodeChildrenCursor(this.findSingleNode(nodeUniqueID));
         if (cursor == null) {
             this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
             return;
@@ -1129,560 +1170,147 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public ArrayList<ScSearchNode> search(Boolean noSearch, String query) {
-        ArrayList<ScSearchNode> searchResult = new ArrayList<>();
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            while (cursor != null && cursor.moveToNext()) {
-                if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                    Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                    try (Cursor childrenCursor = this.context.getContentResolver().query(
-                            childrenUri,
-                            new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                            null,
-                            null,
-                            null
-                    )) {
-                        Node node = null;
-                        boolean hasSubnodes = false;
-                        while (childrenCursor != null && childrenCursor.moveToNext()) {
-                            if (childrenCursor.getString(2).equals("node.xml")) {
-                                try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, childrenCursor.getString(0)))) {
-                                    node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
-                                } catch (IOException | SAXException e) {
-                                    this.displayToast(this.context.getString(R.string.toast_error_while_searching));
-                                }
-                            }
-                            if (!hasSubnodes && childrenCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                                hasSubnodes = true;
-                            }
-                        }
-                        if (node == null) {
-                            continue;
-                        }
-                        boolean isParent = false;
-                        boolean isSubnode = true;
-                        if (hasSubnodes) {
-                            isParent = true;
-                            isSubnode = false;
-                        }
-                        if (noSearch) {
-                            // If user marked that search should skip this node
-                            if (node.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
-                                ScSearchNode result = this.findInNode(node, query, hasSubnodes, isParent, isSubnode);
-                                if (result != null) {
-                                    searchResult.add(result);
-                                }
-                            }
-                            // If user marked that search should exclude subnodes
-                            if (hasSubnodes && node.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
-                                // if user haven't selected not to query subnodes of current node
-                                childrenCursor.moveToPosition(-1);
-                                while (childrenCursor.moveToNext()) {
-                                    if (childrenCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                                        try (Cursor subChildrenCursor = this.getNodeChildrenCursor(childrenCursor.getString(0))) {
-                                            searchResult.addAll(this.searchNodesSkippingExcluded(query, subChildrenCursor));
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            ScSearchNode result = this.findInNode(node, query, hasSubnodes, isParent, isSubnode);
-                            if (result != null) {
-                                searchResult.add(result);
-                            }
-                            if (hasSubnodes) {
-                                childrenCursor.moveToPosition(-1);
-                                while (childrenCursor.moveToNext()) {
-                                    if (childrenCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                                        try (Cursor subChildrenCursor = this.getNodeChildrenCursor(childrenCursor.getString(0))) {
-                                            searchResult.addAll(this.searchAllNodes(query, subChildrenCursor));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        ArrayList<ScSearchNode> searchResult;
+        if (noSearch) {
+            searchResult = this.searchNodesSkippingExcluded(this.drawerMenu.getElementsByTagName("sourcherry").item(0).getChildNodes(), query);
+        } else {
+            searchResult = this.searchAllNodes(query);
         }
         return searchResult;
     }
 
     /**
-     * Recursively collects all nodes from the provided cursor excluding ones that are marked to
-     * be excluded from search.
-     * @param cursor cursor to collect nodes from
-     * @return ScNode object array list
+     * Creates ArrayList of ScNode objects from all the nodes in provided NodeList
+     * @param nodelist nodes to make ScNode object list from
+     * @param isSubnode true - nodes have to be marked as subnodes, false - opposite of that
+     * @return ScNode object list ready to be used in DrawerMenu
      */
-    public ArrayList<ScNode> returnSubnodeSearchArrayList(Cursor cursor) {
-        ArrayList<ScNode> nodeList = new ArrayList<>();
-        // Firstly collect all the subnodes (folder) of the node
-        // by collecting all documentIds of the folders in cursor
-        ArrayList<String> subnodes = new ArrayList<>();
-        boolean noSearchMe = false;
-        boolean noSearchCh = false;
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                subnodes.add(cursor.getString(0));
-            } else if (cursor.getString(2).equals("node.xml")) {
-                try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
-                    // Checking if node and subnode have to be available for filter/search function
-                    Node node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
-                    noSearchMe = node.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("1");
-                    noSearchCh = node.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("1");
-                } catch (IOException | SAXException e) {
-                    this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
-                }
-            }
-        }
-        if (!noSearchMe) {
-            // If node should be search - create ScNode object and add to the list
-            cursor.moveToPosition(-1); // Required, otherwise might not find xml file
-            nodeList.add(this.createSingleMenuItem(cursor, false, false));
-        }
-        if (!noSearchCh) {
-            // If subnodes should be search - create children cursor for every , search them and add result to the list
-            for (String documentId : subnodes) {
-                Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, documentId);
-                try (Cursor childrenCursor = this.context.getContentResolver().query(
-                        childrenUri,
-                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                        null,
-                        null,
-                        null
-                )) {
-                    nodeList.addAll(this.returnSubnodeSearchArrayList(childrenCursor));
-                }
-            }
-        }
-        return nodeList;
-    }
-
-    /**
-     * Recursively collects all nodes from the provided cursor without excluding
-     * nodes that are marked to be excluded from search
-     * @param cursor cursor to collect nodes from
-     * @return ScNode object array list
-     */
-    private ArrayList<ScNode> returnSubnodeSearchIncludeAllArrayList(Cursor cursor) {
-        ArrayList<ScNode> nodeList = new ArrayList<>();
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                try (Cursor childrenCursor = this.context.getContentResolver().query(
-                        childrenUri,
-                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                        null,
-                        null,
-                        null
-                )) {
-                    nodeList.addAll(this.returnSubnodeSearchIncludeAllArrayList(childrenCursor));
-                }
-            } else if (cursor.getString(2).equals("node.xml")) {
-                cursor.moveToPosition(-1); // Required, otherwise might not find xml file
-                nodeList.add(this.createSingleMenuItem(cursor, false, false));
-            }
-        }
-        return nodeList;
-    }
-
-    /**
-     * Searches for nodes in the children of the node.
-     * @param documentId node which children to search through
-     * @param nodeUniqueIDList list of nodeUniqueID to find
-     * @return found nodes
-     */
-    private ArrayList<ScNode> searchForNode(String documentId, List<String> nodeUniqueIDList) {
+    private ArrayList<ScNode> returnSubnodeArrayList(NodeList nodelist, boolean isSubnode) {
         ArrayList<ScNode> nodes = new ArrayList<>();
-        Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, documentId);
-        try (Cursor cursor = this.context.getContentResolver().query(
-                uri,
-                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                null,
-                null,
-                null
-        )) {
-            while (cursor != null && cursor.moveToNext()) {
-                if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                    nodes.addAll(this.searchForNode(cursor.getString(0), nodeUniqueIDList));
-                    if (nodeUniqueIDList.contains(cursor.getString(2))) {
-                        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                        try (Cursor childrenCursor = this.context.getContentResolver().query(
-                                childrenUri,
-                                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                                null,
-                                null,
-                                null
-                        )) {
-                            nodes.add(this.createSingleMenuItem(childrenCursor, false, false));
-                        }
-                    }
-                }
+        for (int i = 0; i < nodelist.getLength(); i++) {
+            nodes.add(this.createSingleMenuItem(nodelist.item(i), false, isSubnode));
+        }
+        return nodes;
+    }
+
+    /**
+     * Creates ArrayList of ScNode objects from all the nodes in provided NodeList filtering out
+     * nodes that are marked to be skipped in search
+     * @param nodelist nodes to make ScNode object list from
+     * @return ScNode object list ready to be used in DrawerMenu
+     */
+    private ArrayList<ScNode> returnSubnodeSearchArrayList(NodeList nodelist) {
+        ArrayList<ScNode> nodes = new ArrayList<>();
+        for (int i = 0; i < nodelist.getLength(); i++) {
+            Node item = nodelist.item(i);
+            if (item.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
+                nodes.add(this.createSingleMenuItem(item, false, false));
+            }
+            if (item.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
+                nodes.addAll(this.returnSubnodeSearchArrayList(item.getChildNodes()));
             }
         }
         return nodes;
     }
 
     /**
-     * Searches cursor recursively until finds a node (folder name) that matches provided unique ID
-     * of the node. Creates list that can be loaded as DrawerMenu.
-     * @param cursor cursor with nodes where to start the search
-     * @param nodeUniqueID node unique id to find
-     * @return ScNode object list that can be loaded as a DrawerMenu
+     * Creates single ScNode object from provided Node object.
+     * @param node node object to create ScNode object from. This object has to be from drawer_menu.xml file
+     * @param isParent true - mark node to be displayed as a parent node (will not have indentation and will have arrow pointing down), false - opposite of that
+     * @param isSubnode true - mark node to be displayed as a subnode (will have indentation), false - opposite of that
+     * @return ScNode object ready to be displayed in DrawerMenu
      */
-    private ArrayList<ScNode> createMenu(Cursor cursor, String nodeUniqueID) {
-        ArrayList<ScNode> menu = null;
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                try (Cursor childrenCursor = this.context.getContentResolver().query(
-                        childrenUri,
-                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                        null,
-                        null,
-                        null
-                )) {
-                    if (cursor.getString(2).equals(nodeUniqueID)) {
-                        menu = new ArrayList<>();
-                        menu.add(this.createSingleMenuItem(childrenCursor));
-                        childrenCursor.moveToPosition(-1);
-                        menu.addAll(this.returnSubnodeArrayList(childrenCursor, true));
-                        break;
-                    } else {
-                        menu = this.createMenu(childrenCursor, nodeUniqueID);
-                        if (menu != null) {
-                            // Exit loop because node was found
-                            // Otherwise found/created menu might be overwritten null
-                            // and most likely saves some time
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return menu;
+    private ScNode createSingleMenuItem(Node node, boolean isParent, boolean isSubnode) {
+        NamedNodeMap nodeAttribute = node.getAttributes();
+        return new ScNode(
+                nodeAttribute.getNamedItem("unique_id").getNodeValue(),
+                nodeAttribute.getNamedItem("name").getNodeValue(),
+                isParent,
+                nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"),
+                isSubnode,
+                nodeAttribute.getNamedItem("is_rich_text").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("is_bold").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("foreground_color").getNodeValue(),
+                Integer.parseInt(nodeAttribute.getNamedItem("icon_id").getNodeValue()),
+                nodeAttribute.getNamedItem("readonly").getNodeValue().equals("1")
+        );
     }
 
     /**
-     * This function scans provided Cursor to collect all the nodes from it to be displayed as
-     * subnodes in drawer menu. Most of the time it is used to collect information about subnodes of
-     * the node that is being opened. However, it can be used to create information Main menu items.
-     * In that case isSubnode should passed as false. If true this value will make node look indented.
-     * @param cursor Cursor object that contains nodes from which to make a node list
-     * @param isSubnode true - means that node is a subnode and should not be displayed indented in the drawer menu. false - apposite of that
-     * @return ArrayList of node's subnodes.
+     * Creates single ScNode object from provided Node object.
+     * @param node node object to create ScNode object from. This object has to be from drawer_menu.xml file
+     * @return ScNode object ready to be displayed in DrawerMenu
      */
-    private ArrayList<ScNode> returnSubnodeArrayList(Cursor cursor, boolean isSubnode) {
-        ArrayList<ScNode> nodes = new ArrayList<>();
-        String[] subnodes = null;
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                try (Cursor childrenCursor = this.context.getContentResolver().query(
-                        childrenUri,
-                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                        null,
-                        null,
-                        null
-                )) {
-                    nodes.add(this.createSingleMenuItem(childrenCursor, false, isSubnode));
-                }
-            } else if (cursor.getString(2).equals("subnodes.lst")) {
-                // Found subnode list - items in menu have to be ordered this way
-                try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
-                    BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                    String line = br.readLine();
-                    if (line != null) {
-                        subnodes = line.split(",");
-                    }
-                } catch (IOException e) {
-                    this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
-                }
-            }
-        }
-        if (subnodes != null) {
-            nodes = this.sortNodes(nodes, subnodes);
-        }
-        return nodes;
+    private ScNode createSingleMenuItem(Node node) {
+        NamedNodeMap nodeAttribute = node.getAttributes();
+        return new ScNode(
+                nodeAttribute.getNamedItem("unique_id").getNodeValue(),
+                nodeAttribute.getNamedItem("name").getNodeValue(),
+                nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"), // If node, has subnodes - it means it can be marked as parent
+                nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"),
+                !nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"), // If node, has subnodes - it means it can't be marked as subnode,
+                nodeAttribute.getNamedItem("is_rich_text").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("is_bold").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("foreground_color").getNodeValue(),
+                Integer.parseInt(nodeAttribute.getNamedItem("icon_id").getNodeValue()),
+                nodeAttribute.getNamedItem("readonly").getNodeValue().equals("1")
+        );
     }
 
-    /**
-     * Creates single menu item from provided cursor
-     * @param cursor cursor to create the menu item from
-     * @param isParent true - cursor should look like a parent node in the drawer menu
-     * @param isSubnode true - cursor should look like a subnode in the drawer menu
-     * @return ScNodeMulti object representing an menu item
-     */
-    private ScNode createSingleMenuItem(Cursor cursor, boolean isParent, boolean isSubnode) {
-        String nodeUniqueid = null;
-        String name = null;
-        boolean hasSubnodes = false;
-        boolean isRichText = false;
-        boolean isBold = false;
-        String foregroundColor = null;
-        int iconId = 0;
-        boolean isReadOnly = false;
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(2).equals("node.xml")) {
-                try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
-                    Node node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
-                    nodeUniqueid = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                    name = node.getAttributes().getNamedItem("name").getNodeValue();
-                    isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-                    isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-                    foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-                    iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-                    isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
-                } catch (IOException | SAXException e) {
-                    this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
-                }
-            } else if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                hasSubnodes = true;
-            }
-        }
-        return new ScNode(nodeUniqueid, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-    }
 
     /**
-     * Creates single menu item from provided cursor. Detects if it's a parent node or node depending
-     * on if it has subnodes or not
-     * @param cursor cursor to create the menu item from
-     * @return ScNodeMulti object representing an menu item
+     * Creates node's children cursor
+     * @param nodeUniqueID unique ID of the node to get the children cursor for
+     * @return SAF cursor object with all the children of the folder. Cursor has three columns: document_id, mime_type and _display_name. Cursor has to be closed after user.
      */
-    private ScNode createSingleMenuItem(Cursor cursor) {
-        String nodeUniqueID = null;
-        String name = null;
-        boolean hasSubnodes = false;
-        boolean isRichText = false;
-        boolean isBold = false;
-        String foregroundColor = null;
-        int iconId = 0;
-        boolean isReadOnly = false;
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(2).equals("node.xml")) {
-                try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
-                    Node node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
-                    nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                    name = node.getAttributes().getNamedItem("name").getNodeValue();
-                    isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-                    foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-                    iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-                    isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
-                } catch (IOException | SAXException e) {
-                    this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
-                }
-            } else if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                hasSubnodes = true;
-            }
-        }
-        if (hasSubnodes) {
-            // if node has subnodes, then it has to be opened as a parent node and displayed as such
-            return new ScNode(nodeUniqueID, name, true, true, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-        } else {
-            // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-            return new ScNode(nodeUniqueID, name, false, false, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-        }
-    }
-
-    /**
-     * Recursively searches for node with unique ID. Keeps track of the parent URI to be able to
-     * create a parent node when the node is found.
-     * @param cursor children cursor of the uri to search for
-     * @param nodeUniqueID unique ID of the node to search for
-     * @param uri parent URI
-     * @return DrawerMenu item list
-     */
-    private ArrayList<ScNode> createParentWithSubnodes(Cursor cursor, String nodeUniqueID, Uri uri) {
-        ArrayList<ScNode> menu = null;
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                if (cursor.getString(2).equals(nodeUniqueID)) {
-                    // Current cursor contains the folder with unique ID of the node that is being search for
-                    Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
-                    if (childrenUri.equals(uri)) {
-                        // Node found among the main nodes / in root folder
-                        // Can't go up and nodes have to be displayed as subnodes
-                        cursor.moveToPosition(-1);
-                        menu = this.returnSubnodeArrayList(cursor, false);
-                    } else {
-                        menu = new ArrayList<>();
-                        try (Cursor parentCursor = this.context.getContentResolver().query(
-                                uri,
-                                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                                null,
-                                null,
-                                null
-                        )) {
-                            menu.add(this.createSingleMenuItem(parentCursor));
-                        }
-                        cursor.moveToPosition(-1);
-                        menu.addAll(this.returnSubnodeArrayList(cursor, true));
-                    }
-                    break;
-                } else {
-                    // Searching through subnodes of the current cursor
-                    Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                    try (Cursor childrenCursor = this.context.getContentResolver().query(
-                            childrenUri,
-                            new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                            null,
-                            null,
-                            null
-                    )) {
-                        menu = this.createParentWithSubnodes(childrenCursor, nodeUniqueID, childrenUri);
-                        if (menu != null) {
-                            // Exit loop because node was found
-                            // Otherwise found/created menu might be overwritten null
-                            // and most likely saves some time
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return menu;
-    }
-
-    /**
-     * Recursively iterates over cursor searching for node with specific unique ID (folder name)
-     * @param cursor cursor to iterate over
-     * @param nodeUniqueID node unique ID to search for
-     * @return found node or null if not found
-     */
-    private ScNode findSingleMenuItem(Cursor cursor, String nodeUniqueID) {
-        ScNode node = null;
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                try (Cursor childrenCursor = this.context.getContentResolver().query(
-                        childrenUri,
-                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                        null,
-                        null,
-                        null
-                )) {
-                    if (cursor.getString(2).equals(nodeUniqueID)) {
-                        node = this.createSingleMenuItem(childrenCursor);
-                        break;
-                    } else {
-                        node = this.findSingleMenuItem(childrenCursor, nodeUniqueID);
-                        if (node != null) {
-                            // Node was found. There is no purpose to search for the node and most
-                            // likely it would be overwritten with null if let to continue
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return node;
-    }
-
-    /**
-     * Sorts ScNode object ArrayList in the order in which NodeUniqueIDs are order in order array
-     * @param nodeList ScNode object list to be order
-     * @param order String array of nodeUniqueIDs in order in which list has to be ordered
-     * @return sorted ScNode object list
-     */
-    private ArrayList<ScNode> sortNodes(ArrayList<ScNode> nodeList, String[] order) {
-        for (String s : order) {
-            for (int x = 0; x < nodeList.size(); x++) {
-                if (nodeList.get(x).getUniqueId().equals(s)) {
-                    nodeList.add(nodeList.remove(x));
-                    break;
-                }
-            }
-        }
-        return nodeList;
-    }
-
-    /**
-     * Recursively searches through cursor for the node with specific unique ID.
-     * @param cursor cursor to search for ID. Most likely children of the root directory of Multifile database
-     * @param nodeUniqueID unique ID of the node to search for
-     * @return cursor with node's children. Cursor should be closed after use.
-     */
-    private Cursor getNodeChildrenCursor(Cursor cursor, String nodeUniqueID) {
-        Cursor childrenCursor = null;
-        while (cursor.moveToNext()) {
-            if ((cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR))) {
-                Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                childrenCursor = this.context.getContentResolver().query(
-                        childrenUri,
+    private Cursor getNodeChildrenCursor(String nodeUniqueID) {
+        Cursor cursor = null;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node item = nodeList.item(i);
+            if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                        this.mainFolderUri,
+                        item.getAttributes().getNamedItem("saf_id").getNodeValue());
+                cursor = this.context.getContentResolver().query(
+                        uri,
                         new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
                         null,
                         null,
                         null
                 );
-                if ((cursor.getString(2).equals(nodeUniqueID))) {
-                    break;
-                } else {
-                    childrenCursor = this.getNodeChildrenCursor(childrenCursor, nodeUniqueID);
-                    if (childrenCursor != null) {
-                        break;
-                    }
-                }
             }
         }
-        return childrenCursor;
+        return cursor;
+    }
+
+
+    /**
+     * Creates node's children cursor
+     * @param node node object to get the children cursor for
+     * @return SAF cursor object with all the children of the folder. Cursor has three columns: document_id, mime_type and _display_name. Cursor has to be closed after user.
+     */
+    private Cursor getNodeChildrenCursor(Node node) {
+        Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                        this.mainFolderUri,
+                        node.getAttributes().getNamedItem("saf_id").getNodeValue()
+        );
+        return this.context.getContentResolver().query(
+                        uri,
+                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
+                        null,
+                        null,
+                        null
+                );
     }
 
     /**
-     * Recursively searches through cursor for the node with specific unique ID.
-     * @param cursor cursor to search for ID. Most likely children of the root directory of Multifile database
-     * @param nodeUniqueID unique ID of the node to search for
-     * @return Uri of the found node, or null if failed to find
+     * Creates document Uri of the node
+     * @param node node for with folder to create Uri for. It has to be child of the drawerMenu document.
+     * @return Uri of node's folder
      */
-    private Uri getNodeUri(Cursor cursor, String nodeUniqueID) {
-        Uri nodeUri = null;
-        while (cursor.moveToNext()) {
-            if ((cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR))) {
-                if ((cursor.getString(2).equals(nodeUniqueID))) {
-                    nodeUri = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                    break;
-                } else {
-                    Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                    Cursor childrenCursor = this.context.getContentResolver().query(
-                            childrenUri,
-                            new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                            null,
-                            null,
-                            null
-                    );
-                    nodeUri = this.getNodeUri(childrenCursor, nodeUniqueID);
-                    if (nodeUri != null) {
-                        break;
-                    }
-                }
-            }
-        }
-        return nodeUri;
-    }
-
-    /**
-     * Searches recursively through cursor to find parent Uri of the provided cursor
-     * @param uri uri of node parent using of which cursor was made using to search for nodeUniqueID. It will be returned if nodeUniqueID will be matched in the cursor. At the start it should be provided with the root folder's of the database Uri
-     * @param cursor cursor to search through for nodeUniqueID
-     * @param nodeUniqueID unique ID of the cursor to search for
-     * @return Uri of the parent folder of the node with provided nodeUniqueID
-     */
-    private Uri getNodeParentUri(Uri uri, Cursor cursor, String nodeUniqueID) {
-        Uri parentUri = null;
-        while (cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                if (cursor.getString(2).equals(nodeUniqueID)) {
-                    parentUri = uri;
-                    break;
-                }
-                Uri nodeParentUri = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                try (Cursor nodeChildrenCursor = this.getNodeChildrenCursor(cursor.getString(0))) {
-                    parentUri = this.getNodeParentUri(nodeParentUri, nodeChildrenCursor, nodeUniqueID);
-                }
-                if (parentUri != null) {
-                    break;
-                }
-            }
-        }
-        return parentUri;
+    private Uri getNodeUri(Node node) {
+        return DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, node.getAttributes().getNamedItem("saf_id").getNodeValue());
     }
 
     /**
@@ -1706,7 +1334,7 @@ public class MultiReader extends DatabaseReader {
      * @param documentId documentId of the document to create children of
      * @return cursor with children documents. Has to be closed after use.
      */
-    private Cursor getNodeChildrenCursor(String documentId) {
+    private Cursor getNodeChildrenCursorSaf(String documentId) {
         Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, documentId);
         return this.context.getContentResolver().query(
                 uri,
@@ -1998,82 +1626,6 @@ public class MultiReader extends DatabaseReader {
     }
 
     /**
-     * Recursively searches for folder with the filename of node unique ID
-     * @param cursor cursor to search through
-     * @param nodeUniqueID unique ID of the node to search for
-     * @return true - folder exits, false - opposite of that
-     */
-    private boolean checkIfNodeExits(Cursor cursor, String nodeUniqueID) {
-        boolean exists = false;
-        while (cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                if (cursor.getString(2).equals(nodeUniqueID)) {
-                    exists = true;
-                    break;
-                }
-                Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                try (Cursor childrenCursor = this.context.getContentResolver().query(
-                        childrenUri,
-                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                        null,
-                        null,
-                        null
-                )) {
-                    exists = this.checkIfNodeExits(childrenCursor, nodeUniqueID);
-                    if (exists) {
-                        break;
-                    }
-                }
-            }
-        }
-        return exists;
-    }
-
-    /**
-     * Recursively iterates over SAF cursor to search for unique ID of the nodes in the list. When
-     * node is found creates Uri for it and adds to Uri array in the position of the node unique ID
-     * in the list.
-     * @param cursor cursor to iterate over
-     * @param nodeUniqueIDList list of unique IDs of the node to search for. First unique ID of node in the list should be for sourceDocumentUri, second - targetParentDocumentUri. Last element (third) will be for sourceParentDocumentUri
-     * @param uris Uri array to add created Uri. Should be in the length of the list + 1. Last uri will be sourceParentDocumentUri for move method
-     * @return found node Uri
-     */
-    private Uri[] getMoveNodeUris(Cursor cursor, List<String> nodeUniqueIDList, Uri[] uris, Uri parentUri) {
-        if (nodeUniqueIDList.contains("0")) {
-            // User wants to move to Main menu. There isn't an ID 0.
-            int index = nodeUniqueIDList.indexOf("0");
-            uris[index] = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
-            if (index == 0) {
-                // If adding uri of source document, that means parentUri is sourceParentDocumentUri
-                uris[nodeUniqueIDList.size()] = parentUri;
-            }
-        }
-        while (cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                String nodeUniqueID = cursor.getString(2);
-                int index = nodeUniqueIDList.indexOf(nodeUniqueID);
-                if (index != -1) {
-                    uris[index] = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0));
-                }
-                if (index == 0) {
-                    uris[2] = parentUri;
-                }
-                if (Arrays.stream(uris).noneMatch(Objects::isNull)) {
-                    // Stopping search if all uris were found
-                    break;
-                }
-                try (Cursor childrenCursor = this.getNodeChildrenCursor(cursor.getString(0))) {
-                    uris = this.getMoveNodeUris(childrenCursor, nodeUniqueIDList, uris, DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, cursor.getString(0)));
-                    if (Arrays.stream(uris).noneMatch(Objects::isNull)) {
-                        break;
-                    }
-                }
-            }
-        }
-        return uris;
-    }
-
-    /**
      * There are *.lst files in Multifile database, that holds list of NodeUniqueID. This method
      * removes NodeUniqueID from the file or if it's the only NodeUniqueID in the *.lst file -
      * deletes the file
@@ -2084,7 +1636,7 @@ public class MultiReader extends DatabaseReader {
     private void removeNodeFromLst(String documentId, String nodeUniqueID, String filename) {
         try {
             String lstFileDocumentId = null;
-            try (Cursor cursor = this.getNodeChildrenCursor(documentId)) {
+            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
                 while (cursor.moveToNext()) {
                     if (cursor.getString(2).equals(filename)) {
                         lstFileDocumentId = cursor.getString(0);
@@ -2096,7 +1648,7 @@ public class MultiReader extends DatabaseReader {
             // bookmarks.lst can be missing if there were no bookmarks
             if (lstFileDocumentId == null) {
                 if (filename.equals("subnodes.lst")) {
-                    this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
+                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
                 }
                 return;
             }
@@ -2125,7 +1677,7 @@ public class MultiReader extends DatabaseReader {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
         }
     }
 
@@ -2138,7 +1690,7 @@ public class MultiReader extends DatabaseReader {
     private void addNodeToLst(String documentId, String nodeUniqueID) {
         try {
             String lstFileDocumentId = null;
-            try (Cursor cursor = this.getNodeChildrenCursor(documentId)) {
+            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
                 while (cursor.moveToNext()) {
                     if (cursor.getString(2).equals("subnodes.lst")) {
                         lstFileDocumentId = cursor.getString(0);
@@ -2176,7 +1728,7 @@ public class MultiReader extends DatabaseReader {
                         .collect(Collectors.joining(",")));
             }
         } catch (IOException e) {
-            this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
         }
     }
 
@@ -2191,7 +1743,7 @@ public class MultiReader extends DatabaseReader {
     private void addNodeToLst(String documentId, String siblingNodeUniqueID, String nodeUniqueID) {
         try {
             String lstFileDocumentId = null;
-            try (Cursor cursor = this.getNodeChildrenCursor(documentId)) {
+            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
                 while (cursor.moveToNext()) {
                     if (cursor.getString(2).equals("subnodes.lst")) {
                         lstFileDocumentId = cursor.getString(0);
@@ -2229,31 +1781,8 @@ public class MultiReader extends DatabaseReader {
                         .collect(Collectors.joining(",")));
             }
         } catch (IOException e) {
-            this.displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
         }
-    }
-
-    /**
-     * Searches and returns biggest node unique ID
-     * @param cursor cursor to search though
-     * @return biggest node unique ID found
-     */
-    private int searchForMaxId(Cursor cursor) {
-        int maxId = -1;
-        while (cursor.moveToNext()) {
-            if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                if (cursor.getInt(2) > maxId) {
-                    maxId = cursor.getInt(2);
-                }
-                try (Cursor childrenCursor = this.getNodeChildrenCursor(cursor.getString(0))) {
-                    int foundMaxId = this.searchForMaxId(childrenCursor);
-                    if (foundMaxId > maxId) {
-                        maxId = foundMaxId;
-                    }
-                }
-            }
-        }
-        return maxId;
     }
 
     /**
@@ -2404,47 +1933,28 @@ public class MultiReader extends DatabaseReader {
     }
 
     /**
-     * Searches through all the nodes of the cursor recursively for the query
+     * Searches through content of all the node that are currently in drawer_menu.xml
      * @param query string to search for
-     * @param cursor cursor to search through
      * @return all the matches to the search in ScSearchNode objects
      */
-    private ArrayList<ScSearchNode> searchAllNodes(String query, Cursor cursor) {
+    private ArrayList<ScSearchNode> searchAllNodes(String query) {
         ArrayList<ScSearchNode> searchResult = new ArrayList<>();
-        Node node = null;
-        boolean hasSubnodes = false;
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(2).equals("node.xml")) {
-                try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
-                    node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
-                } catch (IOException | SAXException e) {
-                    this.displayToast(this.context.getString(R.string.toast_error_while_searching));
-                }
-            }
-            if (!hasSubnodes && cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                hasSubnodes = true;
-            }
-        }
-        if (node == null) {
-            // Couldn't find node.xml, means something went wrong.
-            return searchResult;
-        }
-        boolean isParent = false;
-        boolean isSubnode = true;
-        if (hasSubnodes) {
-            isParent = true;
-            isSubnode = false;
-        }
-        ScSearchNode result = this.findInNode(node, query, hasSubnodes, isParent, isSubnode);
-        if (result != null) {
-            searchResult.add(result);
-        }
-        if (hasSubnodes) {
-            cursor.moveToPosition(-1);
-            while (cursor.moveToNext()) {
-                if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                    try (Cursor childrenCursor = this.getNodeChildrenCursor(cursor.getString(0))) {
-                        searchResult.addAll(this.searchAllNodes(query, childrenCursor));
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            try (Cursor cursor = this.getNodeChildrenCursor(nodeList.item(i))) {
+                while (cursor.moveToNext()) {
+                    if (!cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR) && cursor.getString(2).equals("node.xml")) {
+                        try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
+                            Node node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
+                            boolean hasSubnodes = nodeList.item(i).getAttributes().getNamedItem("has_subnodes").getNodeValue().equals("1");
+                            ScSearchNode scSearchNode = this.findInNode(node, query, hasSubnodes, hasSubnodes, !hasSubnodes);
+                            if (scSearchNode != null) {
+                                searchResult.add(scSearchNode);
+                            }
+                        } catch (IOException | SAXException e) {
+                            this.displayToast(this.context.getString(R.string.toast_error_while_searching));
+                        }
+                        break;
                     }
                 }
             }
@@ -2453,54 +1963,39 @@ public class MultiReader extends DatabaseReader {
     }
 
     /**
-     * Searches through nodes of the cursor skipping ones that are marked to be excluded recursively for the query
+     * Searches through content of all the node that are currently in drawer_menu.xml and not
+     * marked to be skipped in searches
+     * @param nodeList node list to filter the nodes that needs to be searched and search them
      * @param query string to search for
-     * @param cursor cursor to search through
      * @return all the matches to the search in ScSearchNode objects
      */
-    private ArrayList<ScSearchNode> searchNodesSkippingExcluded(String query, Cursor cursor) {
+    private ArrayList<ScSearchNode> searchNodesSkippingExcluded(NodeList nodeList, String query) {
         ArrayList<ScSearchNode> searchResult = new ArrayList<>();
-        Node node = null;
-        boolean hasSubnodes = false;
-        while (cursor != null && cursor.moveToNext()) {
-            if (cursor.getString(2).equals("node.xml")) {
-                try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
-                    node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
-                } catch (IOException | SAXException e) {
-                    this.displayToast(this.context.getString(R.string.toast_error_while_searching));
-                }
-            }
-            if (!hasSubnodes && cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                hasSubnodes = true;
-            }
-        }
-        if (node == null) {
-            // Couldn't find node.xml, means something went wrong.
-            return searchResult;
-        }
-        boolean isParent = false;
-        boolean isSubnode = true;
-        if (hasSubnodes) {
-            isParent = true;
-            isSubnode = false;
-        }
-        // If user marked that search should skip this node
-        if (node.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
-            ScSearchNode result = this.findInNode(node, query, hasSubnodes, isParent, isSubnode);
-            if (result != null) {
-                searchResult.add(result);
-            }
-        }
-        // If user marked that search should exclude subnodes
-        if (hasSubnodes && node.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
-            // if user haven't selected not to query subnodes of current node
-            cursor.moveToPosition(-1);
-            while (cursor.moveToNext()) {
-                if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                    try (Cursor childrenCursor = this.getNodeChildrenCursor(cursor.getString(0))) {
-                        searchResult.addAll(this.searchNodesSkippingExcluded(query, childrenCursor));
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node drawerMenuItem = nodeList.item(i);
+            boolean hasSubnodes = drawerMenuItem.getAttributes().getNamedItem("has_subnodes").getNodeValue().equals("1");
+            boolean noSearchMe = drawerMenuItem.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("1");
+            boolean noSearchCh = drawerMenuItem.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("1");
+            if (!noSearchMe) {
+                try (Cursor cursor = this.getNodeChildrenCursor(nodeList.item(i))) {
+                    while (cursor.moveToNext()) {
+                        if (!cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR) && cursor.getString(2).equals("node.xml")) {
+                            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
+                                Node node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
+                                ScSearchNode scSearchNode = this.findInNode(node, query, hasSubnodes, hasSubnodes, !hasSubnodes);
+                                if (scSearchNode != null) {
+                                    searchResult.add(scSearchNode);
+                                }
+                            } catch (IOException | SAXException e) {
+                                this.displayToast(this.context.getString(R.string.toast_error_while_searching));
+                            }
+                            break;
+                        }
                     }
                 }
+            }
+            if (!noSearchCh) {
+                searchResult.addAll(this.searchNodesSkippingExcluded(drawerMenuItem.getChildNodes(), query));
             }
         }
         return searchResult;
@@ -2518,15 +2013,12 @@ public class MultiReader extends DatabaseReader {
     private ScSearchNode findInNode(Node node, String query, boolean hasSubnodes, boolean isParent, boolean isSubnode) {
         // This string builder will hold oll text content of the node
         StringBuilder nodeContent = new StringBuilder();
-
         // As in reader that all the text would be in order user sees it
         // filenames, table and codebox content hast to be inserted in correct location of the string
         // To help calculate that location totalCharOffset is used
         int totalCharOffset = 0;
-
         // Gets all child nodes
         NodeList nodeContentNodeList = node.getChildNodes();
-
         for (int i = 0; i < nodeContentNodeList.getLength(); i++) {
             // Going through all the tags of the node
             // Skipping other "node" tags (subnodes).
@@ -2570,7 +2062,13 @@ public class MultiReader extends DatabaseReader {
                     int codeboxContentCharOffset = Integer.parseInt(nodeContentNodeList.item(i).getAttributes().getNamedItem("char_offset").getNodeValue());
                     StringBuilder codeboxContent = new StringBuilder();
                     codeboxContent.append(nodeContentNodeList.item(i).getTextContent());
-                    nodeContent.insert(codeboxContentCharOffset + totalCharOffset, codeboxContent);
+                    if (nodeContent.length() < codeboxContentCharOffset + totalCharOffset) {
+                        // This check most likely needed in Searcher, but not in Reader
+                        // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                        nodeContent.append(codeboxContent);
+                    } else {
+                        nodeContent.insert(codeboxContentCharOffset + totalCharOffset, codeboxContent);
+                    }
                     totalCharOffset += codeboxContent.length() - 1;
                     break;
                 case "encoded_png":
@@ -2639,7 +2137,6 @@ public class MultiReader extends DatabaseReader {
                         endIndex = index + queryLength + 20;
                         sampleEnd = "...";
                     }
-
                     // Building a sample for search result from using previously formatted parts
                     StringBuilder sample = new StringBuilder();
                     sample.append(sampleStart);
@@ -2648,7 +2145,6 @@ public class MultiReader extends DatabaseReader {
                     sample.append("<br/>");
                     samples.append(sample);
                 }
-
                 resultCount++;
                 index += queryLength; // moving search start to the end of the last position that search query was found
             }
@@ -2659,5 +2155,60 @@ public class MultiReader extends DatabaseReader {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Loads data from drawer_menu.xml file into drawerMenu global variable
+     * @throws IOException Signals that an I/O exception of some sort has occurred
+     * @throws SAXException Encapsulate a general SAX error or warning
+     */
+    public void setDrawerMenu() throws IOException, SAXException {
+        try (InputStream is = new FileInputStream(new File(this.context.getFilesDir(), "drawer_menu.xml"))) {
+            this.drawerMenu = documentBuilder.parse(is);
+        }
+    }
+
+    /**
+     * Writes drawerMenu global variable to drawer_menu.xml file
+     */
+    private void saveDrawerMenuToStorage() {
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer;
+        try {
+            transformer = transformerFactory.newTransformer();
+            DOMSource dSource = new DOMSource(this.drawerMenu);
+            OutputStream fileOutputStream = new FileOutputStream(new File(this.context.getFilesDir(), "drawer_menu.xml"));
+            StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
+            transformer.transform(dSource, result);
+            fileOutputStream.close();
+        } catch (TransformerException | IOException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+        }
+    }
+
+    /**
+     * Convenience method to create single node with parent node properties
+     * @param node node object to create ScNode object from. This object has to be from drawer_menu.xml file
+     * @return ScNode object ready to be displayed in DrawerMenu as a parent node
+     */
+    private ScNode createParentNode(Node node) {
+        return this.createSingleMenuItem(node, true, false);
+    }
+
+    /**
+     * Search through DrawerMenu item and returns one with specific node unique ID
+     * @param nodeUniqueID unique ID of the node to search for
+     * @return found Node or null
+     */
+    private Node findSingleNode(String nodeUniqueID) {
+        Node node = null;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            if (nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                node = nodeList.item(i);
+                break;
+            }
+        }
+        return node;
     }
 }

@@ -32,7 +32,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.DocumentsContract;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -50,7 +49,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.IOException;
 
+import lt.ffda.sourcherry.dialogs.CollectNodesDialogFragment;
 import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
 import lt.ffda.sourcherry.dialogs.MirrorDatabaseProgressDialogFragment;
 import lt.ffda.sourcherry.dialogs.OpenDatabaseProgressDialogFragment;
@@ -456,9 +457,27 @@ public class MainActivity extends AppCompatActivity {
      */
     private void openDatabase() {
         String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
-        if (this.sharedPreferences.getString("databaseStorageType", null).equals("internal") || databaseFileExtension.equals("multi")) {
+        if (this.sharedPreferences.getString("databaseStorageType", null).equals("internal")) {
             // If database is in app-specific storage there is no need for any processing
             this.startMainViewActivity();
+        } else if (databaseFileExtension.equals("multi")) {
+            // If it's MultiFile database
+            File drawerMenuFile = new File(getFilesDir(), "drawer_menu.xml");
+            if (drawerMenuFile.exists()) {
+                this.startMainViewActivity();
+            } else {
+                try {
+                    if (drawerMenuFile.createNewFile()) {
+                        Bundle bundle = new Bundle();
+                        bundle.putString("uri", this.sharedPreferences.getString("databaseUri", null));
+                        CollectNodesDialogFragment collectNodesDialogFragment = new CollectNodesDialogFragment();
+                        collectNodesDialogFragment.setArguments(bundle);
+                        collectNodesDialogFragment.show(getSupportFragmentManager(), "collectNodesDialog");
+                    }
+                } catch (IOException e) {
+                    Toast.makeText(this, R.string.toast_error_failed_to_collect_drawer_menu_xml, Toast.LENGTH_SHORT).show();
+                }
+            }
         } else {
             // A check for external databases that they still exists
             // If the check fails message for user is displayed and MainView activity will not open
@@ -519,6 +538,7 @@ public class MainActivity extends AppCompatActivity {
      * @param databaseUri uri for shared databases and path for internal databases
      */
     private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
+        this.deleteDrawerMenuCache();
         SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
         sharedPreferencesEditor.putString("databaseStorageType", databaseStorageType);
         sharedPreferencesEditor.putString("databaseFilename", databaseFilename);
@@ -641,6 +661,16 @@ public class MainActivity extends AppCompatActivity {
             sharedPreferencesEditor.remove("mirrorDatabaseLastModified");
             sharedPreferencesEditor.apply();
             Toast.makeText(this, R.string.toast_error_missing_mirror_database_folder_missing, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Deletes drawer_menu.xml file from app-specific storage
+     */
+    private void deleteDrawerMenuCache() {
+        File file = new File(getFilesDir(), "drawer_menu.xml");
+        if (file.exists()) {
+            file.delete();
         }
     }
 }

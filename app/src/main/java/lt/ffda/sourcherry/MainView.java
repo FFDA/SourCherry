@@ -77,6 +77,8 @@ import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
 
+import org.xml.sax.SAXException;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -86,6 +88,7 @@ import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -147,20 +150,17 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         try {
             this.reader = DatabaseReaderFactory.getReader(this, this.handler, this.sharedPreferences, this.mainViewModel);
-        } catch (IOException e) {
-            Toast.makeText(this, R.string.toast_error_failed_to_read_database, Toast.LENGTH_SHORT).show();
-            this.finish();
-            return;
-        } catch (ParserConfigurationException e) {
-            Toast.makeText(this, R.string.toast_error_failed_to_initiate_document_builder, Toast.LENGTH_SHORT).show();
-            this.finish();
-            return;
-        } catch (TransformerConfigurationException e) {
-            Toast.makeText(this, R.string.toast_error_failed_to_initiate_transformer, Toast.LENGTH_SHORT).show();
+        } catch (IOException | ParserConfigurationException | TransformerConfigurationException |
+                 InterruptedException | SAXException | ExecutionException e) {
+            Toast.makeText(this, R.string.toast_error_failed_to_initiate_reader, Toast.LENGTH_SHORT).show();
             this.finish();
             return;
         }
-
+        if (this.reader == null) {
+            Toast.makeText(this, R.string.toast_error_failed_to_initiate_reader, Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true).setReorderingAllowed(true)
@@ -2101,7 +2101,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             Toast.makeText(this, R.string.toast_message_not_password_protected_xml_saves_changes_externally, Toast.LENGTH_SHORT).show();
             return;
         }
-
         if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
             // If user uses MirrorDatabase
             // Variables that will be put into bundle for MirrorDatabaseProgressDialogFragment

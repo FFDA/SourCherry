@@ -74,8 +74,6 @@
     <string name="toast_error_failed_to_load_image_large">Embedded image was too big (>%1$dmb)</string>
     <string name="toast_error_failed_to_compile_latex">Failed to compile latex code</string>
     <string name="toast_error_failed_to_read_database">Failed to read database</string>
-    <string name="toast_error_failed_to_initiate_document_builder">Failed to initiate document builder</string>
-    <string name="toast_error_failed_to_initiate_transformer">Failed to initiate document transformer</string>
     <string name="toast_error_failed_to_convert_string_to_nodelist">Failed to convert String to Document</string>
     <string name="toast_error_failed_to_export_node_to_pdf">Failed to export node to PDF</string>
     <string name="toast_error_failed_to_save_database_changes">Failed to save database changes</string>
@@ -96,6 +94,8 @@
     <string name="toast_error_failed_to_delete_multi_database_file">Failed to delete %1$s file</string>
     <string name="toast_error_failed_to_delete_node">Failed to delete node</string>
     <string name="toast_error_failed_to_move_node">Failed to move node</string>
+    <string name="toast_error_failed_to_initiate_reader">Failed to initiate the database reader</string>
+    <string name="toast_error_failed_to_collect_drawer_menu_xml">Failed to collect drawer_menu.xml</string>
     <string name="toast_error_failed_to_create_node">Failed to create node</string>
     <string name="toast_error_passwords_do_not_match">Passwords do not match</string>
     <string name="toast_error_missing_mirror_database_folder_missing">MirrorDatabase folder is missing. Disabling preference.</string>
@@ -194,6 +194,8 @@
     <string name="dialog_fragment_export_database_repeat_password">Repeat password</string>
     <string name="dialog_fragment_export_database_message_exporting_database">Exporting database</string>
     <string name="dialog_fragment_export_database_message_compressing_database">Compressing database</string>
+    <string name="dialog_fragment_collect_nodes_title">Scanning nodes</string>
+    <string name="dialog_fragment_collect_nodes_message">Scanned nodes: %1$d</string>
     <string name="alert_dialog_warning_newer_mirror_database_will_be_overwritten_title">Overwrite</string>
     <string name="alert_dialog_warning_newer_mirror_database_will_be_overwritten_message">Mirror database was updated after the last synchronization</string>
     <string name="alert_dialog_warning_no_mirror_database_selected_message">Select mirror database file. Otherwise Mirror Database will be disabled when leaving.</string>

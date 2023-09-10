@@ -132,7 +132,7 @@ public class XMLReader extends DatabaseReader {
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
                         // if user haven't selected not to search subnodes of current node
                         // node list of current node is passed to another function that returns ArrayList with all menu items from that list
-                        nodes.addAll(returnSubnodeSearchArrayListList(nodeList.item(i).getChildNodes()));
+                        nodes.addAll(this.returnSubnodeSearchArrayListList(nodeList.item(i).getChildNodes()));
                     }
                 }
             }
@@ -324,9 +324,8 @@ public class XMLReader extends DatabaseReader {
                 } else if (parentNode.getNodeName().equals("cherrytree")) {
                     nodes = this.getMainNodes();
                 } else {
-                    NodeList parentSubnodes = parentNode.getChildNodes();
-                    nodes = returnSubnodeArrayList(parentSubnodes, true);
-                    nodes.add(0, createParentNode(parentNode));
+                    nodes = this.returnSubnodeArrayList(parentNode.getChildNodes(), true);
+                    nodes.add(0, this.createParentNode(parentNode));
                 }
             }
         }
@@ -941,16 +940,16 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public int getNodeMaxID() {
-        int nodeUniqueID = -1;
+        int maxID = -1;
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             int foundNodeUniqueID = Integer.parseInt(node.getAttributes().getNamedItem("unique_id").getNodeValue());
-            if (foundNodeUniqueID > nodeUniqueID) {
-                nodeUniqueID = foundNodeUniqueID;
+            if (foundNodeUniqueID > maxID) {
+                maxID = foundNodeUniqueID;
             }
         }
-        return nodeUniqueID;
+        return maxID;
     }
 
     /**
@@ -983,8 +982,7 @@ public class XMLReader extends DatabaseReader {
         Node node = null;
         if (nodeUniqueID.equals("0")) {
             // User chose to create the node in main menu
-            NodeList nodeList = this.doc.getElementsByTagName("cherrytree");
-            node = nodeList.item(0);
+            node = this.doc.getElementsByTagName("cherrytree").item(0);
         } else {
             NodeList nodeList = this.doc.getElementsByTagName("node");
             for (int i = 0; i < nodeList.getLength(); i++) {
@@ -1012,7 +1010,7 @@ public class XMLReader extends DatabaseReader {
         newNode.setAttribute("ts_creation", timestamp);
         newNode.setAttribute("ts_lastsave", timestamp);
 
-        boolean isSubNode = true;
+        boolean isSubnode = true;
         // Adding node to document
         if (relation == 0) {
             // As a sibling to selected node
@@ -1027,14 +1025,14 @@ public class XMLReader extends DatabaseReader {
             // Checking if node is being created as MainMenu node
             // Needed to set correct indentation for the node in the menu
             if (node.getParentNode().getNodeName().equals("cherrytree")) {
-                isSubNode = false;
+                isSubnode = false;
             }
         } else {
             // As a subnode of selected node
             node.appendChild(newNode);
         }
         this.writeIntoDatabase();
-        return new ScNode(newNodeUniqueID, name,false, false, isSubNode, progLang.equals("custom-colors"), false, "", 0, false);
+        return new ScNode(newNodeUniqueID, name,false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
     }
 
     @Override
@@ -1112,13 +1110,11 @@ public class XMLReader extends DatabaseReader {
         } else {
             Node targetNode = null;
             Node destinationNode = null;
-
             // User chose to move the node to main menu
             if (destinationNodeUniqueID.equals("0")) {
                 NodeList nodeList = this.doc.getElementsByTagName("cherrytree");
                 destinationNode = nodeList.item(0);
             }
-
             NodeList nodeList = this.doc.getElementsByTagName("node");
             for (int i = 0; i < nodeList.getLength(); i++) {
                 // Goes through the nodes until target and destination nodes are found
@@ -1134,17 +1130,17 @@ public class XMLReader extends DatabaseReader {
                     break;
                 }
             }
-
             // Checks for when user wants to move node to the same parent node
             // In XML databases that causes crash and it is not necessary write operation
             if (destinationNode.getNodeName().equals("cherrytree") && targetNode.getParentNode().getNodeName().equals("cherrytree")) {
+                this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
                 return;
             }
             Node parentNodeUniqueID = targetNode.getParentNode().getAttributes().getNamedItem("unique_id");
             if (parentNodeUniqueID != null && parentNodeUniqueID.getNodeValue().equals(destinationNodeUniqueID)) {
+                this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
                 return;
             }
-
             destinationNode.appendChild(targetNode);
             this.writeIntoDatabase();
         }
@@ -1775,7 +1771,6 @@ public class XMLReader extends DatabaseReader {
                     // It would be possible to add all the table content directly from the nodeContentNodeList.item(i)
                     // However, "header" of the table is places in the last row, so it would be showed at the end of tables content
                     NodeList tableRows = nodeContentNodeList.item(i).getChildNodes();
-
                     // Adding all rows to arraylist
                     ArrayList<String> tableRowArray = new ArrayList<>();
                     for (int row = 0; row < tableRows.getLength(); row++) {
@@ -1783,7 +1778,6 @@ public class XMLReader extends DatabaseReader {
                             tableRowArray.add(tableRows.item(row).getTextContent());
                         }
                     }
-
                     // Adding the last row of the table to string builder as first because that's where header of the table is located
                     tableContent.append(tableRowArray.get(tableRowArray.size() - 1));
                     // Rest of the rows can be added in order
@@ -1799,7 +1793,6 @@ public class XMLReader extends DatabaseReader {
                     break;
                 case "codebox":
                     int codeboxContentCharOffset = Integer.parseInt(nodeContentNodeList.item(i).getAttributes().getNamedItem("char_offset").getNodeValue());
-
                     StringBuilder codeboxContent = new StringBuilder();
                     codeboxContent.append(nodeContentNodeList.item(i).getTextContent());
                     nodeContent.insert(codeboxContentCharOffset + totalCharOffset, codeboxContent);

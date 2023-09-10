@@ -15,15 +15,22 @@ import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Handler;
+import android.widget.Toast;
 
+import org.xml.sax.SAXException;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.ExecutionException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerConfigurationException;
 
+import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
+import lt.ffda.sourcherry.R;
 
 /**
  * Defines a factory API that enables applications to obtain a database reader that
@@ -34,25 +41,36 @@ public class DatabaseReaderFactory {
     private DatabaseReaderFactory(){}
 
     /**
-     * Creates an object that implements DatabaseReader interface depending on the database type
+     * Creates an object that implements DatabaseReader abstract class depending on the database type
      * @param context application context
-     * @param handler used by database reader to execute task not on the main thread
+     * @param handler used by database reader to execute task on the main thread
      * @param sharedPreferences application preferences
+     * @param mainViewModel view model that stores all the node content and drawer menu data
      * @return object implementing DatabaseReader interface
      * @throws IOException exceptions while opening XML type databases
      */
-    public static DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences, MainViewModel mainViewModel) throws IOException, ParserConfigurationException, TransformerConfigurationException {
+    public static DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences, MainViewModel mainViewModel) throws IOException, ParserConfigurationException, TransformerConfigurationException, SAXException, InterruptedException, ExecutionException {
         String databaseString = sharedPreferences.getString("databaseUri", null);
-        if (sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
+        if (sharedPreferences.getString("databaseStorageType", "").equals("shared")) {
             // If file is in external storage
             if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                 // If file is xml
                 InputStream is = context.getContentResolver().openInputStream(Uri.parse(databaseString));
                 databaseReader = new XMLReader(databaseString, is, context, handler, mainViewModel);
-                is.close();
+                if (is != null) {
+                    is.close();
+                }
             } else if (sharedPreferences.getString("databaseFileExtension", null).equals("multi")) {
                 // Multi-file storage
                 databaseReader = new MultiReader(Uri.parse(databaseString), context, handler, mainViewModel);
+                File drawerMenuFile = new File(context.getFilesDir(), "drawer_menu.xml");
+                if (drawerMenuFile.exists()) {
+                    ((MultiReader) databaseReader).setDrawerMenu();
+                } else {
+                    Toast.makeText(context, context.getString(R.string.toast_error_failed_to_open_multi_database_file, "drawer_menu.xml"), Toast.LENGTH_SHORT).show();
+                    ((MainView) context).finish();
+                    return null;
+                }
             }
         } else {
             // If file is in internal app storage
