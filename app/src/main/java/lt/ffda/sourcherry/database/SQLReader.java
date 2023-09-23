@@ -192,14 +192,14 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             boolean hasSubnodes = hasSubnodes(nodeUniqueID);
             boolean isRichText = cursor.getString(3).equals("custom-colors");
             boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
-            String foregoundColor = "";
+            String foregroundColor = "";
             if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
-                foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+                foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
             }
             int iconId = cursor.getInt(4) >> 1;
             boolean isReadOnly = (cursor.getInt(4) & 0x01) == 1;
             // There is only one parent Node and its added manually in getSubNodes()
-            nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, isSubnode, isRichText, isBold, foregoundColor, iconId, isReadOnly));
+            nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly));
         }
         return nodes;
     }
@@ -220,14 +220,14 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 boolean hasSubnodes = hasSubnodes(nodeUniqueID);
                 boolean isRichText = cursor.getString(2).equals("custom-colors");
                 boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
-                String foregoundColor = "";
+                String foregroundColor = "";
                 if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
-                    foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+                    foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
                 }
                 int iconId = cursor.getInt(5) >> 1;
                 boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
                 // There are no "parent" nodes in search. All nodes displayed without indentation
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregoundColor, iconId, isReadOnly));
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
                 if (hasSubnodes) {
                     Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.level, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
                     nodes.addAll(returnSubnodeSearchArrayList(subCursor));
@@ -249,14 +249,14 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 boolean hasSubnodes = hasSubnodes(nodeUniqueID);
                 boolean isRichText = cursor.getString(2).equals("custom-colors");
                 boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
-                String foregoundColor = "";
+                String foregroundColor = "";
                 if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
-                    foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+                    foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
                 }
                 int iconId = cursor.getInt(5) >> 1;
                 boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
                 // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregoundColor, iconId, isReadOnly));
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
             }
         }
         return nodes;
@@ -2312,13 +2312,13 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         if (resultCount > 0) {
             // if node count of matches is more than 0 that a match of q query was found
             boolean isBold = ((cursor.getInt(6) >> 1) & 0x01) == 1;
-            String foregoundColor = "";
+            String foregroundColor = "";
             if (((cursor.getInt(6) >> 2) & 0x01) == 1) {
-                foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+                foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
             }
             int iconId = cursor.getInt(5) >> 1;
             boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
-            return new ScSearchNode(cursor.getString(0), cursor.getString(1), isParent, hasSubnodes, isSubnode, cursor.getString(3).equals("custom-colors"), isBold, foregoundColor, iconId, isReadOnly, query, resultCount, samples.toString());
+            return new ScSearchNode(cursor.getString(0), cursor.getString(1), isParent, hasSubnodes, isSubnode, cursor.getString(3).equals("custom-colors"), isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
         } else {
             return null;
         }
