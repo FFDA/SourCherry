@@ -50,6 +50,8 @@ import java.util.ArrayList;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.database.DatabaseReaderFactory;
+import lt.ffda.sourcherry.database.MultiReader;
 import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
@@ -89,6 +91,10 @@ public class NodeContentFragment extends Fragment {
             @Override
             public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
                 menuInflater.inflate(R.menu.options_menu_node_content_fragment, menu);
+                if (DatabaseReaderFactory.getReader() instanceof MultiReader) {
+                    menu.findItem(R.id.options_menu_rescan_database).setVisible(true);
+                    menu.removeItem(R.id.options_menu_export_database);
+                }
             }
 
             @Override

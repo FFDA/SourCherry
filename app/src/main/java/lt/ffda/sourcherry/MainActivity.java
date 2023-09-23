@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
                 return;
             }
-            saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], intent.getData().toString());
+            this.saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], intent.getData().toString());
             setMessageWithDatabaseName();
             String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
             if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {

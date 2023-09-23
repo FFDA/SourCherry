@@ -16,6 +16,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.util.ArrayList;
+import java.util.concurrent.ScheduledFuture;
 
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.model.ScNodeContent;
@@ -33,6 +34,7 @@ public class MainViewModel extends ViewModel {
     private ArrayList<SpannableStringBuilder> findInNodeStorage;
     // Stores results for FindInNode() int[textView index in findInNodeStorage, start index of matching substring, end index of matching substring]
     private ArrayList<int[]> findInNodeResultStorage;
+    private MutableLiveData<ScheduledFuture<?>> multiDatabaseSync;
 
     /**
      * LiveData object that stores node content data. Use objects functions to get and set the data.
@@ -111,6 +113,13 @@ public class MainViewModel extends ViewModel {
     public void saveCurrentNodes() {
         this.tempNodes = new ArrayList<>();
         this.tempNodes.addAll(this.nodes);
+    }
+
+    /**
+     * Sets updated nodes to tempNode variable
+     */
+    public void updateSavedCurrentNodes(ArrayList<ScNode> newNodes) {
+        this.tempNodes = newNodes;
     }
 
     /**
@@ -243,5 +252,17 @@ public class MainViewModel extends ViewModel {
      */
     public void deleteNodeContent() {
         this.nodeContent.postValue(new ArrayList<>());
+    }
+
+    /**
+     * Returns LiveData object that holds ScheduledFuture of MultiFile database background scan.
+     * It survives orientation changes and can be used to cancel the task.
+     * @return LiveData object that holds ScheduledFuture of MultiFile database background scan
+     */
+    public MutableLiveData<ScheduledFuture<?>> getMultiDatabaseSync() {
+        if (this.multiDatabaseSync == null) {
+            this.multiDatabaseSync = new MutableLiveData<>();
+        }
+        return this.multiDatabaseSync;
     }
 }

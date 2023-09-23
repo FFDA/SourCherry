@@ -8,18 +8,19 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry.preferences;
+package lt.ffda.sourcherry;
 
-import android.os.Bundle;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import androidx.preference.PreferenceFragmentCompat;
-
-import lt.ffda.sourcherry.R;
-
-public class PreferencesFragment extends PreferenceFragmentCompat {
-
-    @Override
-    public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-        setPreferencesFromResource(R.xml.preferences, rootKey);
+/**
+ * Dependencies container class where all dependencies available for all the classes are stored.
+ */
+public class AppContainer {
+    public ScheduledThreadPoolExecutor executor = getExecutor();
+    private ScheduledThreadPoolExecutor getExecutor() {
+        ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(2);
+        executor.setRemoveOnCancelPolicy(true);
+        return executor;
     }
 }

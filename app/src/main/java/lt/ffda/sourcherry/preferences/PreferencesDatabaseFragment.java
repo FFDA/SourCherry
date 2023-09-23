@@ -32,9 +32,11 @@ import androidx.core.view.MenuProvider;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.lifecycle.Lifecycle;
 import androidx.preference.Preference;
+import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
-import androidx.preference.PreferenceScreen;
+import androidx.preference.SeekBarPreference;
+import androidx.preference.SwitchPreference;
 import androidx.preference.SwitchPreferenceCompat;
 
 import java.util.Date;
@@ -60,76 +62,16 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
         this.mirrorDatabaseFile = findPreference("mirror_database_file_preference");
         this.mirrorDatabaseFileLastModified = findPreference("mirror_database_last_modified_preference");
 
-        // Enabling "Mirror database file" preference if "Mirror database" switch is enabled
-        if (mirrorDatabaseSwitch.isChecked()) {
-            this.mirrorDatabaseFolder.setEnabled(true);
-            this.mirrorDatabaseFile.setEnabled(true);
-            this.mirrorDatabaseFileLastModified.setVisible(true);
-
-            long lastModifiedDate = this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0);
-            if (lastModifiedDate > 0) {
-                this.mirrorDatabaseFileLastModified.setSummary(new Date(lastModifiedDate).toString());
-            } else {
-                this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
-            }
-        }
-        this.mirrorDatabaseFolder.setSummary(this.sharedPreferences.getString("mirrorDatabaseFolderUri", getString(R.string.preferences_mirror_database_mirror_database_folder_summary)));
-        this.mirrorDatabaseFile.setSummary(this.sharedPreferences.getString("mirrorDatabaseFilename", getString(R.string.preferences_mirror_database_mirror_database_file_summary)));
-
-        // Setting listener to enable/disable setting to select a mirror database file
-        mirrorDatabaseSwitch.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-            @Override
-            public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
-                if ((Boolean) newValue) {
-                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
-                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setVisible(true);
-                } else {
-                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setVisible(false);
-                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
-                    PreferencesDatabaseFragment.this.removeSavedMirrorDatabasePreferences();
-                }
-                return true;
-            }
-        });
-
-        this.mirrorDatabaseFolder.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-            @Override
-            public boolean onPreferenceClick(@NonNull Preference preference) {
-                getMirrorDatabaseFolder.launch(null);
-                return true;
-            }
-        });
-
-        this.mirrorDatabaseFile.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-            @Override
-            public boolean onPreferenceClick(@NonNull Preference preference) {
-                getMirrorDatabaseFile.launch(new String[]{"*/*",});
-                return true;
-            }
-        });
-
-        // If database stored on external storage (xml not password protected database)
-        // disabled mirror database preferences and displays a message
-        if (this.sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
-            mirrorDatabaseSwitch.setChecked(false);
-            mirrorDatabaseSwitch.setEnabled(false);
-            Preference mirrorDatabaseMessage = findPreference("mirror_database_message");
-            mirrorDatabaseMessage.setSummary(R.string.preferences_mirror_database_message_summary_alternative_for_xml_database);
-        }
-        Preference preferenceVacuumDatabase = findPreference("preference_vacuum_database");
+        String databaseStorageType = this.sharedPreferences.getString("databaseStorageType", "");
         String databaseExtension = this.sharedPreferences.getString("databaseFileExtension", "ctd");
-        if (databaseExtension.equals("ctd") || databaseExtension.equals("ctz")) {
-            PreferenceScreen preferenceScreen = findPreference("preferences_database");
-            preferenceScreen.removePreference(preferenceVacuumDatabase);
-        } else {
-            preferenceVacuumDatabase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-                @Override
-                public boolean onPreferenceClick(@NonNull Preference preference) {
-                    DatabaseVacuum databaseVacuum = (DatabaseVacuum) DatabaseReaderFactory.getReader();
-                    databaseVacuum.vacuum();
-                    return true;
-                }
-            });
+        if (databaseStorageType.equals("internal")) {
+            this.initMirrorDatabasePreferences();
+        }
+        if (databaseExtension.equals("ctb") || databaseExtension.equals("ctx")) {
+            this.initSqlDatabasePreferences();
+        }
+        if (databaseExtension.equals("multi")) {
+            this.initMultifileDatabasePreferences();
         }
     }
 
@@ -261,4 +203,87 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
             }
         }
     };
+
+    /**
+     * Makes all elements associated with MirrorDatabase visible. Adds listeners where needed.
+     */
+    private void initMirrorDatabasePreferences() {
+        PreferenceCategory mirrorDatabaseCategory = findPreference("preferences_category_mirror_database");
+        mirrorDatabaseCategory.setVisible(true);
+        // Enabling "Mirror database file" preference if "Mirror database" switch is enabled
+        if (mirrorDatabaseSwitch.isChecked()) {
+            this.mirrorDatabaseFolder.setEnabled(true);
+            this.mirrorDatabaseFile.setEnabled(true);
+            this.mirrorDatabaseFileLastModified.setVisible(true);
+
+            long lastModifiedDate = this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0);
+            if (lastModifiedDate > 0) {
+                this.mirrorDatabaseFileLastModified.setSummary(new Date(lastModifiedDate).toString());
+            } else {
+                this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
+            }
+        }
+        this.mirrorDatabaseFolder.setSummary(this.sharedPreferences.getString("mirrorDatabaseFolderUri", getString(R.string.preferences_mirror_database_mirror_database_folder_summary)));
+        this.mirrorDatabaseFile.setSummary(this.sharedPreferences.getString("mirrorDatabaseFilename", getString(R.string.preferences_mirror_database_mirror_database_file_summary)));
+
+        // Setting listener to enable/disable setting to select a mirror database file
+        this.mirrorDatabaseSwitch.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            @Override
+            public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
+                if ((Boolean) newValue) {
+                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
+                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setVisible(true);
+                } else {
+                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setVisible(false);
+                    PreferencesDatabaseFragment.this.mirrorDatabaseFileLastModified.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
+                    PreferencesDatabaseFragment.this.removeSavedMirrorDatabasePreferences();
+                }
+                return true;
+            }
+        });
+
+        this.mirrorDatabaseFolder.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(@NonNull Preference preference) {
+                getMirrorDatabaseFolder.launch(null);
+                return true;
+            }
+        });
+
+        this.mirrorDatabaseFile.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(@NonNull Preference preference) {
+                getMirrorDatabaseFile.launch(new String[]{"*/*",});
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Makes preferences for SQL database visible. Adds listeners where needed.
+     */
+    private void initSqlDatabasePreferences() {
+        SeekBarPreference cursorWindowSizePreference = findPreference("preferences_cursor_window_size");
+        if (cursorWindowSizePreference != null) {
+            cursorWindowSizePreference.setVisible(true);
+        }
+        Preference preferenceVacuumDatabase = findPreference("preference_vacuum_database");
+        preferenceVacuumDatabase.setVisible(true);
+        preferenceVacuumDatabase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(@NonNull Preference preference) {
+                DatabaseVacuum databaseVacuum = (DatabaseVacuum) DatabaseReaderFactory.getReader();
+                databaseVacuum.vacuum();
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Makes preferences associated with Multifile databases visible.
+     */
+    private void initMultifileDatabasePreferences() {
+        SwitchPreference multifileDatabaseAutoSync = findPreference("preference_multifile_auto_sync");
+        multifileDatabaseAutoSync.setVisible(true);
+    }
 }

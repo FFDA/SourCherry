@@ -6,6 +6,7 @@
     <string name="button_select_database_multi">Multi file</string>
     <string name="button_open">Open</string>
     <string name="button_ok">OK</string>
+    <string name="button_wait">Wait</string>
     <string name="button_select">Select</string>
     <string name="button_leave">Leave</string>
     <string name="text_password_label">Password</string>
@@ -23,6 +24,8 @@
     <string name="dialog_node_type_change_message">Leaving the rich text node type will lose all the formatting for this node</string>
     <string name="alert_dialog_unsaved_changes_title">Unsaved changes</string>
     <string name="alert_dialog_unsaved_changes_message">Leaving editor without saving changes</string>
+    <string name="alert_dialog_sync_in_progress_title">Database sync is in progress</string>
+    <string name="alert_dialog_sync_in_progress_message">To be able to edit the database, you have to either cancel the sync process or wait for it to finish.</string>
     <string name="button_save">Save</string>
     <string name="button_cancel">Cancel</string>
     <string name="button_move">Move</string>
@@ -64,6 +67,7 @@
     <string name="toast_message_not_password_protected_xml_saves_changes_externally">Not password protected XML databases are already saved externally</string>
     <string name="toast_message_incompatible_database_types">Incompatible database types.</string>
     <string name="toast_message_codebox_cant_be_formatted">Codebox can\'t be formatted</string>
+    <string name="toast_message_updated_drawer_menu">Updated drawer menu</string>
     <string name="open_database_fragment_copying_database_message">Copying database to app-specific storage</string>
     <string name="open_database_fragment_extracting_database_message">Extracting database</string>
     <string name="toast_error_failed_to_save_file">Failed to save the file</string>
@@ -106,6 +110,8 @@
     <string name="toast_error_error_while_saving_node_content_failed_to_delete">Error while saving node content. Failed to delete file.</string>
     <string name="toast_error_failed_to_save_table">Failed to save table</string>
     <string name="toast_error_failed_to_save_node">Failed to save node</string>
+    <string name="toast_error_failed_update_drawer_menu">Failed to update drawer menu</string>
+    <string name="toast_error_scan_already_in_progress">Scan already in progress</string>
     <string name="options_menu_item_about">About</string>
     <string name="options_menu_about_licence">Published under GPL v3</string>
     <string name="options_menu_about_libraries_title">Software used</string>
@@ -124,6 +130,7 @@
     <string name="options_menu_item_find_in_node_marked_index_count_separator" translatable="false">/</string>
     <string name="options_menu_item_export_to_pdf">Export to PDF</string>
     <string name="options_menu_item_export_database">Export database</string>
+    <string name="options_menu_item_rescan_database">Rescan database</string>
     <string name="find_in_node_view_previous_button_description">Highlights and moves to the previous item of the find in node results</string>
     <string name="find_in_node_view_next_button_description">Highlights and moves to the next item of the find in node results</string>
     <string name="find_in_node_view_close_button_description">Closes the find in node view</string>
@@ -158,6 +165,8 @@
     <string name="preferences_mirror_database_mirror_database_more_info">More information on GitHub</string>
     <string name="preferences_database_vacuum_title">Vacuum SQL database</string>
     <string name="preferences_database_vacuum_summary">Can reduce database size after removing large amount of data</string>
+    <string name="preference_multifile_auto_sync_title">Multifile database auto sync</string>
+    <string name="preference_multifile_auto_sync_summary">Scans Multifile database folder at startup in the background</string>
     <string name="mirror_database_fragment_enter_password_message">Please enter the password</string>
     <string name="navigation_drawer_button_back_content_description">Button BACK. Displayed when bookmarks are being showed to the user. When pressed - returns to menu that was displayed before user tapped bookmarks button.</string>
     <string name="navigation_drawer_button_up_content_description">Button UP. Displayed in normal navigation mode. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>

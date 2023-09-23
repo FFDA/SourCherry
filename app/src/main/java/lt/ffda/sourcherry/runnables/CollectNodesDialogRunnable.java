@@ -55,7 +55,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import lt.ffda.sourcherry.R;
 
-public class CollectNodesRunnable implements Runnable {
+public class CollectNodesDialogRunnable implements Runnable {
     private final Uri mainFolderUri;
     private final Context context;
     private final NodesCollectedCallback callback;
@@ -77,7 +77,7 @@ public class CollectNodesRunnable implements Runnable {
      * @param callback callback that has to be executed after collection processes is finished
      * @throws ParserConfigurationException if a DocumentBuilder cannot be created which satisfies the configuration requested
      */
-    public CollectNodesRunnable(Uri mainFolderURi, Context context, Handler handler, TextView textView, NodesCollectedCallback callback) throws ParserConfigurationException {
+    public CollectNodesDialogRunnable(Uri mainFolderURi, Context context, Handler handler, TextView textView, NodesCollectedCallback callback) throws ParserConfigurationException {
         this.mainFolderUri = mainFolderURi;
         this.context = context;
         this.handler = handler;
@@ -93,9 +93,9 @@ public class CollectNodesRunnable implements Runnable {
     public void run() {
         try {
             this.saveDrawerMenuToStorage(this.getDrawerMenuTree());
-            this.callback.onNodesCollected(true);
+            this.callback.onNodesCollected(0);
         } catch (IOException | TransformerException | SAXException e) {
-            this.callback.onNodesCollected(false);
+            this.callback.onNodesCollected(1);
         }
     }
 
@@ -212,7 +212,7 @@ public class CollectNodesRunnable implements Runnable {
         node.setAttribute("readonly", isReadOnly ? "1" : "0");
         node.setAttribute("saf_id", documentId);
         this.counter++;
-        handler.post(new Runnable() {
+        this.handler.post(new Runnable() {
             @Override
             public void run() {
                 textView.setText(context.getString(R.string.dialog_fragment_collect_nodes_message, counter));

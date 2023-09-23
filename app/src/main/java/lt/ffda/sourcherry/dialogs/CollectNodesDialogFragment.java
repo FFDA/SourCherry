@@ -32,7 +32,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import lt.ffda.sourcherry.MainActivity;
 import lt.ffda.sourcherry.R;
-import lt.ffda.sourcherry.runnables.CollectNodesRunnable;
+import lt.ffda.sourcherry.runnables.CollectNodesDialogRunnable;
 import lt.ffda.sourcherry.runnables.NodesCollectedCallback;
 
 public class CollectNodesDialogFragment extends DialogFragment {
@@ -59,10 +59,10 @@ public class CollectNodesDialogFragment extends DialogFragment {
         super.onStart();
         Handler handler = new Handler(Looper.getMainLooper());
         try {
-            this.executor.submit(new CollectNodesRunnable(Uri.parse(getArguments().getString("uri")), getContext(), handler, this.textView, new NodesCollectedCallback() {
+            this.executor.submit(new CollectNodesDialogRunnable(Uri.parse(getArguments().getString("uri")), getContext(), handler, this.textView, new NodesCollectedCallback() {
                 @Override
-                public void onNodesCollected(boolean success) {
-                    if (success) {
+                public void onNodesCollected(int result) {
+                    if (result == 0) {
                         executor.shutdown();
                         ((MainActivity) getActivity()).startMainViewActivity();
                         dismiss();

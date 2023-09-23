@@ -27,6 +27,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentResultListener;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -90,7 +91,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -98,6 +101,7 @@ import javax.xml.transform.TransformerConfigurationException;
 
 import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
+import lt.ffda.sourcherry.database.MultiReader;
 import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
 import lt.ffda.sourcherry.dialogs.MenuItemActionDialogFragment;
 import lt.ffda.sourcherry.dialogs.SaveOpenDialogFragment;
@@ -110,6 +114,8 @@ import lt.ffda.sourcherry.fragments.NodePropertiesFragment;
 import lt.ffda.sourcherry.fragments.SearchFragment;
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.preferences.PreferencesActivity;
+import lt.ffda.sourcherry.runnables.CollectNodesBackgroundRunnable;
+import lt.ffda.sourcherry.runnables.NodesCollectedCallback;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
 
@@ -125,7 +131,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
     private MainViewModel mainViewModel;
     private SharedPreferences sharedPreferences;
-    private ExecutorService executor;
+    private ScheduledThreadPoolExecutor executor;
     private DrawerLayout drawerLayout;
     private Handler handler;
     private int currentFindInNodeMarked; // Index of the result that is marked from FindInNode results. -1 Means nothing is selected
@@ -139,14 +145,14 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         setSupportActionBar(toolbar);
 
         this.mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
-        this.executor = Executors.newSingleThreadExecutor();
+        AppContainer appContainer = ((ScApplication) getApplication()).appContainer;
+        this.executor = appContainer.executor;
         this.handler = new Handler(Looper.getMainLooper());
         // drawer layout instance to toggle the menu icon to open
         // drawer and back button to close drawer
         this.drawerLayout = findViewById(R.id.drawer_layout);
         this.actionBarDrawerToggle = new ActionBarDrawerToggle(this, this.drawerLayout, R.string.nav_open, R.string.nav_close);
         SearchView searchView = findViewById(R.id.navigation_drawer_search);
-
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         try {
             this.reader = DatabaseReaderFactory.getReader(this, this.handler, this.sharedPreferences, this.mainViewModel);
@@ -170,6 +176,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             this.bookmarksToggle = false;
             this.filterNodeToggle = false;
             this.findInNodeToggle = false;
+            this.mainViewModel.getMultiDatabaseSync().postValue(null);
             this.currentFindInNodeMarked = -1;
             if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.reader.doesNodeExist(this.sharedPreferences.getString("last_node_unique_id", null))) {
                 // Restores node on startup if user set this in settings
@@ -186,6 +193,9 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 this.mainViewModel.setCurrentNode(null); // This needs to be placed before restoring the instance if there was one
                 this.mainViewModel.setNodes(this.reader.getMainNodes());
             }
+            if (this.reader instanceof MultiReader && this.sharedPreferences.getBoolean("preference_multifile_auto_sync", false)) {
+                this.updateDrawerMenu();
+            }
         } else {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
             this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
@@ -194,40 +204,69 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             this.filterNodeToggle = savedInstanceState.getBoolean("filterNodeToggle");
             this.findInNodeToggle = savedInstanceState.getBoolean("findInNodeToggle");
         }
-
+        if (this.reader instanceof MultiReader) {
+            this.mainViewModel.getMultiDatabaseSync().observe(this, new Observer<ScheduledFuture<?>>() {
+                // Observer has to be used instead of callback, because after screen orientation
+                // current progress bar widget can't be accessed from it.
+                @Override
+                public void onChanged(ScheduledFuture<?> scheduledFuture) {
+                    showHideProgressBar(scheduledFuture != null);
+                }
+            });
+        }
         // Register with fragmentManager to get result from menuItemActionDialogFragment
         getSupportFragmentManager().setFragmentResultListener("menuItemAction", this, new FragmentResultListener() {
             @Override
             public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
-                MenuItemAction menuItemAction;
-                if (Build.VERSION.SDK_INT >= 33) {
-                    menuItemAction = result.getSerializable("menuItemActionCode", MenuItemAction.class);
+                if (mainViewModel.getMultiDatabaseSync().getValue() == null) {
+                    MenuItemAction menuItemAction;
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        menuItemAction = result.getSerializable("menuItemActionCode", MenuItemAction.class);
+                    } else {
+                        menuItemAction = (MenuItemAction) result.getSerializable("menuItemActionCode");
+                    }
+                    ScNode node = result.getParcelable("node");
+                    switch (menuItemAction) {
+                        case ADD_SIBLING_NODE:
+                            MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 0);
+                            break;
+                        case ADD_SUBNODE:
+                            MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 1);
+                            break;
+                        case ADD_TO_BOOKMARKS:
+                            MainView.this.addNodeToBookmarks(node.getUniqueId());
+                            break;
+                        case REMOVE_FROM_BOOKMARKS:
+                            MainView.this.removeNodeFromBookmarks(node.getUniqueId(), result.getInt("position"));
+                            break;
+                        case MOVE_NODE:
+                            MainView.this.launchMoveNodeFragment(node);
+                            break;
+                        case DELETE_NODE:
+                            MainView.this.deleteNode(node.getUniqueId(), result.getInt("position"));
+                            break;
+                        case PROPERTIES:
+                            MainView.this.openNodeProperties(node.getUniqueId(), result.getInt("position"));
+                            break;
+                    }
                 } else {
-                    menuItemAction = (MenuItemAction) result.getSerializable("menuItemActionCode");
-                }
-                ScNode node = result.getParcelable("node");
-                switch (menuItemAction) {
-                    case ADD_SIBLING_NODE:
-                        MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 0);
-                        break;
-                    case ADD_SUBNODE:
-                        MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 1);
-                        break;
-                    case ADD_TO_BOOKMARKS:
-                        MainView.this.addNodeToBookmarks(node.getUniqueId());
-                        break;
-                    case REMOVE_FROM_BOOKMARKS:
-                        MainView.this.removeNodeFromBookmarks(node.getUniqueId(), result.getInt("position"));
-                        break;
-                    case MOVE_NODE:
-                        MainView.this.launchMoveNodeFragment(node);
-                        break;
-                    case DELETE_NODE:
-                        MainView.this.deleteNode(node.getUniqueId(), result.getInt("position"));
-                        break;
-                    case PROPERTIES:
-                        MainView.this.openNodeProperties(node.getUniqueId(), result.getInt("position"));
-                        break;
+                    // Prompting user to cancel background Multifile database sync
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainView.this);
+                    builder.setTitle(R.string.alert_dialog_sync_in_progress_title);
+                    builder.setMessage(R.string.alert_dialog_sync_in_progress_message);
+                    builder.setPositiveButton(R.string.button_wait, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                        }
+                    });
+                    builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            mainViewModel.getMultiDatabaseSync().getValue().cancel(true);
+                        }
+                    });
+                    builder.show();
                 }
             }
         });
@@ -569,6 +608,9 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 Intent openAboutActivity = new Intent(this, AboutActivity.class);
                 startActivity(openAboutActivity);
                 return true;
+            } else if (itemID == R.id.options_menu_rescan_database) {
+                updateDrawerMenu();
+                return true;
             } else {
                 return super.onOptionsItemSelected(item);
             }
@@ -625,8 +667,10 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (!isChangingConfigurations() && this.mainViewModel.getMultiDatabaseSync().getValue() != null) {
+            this.mainViewModel.getMultiDatabaseSync().getValue().cancel(true);
+        }
         PreferenceManager.getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(this);
-        this.executor.shutdownNow();
     }
 
     @Override
@@ -1049,7 +1093,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
      */
     private void openFindInNode() {
         this.findInNodeToggle = true;
-        MainView.this.mainViewModel.findInNodeStorageToggle(true); // Created an array to store nodeContent
+        this.mainViewModel.findInNodeStorageToggle(true); // Created an array to store nodeContent
         LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
         LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
         EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
@@ -2204,5 +2248,106 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     public void enableDrawer() {
         MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
+    }
+
+    /**
+     * Initiates background the Multifile database folder scan and recreates new drawer_menu.xml.
+     * Loads it to the MultiReader.
+     */
+    private void updateDrawerMenu() {
+        if (this.mainViewModel.getMultiDatabaseSync().getValue() != null) {
+            Toast.makeText(this, R.string.toast_error_scan_already_in_progress, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            this.mainViewModel.getMultiDatabaseSync().postValue(this.executor.schedule(new CollectNodesBackgroundRunnable(
+                    Uri.parse(sharedPreferences.getString("databaseUri", null)),
+                    MainView.this,
+                    new NodesCollectedCallback() {
+                        @Override
+                        public void onNodesCollected(int result) {
+                            if (result == 0) {
+                                displayToastOnMainThread(getString(R.string.toast_message_updated_drawer_menu));
+                                try {
+                                    ((MultiReader) reader).setDrawerMenu();
+                                    if (filterNodeToggle) {
+                                        // If user was filtering nodes when new drawer menu items were collected
+                                        CheckBox checkBoxExcludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
+                                        mainViewModel.setNodes(reader.getAllNodes(checkBoxExcludeFromSearch.isChecked()));
+                                        mainViewModel.tempSearchNodesToggle(true);
+                                        if (mainViewModel.getCurrentNode() != null) {
+                                            // Just in case something changed in currently opened node's menu and user will quit filter without selecting a node to open
+                                            mainViewModel.updateSavedCurrentNodes(reader.getParentWithSubnodes(mainViewModel.getCurrentNode().getUniqueId()));
+                                            for (int index = 0; index < mainViewModel.getNodes().size(); index++) {
+                                                if (mainViewModel.getTempNodes().get(index).getUniqueId().equals(mainViewModel.getCurrentNode().getUniqueId())) {
+                                                    tempCurrentNodePosition = index;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (mainViewModel.getCurrentNode() != null) {
+                                        handler.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                resetMenuToCurrentNode();
+                                                adapter.notifyDataSetChanged();
+                                            }
+                                        });
+                                    } else {
+                                        handler.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                mainViewModel.setNodes(reader.getMainNodes());
+                                                adapter.notifyDataSetChanged();
+                                            }
+                                        });
+                                    }
+                                } catch (IOException | SAXException e) {
+                                    displayToastOnMainThread(getString(R.string.toast_error_failed_update_drawer_menu));
+                                    mainViewModel.getMultiDatabaseSync().postValue(null);
+                                }
+                            } else if (result == 1) {
+                                displayToastOnMainThread(getString(R.string.toast_error_failed_update_drawer_menu));
+                            }
+                            mainViewModel.getMultiDatabaseSync().postValue(null);
+                        }
+                    }), 0, TimeUnit.SECONDS));
+        } catch (ParserConfigurationException e) {
+            Toast.makeText(MainView.this, R.string.toast_error_failed_update_drawer_menu, Toast.LENGTH_SHORT).show();
+            showHideProgressBar(false);
+            this.mainViewModel.getMultiDatabaseSync().postValue(null);
+        }
+    }
+
+    /**
+     * Displays toast message on the main thread
+     * @param message message to show
+     */
+    private void displayToastOnMainThread(String message) {
+        this.handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MainView.this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * Makes progress bar at the top of the content view visible. It should be shown to indicate
+     * that Multifile database scan is in progress.
+     * @param show true - show progress bar, false - hide progress bar
+     */
+    private void showHideProgressBar(boolean show) {
+        getHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                if (show) {
+                    findViewById(R.id.database_sync_progress_bar).setVisibility(View.VISIBLE);
+                } else {
+                    findViewById(R.id.database_sync_progress_bar).setVisibility(View.GONE);
+                }
+            }
+        });
     }
 }

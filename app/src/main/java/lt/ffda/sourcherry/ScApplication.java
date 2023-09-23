@@ -8,18 +8,13 @@
  * You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lt.ffda.sourcherry.preferences;
+package lt.ffda.sourcherry;
 
-import android.os.Bundle;
+import android.app.Application;
 
-import androidx.preference.PreferenceFragmentCompat;
-
-import lt.ffda.sourcherry.R;
-
-public class PreferencesFragment extends PreferenceFragmentCompat {
-
-    @Override
-    public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-        setPreferencesFromResource(R.xml.preferences, rootKey);
-    }
+/**
+ * Application class that is available to all Activities
+ */
+public class ScApplication extends Application {
+    public AppContainer appContainer = new AppContainer();
 }

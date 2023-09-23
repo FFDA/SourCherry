@@ -11,12 +11,13 @@
 package lt.ffda.sourcherry.runnables;
 
 /**
- * Callback to execute commands after collecting all the nodes from Multifile database into drawer_menu.xml
+ * Callback to execute commands after collecting all the nodes from Multifile database into
+ * drawer_menu.xml file.
  */
 public interface NodesCollectedCallback {
     /**
      * Callback method to proceed after collect of failing to collect drawer_menu.xml
-     * @param success true - collection was successful, false - opposite of that
+     * @param result 0 - success, 1 - failed, 2 - canceled
      */
-    void onNodesCollected(boolean success);
+    void onNodesCollected(int result);
 }

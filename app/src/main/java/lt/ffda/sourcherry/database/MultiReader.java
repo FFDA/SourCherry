@@ -239,7 +239,7 @@ public class MultiReader extends DatabaseReader {
         // by the length of the inserted span.
         // During the loop lengths of the string elements (not images or tables) are added to this
         int totalCharOffset = 0;
-        while (nodeContentCursor.moveToNext()) {
+        while (nodeContentCursor != null && nodeContentCursor.moveToNext()) {
             if (nodeContentCursor.getString(2).equals("node.xml")) {
                 try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, nodeContentCursor.getString(0)))) {
                     Node node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);

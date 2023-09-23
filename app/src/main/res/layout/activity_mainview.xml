@@ -25,6 +25,14 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
+            <ProgressBar
+                android:id="@+id/database_sync_progress_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:indeterminate="true"
+                android:visibility="gone" />
+
             <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/main_view_fragment"
                 android:layout_width="match_parent"
@@ -124,7 +132,6 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-
 
         <com.google.android.material.navigation.NavigationView
             android:id="@+id/navigationView"
