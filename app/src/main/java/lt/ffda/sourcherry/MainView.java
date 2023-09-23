@@ -637,6 +637,9 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
             this.adapter.markItemSelected(this.currentNodePosition);
             this.adapter.notifyItemChanged(this.currentNodePosition);
+            // Even if LiveData can restore node content after screen rotation it has old context
+            // and any clicks (like opening images) will cause a crash
+            this.loadNodeContent();
         }
 
         if (this.filterNodeToggle) {
