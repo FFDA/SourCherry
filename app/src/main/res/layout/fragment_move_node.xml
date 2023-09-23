@@ -8,96 +8,106 @@
   ~
   ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
   -->
-<androidx.constraintlayout.widget.ConstraintLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="?android:attr/windowBackground">
 
-    <TextView
-        android:id="@+id/move_node_textview_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:paddingEnd="10dp"
-        android:paddingStart="10dp" />
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/move_node_fragment_recycle_view"
-        android:layout_width="300dp"
-        android:layout_height="400dp"
-        android:layout_marginTop="16dp"
-        android:background="@drawable/table_border"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.495"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/move_node_textview_title" />
+        <TextView
+            android:id="@+id/move_node_textview_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:paddingEnd="10dp"
+            android:paddingStart="10dp" />
 
-    <Button
-        android:id="@+id/move_node_button_move_to_main_menu"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="14dp"
-        android:text="@string/button_move_to_main_menu"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/move_node_fragment_recycle_view" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/move_node_fragment_recycle_view"
+            android:layout_width="300dp"
+            android:layout_height="400dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/table_border"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.495"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/move_node_textview_title" />
 
-    <ImageButton
-        android:id="@+id/move_node_button_up"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        app:layout_constraintEnd_toStartOf="@+id/move_node_button_home"
-        app:layout_constraintTop_toBottomOf="@+id/move_node_fragment_recycle_view"
-        app:srcCompat="@drawable/ic_baseline_arrow_node_up_24"
-        android:contentDescription="@string/move_node_button_up_content_description" />
+        <Button
+            android:id="@+id/move_node_button_move_to_main_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="14dp"
+            android:text="@string/button_move_to_main_menu"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/move_node_fragment_recycle_view" />
 
-    <ImageButton
-        android:id="@+id/move_node_button_home"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="40dp"
-        android:contentDescription="@string/move_node_button_home_content_description"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/move_node_fragment_recycle_view"
-        app:srcCompat="@drawable/ic_outline_home_24" />
+        <ImageButton
+            android:id="@+id/move_node_button_up"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:contentDescription="@string/move_node_button_up_content_description"
+            app:layout_constraintEnd_toStartOf="@+id/move_node_button_home"
+            app:layout_constraintTop_toBottomOf="@+id/move_node_fragment_recycle_view"
+            app:srcCompat="@drawable/ic_baseline_arrow_node_up_24" />
 
-    <TextView
-        android:id="@+id/move_node_textview_message"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="@string/move_node_textview_message"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/move_node_button_up" />
+        <ImageButton
+            android:id="@+id/move_node_button_home"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="40dp"
+            android:contentDescription="@string/move_node_button_home_content_description"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/move_node_fragment_recycle_view"
+            app:srcCompat="@drawable/ic_outline_home_24" />
 
-    <Button
-        android:id="@+id/move_node_button_cancel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="56dp"
-        android:layout_marginBottom="48dp"
-        android:text="@string/button_cancel"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        <TextView
+            android:id="@+id/move_node_textview_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="@string/move_node_textview_message"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/move_node_button_up" />
 
-    <Button
-        android:id="@+id/move_node_button_move"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="56dp"
-        android:layout_marginBottom="48dp"
-        android:text="@string/button_move"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <Button
+            android:id="@+id/move_node_button_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp"
+            android:text="@string/button_cancel"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/move_node_textview_message" />
+
+        <Button
+            android:id="@+id/move_node_button_move"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:layout_marginEnd="40dp"
+            android:layout_marginBottom="16dp"
+            android:text="@string/button_move"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/move_node_textview_message" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
