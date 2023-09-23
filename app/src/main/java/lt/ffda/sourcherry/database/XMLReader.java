@@ -1104,9 +1104,10 @@ public class XMLReader extends DatabaseReader {
     }
 
     @Override
-    public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
+    public boolean moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
         if (areNodesRelated(targetNodeUniqueID, destinationNodeUniqueID)) {
             displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
+            return false;
         } else {
             Node targetNode = null;
             Node destinationNode = null;
@@ -1134,15 +1135,16 @@ public class XMLReader extends DatabaseReader {
             // In XML databases that causes crash and it is not necessary write operation
             if (destinationNode.getNodeName().equals("cherrytree") && targetNode.getParentNode().getNodeName().equals("cherrytree")) {
                 this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
-                return;
+                return false;
             }
             Node parentNodeUniqueID = targetNode.getParentNode().getAttributes().getNamedItem("unique_id");
             if (parentNodeUniqueID != null && parentNodeUniqueID.getNodeValue().equals(destinationNodeUniqueID)) {
                 this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
-                return;
+                return false;
             }
             destinationNode.appendChild(targetNode);
             this.writeIntoDatabase();
+            return true;
         }
     }
 

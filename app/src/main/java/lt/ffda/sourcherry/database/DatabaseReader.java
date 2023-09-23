@@ -386,7 +386,7 @@ public abstract class DatabaseReader {
      * @param targetNodeUniqueID unique ID of the node that user chose to move
      * @param destinationNodeUniqueID unique ID of the node that has to be a parent of the target node
      */
-    public abstract void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID);
+    public abstract boolean moveNode(String targetNodeUniqueID, String destinationNodeUniqueID);
 
     /**
      * Deletes node and it subnodes from database

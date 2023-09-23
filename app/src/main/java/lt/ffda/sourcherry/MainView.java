@@ -1683,27 +1683,28 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         MainView.this.drawerLayout.open();
         getSupportActionBar().show();
-        this.reader.moveNode(targetNodeUniqueID, destinationNodeUniqueID);
-        if (this.mainViewModel.getCurrentNode() == null) {
-            int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
-            int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
-            this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
-            this.mainViewModel.getNodes().remove(targetNodePosition);
-            this.adapter.notifyItemRemoved(targetNodePosition);
-            this.adapter.notifyItemChanged(destinationNodePosition);
-        } else {
-            if (this.mainViewModel.getNodes().size() <= 2) {
-                this.mainViewModel.setCurrentNode(this.reader.getSingleMenuItem(this.mainViewModel.getCurrentNode().getUniqueId()));
-                this.resetMenuToCurrentNode();
-            } else {
+        if (this.reader.moveNode(targetNodeUniqueID, destinationNodeUniqueID)) {
+            if (this.mainViewModel.getCurrentNode() == null) {
                 int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
                 int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
-                if (destinationNodePosition != -1) {
-                    this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
-                    this.adapter.notifyItemChanged(destinationNodePosition);
-                }
+                this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
                 this.mainViewModel.getNodes().remove(targetNodePosition);
                 this.adapter.notifyItemRemoved(targetNodePosition);
+                this.adapter.notifyItemChanged(destinationNodePosition);
+            } else {
+                if (this.mainViewModel.getNodes().size() <= 2) {
+                    this.mainViewModel.setCurrentNode(this.reader.getSingleMenuItem(this.mainViewModel.getCurrentNode().getUniqueId()));
+                    this.resetMenuToCurrentNode();
+                } else {
+                    int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
+                    int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
+                    if (destinationNodePosition != -1) {
+                        this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
+                        this.adapter.notifyItemChanged(destinationNodePosition);
+                    }
+                    this.mainViewModel.getNodes().remove(targetNodePosition);
+                    this.adapter.notifyItemRemoved(targetNodePosition);
+                }
             }
         }
     }

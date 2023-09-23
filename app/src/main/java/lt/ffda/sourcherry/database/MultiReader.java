@@ -700,7 +700,7 @@ public class MultiReader extends DatabaseReader {
     }
 
     @Override
-    public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
+    public boolean moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
         Node targetNode = null;
         Node destinationNode = null;
         // User chose to move the node to main menu
@@ -727,12 +727,12 @@ public class MultiReader extends DatabaseReader {
         // In XML file it causes a crash
         if (destinationNode.getNodeName().equals("sourcherry") && targetNode.getParentNode().getNodeName().equals("sourcherry")) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
-            return;
+            return false;
         }
         Node parentNodeUniqueID = targetNode.getParentNode().getAttributes().getNamedItem("unique_id");
         if (parentNodeUniqueID != null && parentNodeUniqueID.getNodeValue().equals(destinationNodeUniqueID)) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
-            return;
+            return false;
         }
         // Proceeding with the move
         Uri sourceDocumentUri = this.getNodeUri(targetNode);
@@ -748,11 +748,11 @@ public class MultiReader extends DatabaseReader {
             );
         } catch (FileNotFoundException e) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
-            return;
+            return false;
         }
         if (result == null) {
             this.displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
-            return;
+            return false;
         }
         // Removing unique node ID from subnodes.lst in source folder
         this.removeNodeFromLst(DocumentsContract.getDocumentId(sourchParentDocumentUri), targetNodeUniqueID, "subnodes.lst");
@@ -770,6 +770,7 @@ public class MultiReader extends DatabaseReader {
             ((Element) destinationNode).setAttribute("has_subnodes", "1");
         }
         this.saveDrawerMenuToStorage();
+        return true;
     }
 
     @Override

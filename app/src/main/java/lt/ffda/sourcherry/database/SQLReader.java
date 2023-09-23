@@ -1289,9 +1289,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     @Override
-    public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
+    public boolean moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
         if (areNodesRelated(targetNodeUniqueID, destinationNodeUniqueID)) {
             this.displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
+            return false;
         } else {
             // Getting current parent node's unique ID of the target node
             Cursor cursorTargetParent = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{targetNodeUniqueID}, null, null, null, null);
@@ -1301,7 +1302,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             // Checks for when user wants to move node to the same parent node
             // It is not necessary write operation
             if (targetParentUniqueID.equals(destinationNodeUniqueID)) {
-                return;
+                return false;
             }
             // Getting next available children sequence spot of new parent node
             Cursor cursorMove = this.sqlite.query("children", new String[]{"COUNT(node_id)"}, "father_id=?", new String[]{destinationNodeUniqueID}, null, null, null, null);
@@ -1314,6 +1315,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             contentValues.put("sequence", newAvailableParentSequencePosition);
             this.sqlite.update("children", contentValues, "node_id = ?", new String[]{targetNodeUniqueID});
             this.fixChildrenNodeSequence(targetParentUniqueID);
+            return true;
         }
     }
 
