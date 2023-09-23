@@ -277,7 +277,7 @@ public class NodeContentEditorFragment extends Fragment {
                 }
             });
         } else {
-            LinearLayout buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row);
+            HorizontalScrollView buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row_scrollview);
             buttonRowLinearLayout.setVisibility(View.GONE);
         }
     }
