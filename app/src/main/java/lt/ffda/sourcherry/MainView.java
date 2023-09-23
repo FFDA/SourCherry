@@ -1893,6 +1893,11 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
         DatabaseReaderFactory.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
+        if (progLang.equals("custom-colors")) {
+            this.mainViewModel.getNodes().get(position).setRichText(true);
+        } else {
+            this.mainViewModel.getNodes().get(position).setRichText(false);
+        }
         this.mainViewModel.getNodes().get(position).setName(name);
         this.adapter.notifyItemChanged(position);
         if (this.mainViewModel.getCurrentNode() != null && this.mainViewModel.getNodes().get(position).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
