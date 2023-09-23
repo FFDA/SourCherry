@@ -10,6 +10,7 @@
   -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -45,7 +46,8 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:contentDescription="@string/edit_node_fragment_button_row_clear_formatting"
-                android:src="@drawable/baseline_format_clear_24"/>
+                android:src="@drawable/baseline_format_clear_24"
+                tools:ignore="RedundantDescriptionCheck"/>
             <ImageButton
                 android:id="@+id/edit_node_fragment_button_row_color_picker"
                 android:layout_width="40dp"
@@ -63,7 +65,8 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:contentDescription="@string/edit_node_fragment_button_row_foreground_color"
-                android:src="@drawable/baseline_format_color_text_24"/>
+                android:src="@drawable/baseline_format_color_text_24"
+                tools:ignore="RedundantDescriptionCheck"/>
             <ImageButton
                 android:id="@+id/edit_node_fragment_button_row_background_color"
                 android:layout_width="40dp"
@@ -72,34 +75,38 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:contentDescription="@string/edit_node_fragment_button_row_background_color"
-                android:src="@drawable/baseline_background_color_24"/>
+                android:src="@drawable/baseline_background_color_24"
+                tools:ignore="RedundantDescriptionCheck"/>
             <ImageButton
                 android:id="@+id/edit_node_fragment_button_row_bold"
                 android:layout_width="40dp"
                 android:layout_height="match_parent"
                 android:background="?selectableItemBackground"
                 android:clickable="true"
-                android:focusable="true"
                 android:contentDescription="@string/edit_node_fragment_button_row_bold"
-                android:src="@drawable/baseline_format_bold_24"/>
+                android:focusable="true"
+                android:src="@drawable/baseline_format_bold_24"
+                tools:ignore="RedundantDescriptionCheck"/>
             <ImageButton
                 android:id="@+id/edit_node_fragment_button_row_italic"
                 android:layout_width="40dp"
                 android:layout_height="match_parent"
                 android:background="?selectableItemBackground"
                 android:clickable="true"
-                android:focusable="true"
                 android:contentDescription="@string/edit_node_fragment_button_row_italic"
-                android:src="@drawable/baseline_format_italic_24"/>
+                android:focusable="true"
+                android:src="@drawable/baseline_format_italic_24"
+                tools:ignore="RedundantDescriptionCheck" />
             <ImageButton
                 android:id="@+id/edit_node_fragment_button_row_underline"
                 android:layout_width="40dp"
                 android:layout_height="match_parent"
                 android:background="?selectableItemBackground"
                 android:clickable="true"
-                android:focusable="true"
                 android:contentDescription="@string/edit_node_fragment_button_row_underline"
-                android:src="@drawable/baseline_format_underlined_24"/>
+                android:focusable="true"
+                android:src="@drawable/baseline_format_underlined_24"
+                tools:ignore="RedundantDescriptionCheck" />
             <ImageButton
                 android:id="@+id/edit_node_fragment_button_row_strikethrough"
                 android:layout_width="40dp"
@@ -108,7 +115,8 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:contentDescription="@string/edit_node_fragment_button_row_strikethrough"
-                android:src="@drawable/baseline_strikethrough_s_24"/>
+                android:src="@drawable/baseline_strikethrough_s_24"
+                tools:ignore="RedundantDescriptionCheck"/>
         </LinearLayout>
     </HorizontalScrollView>
 </LinearLayout>
