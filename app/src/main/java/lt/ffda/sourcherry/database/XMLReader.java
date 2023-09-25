@@ -280,10 +280,10 @@ public class XMLReader extends DatabaseReader {
                 nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
             }
         }
-        Collections.sort(nodes);
         if (nodes.size() == 0) {
             return null;
         } else {
+            Collections.sort(nodes);
             return nodes;
         }
     }
