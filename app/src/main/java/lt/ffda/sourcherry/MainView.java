@@ -350,7 +350,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             this.mainViewModel.setCurrentNode(newNodeMenuItem);
             this.loadNodeContent();
             this.setClickedItemInSubmenu();
-            this.adapter.notifyDataSetChanged();
         }
     }
 
@@ -1233,7 +1232,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             @Override
             public void onItemClick(View itemView, int position) {
                 if (MainView.this.mainViewModel.getCurrentNode() == null || !MainView.this.mainViewModel.getNodes().get(position).getUniqueId().equals(MainView.this.mainViewModel.getCurrentNode().getUniqueId())) {
-                    // If current node is null (empty/nothing opened yet) or selected nodeUniqueID is not the same as selected one
+                    // If current node is null (empty/nothing opened yet) or selected nodeUniqueID is not the same as currently opened node
                     MainView.this.mainViewModel.setCurrentNode(MainView.this.mainViewModel.getNodes().get(position));
                     MainView.this.loadNodeContent();
                     if (MainView.this.mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked to have subnodes
@@ -1251,14 +1250,12 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                         if (MainView.this.bookmarksToggle) {
                             // If node was selected from bookmarks
                             MainView.this.setClickedItemInSubmenu();
-                            MainView.this.adapter.notifyDataSetChanged();
                         } else if (MainView.this.filterNodeToggle) {
                             // Node selected from the search
                             searchView.onActionViewCollapsed();
                             MainView.this.hideNavigation(false);
                             MainView.this.setClickedItemInSubmenu();
                             MainView.this.filterNodeToggle = false;
-                            MainView.this.adapter.notifyDataSetChanged();
                         } else {
                             // Node selected from normal menu
                             int previousNodePosition = MainView.this.currentNodePosition;
@@ -1289,14 +1286,12 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                         if (MainView.this.bookmarksToggle) {
                             // If node was selected from bookmarks
                             MainView.this.setClickedItemInSubmenu();
-                            MainView.this.adapter.notifyDataSetChanged();
                         } else if (MainView.this.filterNodeToggle) {
                             // Node selected from the search
                             searchView.onActionViewCollapsed();
                             MainView.this.hideNavigation(false);
                             MainView.this.setClickedItemInSubmenu();
                             MainView.this.filterNodeToggle = false;
-                            MainView.this.adapter.notifyDataSetChanged();
                         }
                     }
                     if (MainView.this.bookmarksToggle) {
@@ -2140,8 +2135,12 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
         for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
             if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
+                int previousNodePosition = this.currentNodePosition;
                 this.currentNodePosition = index;
                 this.adapter.markItemSelected(this.currentNodePosition);
+                this.adapter.notifyItemChanged(previousNodePosition);
+                this.adapter.notifyItemChanged(currentNodePosition);
+                break;
             }
         }
     }
@@ -2282,7 +2281,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                                             @Override
                                             public void run() {
                                                 resetMenuToCurrentNode();
-                                                adapter.notifyDataSetChanged();
                                             }
                                         });
                                     } else {
