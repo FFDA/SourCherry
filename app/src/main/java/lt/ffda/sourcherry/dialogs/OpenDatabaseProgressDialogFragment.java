@@ -50,80 +50,13 @@ import lt.ffda.sourcherry.MainActivity;
 import lt.ffda.sourcherry.R;
 
 public class OpenDatabaseProgressDialogFragment extends DialogFragment {
-    private SharedPreferences sharedPreferences;
-    private ProgressBar progressBar;
-    private TextView message;
     private ExecutorService executor;
-    private Handler handler;
-    private long totalLen; // Used to calculate percentage for progressBar
     private long fileSize; // File size of the file (not the archive itself) that is being extracted
-
-    @NonNull
-    @Override
-    public Dialog onCreateDialog(Bundle savedInstanceState) {
-        super.onCreateDialog(savedInstanceState);
-
-        //// Dialog fragment layout
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        LayoutInflater inflater = requireActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_fragment_open_database_progress, null);
-        builder.setView(view);
-
-        setCancelable(false); // Not allowing user to cancel the the dialog fragment
-
-        // Setting up variables
-        this.progressBar = view.findViewById(R.id.progress_fragment_progressBar);
-        this.message = view.findViewById(R.id.progress_fragment_message);
-        this.executor = Executors.newSingleThreadExecutor();
-        this.handler = new Handler(Looper.getMainLooper());
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-
-        // Create the AlertDialog object and return it
-        return builder.create();
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
-
-        if (databaseFileExtension.equals("ctb")) {
-            this.message.setText(R.string.open_database_fragment_copying_database_message);
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    OpenDatabaseProgressDialogFragment.this.copyDatabaseToAppSpecificStorage();
-                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
-                }
-            });
-        }
-        if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    OpenDatabaseProgressDialogFragment.this.extractDatabase();
-                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
-                }
-            });
-        }
-    }
-
-    @Override
-    public void onDismiss(@NonNull DialogInterface dialog) {
-        dismissNow();
-    }
-
-    @Override
-    public void onCancel(@NonNull DialogInterface dialog) {
-        ((MainActivity) getActivity()).startMainViewActivity();
-        dismissNow();
-    }
-
-    @Override
-    public void onDestroyView() {
-        executor.shutdownNow();
-        super.onDestroyView();
-    }
+    private Handler handler;
+    private TextView message;
+    private ProgressBar progressBar;
+    private SharedPreferences sharedPreferences;
+    private long totalLen; // Used to calculate percentage for progressBar
 
     private void copyDatabaseToAppSpecificStorage() {
         // Set directory where database will be saved depending on user's choice in options menu
@@ -285,19 +218,71 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         }
     }
 
-    /**
-     * Calculates new value for the progress bar and updates progress bar to show it
-     * @param len amount of data that was consumed
-     */
-    private void updateProgressBar(int len) {
-        this.totalLen += len;
-        int percent = (int) (this.totalLen * 100 / this.fileSize);
-        this.handler.post(new Runnable() {
-            @Override
-            public void run() {
-                OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
-            }
-        });
+    @NonNull
+    @Override
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
+        super.onCreateDialog(savedInstanceState);
+
+        //// Dialog fragment layout
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        LayoutInflater inflater = requireActivity().getLayoutInflater();
+        View view = inflater.inflate(R.layout.dialog_fragment_open_database_progress, null);
+        builder.setView(view);
+
+        setCancelable(false); // Not allowing user to cancel the the dialog fragment
+
+        // Setting up variables
+        this.progressBar = view.findViewById(R.id.progress_fragment_progressBar);
+        this.message = view.findViewById(R.id.progress_fragment_message);
+        this.executor = Executors.newSingleThreadExecutor();
+        this.handler = new Handler(Looper.getMainLooper());
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+
+        // Create the AlertDialog object and return it
+        return builder.create();
+    }
+
+    @Override
+    public void onCancel(@NonNull DialogInterface dialog) {
+        ((MainActivity) getActivity()).startMainViewActivity();
+        dismissNow();
+    }
+
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        dismissNow();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
+
+        if (databaseFileExtension.equals("ctb")) {
+            this.message.setText(R.string.open_database_fragment_copying_database_message);
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    OpenDatabaseProgressDialogFragment.this.copyDatabaseToAppSpecificStorage();
+                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
+                }
+            });
+        }
+        if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    OpenDatabaseProgressDialogFragment.this.extractDatabase();
+                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        executor.shutdownNow();
+        super.onDestroyView();
     }
 
     /**
@@ -318,10 +303,36 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
     }
 
     /**
+     * Calculates new value for the progress bar and updates progress bar to show it
+     * @param len amount of data that was consumed
+     */
+    private void updateProgressBar(int len) {
+        this.totalLen += len;
+        int percent = (int) (this.totalLen * 100 / this.fileSize);
+        this.handler.post(new Runnable() {
+            @Override
+            public void run() {
+                OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+            }
+        });
+    }
+
+    /**
      * Class to write archive to a file
      */
     private class SequentialOutStream implements ISequentialOutStream {
         private FileOutputStream fileOutputStream;
+
+        /**
+         * Closes output stream
+         */
+        public void closeOutputStream() {
+            try {
+                this.fileOutputStream.close();
+            } catch (IOException e) {
+                Toast.makeText(getContext(), R.string.toast_error_failed_to_close_extraction_output_stream, Toast.LENGTH_SHORT).show();
+            }
+        }
 
         /**
          * Opens output file stream to write archived file into
@@ -332,17 +343,6 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                 this.fileOutputStream = new FileOutputStream(file, false);
             } catch (FileNotFoundException e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_open_extraction_output_stream, Toast.LENGTH_SHORT).show();
-            }
-        }
-
-        /**
-         * Closes output stream
-         */
-        public void closeOutputStream() {
-            try {
-                this.fileOutputStream.close();
-            } catch (IOException e) {
-                Toast.makeText(getContext(), R.string.toast_error_failed_to_close_extraction_output_stream, Toast.LENGTH_SHORT).show();
             }
         }
 

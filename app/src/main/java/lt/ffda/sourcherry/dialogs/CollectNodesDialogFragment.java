@@ -36,8 +36,8 @@ import lt.ffda.sourcherry.runnables.CollectNodesDialogRunnable;
 import lt.ffda.sourcherry.runnables.NodesCollectedCallback;
 
 public class CollectNodesDialogFragment extends DialogFragment {
-    private TextView textView; // Message to the user where the count of scanned node will be displayed
     private ExecutorService executor;
+    private TextView textView; // Message to the user where the count of scanned node will be displayed
 
     @NonNull
     @Override

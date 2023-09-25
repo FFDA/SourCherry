@@ -34,9 +34,53 @@ import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNode;
 
 public class MoveNodeFragment extends Fragment {
-    private ArrayList<ScNode> nodeList;
     private MoveNodeFragmentItemAdapter adapter;
     private int currentPosition; // currently marked node
+    private ArrayList<ScNode> nodeList;
+
+    /**
+     * Restores selection of where to move node navigation to the top
+     * Displays a message if navigation is already at the top and does not reload the menu
+     */
+    private void goHome() {
+        ArrayList<ScNode> tempHomeNodes = DatabaseReaderFactory.getReader().getMainNodes();
+        // Compares node sizes, first and last nodeUniqueIDs in both arrays
+        if (tempHomeNodes.size() == this.nodeList.size() && tempHomeNodes.get(0).getUniqueId().equals(this.nodeList.get(0).getUniqueId()) && tempHomeNodes.get(this.nodeList.size() -1).getUniqueId().equals(this.nodeList.get(this.nodeList.size() -1).getUniqueId())) {
+            Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
+        } else {
+            this.setNodes(tempHomeNodes);
+        }
+    }
+
+    /**
+     * Moves navigation menu one node up
+     * If menu is already at the top it shows a message to the user
+     * @param nodeUniqueID unique node ID if the node which is currently at the top (parent node)
+     */
+    private void goNodeUp(String nodeUniqueID) {
+        ArrayList<ScNode> nodes = DatabaseReaderFactory.getReader().getParentWithSubnodes(nodeUniqueID);
+        if (nodes != null && nodes.size() != this.nodeList.size()) {
+            // If retrieved nodes are not null and array size do not match the one displayed
+            // it is definitely not the same node so it can go up
+            this.setNodes(nodes);
+        } else {
+            // If both node arrays matches in size it might be the same node (especially main/top)
+            // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
+            if (nodes.get(0).getUniqueId().equals(this.nodeList.get(0).getUniqueId()) && nodes.get(nodes.size() -1).getUniqueId().equals(this.nodeList.get(this.nodeList.size() -1).getUniqueId())) {
+                Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
+            } else {
+                this.setNodes(nodes);
+            }
+        }
+    }
+
+    /**
+     * Initiates move of the node
+     * @param destinationNodeUniqueID unique ID of the node that user wants to make a new parent of the select node
+     */
+    private void moveNode(String destinationNodeUniqueID) {
+        ((MainView) getActivity()).moveNode(((ScNode) getArguments().getParcelable("node")).getUniqueId(), destinationNodeUniqueID);
+    }
 
     @Nullable
     @Override
@@ -131,49 +175,5 @@ public class MoveNodeFragment extends Fragment {
         this.currentPosition = RecyclerView.NO_POSITION;
         this.adapter.markItemSelected(this.currentPosition);
         this.adapter.notifyDataSetChanged();
-    }
-
-    /**
-     * Initiates move of the node
-     * @param destinationNodeUniqueID unique ID of the node that user wants to make a new parent of the select node
-     */
-    private void moveNode(String destinationNodeUniqueID) {
-        ((MainView) getActivity()).moveNode(((ScNode) getArguments().getParcelable("node")).getUniqueId(), destinationNodeUniqueID);
-    }
-
-    /**
-     * Moves navigation menu one node up
-     * If menu is already at the top it shows a message to the user
-     * @param nodeUniqueID unique node ID if the node which is currently at the top (parent node)
-     */
-    private void goNodeUp(String nodeUniqueID) {
-        ArrayList<ScNode> nodes = DatabaseReaderFactory.getReader().getParentWithSubnodes(nodeUniqueID);
-        if (nodes != null && nodes.size() != this.nodeList.size()) {
-            // If retrieved nodes are not null and array size do not match the one displayed
-            // it is definitely not the same node so it can go up
-            this.setNodes(nodes);
-        } else {
-            // If both node arrays matches in size it might be the same node (especially main/top)
-            // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
-            if (nodes.get(0).getUniqueId().equals(this.nodeList.get(0).getUniqueId()) && nodes.get(nodes.size() -1).getUniqueId().equals(this.nodeList.get(this.nodeList.size() -1).getUniqueId())) {
-                Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
-            } else {
-                this.setNodes(nodes);
-            }
-        }
-    }
-
-    /**
-     * Restores selection of where to move node navigation to the top
-     * Displays a message if navigation is already at the top and does not reload the menu
-     */
-    private void goHome() {
-        ArrayList<ScNode> tempHomeNodes = DatabaseReaderFactory.getReader().getMainNodes();
-        // Compares node sizes, first and last nodeUniqueIDs in both arrays
-        if (tempHomeNodes.size() == this.nodeList.size() && tempHomeNodes.get(0).getUniqueId().equals(this.nodeList.get(0).getUniqueId()) && tempHomeNodes.get(this.nodeList.size() -1).getUniqueId().equals(this.nodeList.get(this.nodeList.size() -1).getUniqueId())) {
-            Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
-        } else {
-            this.setNodes(tempHomeNodes);
-        }
     }
 }

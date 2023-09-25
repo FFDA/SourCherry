@@ -60,134 +60,17 @@ import lt.ffda.sourcherry.MainActivity;
 import lt.ffda.sourcherry.R;
 
 public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
-    private SharedPreferences sharedPreferences;
-    private ProgressBar progressBar;
-    private TextView message;
-    private EditText passwordTextedit;
+    private Button buttonCancel;
     private LinearLayout buttonLayout;
     private Button buttonOK;
-    private Button buttonCancel;
     private ExecutorService executor;
-    private Handler handler;
-    private long totalLen; // Used to calculate percentage for progressBar
     private long fileSize; // File size of the file (not the archive itself) that is being extracted
-
-    @NonNull
-    @Override
-    public Dialog onCreateDialog(Bundle savedInstanceState) {
-        super.onCreateDialog(savedInstanceState);
-
-        //// Dialog fragment layout
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        LayoutInflater inflater = requireActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_fragment_mirror_database_progress, null);
-        builder.setTitle(R.string.preferences_mirror_database_title);
-        builder.setView(view);
-
-        setCancelable(false); // Not allowing user to cancel the the dialog fragment
-
-        // Setting up variables
-        this.progressBar = view.findViewById(R.id.mirror_database_progress_fragment_progressBar);
-        this.message = view.findViewById(R.id.mirror_database_progress_fragment_message);
-        this.passwordTextedit = view.findViewById(R.id.mirror_database_progress_fragment_password_textedit);
-        this.buttonLayout = view.findViewById(R.id.mirror_database_progress_fragment_button_layout);
-        this.buttonOK = view.findViewById(R.id.mirror_database_progress_fragment_password_button_ok);
-        this.buttonCancel = view.findViewById(R.id.mirror_database_progress_fragment_password_button_cancel);
-        this.executor = Executors.newSingleThreadExecutor();
-        this.handler = new Handler(Looper.getMainLooper());
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-
-        // Create the AlertDialog object and return it
-        return builder.create();
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        String databaseFileExtension = getArguments().getString("mirrorDatabaseFileExtension");
-
-        if (databaseFileExtension.equals("ctb")) {
-            this.message.setText(R.string.open_database_fragment_copying_database_message);
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    MirrorDatabaseProgressDialogFragment.this.copyDatabaseToAppSpecificStorage();
-                    MirrorDatabaseProgressDialogFragment.this.getDialog().cancel();
-                }
-            });
-        }
-        if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
-            this.passwordTextedit.setVisibility(View.VISIBLE);
-            this.buttonLayout.setVisibility(View.VISIBLE);
-
-            //// Code to show keyboard
-            InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-            this.passwordTextedit.requestFocus();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Shows keyboard on API 30 (Android 11) reliably
-                WindowCompat.getInsetsController(getDialog().getWindow(), this.passwordTextedit).show(WindowInsetsCompat.Type.ime());
-            } else {
-                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                    // Delays to show soft keyboard by few milliseconds
-                    // Otherwise keyboard does not show up
-                    // It's a bit hacky (should be fixed)
-                    @Override
-                    public void run() {
-                        imm.showSoftInput(MirrorDatabaseProgressDialogFragment.this.passwordTextedit, InputMethodManager.SHOW_IMPLICIT);
-                    }
-                }, 20);
-            }
-            ////
-
-            this.message.setText(R.string.mirror_database_fragment_enter_password_message);
-
-            this.buttonOK.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    MirrorDatabaseProgressDialogFragment.this.runExtractDatabase();
-                }
-            });
-
-            this.buttonCancel.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    MirrorDatabaseProgressDialogFragment.this.dismiss();
-                }
-            });
-
-            this.passwordTextedit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-                @Override
-                public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                    boolean handle = false;
-                    if (actionId == EditorInfo.IME_ACTION_DONE) {
-                        handle = true;
-                        MirrorDatabaseProgressDialogFragment.this.runExtractDatabase();
-                    }
-                    return handle;
-                }
-            });
-        }
-    }
-
-    @Override
-    public void onDismiss(@NonNull DialogInterface dialog) {
-        super.onDismiss(dialog);
-        dismissNow();
-    }
-
-    @Override
-    public void onCancel(@NonNull DialogInterface dialog) {
-        if (this.sharedPreferences.getBoolean("checkboxAutoOpen", false)) {
-            ((MainActivity) getActivity()).startMainViewActivity();
-        }
-        dismissNow();
-    }
-
-    @Override
-    public void onDestroyView() {
-        executor.shutdownNow();
-        super.onDestroyView();
-    }
+    private Handler handler;
+    private TextView message;
+    private EditText passwordTextedit;
+    private ProgressBar progressBar;
+    private SharedPreferences sharedPreferences;
+    private long totalLen; // Used to calculate percentage for progressBar
 
     private void copyDatabaseToAppSpecificStorage() {
         // Set directory where database will be saved depending on user's choice in options menu
@@ -317,15 +200,121 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
         }
     }
 
-    /**
-     * Saved passed parameters to the shared preferences
-     * @param mirrorDatabaseLastModified last modified datetime of the mirror database long saved using key "mirrorDatabaseLastModified"
-     */
-    private void saveDatabaseToPrefs(long mirrorDatabaseLastModified) {
-        // Saves passed information about database to preferences
-        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-        sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", mirrorDatabaseLastModified);
-        sharedPreferencesEditor.apply();
+    @NonNull
+    @Override
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
+        super.onCreateDialog(savedInstanceState);
+
+        //// Dialog fragment layout
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        LayoutInflater inflater = requireActivity().getLayoutInflater();
+        View view = inflater.inflate(R.layout.dialog_fragment_mirror_database_progress, null);
+        builder.setTitle(R.string.preferences_mirror_database_title);
+        builder.setView(view);
+
+        setCancelable(false); // Not allowing user to cancel the the dialog fragment
+
+        // Setting up variables
+        this.progressBar = view.findViewById(R.id.mirror_database_progress_fragment_progressBar);
+        this.message = view.findViewById(R.id.mirror_database_progress_fragment_message);
+        this.passwordTextedit = view.findViewById(R.id.mirror_database_progress_fragment_password_textedit);
+        this.buttonLayout = view.findViewById(R.id.mirror_database_progress_fragment_button_layout);
+        this.buttonOK = view.findViewById(R.id.mirror_database_progress_fragment_password_button_ok);
+        this.buttonCancel = view.findViewById(R.id.mirror_database_progress_fragment_password_button_cancel);
+        this.executor = Executors.newSingleThreadExecutor();
+        this.handler = new Handler(Looper.getMainLooper());
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+
+        // Create the AlertDialog object and return it
+        return builder.create();
+    }
+
+    @Override
+    public void onCancel(@NonNull DialogInterface dialog) {
+        if (this.sharedPreferences.getBoolean("checkboxAutoOpen", false)) {
+            ((MainActivity) getActivity()).startMainViewActivity();
+        }
+        dismissNow();
+    }
+
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        super.onDismiss(dialog);
+        dismissNow();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        String databaseFileExtension = getArguments().getString("mirrorDatabaseFileExtension");
+
+        if (databaseFileExtension.equals("ctb")) {
+            this.message.setText(R.string.open_database_fragment_copying_database_message);
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    MirrorDatabaseProgressDialogFragment.this.copyDatabaseToAppSpecificStorage();
+                    MirrorDatabaseProgressDialogFragment.this.getDialog().cancel();
+                }
+            });
+        }
+        if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
+            this.passwordTextedit.setVisibility(View.VISIBLE);
+            this.buttonLayout.setVisibility(View.VISIBLE);
+
+            //// Code to show keyboard
+            InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+            this.passwordTextedit.requestFocus();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Shows keyboard on API 30 (Android 11) reliably
+                WindowCompat.getInsetsController(getDialog().getWindow(), this.passwordTextedit).show(WindowInsetsCompat.Type.ime());
+            } else {
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    // Delays to show soft keyboard by few milliseconds
+                    // Otherwise keyboard does not show up
+                    // It's a bit hacky (should be fixed)
+                    @Override
+                    public void run() {
+                        imm.showSoftInput(MirrorDatabaseProgressDialogFragment.this.passwordTextedit, InputMethodManager.SHOW_IMPLICIT);
+                    }
+                }, 20);
+            }
+            ////
+
+            this.message.setText(R.string.mirror_database_fragment_enter_password_message);
+
+            this.buttonOK.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    MirrorDatabaseProgressDialogFragment.this.runExtractDatabase();
+                }
+            });
+
+            this.buttonCancel.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    MirrorDatabaseProgressDialogFragment.this.dismiss();
+                }
+            });
+
+            this.passwordTextedit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                    boolean handle = false;
+                    if (actionId == EditorInfo.IME_ACTION_DONE) {
+                        handle = true;
+                        MirrorDatabaseProgressDialogFragment.this.runExtractDatabase();
+                    }
+                    return handle;
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        executor.shutdownNow();
+        super.onDestroyView();
     }
 
     /**
@@ -346,6 +335,17 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                 MirrorDatabaseProgressDialogFragment.this.getDialog().cancel();
             }
         });
+    }
+
+    /**
+     * Saved passed parameters to the shared preferences
+     * @param mirrorDatabaseLastModified last modified datetime of the mirror database long saved using key "mirrorDatabaseLastModified"
+     */
+    private void saveDatabaseToPrefs(long mirrorDatabaseLastModified) {
+        // Saves passed information about database to preferences
+        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", mirrorDatabaseLastModified);
+        sharedPreferencesEditor.apply();
     }
 
     /**
@@ -370,6 +370,22 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
         private FileOutputStream fileOutputStream;
 
         /**
+         * Closes output stream
+         */
+        public void closeOutputStream() {
+            try {
+                this.fileOutputStream.close();
+            } catch (Exception e) {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getContext(), R.string.toast_error_failed_to_close_extraction_output_stream, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        }
+
+        /**
          * Opens output file stream to write archived file into
          * @param file file to open as output stream
          */
@@ -381,22 +397,6 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                     @Override
                     public void run() {
                         Toast.makeText(getContext(), R.string.toast_error_failed_to_open_extraction_output_stream, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-        }
-
-        /**
-         * Closes output stream
-         */
-        public void closeOutputStream() {
-            try {
-                this.fileOutputStream.close();
-            } catch (Exception e) {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getContext(), R.string.toast_error_failed_to_close_extraction_output_stream, Toast.LENGTH_SHORT).show();
                     }
                 });
             }

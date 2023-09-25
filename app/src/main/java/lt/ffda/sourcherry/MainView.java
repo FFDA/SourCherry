@@ -122,19 +122,975 @@ import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
 public class MainView extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private ActionBarDrawerToggle actionBarDrawerToggle;
-    private DatabaseReader reader;
     private MenuItemAdapter adapter;
-    private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
     private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
+    private int currentFindInNodeMarked; // Index of the result that is marked from FindInNode results. -1 Means nothing is selected
+    private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
+    private DrawerLayout drawerLayout;
+    private ScheduledThreadPoolExecutor executor;
     private boolean filterNodeToggle;
     private boolean findInNodeToggle; // Holds true when FindInNode view is initiated
-    private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
-    private MainViewModel mainViewModel;
-    private SharedPreferences sharedPreferences;
-    private ScheduledThreadPoolExecutor executor;
-    private DrawerLayout drawerLayout;
     private Handler handler;
-    private int currentFindInNodeMarked; // Index of the result that is marked from FindInNode results. -1 Means nothing is selected
+    private MainViewModel mainViewModel;
+    private DatabaseReader reader;
+    private SharedPreferences sharedPreferences;
+    private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
+    /**
+     * Launches file chooser to select location
+     * where to export database. If user chooses a file - launches a
+     * export dialog fragment
+     */
+    ActivityResultLauncher<String> exportDatabaseToFile = registerForActivityResult(new ActivityResultContracts.CreateDocument("*/*"), result -> {
+        if (result != null) {
+            Bundle bundle = new Bundle();
+            bundle.putString("exportFileUri", result.toString());
+            ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+            exportDatabaseDialogFragment.setArguments(bundle);
+            exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+        }
+    });
+    ActivityResultLauncher<Intent> exportPdf = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        if (result.getResultCode() == Activity.RESULT_OK) {
+            // If user actually chose a location to save a file
+            try {
+                LinearLayout nodeContent = findViewById(R.id.content_fragment_linearlayout);
+                PdfDocument document = new PdfDocument();
+                int padding = 25; // It's used not only pad the document, but to calculate where title will be placed on the page
+                int top = padding * 4; // This will used to move (translate) cursor where everything has to be drawn on canvas
+                int width = nodeContent.getWidth(); // Width of the PDF page
+
+                for (int i= 0; i < nodeContent.getChildCount(); i++) {
+                    // Going through all the views in node to find if there is a table
+                    // Tables might be wider than screen
+                    View v = nodeContent.getChildAt(i);
+                    if (v instanceof HorizontalScrollView) {
+                        // If table was encountered
+                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) v).getChildAt(0);
+                        if (tableLayout.getWidth() > width) {
+                            // If table is wider than normal view
+                            width = tableLayout.getWidth();
+
+                        }
+                    }
+                }
+
+                //* Creating a title view that will be drawn to PDF
+                //** textPrimaryColor for the theme
+                TypedValue typedValue = new TypedValue();
+                getTheme().resolveAttribute(android.R.attr.textColorPrimary, typedValue, true);
+                int color = ContextCompat.getColor(this, typedValue.resourceId);
+                //**
+                TextPaint paint = new TextPaint();
+                paint.setColor(color);
+                paint.setTextSize(50);
+
+                StaticLayout title = StaticLayout.Builder.obtain(this.mainViewModel.getCurrentNode().getName(), 0, this.mainViewModel.getCurrentNode().getName().length(), paint, nodeContent.getWidth())
+                        .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                        .build();
+                //*
+
+                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(width + (padding * 2), nodeContent.getHeight() + (padding * 4) + title.getHeight(), 1).create();
+                PdfDocument.Page page = document.startPage(pageInfo);
+
+                Canvas canvas = page.getCanvas();
+
+                if ((getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
+                    // Changing background color of the canvas if drawing views from night mode
+                    // Otherwise text wont be visible
+                    canvas.drawColor(getColor(R.color.window_background));
+                }
+
+                //* Drawing title to the canvas
+                canvas.save(); // Saves current coordinates system
+                canvas.translate(padding, padding * 2); // Moves coordinate system
+                title.draw(canvas);
+                top += title.getHeight();
+                canvas.restore();
+                //*
+
+                for (int i= 0; i < nodeContent.getChildCount(); i++) {
+                    View view = nodeContent.getChildAt(i);
+                    canvas.save(); // Saves current coordinates system
+                    canvas.translate(padding, top); // Moves coordinate system
+                    if (view instanceof HorizontalScrollView) {
+                        // If it is a table - TableLayout has to be drawn to canvas and not ScrollView
+                        // Otherwise only visible part of the table will be showed
+                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                        tableLayout.draw(canvas);
+                    } else {
+                        // TextView
+                        view.draw(canvas);
+                    }
+                    canvas.restore(); // Restores coordinates system to saved state
+                    top += view.getHeight();
+                }
+
+                document.finishPage(page);
+
+                // Saving to file
+                OutputStream outputStream = getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file
+                document.writeTo(outputStream);
+
+                // Cleaning up
+                outputStream.close();
+                document.close();
+            } catch (Exception e) {
+                Toast.makeText(this, R.string.toast_error_failed_to_export_node_to_pdf, Toast.LENGTH_SHORT).show();
+            }
+        }
+    });
+    /**
+     * Launches activity to save the attached file to the device
+     */
+    ActivityResultLauncher<String[]> saveFile = registerForActivityResult(new ReturnSelectedFileUriForSaving(), result -> {
+        if (result != null) {
+            try {
+                InputStream inputStream = this.reader.getFileInputStream(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time"), result.getExtras().getString("offset"));
+                OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w"); // Output file
+                byte[] buf = new byte[4 * 1024];
+                int length;
+                while ((length = inputStream.read(buf)) != -1) {
+                    outputStream.write(buf, 0, length);
+                }
+                inputStream.close();
+                outputStream.close();
+            } catch (Exception e) {
+                Toast.makeText(this, R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
+            }
+        }
+    });
+
+    /**
+     * Adds node to bookmark list
+     * @param nodeUniqueID unique ID of the node which to add to bookmarks
+     */
+    private void addNodeToBookmarks(String nodeUniqueID) {
+        this.reader.addNodeToBookmarks(nodeUniqueID);
+    }
+
+    /**
+     * Sets variables that were used to display bookmarks to their default values
+     */
+    private void bookmarkVariablesReset() {
+        this.mainViewModel.resetTempNodes();
+        this.tempCurrentNodePosition = -1;
+        this.bookmarksToggle = false;
+    }
+
+    /**
+     * Restoring saved node status
+     */
+    private void closeBookmarks() {
+        this.mainViewModel.restoreSavedCurrentNodes();
+        this.currentNodePosition = this.tempCurrentNodePosition;
+        this.adapter.markItemSelected(this.currentNodePosition);
+        this.adapter.notifyDataSetChanged();
+        this.navigationNormalMode(true);
+        this.bookmarkVariablesReset();
+    }
+
+    /**
+     * Close findInNode view, keyboard and restores variables to initial values
+     */
+    private void closeFindInNode() {
+        // * This prevents crashes when user makes a sudden decision to close findInNode view while last search hasn't finished
+        this.handler.removeCallbacksAndMessages(null);
+        // *
+        this.findInNodeToggle = false;
+        EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
+        findInNodeEditText.setText("");
+        findInNodeEditText.clearFocus();
+
+        this.restoreHighlightedView();
+
+        // * Closing keyboard
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Shows keyboard on API 30 (Android 11) reliably
+            WindowCompat.getInsetsController(getWindow(), findInNodeEditText).hide(WindowInsetsCompat.Type.ime());
+        } else {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                // Delays to show soft keyboard by few milliseconds
+                // Otherwise keyboard does not show up
+                // It's a bit hacky (should be fixed)
+                @Override
+                public void run() {
+                    imm.hideSoftInputFromWindow(findInNodeEditText.getWindowToken(), InputMethodManager.HIDE_IMPLICIT_ONLY);
+                }
+            }, 50);
+        }
+        // *
+
+        // Clearing search field (restores content to original state too)
+        LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
+        findInNodeLinearLayout.setVisibility(View.GONE);
+        this.mainViewModel.findInNodeStorageToggle(false);
+    }
+
+    /**
+     * Creates new node in the database with provided parameters
+     * @param nodeUniqueID unique ID of the node that new node will be created in relation with
+     * @param relation relation to the node. 0 - sibling, 1 - subnode
+     * @param name node name
+     * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
+     * @param noSearchMe 0 - marks that node should be searched, 1 - marks that node should be excluded from the search
+     * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
+     */
+    public void createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
+        ScNode newNodeMenuItem = this.reader.createNewNode(nodeUniqueID, relation, name, progLang, noSearchMe, noSearchCh);
+        getSupportFragmentManager().popBackStack();
+        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        getSupportActionBar().show();
+        if (newNodeMenuItem != null) {
+            // If new node was added - load it
+            if (this.bookmarksToggle) {
+                this.bookmarksToggle = false;
+                this.navigationNormalMode(true);
+            }
+            this.mainViewModel.setCurrentNode(newNodeMenuItem);
+            this.loadNodeContent();
+            this.setClickedItemInSubmenu();
+            this.adapter.notifyDataSetChanged();
+        }
+    }
+
+    /**
+     * Launches CreateNewNode to create node in currently opened menu
+     * Node will be appended to the end of it
+     * @param view view that was clicked by the user
+     */
+    public void createNode(View view) {
+        if (this.mainViewModel.getNodes().size() == 0 || !this.mainViewModel.getNodes().get(0).isParent()) {
+            this.launchCreateNewNodeFragment("0", 1);
+        } else {
+            if (this.mainViewModel.getNodes().get(0).isParent()) {
+                this.launchCreateNewNodeFragment(this.mainViewModel.getNodes().get(0).getUniqueId(), 1);
+            } else {
+                this.launchCreateNewNodeFragment(this.mainViewModel.getNodes().get(0).getUniqueId(), 1);
+            }
+        }
+    }
+
+    /**
+     * Deletes node from database, removes node from the drawer menu
+     * or loads another one that's more appropriate,
+     * removes nodeContent and resets action bar title if opened node was deleted
+     * @param nodeUniqueID unique ID of the node to delete
+     * @param position node's position in drawer menu as reported by adapter
+     */
+    private void deleteNode(String nodeUniqueID, int position) {
+        if (this.filterNodeToggle) {
+            // Necessary, otherwise it will show up again in other searches until
+            // the search function is turn off and on again
+            this.removeNodeFromTempSearchNodes(nodeUniqueID);
+        }
+        if (this.bookmarksToggle) {
+            // In case deleted node was in the drawer menu that user opened bookmarks form
+            // If user comes back to that menu (exists bookmarks) without selecting a
+            // bookmarked node to open - deleted node would be visible
+            this.removeNodeFromTempNodes(nodeUniqueID);
+        }
+        if (this.mainViewModel.getCurrentNode() != null && nodeUniqueID.equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
+            // Currently displayed node was selected for deletion
+            this.mainViewModel.deleteNodeContent();
+            this.setToolbarTitle("SourCherry");
+            this.currentNodePosition = RecyclerView.NO_POSITION;
+            this.adapter.markItemSelected(this.currentNodePosition);
+            ArrayList<ScNode> newMenu = this.reader.getParentWithSubnodes(
+                            this.mainViewModel.getCurrentNode().getUniqueId()).stream()
+                            .filter(n -> !n.getUniqueId().equals(nodeUniqueID))
+                            .collect(Collectors.toCollection(ArrayList::new)
+            );
+            if (newMenu.size() == 1) {
+                newMenu = this.findNextParentWithSubnodes(newMenu.get(0).getUniqueId());
+            }
+            this.mainViewModel.setNodes(newMenu);
+            this.adapter.notifyDataSetChanged();
+            this.mainViewModel.setCurrentNode(null);
+        } else {
+            this.mainViewModel.getNodes().remove(position);
+            if (this.mainViewModel.getNodes().size() < 2) {
+                ArrayList<ScNode> newMenu;
+                if (position == 0) {
+                    newMenu = this.reader.getParentWithSubnodes(nodeUniqueID);
+                } else {
+                    newMenu = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId());
+                }
+                // Deleted node can still be in newMenu list it needs to be removed
+                Iterator<ScNode> iterator = newMenu.iterator();
+                while (iterator.hasNext()) {
+                    ScNode currentNode = iterator.next();
+                    if (currentNode.getUniqueId().equals(nodeUniqueID)) {
+                        iterator.remove();
+                        break;
+                    }
+                }
+                if (mainViewModel.getCurrentNode() != null) {
+                    // If node is opened it has to be selected as such
+                    int newPosition = -1;
+                    for (int i = 0; i < newMenu.size(); i++) {
+                        if (newMenu.get(i).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId())) {
+                            newMenu.get(i).setHasSubnodes(false);
+                        }
+                        if (this.mainViewModel.getCurrentNode() != null) {
+                            if (newMenu.get(i).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
+                                newPosition = i;
+                            }
+                        }
+                    }
+                    this.adapter.markItemSelected(newPosition);
+                    this.currentNodePosition = newPosition;
+                }
+                this.mainViewModel.setNodes(newMenu); // Displaying new nodes in DrawerMenu
+                this.adapter.notifyDataSetChanged();
+            } else {
+                this.adapter.notifyItemRemoved(position);
+            }
+        }
+        this.reader.deleteNode(nodeUniqueID);
+    }
+
+    /**
+     * Prepares DrawerLayout for fragments that should not allow user to open the drawer
+     * Shows back (home) arrow instead of hamburger icon
+     */
+    public void disableDrawerMenu() {
+        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        this.actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+    }
+
+    /**
+     * Displays toast message on the main thread
+     * @param message message to show
+     */
+    private void displayToastOnMainThread(String message) {
+        this.handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MainView.this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * Unlocks drawer menu and shows it
+     */
+    public void enableDrawer() {
+        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        getSupportActionBar().show();
+    }
+
+    /**
+     * Exists MainView activity with Toast message
+     * telling user that error occurred while reading the database
+     */
+    public void exitWithError() {
+        Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
+        this.finish();
+    }
+
+    /**
+     * Sets up database for export
+     * User can be prompted to choose file location
+     * Or confirm to overwrite the newer
+     * Mirror database file
+     */
+    public void exportDatabaseSetup() {
+        // XML without password already saved in external file
+        if (this.sharedPreferences.getString("databaseFileExtension", null).equals("ctd") && this.sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
+            Toast.makeText(this, R.string.toast_message_not_password_protected_xml_saves_changes_externally, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
+            // If user uses MirrorDatabase
+            // Variables that will be put into bundle for MirrorDatabaseProgressDialogFragment
+            Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
+            long mirrorDatabaseDocumentFileLastModified = 0;
+
+            // Reading through files inside Mirror Database Folder
+            Uri mirrorDatabaseFolderUri = Uri.parse(this.sharedPreferences.getString("mirrorDatabaseFolderUri", null));
+            Uri mirrorDatabaseFolderChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mirrorDatabaseFolderUri, DocumentsContract.getTreeDocumentId(mirrorDatabaseFolderUri));
+
+            Cursor cursor = this.getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
+            while (cursor != null && cursor.moveToNext()) {
+                if (cursor.getString(1).equals(this.sharedPreferences.getString("mirrorDatabaseFilename", null))) {
+                    // if file with the Mirror Database File filename was wound inside Mirror Database Folder
+                    mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
+                    mirrorDatabaseDocumentFileLastModified = cursor.getLong(2);
+                    break;
+                }
+            }
+            if (cursor != null) {
+                cursor.close();
+            }
+
+            if (mirrorDatabaseDocumentFileLastModified == 0) {
+                Toast.makeText(this, R.string.toast_error_failed_to_find_mirror_database, Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // If found Mirror Database File is older or the same as the last time it was synchronized
+            // copying is done immediately
+            if (mirrorDatabaseDocumentFileLastModified <= this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
+                    Bundle bundle = new Bundle();
+                    bundle.putString("exportFileUri", mirrorDatabaseFileUri.toString());
+                    ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+                    exportDatabaseDialogFragment.setArguments(bundle);
+                    exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+            } else {
+                // If found Mirror Database File is newer that the last time it was synchronized
+                // User is prompted to choose to cancel or continue
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle(R.string.alert_dialog_warning_newer_mirror_database_will_be_overwritten_title);
+                builder.setMessage(R.string.alert_dialog_warning_newer_mirror_database_will_be_overwritten_message);
+                builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+                Uri finalMirrorDatabaseFileUri = mirrorDatabaseFileUri;
+                long finalMirrorDatabaseDocumentFileLastModified = mirrorDatabaseDocumentFileLastModified;
+                builder.setPositiveButton(R.string.button_overwrite, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Saving new last modified date to preferences
+                        SharedPreferences.Editor sharedPreferencesEditor = MainView.this.sharedPreferences.edit();
+                        sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", finalMirrorDatabaseDocumentFileLastModified);
+                        sharedPreferencesEditor.apply();
+                        // Launching copying dialog
+                        Bundle bundle = new Bundle();
+                        bundle.putString("exportFileUri", finalMirrorDatabaseFileUri.toString());
+                        ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+                        exportDatabaseDialogFragment.setArguments(bundle);
+                        exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+                    }
+                });
+                builder.show();
+            }
+        } else {
+            // If MirrorDatabase isn't turned on
+            this.exportDatabaseToFile.launch(this.sharedPreferences.getString("databaseFilename", null));
+        }
+    }
+
+    private void exportPdfSetup() {
+        // Sets the intent for asking user to choose a location where to save a file
+        if (this.mainViewModel.getCurrentNode() != null) {
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.setType("application/pdf");
+            intent.putExtra(Intent.EXTRA_TITLE, this.mainViewModel.getCurrentNode().getName());
+            exportPdf.launch(intent);
+        } else {
+            Toast.makeText(this, R.string.toast_error_please_select_node, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Displays Snackbar with the message
+     * Used to display file path of link to file/folder
+     * @param filename message to display for user
+     */
+    public void fileFolderLinkFilepath(String filename) {
+        Snackbar.make(findViewById(R.id.main_view_fragment), filename, Snackbar.LENGTH_LONG)
+        .setAction(R.string.snackbar_dismiss_action, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        })
+        .show();
+    }
+
+    /**
+     * Filters node list by the name of the node
+     * Changes the drawer menu item list to show only
+     * nodes with matching text in the node title.
+     * Search is case insensitive
+     * @param query search query
+     */
+    private void filterNodes(String query) {
+        this.mainViewModel.setNodes(this.mainViewModel.getTempSearchNodes());
+        ArrayList<ScNode> filteredNodes = this.mainViewModel.getNodes().stream()
+                .filter(node -> node.getName().toLowerCase().contains(query.toLowerCase()))
+                .collect(Collectors.toCollection(ArrayList::new));
+        this.mainViewModel.setNodes(filteredNodes);
+        this.adapter.notifyDataSetChanged();
+    }
+
+    /**
+     * Searches for query in nodeContent
+     * @param query search query
+     */
+    private void findInNode(String query) {
+        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
+        if (query.length() > 0) {
+            // If new query is longer when one character
+            this.restoreHighlightedView();
+            MainView.this.executor.execute(new Runnable() {
+                @Override
+                public void run() {
+
+                    MainView.this.setFindInNodeProgressBar(true);
+                    int counter = 0; // To keep track of which item in the nodeContent array it is
+                    for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
+                        View view = contentFragmentLinearLayout.getChildAt(i);
+                        if (view instanceof TextView) {
+                            // if textview
+                            int searchLength = query.length();
+                            SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                            spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                            int index = 0;
+                            while ((index != -1)) {
+                                index = spannedSearchQuery.toString().toLowerCase().indexOf(query.toLowerCase(), index); // searches in case insensitive mode
+                                if (index != -1) {
+                                    // If there was a match
+                                    int startIndex = index;
+                                    int endIndex = index + searchLength; // End of the substring that has to be marked
+                                    MainView.this.mainViewModel.addFindInNodeResult(new int[] {counter, startIndex, endIndex});
+                                index += searchLength; // moves search to the end of the last found string
+                                }
+                            }
+                            counter++;
+                        } else if (view instanceof HorizontalScrollView) {
+                            // if it is a table
+                            // Has to go to the cell level to reach text
+                            // to be able to mark it at appropriate place
+                            int searchLength = query.length();
+
+                            TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                            for (int row = 0; row < tableLayout.getChildCount(); row++) {
+                                TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                                for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                                    SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                                    spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                                    int index = 0;
+                                    while ((index != -1)) {
+                                        index = spannedSearchQuery.toString().toLowerCase().indexOf(query.toLowerCase(), index); // searches in case insensitive mode
+                                        if (index != -1) {
+                                            int startIndex = index;
+                                            int endIndex = index + searchLength; // End of the substring that has to be marked
+                                            MainView.this.mainViewModel.addFindInNodeResult(new int[]{counter, startIndex, endIndex});
+                                            index += searchLength; // moves search to the end of the last found string
+                                        }
+                                    }
+                                    counter++;
+                                }
+                            }
+                        }
+                    }
+                    MainView.this.updateCounter(MainView.this.mainViewModel.getFindInNodeResultCount());
+                    if (MainView.this.mainViewModel.getFindInNodeResultCount() == 0) {
+                        // If user types until there are no matches left
+                        MainView.this.restoreHighlightedView();
+                    } else {
+                        // If there are matches for user query
+                        // First result has to be highlighter and scrolled too
+                        MainView.this.currentFindInNodeMarked = 0;
+                        MainView.this.highlightFindInNodeResult(MainView.this.currentFindInNodeMarked);
+                    }
+                    MainView.this.setFindInNodeProgressBar(false);
+                }
+            });
+        } else {
+            // If new query is 0 characters long, that means that user deleted everything and view should be reset to original
+            MainView.this.restoreHighlightedView();
+        }
+    }
+
+    /**
+     * Calculates next result that has to be highlighted
+     * and initiates switchFindInNodeHighlight
+     */
+    private void findInNodeNext() {
+        this.currentFindInNodeMarked++;
+        this.updateMarkedIndex();
+        if (this.currentFindInNodeMarked <= this.mainViewModel.getFindInNodeResultCount() - 1) {
+            int previouslyHighlightedFindInNode;
+            if (this.currentFindInNodeMarked == 0) {
+                // Current marked node is first in the array, so previous marked should be the last from array
+                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.mainViewModel.getFindInNodeResultCount() - 1)[0];
+            } else {
+                // Otherwise it should be previous one in array. However, it can be that it is out off array if array is made of one item.
+                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked - 1)[0];
+            }
+            // Gets instance of the fragment
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
+            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, this.currentFindInNodeMarked);
+        } else {
+            // Reached the last index of the result array
+            // currentFindInNodeMarked has to be reset to the first index if the result array and this function restarted
+            // If you want to though the result in a loop
+            this.currentFindInNodeMarked = -1;
+            this.findInNodeNext();
+        }
+    }
+
+    /**
+     * Calculates previous result that has to be highlighted
+     * and initiates switchFindInNodeHighlight
+     */
+    private void findInNodePrevious() {
+        this.currentFindInNodeMarked--;
+        this.updateMarkedIndex();
+        if (this.currentFindInNodeMarked >= 0) {
+            int previouslyHighlightedFindInNode;
+            if (this.currentFindInNodeMarked == this.mainViewModel.getFindInNodeResultCount() - 1) {
+                // Current marked node is last, so previous marked node should be the first in result ArrayList
+                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(0)[0];
+            } else {
+                // Otherwise it should next one in array (index+1). However, it can be that it is out off array if array is made of one item
+                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked + 1)[0]; // Saved index for the view
+            }
+            // Gets instance of the fragment
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
+            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, this.currentFindInNodeMarked);
+        } else {
+            // Reached the first index of the result array
+            // currentFindInNodeMarked has to be reset to last index of the result array and this function restarted
+            // If you want to though the result in a loop
+            this.currentFindInNodeMarked =  this.mainViewModel.getFindInNodeResultCount();
+            this.findInNodePrevious();
+        }
+    }
+
+    /**
+     * Goes up the node tree looking for a parent node with subnodes until it reaches main menu
+     * Used when deleting node that is currently opened
+     * @param nodeUniqueID unique ID of the node that should be a parent
+     * @return ScNode object list that can be added to DrawerMenu
+     */
+    private ArrayList<ScNode> findNextParentWithSubnodes(String nodeUniqueID) {
+        ArrayList<ScNode> mainMenu = this.reader.getMainNodes();
+        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(nodeUniqueID);
+        if (mainMenu == null) {
+            return null; // TODO: what will happen in this situation
+        }
+        while (mainMenu.get(0).getUniqueId().equals(nodes.get(0).getUniqueId())) {
+            if (nodes.size() > 1) {
+                break;
+            }
+            nodes = this.reader.getParentWithSubnodes(nodes.get(0).getUniqueId());
+        }
+        nodes.stream()
+                .filter(node -> node.getUniqueId().equals(nodeUniqueID))
+                .findFirst()
+                .ifPresent(node -> node.setHasSubnodes(false));
+        return nodes;
+    }
+
+    /**
+     * Returns ExecutorService to run tasks in the background
+     * @return executor to run tasks in the background
+     */
+    public ExecutorService getExecutor() {
+        return this.executor;
+    }
+
+    /**
+     * Returns handler used to run task on main (UI) thread
+     * @return handler to run task on the main loop
+     */
+    public Handler getHandler() {
+        return this.handler;
+    }
+
+    /**
+     * Returns MainViewModel used to store all information of the app (DrawerMenu nodes, NodeContent)
+     * @return MainViewModel
+     */
+    public MainViewModel getMainViewModel() {
+        return this.mainViewModel;
+    }
+
+    /**
+     * Closes bookmarks in drawer menu
+     * @param view view needed to associated button with action
+     */
+    public void goBack(View view) {
+        this.closeBookmarks();
+    }
+
+    /**
+     * Reloads drawer menu to show main menu
+     * if it is not displayed
+     * otherwise shows a message to the user
+     * that the top of the database tree was already reached
+     * @param view view that was clicked
+     */
+    public void goHome(View view) {
+        ArrayList<ScNode> tempMainNodes = this.reader.getMainNodes();
+        // Compares node sizes, first and last node's uniqueIDs in both arrays
+        if (tempMainNodes.size() == this.mainViewModel.getNodes().size() && tempMainNodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && tempMainNodes.get(this.mainViewModel.getNodes().size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
+            Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
+        } else {
+            this.mainViewModel.setNodes(tempMainNodes);
+            this.currentNodePosition = -1;
+            if (bookmarksToggle && this.mainViewModel.getCurrentNode() != null) {
+                // Just in case user chose to come back from bookmarks to home and a node is selected
+                // it might me that selected node is in main menu
+                // this part checks for that and marks the node if it finds it
+                this.currentNodePosition = this.openedNodePositionInDrawerMenu();
+            }
+            this.adapter.markItemSelected(this.currentNodePosition);
+            this.adapter.notifyDataSetChanged();
+        }
+
+        if (bookmarksToggle) {
+            this.navigationNormalMode(true);
+            this.bookmarkVariablesReset();
+        }
+    }
+
+    /**
+     * Moves navigation menu one node up
+     * If menu is already at the top it shows a message to the user
+     * @param view view that was clicked
+     */
+    public void goNodeUp(View view) {
+        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId());
+        if (nodes != null && nodes.size() != this.mainViewModel.getNodes().size()) {
+            // If retrieved nodes are not null and array size do not match the one displayed
+            // it is definitely not the same node so it can go up
+            this.mainViewModel.setNodes(nodes);
+            this.currentNodePosition = -1;
+            this.adapter.markItemSelected(this.currentNodePosition);
+            this.adapter.notifyDataSetChanged();
+        } else {
+            // If both nodes arrays matches in size it might be the same node (especially main/top)
+            // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
+            if (nodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && nodes.get(nodes.size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
+                Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
+            } else {
+                this.mainViewModel.setNodes(nodes);
+                this.currentNodePosition = -1;
+                this.adapter.markItemSelected(this.currentNodePosition);
+                this.adapter.notifyDataSetChanged();
+            }
+        }
+    }
+
+    /**
+     * Prepares DrawerLayout for fragments that should not allow user to open the drawer
+     * Hide DrawerLayout completely
+     */
+    private void hideDrawerMenu() {
+        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        getSupportActionBar().hide(); // Hides action bar
+    }
+
+    /**
+     * Hides or displays navigation buttons at the top of drawer menu
+     * Used when user taps on search icon to make the search field bigger
+     * @param status true - hide navigation buttons, false - show navigation buttons
+     */
+    private void hideNavigation(boolean status) {
+        ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
+        ImageButton upButton = findViewById(R.id.navigation_drawer_button_up);
+        ImageButton homeButton = findViewById(R.id.navigation_drawer_button_home);
+        ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
+        ImageButton createNode = findViewById(R.id.navigation_drawer_button_create_node);
+        CheckBox excludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
+        if (status) {
+            goBackButton.setVisibility(View.GONE);
+            upButton.setVisibility(View.GONE);
+            homeButton.setVisibility(View.GONE);
+            bookmarksButton.setVisibility(View.GONE);
+            createNode.setVisibility(View.GONE);
+            excludeFromSearch.setVisibility(View.VISIBLE);
+        } else {
+            goBackButton.setVisibility(View.GONE);
+            upButton.setVisibility(View.VISIBLE);
+            homeButton.setVisibility(View.VISIBLE);
+            bookmarksButton.setVisibility(View.VISIBLE);
+            createNode.setVisibility(View.VISIBLE);
+            excludeFromSearch.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Highlights result from findInNodeResultStorage (array list) that is identified by currentFindInNodeMarked
+     * @param resultIndex index of result to be highlighted
+     */
+    private void highlightFindInNodeResult(int resultIndex) {
+        int viewCounter = this.mainViewModel.getFindInNodeResult(resultIndex)[0]; // Saved index for the view
+        int startIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[1];
+        int endIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[2];
+
+        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
+        ScrollView contentFragmentScrollView = findViewById(R.id.content_fragment_scrollview);
+        int lineCounter = 0; // Needed to calculate position where view will have to be scrolled to
+        int counter = 0; // Iterator of the all the saved views from node content
+
+        for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
+            View view = contentFragmentLinearLayout.getChildAt(i);
+            if (view instanceof TextView) {
+                TextView currentTextView = (TextView) view;
+                // If substring that has to be marked IS IN the same view as previously marked substring
+                // Previous "highlight" will be removed while marking the current one
+                if (viewCounter == counter) {
+                    SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                    spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                    spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    int line = currentTextView.getLayout().getLineForOffset(startIndex); // Gets the line of the current string in current view
+                    int lineHeight = currentTextView.getLineHeight(); // needed to calculate the amount of pixel screen has to be scrolled down
+                    int currentLineCounter = lineCounter;
+                    this.handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            currentTextView.setText(spannedSearchQuery);
+                            // Scrolls view down to the line of the marked substring (query)
+                            // -100 pixels are to make highlighted substring not to be at the top of the screen
+                            contentFragmentScrollView.scrollTo(0, (line * lineHeight) + currentLineCounter - 100);
+                        }
+                    });
+                    MainView.this.updateMarkedIndex();
+                }
+                // Adds all TextView height to lineCounter. Will be used to move screen to correct position if there are more views
+                lineCounter += currentTextView.getHeight();
+                counter++;
+            } else if (view instanceof HorizontalScrollView) {
+                // If encountered a table
+                TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                    // If substring that has to be marked IS IN the same view as previously marked substring
+                for (int row = 0; row < tableLayout.getChildCount(); row++) {
+                    TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                    for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                        if (viewCounter == counter) {
+                            // If encountered a view that has to be marked
+                            TextView currentCell = (TextView) tableRow.getChildAt(cell);
+                            SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+                            spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                            spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            int currentLineCounter = lineCounter;
+                            this.handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    currentCell.setText(spannedSearchQuery);
+                                    // Scrolls view down to the line of the marked substring (query)
+                                    // -100 pixels are to make highlighted substring not to be at the top of the screen
+                                    contentFragmentScrollView.scrollTo(0, currentLineCounter - 100);
+                                }
+                            });
+                            MainView.this.updateMarkedIndex();
+                        }
+                        counter++;
+                    }
+                    // Adds row's height to lineCounter. Will be used to move screen to correct position if there are more views
+                    lineCounter += tableRow.getHeight();
+                }
+            }
+        }
+    }
+
+    /**
+     * Displays create new node fragment
+     * @param nodeUniqueID unique node ID of the node which action menu was launched
+     * @param relation relation to the node selected. 0 - sibling, 1 - subnode
+     */
+    private void launchCreateNewNodeFragment(String nodeUniqueID, int relation) {
+        Bundle bundle = new Bundle();
+        bundle.putString("nodeUniqueID", nodeUniqueID);
+        bundle.putInt("relation", relation);
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, CreateNodeFragment.class, bundle, "createNode")
+                .addToBackStack("createNode")
+                .commit();
+        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        getSupportActionBar().hide(); // Hides action bar
+    }
+
+    /**
+     * Displays move node fragment
+     * @param node information of the node which action menu was launched
+     */
+    private void launchMoveNodeFragment(ScNode node) {
+        Bundle bundle = new Bundle();
+        bundle.putParcelable("node", node);
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, MoveNodeFragment.class, bundle, "moveNode")
+                .addToBackStack("moveNode")
+                .commit();
+        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        getSupportActionBar().hide(); // Hides action bar
+    }
+
+    private void loadNodeContent() {
+        this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
+        this.executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                MainView.this.mainViewModel.getNodeContent().postValue(MainView.this.reader.getNodeContent(MainView.this.mainViewModel.getCurrentNode().getUniqueId()));
+            }
+        });
+    }
+
+    /**
+     * Moves node to different location of the document tree
+     * @param targetNodeUniqueID unique ID of the node that user chose to move
+     * @param destinationNodeUniqueID unique ID of the node that has to be a parent of the target node
+     */
+    public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
+        getSupportFragmentManager().popBackStack();
+        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        MainView.this.drawerLayout.open();
+        getSupportActionBar().show();
+        if (this.reader.moveNode(targetNodeUniqueID, destinationNodeUniqueID)) {
+            if (this.mainViewModel.getCurrentNode() == null) {
+                int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
+                int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
+                this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
+                this.mainViewModel.getNodes().remove(targetNodePosition);
+                this.adapter.notifyItemRemoved(targetNodePosition);
+                this.adapter.notifyItemChanged(destinationNodePosition);
+            } else {
+                if (this.mainViewModel.getNodes().size() <= 2) {
+                    this.mainViewModel.setCurrentNode(this.reader.getSingleMenuItem(this.mainViewModel.getCurrentNode().getUniqueId()));
+                    this.resetMenuToCurrentNode();
+                } else {
+                    int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
+                    int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
+                    if (destinationNodePosition != -1) {
+                        this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
+                        this.adapter.notifyItemChanged(destinationNodePosition);
+                    }
+                    this.mainViewModel.getNodes().remove(targetNodePosition);
+                    this.adapter.notifyItemRemoved(targetNodePosition);
+                }
+            }
+        }
+    }
+
+    /**
+     * Restores navigation buttons to the normal state
+     * as opposite to Bookmark navigation mode
+     * @param status true - normal mode, false - bookmark mode
+     */
+    private void navigationNormalMode(boolean status) {
+        ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
+        ImageButton goUpButton = findViewById(R.id.navigation_drawer_button_up);
+        ImageButton createNode = findViewById(R.id.navigation_drawer_button_create_node);
+        ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
+        if (status) {
+            goBackButton.setVisibility(View.GONE);
+            goUpButton.setVisibility(View.VISIBLE);
+            createNode.setVisibility(View.VISIBLE);
+            bookmarksButton.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_outline_bookmarks_off_24));
+        } else {
+            goBackButton.setVisibility(View.VISIBLE);
+            goUpButton.setVisibility(View.GONE);
+            createNode.setVisibility(View.VISIBLE);
+            bookmarksButton.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_baseline_bookmarks_on_24));
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -562,6 +1518,34 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     @Override
+    public void onResume() {
+        // At this stage it is possible to load the content to the fragment after the screen rotation
+        // at earlier point app will crash
+        super.onResume();
+        if (this.mainViewModel.getCurrentNode() != null) {
+            this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
+            this.adapter.markItemSelected(this.currentNodePosition);
+            this.adapter.notifyItemChanged(this.currentNodePosition);
+            // Even if LiveData can restore node content after screen rotation it has old context
+            // and any clicks (like opening images) will cause a crash
+            this.loadNodeContent();
+        }
+
+        if (this.filterNodeToggle) {
+            this.hideNavigation(true);
+        }
+
+        if (this.bookmarksToggle) {
+            this.navigationNormalMode(false);
+        }
+
+        // Restoring FindInNode variables to original state
+        if (this.findInNodeToggle) {
+            this.closeFindInNode();
+        }
+    }
+
+    @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (actionBarDrawerToggle.onOptionsItemSelected(item)) {
             // Drawer menu items
@@ -629,30 +1613,11 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     @Override
-    public void onResume() {
-        // At this stage it is possible to load the content to the fragment after the screen rotation
-        // at earlier point app will crash
-        super.onResume();
-        if (this.mainViewModel.getCurrentNode() != null) {
-            this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
-            this.adapter.markItemSelected(this.currentNodePosition);
-            this.adapter.notifyItemChanged(this.currentNodePosition);
-            // Even if LiveData can restore node content after screen rotation it has old context
-            // and any clicks (like opening images) will cause a crash
-            this.loadNodeContent();
-        }
-
-        if (this.filterNodeToggle) {
-            this.hideNavigation(true);
-        }
-
-        if (this.bookmarksToggle) {
-            this.navigationNormalMode(false);
-        }
-
-        // Restoring FindInNode variables to original state
-        if (this.findInNodeToggle) {
-            this.closeFindInNode();
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals("preferences_text_size")) {
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
+            nodeContentFragment.loadContent();
         }
     }
 
@@ -676,177 +1641,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         PreferenceManager.getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(this);
     }
 
-    @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals("preferences_text_size")) {
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-            nodeContentFragment.loadContent();
-        }
-    }
-
-    /**
-     * Clears existing menu and recreate with submenu of the currentNode
-     */
-    private void openSubmenu() {
-        this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
-        this.currentNodePosition = 0;
-        this.adapter.markItemSelected(this.currentNodePosition);
-        this.adapter.notifyDataSetChanged();
-    }
-
-    /**
-     * This function gets the new drawer menu list
-     * and marks currently opened node as such.
-     */
-    private void setClickedItemInSubmenu() {
-        this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
-        for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
-            if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-                this.currentNodePosition = index;
-                this.adapter.markItemSelected(this.currentNodePosition);
-            }
-        }
-    }
-
-    /**
-     * Sets current node as opened in drawer menu
-     * by finding it's nodeUniqueID in drawer menu items
-     * and setting it's index as this.currentNodePosition
-     */
-    private void setCurrentNodePosition() {
-        for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
-            if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-                this.currentNodePosition = index;
-            }
-        }
-    }
-
-    /**
-     * Closes bookmarks in drawer menu
-     * @param view view needed to associated button with action
-     */
-    public void goBack(View view) {
-        this.closeBookmarks();
-    }
-
-    /**
-     * Moves navigation menu one node up
-     * If menu is already at the top it shows a message to the user
-     * @param view view that was clicked
-     */
-    public void goNodeUp(View view) {
-        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId());
-        if (nodes != null && nodes.size() != this.mainViewModel.getNodes().size()) {
-            // If retrieved nodes are not null and array size do not match the one displayed
-            // it is definitely not the same node so it can go up
-            this.mainViewModel.setNodes(nodes);
-            this.currentNodePosition = -1;
-            this.adapter.markItemSelected(this.currentNodePosition);
-            this.adapter.notifyDataSetChanged();
-        } else {
-            // If both nodes arrays matches in size it might be the same node (especially main/top)
-            // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
-            if (nodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && nodes.get(nodes.size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
-                Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
-            } else {
-                this.mainViewModel.setNodes(nodes);
-                this.currentNodePosition = -1;
-                this.adapter.markItemSelected(this.currentNodePosition);
-                this.adapter.notifyDataSetChanged();
-            }
-        }
-    }
-
-    /**
-     * Reloads drawer menu to show main menu
-     * if it is not displayed
-     * otherwise shows a message to the user
-     * that the top of the database tree was already reached
-     * @param view view that was clicked
-     */
-    public void goHome(View view) {
-        ArrayList<ScNode> tempMainNodes = this.reader.getMainNodes();
-        // Compares node sizes, first and last node's uniqueIDs in both arrays
-        if (tempMainNodes.size() == this.mainViewModel.getNodes().size() && tempMainNodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && tempMainNodes.get(this.mainViewModel.getNodes().size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
-            Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
-        } else {
-            this.mainViewModel.setNodes(tempMainNodes);
-            this.currentNodePosition = -1;
-            if (bookmarksToggle && this.mainViewModel.getCurrentNode() != null) {
-                // Just in case user chose to come back from bookmarks to home and a node is selected
-                // it might me that selected node is in main menu
-                // this part checks for that and marks the node if it finds it
-                this.currentNodePosition = this.openedNodePositionInDrawerMenu();
-            }
-            this.adapter.markItemSelected(this.currentNodePosition);
-            this.adapter.notifyDataSetChanged();
-        }
-
-        if (bookmarksToggle) {
-            this.navigationNormalMode(true);
-            this.bookmarkVariablesReset();
-        }
-    }
-
-    private void loadNodeContent() {
-        this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
-        this.executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                MainView.this.mainViewModel.getNodeContent().postValue(MainView.this.reader.getNodeContent(MainView.this.mainViewModel.getCurrentNode().getUniqueId()));
-            }
-        });
-    }
-
-    /**
-     * Sets toolbar title to the provided string
-     * @param title new title for the toolbar
-     */
-    private void setToolbarTitle(String title) {
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setTitle(title);
-    }
-
-    /**
-     * Filters node list by the name of the node
-     * Changes the drawer menu item list to show only
-     * nodes with matching text in the node title.
-     * Search is case insensitive
-     * @param query search query
-     */
-    private void filterNodes(String query) {
-        this.mainViewModel.setNodes(this.mainViewModel.getTempSearchNodes());
-        ArrayList<ScNode> filteredNodes = this.mainViewModel.getNodes().stream()
-                .filter(node -> node.getName().toLowerCase().contains(query.toLowerCase()))
-                .collect(Collectors.toCollection(ArrayList::new));
-        this.mainViewModel.setNodes(filteredNodes);
-        this.adapter.notifyDataSetChanged();
-    }
-
-    /**
-     * Restores drawer menu selected item to currently opened node
-     */
-    private void resetMenuToCurrentNode() {
-        if (this.mainViewModel.getCurrentNode() != null) {
-            if (MainView.this.mainViewModel.getCurrentNode().hasSubnodes()) {
-                this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
-                this.currentNodePosition = 0;
-                this.adapter.markItemSelected(this.currentNodePosition);
-            } else {
-                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
-                for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
-                    if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-                        this.currentNodePosition = index;
-                        this.adapter.markItemSelected(this.currentNodePosition);
-                        break;
-                    }
-                }
-            }
-            this.adapter.notifyDataSetChanged();
-        }
-    }
-
     /**
      * Opens node that user selected by clicking anchor link
      * @param node array that holds data of one drawer menu / currentNode item
@@ -867,39 +1661,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Displays Snackbar with the message
-     * Used to display file path of link to file/folder
-     * @param filename message to display for user
-     */
-    public void fileFolderLinkFilepath(String filename) {
-        Snackbar.make(findViewById(R.id.main_view_fragment), filename, Snackbar.LENGTH_LONG)
-        .setAction(R.string.snackbar_dismiss_action, new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-            }
-        })
-        .show();
-    }
-
-    /**
-     * Launches CreateNewNode to create node in currently opened menu
-     * Node will be appended to the end of it
-     * @param view view that was clicked by the user
-     */
-    public void createNode(View view) {
-        if (this.mainViewModel.getNodes().size() == 0 || !this.mainViewModel.getNodes().get(0).isParent()) {
-            this.launchCreateNewNodeFragment("0", 1);
-        } else {
-            if (this.mainViewModel.getNodes().get(0).isParent()) {
-                this.launchCreateNewNodeFragment(this.mainViewModel.getNodes().get(0).getUniqueId(), 1);
-            } else {
-                this.launchCreateNewNodeFragment(this.mainViewModel.getNodes().get(0).getUniqueId(), 1);
-            }
-        }
-    }
-
-    /**
      * Toggles between displaying and hiding of bookmarks
      * @param view view that was clicked by the user
      */
@@ -913,181 +1674,44 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Displays bookmarks instead of normal navigation menu in navigation drawer
+     * Opens attached/embedded with the app on the device
+     * @param fileMimeType mime type of the attached/embedded for the device to show relevant app list to open the file with
+     * @param nodeUniqueID unique ID of the node that has attached/embedded file
+     * @param filename filename of the attached/embedded file
+     * @param time timestamp that was saved to the database with the file
+     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
      */
-    private void showBookmarks() {
-        ArrayList<ScNode> bookmarkedNodes = this.reader.getBookmarkedNodes();
-        // Check if there are any bookmarks
-        // If no bookmarks were found a message is displayed
-        // No other action is taken
-        if (bookmarkedNodes == null) {
-            Toast.makeText(this, R.string.toast_no_bookmarks_message, Toast.LENGTH_SHORT).show();
-        } else {
-            // Displaying bookmarks
-            this.navigationNormalMode(false);
-            // Saving current state of the menu
-            this.mainViewModel.saveCurrentNodes();
-            this.tempCurrentNodePosition = this.currentNodePosition;
+    private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time, String control) {
+        try {
+            String[] splitFilename = filename.split("\\.");
+            // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
+            // most important that it will have correct extension
+            File tmpAttachedFile = File.createTempFile(splitFilename[0], "." + splitFilename[splitFilename.length - 1]); // Temporary file that will shared
 
-            // Displaying bookmarks
-            this.mainViewModel.setNodes(bookmarkedNodes);
-            this.currentNodePosition = this.openedNodePositionInDrawerMenu();
-            this.adapter.markItemSelected(this.currentNodePosition);
-            this.adapter.notifyDataSetChanged();
-            this.bookmarksToggle = true;
-        }
-    }
-
-    /**
-     * Restoring saved node status
-     */
-    private void closeBookmarks() {
-        this.mainViewModel.restoreSavedCurrentNodes();
-        this.currentNodePosition = this.tempCurrentNodePosition;
-        this.adapter.markItemSelected(this.currentNodePosition);
-        this.adapter.notifyDataSetChanged();
-        this.navigationNormalMode(true);
-        this.bookmarkVariablesReset();
-    }
-
-    /**
-     * Restores navigation buttons to the normal state
-     * as opposite to Bookmark navigation mode
-     * @param status true - normal mode, false - bookmark mode
-     */
-    private void navigationNormalMode(boolean status) {
-        ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
-        ImageButton goUpButton = findViewById(R.id.navigation_drawer_button_up);
-        ImageButton createNode = findViewById(R.id.navigation_drawer_button_create_node);
-        ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
-        if (status) {
-            goBackButton.setVisibility(View.GONE);
-            goUpButton.setVisibility(View.VISIBLE);
-            createNode.setVisibility(View.VISIBLE);
-            bookmarksButton.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_outline_bookmarks_off_24));
-        } else {
-            goBackButton.setVisibility(View.VISIBLE);
-            goUpButton.setVisibility(View.GONE);
-            createNode.setVisibility(View.VISIBLE);
-            bookmarksButton.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_baseline_bookmarks_on_24));
-        }
-    }
-
-    /**
-     * Sets variables that were used to display bookmarks to their default values
-     */
-    private void bookmarkVariablesReset() {
-        this.mainViewModel.resetTempNodes();
-        this.tempCurrentNodePosition = -1;
-        this.bookmarksToggle = false;
-    }
-
-    /**
-     * Checks if currently opened node is shown in drawer menu
-     * @return position of the node in current drawer menu. -1 if node was not found
-     */
-    private int openedNodePositionInDrawerMenu() {
-        int position = -1;
-        if (this.mainViewModel.getCurrentNode() != null) {
-            for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
-                if (this.mainViewModel.getCurrentNode().getUniqueId().equals(this.mainViewModel.getNodes().get(i).getUniqueId())) {
-                    position = i;
-                    break;
-                }
+            // Writes Base64 encoded string to the temporary file
+            InputStream in = this.reader.getFileInputStream(nodeUniqueID, filename, time, control);
+            FileOutputStream out = new FileOutputStream(tmpAttachedFile);
+            byte[] buf = new byte[4 * 1024];
+            int length;
+            while ((length = in.read(buf)) != -1) {
+                out.write(buf, 0, length);
             }
+            in.close();
+            out.close();
+
+            // Getting Uri to share
+            Uri tmpFileUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", tmpAttachedFile);
+
+            // Intent to open file
+            Intent intent = new Intent();
+            intent.setAction(Intent.ACTION_VIEW);
+            intent.setDataAndType(tmpFileUri, fileMimeType);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intent);
+
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.toast_error_failed_to_open_file, Toast.LENGTH_SHORT).show();
         }
-        return position;
-    }
-
-    /**
-     * Hides or displays navigation buttons at the top of drawer menu
-     * Used when user taps on search icon to make the search field bigger
-     * @param status true - hide navigation buttons, false - show navigation buttons
-     */
-    private void hideNavigation(boolean status) {
-        ImageButton goBackButton = findViewById(R.id.navigation_drawer_button_back);
-        ImageButton upButton = findViewById(R.id.navigation_drawer_button_up);
-        ImageButton homeButton = findViewById(R.id.navigation_drawer_button_home);
-        ImageButton bookmarksButton = findViewById(R.id.navigation_drawer_button_bookmarks);
-        ImageButton createNode = findViewById(R.id.navigation_drawer_button_create_node);
-        CheckBox excludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
-        if (status) {
-            goBackButton.setVisibility(View.GONE);
-            upButton.setVisibility(View.GONE);
-            homeButton.setVisibility(View.GONE);
-            bookmarksButton.setVisibility(View.GONE);
-            createNode.setVisibility(View.GONE);
-            excludeFromSearch.setVisibility(View.VISIBLE);
-        } else {
-            goBackButton.setVisibility(View.GONE);
-            upButton.setVisibility(View.VISIBLE);
-            homeButton.setVisibility(View.VISIBLE);
-            bookmarksButton.setVisibility(View.VISIBLE);
-            createNode.setVisibility(View.VISIBLE);
-            excludeFromSearch.setVisibility(View.GONE);
-        }
-    }
-
-    /**
-     * Returns handler used to run task on main (UI) thread
-     * @return handler to run task on the main loop
-     */
-    public Handler getHandler() {
-        return this.handler;
-    }
-
-    /**
-     * Returns MainViewModel used to store all information of the app (DrawerMenu nodes, NodeContent)
-     * @return MainViewModel
-     */
-    public MainViewModel getMainViewModel() {
-        return this.mainViewModel;
-    }
-
-    /**
-     * Returns ExecutorService to run tasks in the background
-     * @return executor to run tasks in the background
-     */
-    public ExecutorService getExecutor() {
-        return this.executor;
-    }
-
-    /**
-     * Close findInNode view, keyboard and restores variables to initial values
-     */
-    private void closeFindInNode() {
-        // * This prevents crashes when user makes a sudden decision to close findInNode view while last search hasn't finished
-        this.handler.removeCallbacksAndMessages(null);
-        // *
-        this.findInNodeToggle = false;
-        EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
-        findInNodeEditText.setText("");
-        findInNodeEditText.clearFocus();
-
-        this.restoreHighlightedView();
-
-        // * Closing keyboard
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Shows keyboard on API 30 (Android 11) reliably
-            WindowCompat.getInsetsController(getWindow(), findInNodeEditText).hide(WindowInsetsCompat.Type.ime());
-        } else {
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                // Delays to show soft keyboard by few milliseconds
-                // Otherwise keyboard does not show up
-                // It's a bit hacky (should be fixed)
-                @Override
-                public void run() {
-                    imm.hideSoftInputFromWindow(findInNodeEditText.getWindowToken(), InputMethodManager.HIDE_IMPLICIT_ONLY);
-                }
-            }, 50);
-        }
-        // *
-
-        // Clearing search field (restores content to original state too)
-        LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
-        findInNodeLinearLayout.setVisibility(View.GONE);
-        this.mainViewModel.findInNodeStorageToggle(false);
     }
 
     /**
@@ -1153,199 +1777,219 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Sets the count of the results of
-     * findInNode to new value
-     * @param counter new result count
+     * Function to launch fragment with enlarged image
+     * @param nodeUniqueID unique ID of the node that image is embedded into
+     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
      */
-    private void updateCounter(int counter) {
-        TextView findInNodeEditTextCount = findViewById(R.id.find_in_node_edit_text_result_count);
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                findInNodeEditTextCount.setText(String.valueOf(counter));
-            }
-        });
+    public void openImageView(String nodeUniqueID, String control) {
+        Bundle bundle = new Bundle();
+        bundle.putString("type", "image");
+        bundle.putString("nodeUniqueID", nodeUniqueID);
+        bundle.putString("control", control);
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
+                .addToBackStack("imageView")
+                .commit();
+        this.disableDrawerMenu();
     }
 
     /**
-     * Sets/updates index of currently marked result
+     * Function to launch fragment with enlarged latex image
+     * @param latexString latex code extracted from the database
      */
-    private void updateMarkedIndex() {
-        TextView findInNodeEditTextMarkedIndex = findViewById(R.id.find_in_node_edit_text_marked_index);
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                findInNodeEditTextMarkedIndex.setText(String.valueOf(MainView.this.currentFindInNodeMarked + 1));
-            }
-        });
+    public void openImageView(String latexString) {
+        Bundle bundle = new Bundle();
+        bundle.putString("type", "latex");
+        bundle.putString("latexString", latexString);
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
+                .addToBackStack("imageView")
+                .commit();
+        this.disableDrawerMenu();
     }
 
     /**
-     * Start or stops findInView progress bar
-     * @param status true - start progress bar, false - stop progress bar
+     * Activates node's action icon/right click dialog fragment
+     * @param node node which action menu should be shown
+     * @param position position of the node in drawer menu as reported by MenuItemAdapter
      */
-    private void setFindInNodeProgressBar(Boolean status) {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                ProgressBar progressBar = findViewById(R.id.find_in_node_progress_bar);
-                progressBar.setIndeterminate(status);
-            }
-        });
+    private void openMenuItemActionDialogFragment(ScNode node, int position) {
+        DialogFragment menuItemActionDialogFragment = new MenuItemActionDialogFragment();
+        Bundle bundle = new Bundle();
+        bundle.putParcelable("node", node);
+        bundle.putInt("position", position);
+        bundle.putBoolean("bookmarked", this.reader.isNodeBookmarked(node.getUniqueId()));
+        menuItemActionDialogFragment.setArguments(bundle);
+        menuItemActionDialogFragment.setStyle(DialogFragment.STYLE_NORMAL, R.style.CustomDialogFragment);
+        menuItemActionDialogFragment.show(getSupportFragmentManager(), "menuItemActionDialogFragment");
     }
 
     /**
-     * Searches for query in nodeContent
-     * @param query search query
+     * Opens node content editor in a different fragment
+     * Disables drawer menu and changes hamburger menu icon to
+     * home button
      */
-    private void findInNode(String query) {
-        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
-        if (query.length() > 0) {
-            // If new query is longer when one character
-            this.restoreHighlightedView();
-            MainView.this.executor.execute(new Runnable() {
-                @Override
-                public void run() {
+    private void openNodeEditor() {
+        Bundle bundle = new Bundle();
+        ScrollView scrollView = findViewById(R.id.content_fragment_scrollview);
+        bundle.putString("nodeUniqueID", this.mainViewModel.getCurrentNode().getUniqueId());
+        bundle.putInt("scrollY", scrollView.getScrollY());
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, NodeContentEditorFragment.class, bundle, "editNode")
+                .addToBackStack("editNode")
+                .commit();
+        this.disableDrawerMenu();
+    }
 
-                    MainView.this.setFindInNodeProgressBar(true);
-                    int counter = 0; // To keep track of which item in the nodeContent array it is
-                    for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
-                        View view = contentFragmentLinearLayout.getChildAt(i);
-                        if (view instanceof TextView) {
-                            // if textview
-                            int searchLength = query.length();
-                            SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                            spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
-                            int index = 0;
-                            while ((index != -1)) {
-                                index = spannedSearchQuery.toString().toLowerCase().indexOf(query.toLowerCase(), index); // searches in case insensitive mode
-                                if (index != -1) {
-                                    // If there was a match
-                                    int startIndex = index;
-                                    int endIndex = index + searchLength; // End of the substring that has to be marked
-                                    MainView.this.mainViewModel.addFindInNodeResult(new int[] {counter, startIndex, endIndex});
-                                index += searchLength; // moves search to the end of the last found string
-                                }
-                            }
-                            counter++;
-                        } else if (view instanceof HorizontalScrollView) {
-                            // if it is a table
-                            // Has to go to the cell level to reach text
-                            // to be able to mark it at appropriate place
-                            int searchLength = query.length();
+    /**
+     * Opens a fragment with information about the node
+     * @param nodeUniqueID unique ID of the node of which properties has to be shown
+     * @param position node's position in drawer menu as reported by adapter
+     */
+    private void openNodeProperties(String nodeUniqueID, int position) {
+        Bundle bundle = new Bundle();
+        bundle.putString("nodeUniqueID", nodeUniqueID);
+        bundle.putInt("position", position);
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, NodePropertiesFragment.class, bundle, "moveNode")
+                .addToBackStack("nodeProperties")
+                .commit();
+        this.hideDrawerMenu();
+    }
 
-                            TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
-                            for (int row = 0; row < tableLayout.getChildCount(); row++) {
-                                TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
-                                for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
-                                    SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                                    spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
-                                    int index = 0;
-                                    while ((index != -1)) {
-                                        index = spannedSearchQuery.toString().toLowerCase().indexOf(query.toLowerCase(), index); // searches in case insensitive mode
-                                        if (index != -1) {
-                                            int startIndex = index;
-                                            int endIndex = index + searchLength; // End of the substring that has to be marked
-                                            MainView.this.mainViewModel.addFindInNodeResult(new int[]{counter, startIndex, endIndex});
-                                            index += searchLength; // moves search to the end of the last found string
-                                        }
-                                    }
-                                    counter++;
-                                }
-                            }
-                        }
-                    }
-                    MainView.this.updateCounter(MainView.this.mainViewModel.getFindInNodeResultCount());
-                    if (MainView.this.mainViewModel.getFindInNodeResultCount() == 0) {
-                        // If user types until there are no matches left
-                        MainView.this.restoreHighlightedView();
-                    } else {
-                        // If there are matches for user query
-                        // First result has to be highlighter and scrolled too
-                        MainView.this.currentFindInNodeMarked = 0;
-                        MainView.this.highlightFindInNodeResult(MainView.this.currentFindInNodeMarked);
-                    }
-                    MainView.this.setFindInNodeProgressBar(false);
+    /**
+     * Opens search in a different fragment
+     * Sets toolbar's title to "Search"
+     */
+    private void openSearch() {
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, SearchFragment.class, null, "search")
+                .addToBackStack("search")
+                .commit();
+        this.setToolbarTitle("Search");
+        this.disableDrawerMenu();
+    }
+
+    /**
+     * Opens node that was passed as an argument
+     * Used to open search results
+     * @param selectedNode Node that has to be opened
+     */
+    public void openSearchResult(ScNode selectedNode) {
+        this.mainViewModel.setCurrentNode(selectedNode);
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
+        onBackPressed();
+        this.resetMenuToCurrentNode();
+        this.loadNodeContent();
+    }
+
+    /**
+     * Clears existing menu and recreate with submenu of the currentNode
+     */
+    private void openSubmenu() {
+        this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
+        this.currentNodePosition = 0;
+        this.adapter.markItemSelected(this.currentNodePosition);
+        this.adapter.notifyDataSetChanged();
+    }
+
+    /**
+     * Checks if currently opened node is shown in drawer menu
+     * @return position of the node in current drawer menu. -1 if node was not found
+     */
+    private int openedNodePositionInDrawerMenu() {
+        int position = -1;
+        if (this.mainViewModel.getCurrentNode() != null) {
+            for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
+                if (this.mainViewModel.getCurrentNode().getUniqueId().equals(this.mainViewModel.getNodes().get(i).getUniqueId())) {
+                    position = i;
+                    break;
                 }
-            });
-        } else {
-            // If new query is 0 characters long, that means that user deleted everything and view should be reset to original
-            MainView.this.restoreHighlightedView();
+            }
+        }
+        return position;
+    }
+
+    /**
+     * Removes node from bookmark list
+     * Updates drawer menu if bookmarks are being displayed
+     * @param nodeUniqueID unique ID of the node which to remove from bookmarks
+     * @param position position of the node in drawer menu as reported by MenuItemAdapter
+     */
+    private void removeNodeFromBookmarks(String nodeUniqueID, int position) {
+        this.reader.removeNodeFromBookmarks(nodeUniqueID);
+        if (this.bookmarksToggle) {
+            Iterator<ScNode> iterator = this.mainViewModel.getNodes().iterator();
+            while(iterator.hasNext()) {
+                ScNode node = iterator.next();
+                if (node.getUniqueId().equals(nodeUniqueID)) {
+                    iterator.remove();
+                    this.adapter.notifyItemRemoved(position);
+                    break;
+                }
+            }
         }
     }
 
     /**
-     * Highlights result from findInNodeResultStorage (array list) that is identified by currentFindInNodeMarked
-     * @param resultIndex index of result to be highlighted
+     * Searches for node in tempNodes menu item list and removes it if found
+     * @param nodeUniqueID unique ID of the node to search for
      */
-    private void highlightFindInNodeResult(int resultIndex) {
-        int viewCounter = this.mainViewModel.getFindInNodeResult(resultIndex)[0]; // Saved index for the view
-        int startIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[1];
-        int endIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[2];
+    private void removeNodeFromTempNodes(String nodeUniqueID) {
+        Iterator<ScNode> iterator = this.mainViewModel.getTempNodes().iterator();
+        while (iterator.hasNext()) {
+            ScNode currentNode = iterator.next();
+            if (currentNode.getUniqueId().equals(nodeUniqueID)) {
+                iterator.remove();
+                break;
+            }
+        }
+    }
 
-        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
-        ScrollView contentFragmentScrollView = findViewById(R.id.content_fragment_scrollview);
-        int lineCounter = 0; // Needed to calculate position where view will have to be scrolled to
-        int counter = 0; // Iterator of the all the saved views from node content
+    /**
+     * Removes node from tempSearchNodes list
+     * @param nodeUniqueID unique ID of the node that was deleted
+     */
+    private void removeNodeFromTempSearchNodes(String nodeUniqueID) {
+        Iterator<ScNode> iterator = this.mainViewModel.getTempSearchNodes().iterator();
+        while (iterator.hasNext()) {
+            ScNode currentNode = iterator.next();
+            if (currentNode.getUniqueId().equals(nodeUniqueID)) {
+                iterator.remove();
+                break;
+            }
+        }
+    }
 
-        for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
-            View view = contentFragmentLinearLayout.getChildAt(i);
-            if (view instanceof TextView) {
-                TextView currentTextView = (TextView) view;
-                // If substring that has to be marked IS IN the same view as previously marked substring
-                // Previous "highlight" will be removed while marking the current one
-                if (viewCounter == counter) {
-                    SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                    spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
-                    spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    int line = currentTextView.getLayout().getLineForOffset(startIndex); // Gets the line of the current string in current view
-                    int lineHeight = currentTextView.getLineHeight(); // needed to calculate the amount of pixel screen has to be scrolled down
-                    int currentLineCounter = lineCounter;
-                    this.handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            currentTextView.setText(spannedSearchQuery);
-                            // Scrolls view down to the line of the marked substring (query)
-                            // -100 pixels are to make highlighted substring not to be at the top of the screen
-                            contentFragmentScrollView.scrollTo(0, (line * lineHeight) + currentLineCounter - 100);
-                        }
-                    });
-                    MainView.this.updateMarkedIndex();
-                }
-                // Adds all TextView height to lineCounter. Will be used to move screen to correct position if there are more views
-                lineCounter += currentTextView.getHeight();
-                counter++;
-            } else if (view instanceof HorizontalScrollView) {
-                // If encountered a table
-                TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
-                    // If substring that has to be marked IS IN the same view as previously marked substring
-                for (int row = 0; row < tableLayout.getChildCount(); row++) {
-                    TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
-                    for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
-                        if (viewCounter == counter) {
-                            // If encountered a view that has to be marked
-                            TextView currentCell = (TextView) tableRow.getChildAt(cell);
-                            SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                            spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
-                            spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            int currentLineCounter = lineCounter;
-                            this.handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    currentCell.setText(spannedSearchQuery);
-                                    // Scrolls view down to the line of the marked substring (query)
-                                    // -100 pixels are to make highlighted substring not to be at the top of the screen
-                                    contentFragmentScrollView.scrollTo(0, currentLineCounter - 100);
-                                }
-                            });
-                            MainView.this.updateMarkedIndex();
-                        }
-                        counter++;
+    /**
+     * Restores drawer menu selected item to currently opened node
+     */
+    private void resetMenuToCurrentNode() {
+        if (this.mainViewModel.getCurrentNode() != null) {
+            if (MainView.this.mainViewModel.getCurrentNode().hasSubnodes()) {
+                this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
+                this.currentNodePosition = 0;
+                this.adapter.markItemSelected(this.currentNodePosition);
+            } else {
+                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
+                for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
+                    if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
+                        this.currentNodePosition = index;
+                        this.adapter.markItemSelected(this.currentNodePosition);
+                        break;
                     }
-                    // Adds row's height to lineCounter. Will be used to move screen to correct position if there are more views
-                    lineCounter += tableRow.getHeight();
                 }
             }
+            this.adapter.notifyDataSetChanged();
         }
     }
 
@@ -1404,533 +2048,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Calculates next result that has to be highlighted
-     * and initiates switchFindInNodeHighlight
-     */
-    private void findInNodeNext() {
-        this.currentFindInNodeMarked++;
-        this.updateMarkedIndex();
-        if (this.currentFindInNodeMarked <= this.mainViewModel.getFindInNodeResultCount() - 1) {
-            int previouslyHighlightedFindInNode;
-            if (this.currentFindInNodeMarked == 0) {
-                // Current marked node is first in the array, so previous marked should be the last from array
-                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.mainViewModel.getFindInNodeResultCount() - 1)[0];
-            } else {
-                // Otherwise it should be previous one in array. However, it can be that it is out off array if array is made of one item.
-                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked - 1)[0];
-            }
-            // Gets instance of the fragment
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, this.currentFindInNodeMarked);
-        } else {
-            // Reached the last index of the result array
-            // currentFindInNodeMarked has to be reset to the first index if the result array and this function restarted
-            // If you want to though the result in a loop
-            this.currentFindInNodeMarked = -1;
-            this.findInNodeNext();
-        }
-    }
-
-    /**
-     * Calculates previous result that has to be highlighted
-     * and initiates switchFindInNodeHighlight
-     */
-    private void findInNodePrevious() {
-        this.currentFindInNodeMarked--;
-        this.updateMarkedIndex();
-        if (this.currentFindInNodeMarked >= 0) {
-            int previouslyHighlightedFindInNode;
-            if (this.currentFindInNodeMarked == this.mainViewModel.getFindInNodeResultCount() - 1) {
-                // Current marked node is last, so previous marked node should be the first in result ArrayList
-                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(0)[0];
-            } else {
-                // Otherwise it should next one in array (index+1). However, it can be that it is out off array if array is made of one item
-                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked + 1)[0]; // Saved index for the view
-            }
-            // Gets instance of the fragment
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, this.currentFindInNodeMarked);
-        } else {
-            // Reached the first index of the result array
-            // currentFindInNodeMarked has to be reset to last index of the result array and this function restarted
-            // If you want to though the result in a loop
-            this.currentFindInNodeMarked =  this.mainViewModel.getFindInNodeResultCount();
-            this.findInNodePrevious();
-        }
-    }
-
-    /**
-     * Deals with attached/embedded files into database
-     * @param nodeUniqueID unique ID of the node that has attached/embedded file
-     * @param attachedFileFilename filename of the attached/embedded file
-     * @param time timestamp that was saved to the database with the file
-     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
-     */
-    public void saveOpenFile(String nodeUniqueID, String attachedFileFilename, String time, String control) {
-        // Checks preferences if user choice default action for embedded files
-        FileNameMap fileNameMap  = URLConnection.getFileNameMap();
-        String fileMimeType = fileNameMap.getContentTypeFor(attachedFileFilename);
-        if (fileMimeType == null) {
-            // Custom file extensions (like CherryTree database extensions) are not recognized by Android
-            // If mimeType for selected file can't be recognized. Catch all mimetype has to set
-            // Otherwise app will crash while trying to save the file
-            fileMimeType = "*/*";
-        }
-        String saveOpenFilePreference = this.sharedPreferences.getString("preferences_save_open_file", "Ask");
-        if (saveOpenFilePreference.equals("Ask")) {
-            // Setting up to send arguments to Dialog Fragment
-            Bundle bundle = new Bundle();
-            bundle.putString("nodeUniqueID", nodeUniqueID);
-            bundle.putString("filename", attachedFileFilename);
-            bundle.putString("time", time);
-            bundle.putString("offset", control);
-            bundle.putString("fileMimeType", fileMimeType);
-
-            // Opening dialog fragment to ask user for a choice
-            SaveOpenDialogFragment saveOpenDialogFragment = new SaveOpenDialogFragment();
-            saveOpenDialogFragment.setArguments(bundle);
-            saveOpenDialogFragment.show(getSupportFragmentManager(), "saveOpenDialog");
-        } else if (saveOpenFilePreference.equals("Save")) {
-            // Saving file
-            saveFile.launch(new String[]{fileMimeType, nodeUniqueID, attachedFileFilename, time});
-        } else {
-            // Opens file with intent for other apps
-            this.openFile(fileMimeType, nodeUniqueID, attachedFileFilename, time, control);
-        }
-    }
-
-    /**
-     * Opens attached/embedded with the app on the device
-     * @param fileMimeType mime type of the attached/embedded for the device to show relevant app list to open the file with
-     * @param nodeUniqueID unique ID of the node that has attached/embedded file
-     * @param filename filename of the attached/embedded file
-     * @param time timestamp that was saved to the database with the file
-     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
-     */
-    private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time, String control) {
-        try {
-            String[] splitFilename = filename.split("\\.");
-            // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
-            // most important that it will have correct extension
-            File tmpAttachedFile = File.createTempFile(splitFilename[0], "." + splitFilename[splitFilename.length - 1]); // Temporary file that will shared
-
-            // Writes Base64 encoded string to the temporary file
-            InputStream in = this.reader.getFileInputStream(nodeUniqueID, filename, time, control);
-            FileOutputStream out = new FileOutputStream(tmpAttachedFile);
-            byte[] buf = new byte[4 * 1024];
-            int length;
-            while ((length = in.read(buf)) != -1) {
-                out.write(buf, 0, length);
-            }
-            in.close();
-            out.close();
-
-            // Getting Uri to share
-            Uri tmpFileUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", tmpAttachedFile);
-
-            // Intent to open file
-            Intent intent = new Intent();
-            intent.setAction(Intent.ACTION_VIEW);
-            intent.setDataAndType(tmpFileUri, fileMimeType);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(intent);
-
-        } catch (Exception e) {
-            Toast.makeText(this, R.string.toast_error_failed_to_open_file, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /**
-     * Launches activity to save the attached file to the device
-     */
-    ActivityResultLauncher<String[]> saveFile = registerForActivityResult(new ReturnSelectedFileUriForSaving(), result -> {
-        if (result != null) {
-            try {
-                InputStream inputStream = this.reader.getFileInputStream(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time"), result.getExtras().getString("offset"));
-                OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w"); // Output file
-                byte[] buf = new byte[4 * 1024];
-                int length;
-                while ((length = inputStream.read(buf)) != -1) {
-                    outputStream.write(buf, 0, length);
-                }
-                inputStream.close();
-                outputStream.close();
-            } catch (Exception e) {
-                Toast.makeText(this, R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
-            }
-        }
-    });
-
-    /**
-     * Activates node's action icon/right click dialog fragment
-     * @param node node which action menu should be shown
-     * @param position position of the node in drawer menu as reported by MenuItemAdapter
-     */
-    private void openMenuItemActionDialogFragment(ScNode node, int position) {
-        DialogFragment menuItemActionDialogFragment = new MenuItemActionDialogFragment();
-        Bundle bundle = new Bundle();
-        bundle.putParcelable("node", node);
-        bundle.putInt("position", position);
-        bundle.putBoolean("bookmarked", this.reader.isNodeBookmarked(node.getUniqueId()));
-        menuItemActionDialogFragment.setArguments(bundle);
-        menuItemActionDialogFragment.setStyle(DialogFragment.STYLE_NORMAL, R.style.CustomDialogFragment);
-        menuItemActionDialogFragment.show(getSupportFragmentManager(), "menuItemActionDialogFragment");
-    }
-
-    /**
-     * Displays create new node fragment
-     * @param nodeUniqueID unique node ID of the node which action menu was launched
-     * @param relation relation to the node selected. 0 - sibling, 1 - subnode
-     */
-    private void launchCreateNewNodeFragment(String nodeUniqueID, int relation) {
-        Bundle bundle = new Bundle();
-        bundle.putString("nodeUniqueID", nodeUniqueID);
-        bundle.putInt("relation", relation);
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
-                .setReorderingAllowed(true)
-                .add(R.id.main_view_fragment, CreateNodeFragment.class, bundle, "createNode")
-                .addToBackStack("createNode")
-                .commit();
-        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        getSupportActionBar().hide(); // Hides action bar
-    }
-
-    /**
-     * Creates new node in the database with provided parameters
-     * @param nodeUniqueID unique ID of the node that new node will be created in relation with
-     * @param relation relation to the node. 0 - sibling, 1 - subnode
-     * @param name node name
-     * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
-     * @param noSearchMe 0 - marks that node should be searched, 1 - marks that node should be excluded from the search
-     * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
-     */
-    public void createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
-        ScNode newNodeMenuItem = this.reader.createNewNode(nodeUniqueID, relation, name, progLang, noSearchMe, noSearchCh);
-        getSupportFragmentManager().popBackStack();
-        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-        getSupportActionBar().show();
-        if (newNodeMenuItem != null) {
-            // If new node was added - load it
-            if (this.bookmarksToggle) {
-                this.bookmarksToggle = false;
-                this.navigationNormalMode(true);
-            }
-            this.mainViewModel.setCurrentNode(newNodeMenuItem);
-            this.loadNodeContent();
-            this.setClickedItemInSubmenu();
-            this.adapter.notifyDataSetChanged();
-        }
-    }
-
-    /**
-     * Adds node to bookmark list
-     * @param nodeUniqueID unique ID of the node which to add to bookmarks
-     */
-    private void addNodeToBookmarks(String nodeUniqueID) {
-        this.reader.addNodeToBookmarks(nodeUniqueID);
-    }
-
-    /**
-     * Removes node from bookmark list
-     * Updates drawer menu if bookmarks are being displayed
-     * @param nodeUniqueID unique ID of the node which to remove from bookmarks
-     * @param position position of the node in drawer menu as reported by MenuItemAdapter
-     */
-    private void removeNodeFromBookmarks(String nodeUniqueID, int position) {
-        this.reader.removeNodeFromBookmarks(nodeUniqueID);
-        if (this.bookmarksToggle) {
-            Iterator<ScNode> iterator = this.mainViewModel.getNodes().iterator();
-            while(iterator.hasNext()) {
-                ScNode node = iterator.next();
-                if (node.getUniqueId().equals(nodeUniqueID)) {
-                    iterator.remove();
-                    this.adapter.notifyItemRemoved(position);
-                    break;
-                }
-            }
-        }
-    }
-
-    /**
-     * Displays move node fragment
-     * @param node information of the node which action menu was launched
-     */
-    private void launchMoveNodeFragment(ScNode node) {
-        Bundle bundle = new Bundle();
-        bundle.putParcelable("node", node);
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
-                .setReorderingAllowed(true)
-                .add(R.id.main_view_fragment, MoveNodeFragment.class, bundle, "moveNode")
-                .addToBackStack("moveNode")
-                .commit();
-        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        getSupportActionBar().hide(); // Hides action bar
-    }
-
-    /**
-     * Moves node to different location of the document tree
-     * @param targetNodeUniqueID unique ID of the node that user chose to move
-     * @param destinationNodeUniqueID unique ID of the node that has to be a parent of the target node
-     */
-    public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
-        getSupportFragmentManager().popBackStack();
-        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-        MainView.this.drawerLayout.open();
-        getSupportActionBar().show();
-        if (this.reader.moveNode(targetNodeUniqueID, destinationNodeUniqueID)) {
-            if (this.mainViewModel.getCurrentNode() == null) {
-                int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
-                int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
-                this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
-                this.mainViewModel.getNodes().remove(targetNodePosition);
-                this.adapter.notifyItemRemoved(targetNodePosition);
-                this.adapter.notifyItemChanged(destinationNodePosition);
-            } else {
-                if (this.mainViewModel.getNodes().size() <= 2) {
-                    this.mainViewModel.setCurrentNode(this.reader.getSingleMenuItem(this.mainViewModel.getCurrentNode().getUniqueId()));
-                    this.resetMenuToCurrentNode();
-                } else {
-                    int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
-                    int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
-                    if (destinationNodePosition != -1) {
-                        this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
-                        this.adapter.notifyItemChanged(destinationNodePosition);
-                    }
-                    this.mainViewModel.getNodes().remove(targetNodePosition);
-                    this.adapter.notifyItemRemoved(targetNodePosition);
-                }
-            }
-        }
-    }
-
-    /**
-     * Deletes node from database, removes node from the drawer menu
-     * or loads another one that's more appropriate,
-     * removes nodeContent and resets action bar title if opened node was deleted
-     * @param nodeUniqueID unique ID of the node to delete
-     * @param position node's position in drawer menu as reported by adapter
-     */
-    private void deleteNode(String nodeUniqueID, int position) {
-        if (this.filterNodeToggle) {
-            // Necessary, otherwise it will show up again in other searches until
-            // the search function is turn off and on again
-            this.removeNodeFromTempSearchNodes(nodeUniqueID);
-        }
-        if (this.bookmarksToggle) {
-            // In case deleted node was in the drawer menu that user opened bookmarks form
-            // If user comes back to that menu (exists bookmarks) without selecting a
-            // bookmarked node to open - deleted node would be visible
-            this.removeNodeFromTempNodes(nodeUniqueID);
-        }
-        if (this.mainViewModel.getCurrentNode() != null && nodeUniqueID.equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-            // Currently displayed node was selected for deletion
-            this.mainViewModel.deleteNodeContent();
-            this.setToolbarTitle("SourCherry");
-            this.currentNodePosition = RecyclerView.NO_POSITION;
-            this.adapter.markItemSelected(this.currentNodePosition);
-            ArrayList<ScNode> newMenu = this.reader.getParentWithSubnodes(
-                            this.mainViewModel.getCurrentNode().getUniqueId()).stream()
-                            .filter(n -> !n.getUniqueId().equals(nodeUniqueID))
-                            .collect(Collectors.toCollection(ArrayList::new)
-            );
-            if (newMenu.size() == 1) {
-                newMenu = this.findNextParentWithSubnodes(newMenu.get(0).getUniqueId());
-            }
-            this.mainViewModel.setNodes(newMenu);
-            this.adapter.notifyDataSetChanged();
-            this.mainViewModel.setCurrentNode(null);
-        } else {
-            this.mainViewModel.getNodes().remove(position);
-            if (this.mainViewModel.getNodes().size() < 2) {
-                ArrayList<ScNode> newMenu;
-                if (position == 0) {
-                    newMenu = this.reader.getParentWithSubnodes(nodeUniqueID);
-                } else {
-                    newMenu = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId());
-                }
-                // Deleted node can still be in newMenu list it needs to be removed
-                Iterator<ScNode> iterator = newMenu.iterator();
-                while (iterator.hasNext()) {
-                    ScNode currentNode = iterator.next();
-                    if (currentNode.getUniqueId().equals(nodeUniqueID)) {
-                        iterator.remove();
-                        break;
-                    }
-                }
-                if (mainViewModel.getCurrentNode() != null) {
-                    // If node is opened it has to be selected as such
-                    int newPosition = -1;
-                    for (int i = 0; i < newMenu.size(); i++) {
-                        if (newMenu.get(i).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId())) {
-                            newMenu.get(i).setHasSubnodes(false);
-                        }
-                        if (this.mainViewModel.getCurrentNode() != null) {
-                            if (newMenu.get(i).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-                                newPosition = i;
-                            }
-                        }
-                    }
-                    this.adapter.markItemSelected(newPosition);
-                    this.currentNodePosition = newPosition;
-                }
-                this.mainViewModel.setNodes(newMenu); // Displaying new nodes in DrawerMenu
-                this.adapter.notifyDataSetChanged();
-            } else {
-                this.adapter.notifyItemRemoved(position);
-            }
-        }
-        this.reader.deleteNode(nodeUniqueID);
-    }
-
-    /**
-     * Goes up the node tree looking for a parent node with subnodes until it reaches main menu
-     * Used when deleting node that is currently opened
-     * @param nodeUniqueID unique ID of the node that should be a parent
-     * @return ScNode object list that can be added to DrawerMenu
-     */
-    private ArrayList<ScNode> findNextParentWithSubnodes(String nodeUniqueID) {
-        ArrayList<ScNode> mainMenu = this.reader.getMainNodes();
-        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(nodeUniqueID);
-        if (mainMenu == null) {
-            return null; // TODO: what will happen in this situation
-        }
-        while (mainMenu.get(0).getUniqueId().equals(nodes.get(0).getUniqueId())) {
-            if (nodes.size() > 1) {
-                break;
-            }
-            nodes = this.reader.getParentWithSubnodes(nodes.get(0).getUniqueId());
-        }
-        nodes.stream()
-                .filter(node -> node.getUniqueId().equals(nodeUniqueID))
-                .findFirst()
-                .ifPresent(node -> node.setHasSubnodes(false));
-        return nodes;
-    }
-
-    /**
-     * Removes node from tempSearchNodes list
-     * @param nodeUniqueID unique ID of the node that was deleted
-     */
-    private void removeNodeFromTempSearchNodes(String nodeUniqueID) {
-        Iterator<ScNode> iterator = this.mainViewModel.getTempSearchNodes().iterator();
-        while (iterator.hasNext()) {
-            ScNode currentNode = iterator.next();
-            if (currentNode.getUniqueId().equals(nodeUniqueID)) {
-                iterator.remove();
-                break;
-            }
-        }
-    }
-
-    /**
-     * Searches for node in tempNodes menu item list and removes it if found
-     * @param nodeUniqueID unique ID of the node to search for
-     */
-    private void removeNodeFromTempNodes(String nodeUniqueID) {
-        Iterator<ScNode> iterator = this.mainViewModel.getTempNodes().iterator();
-        while (iterator.hasNext()) {
-            ScNode currentNode = iterator.next();
-            if (currentNode.getUniqueId().equals(nodeUniqueID)) {
-                iterator.remove();
-                break;
-            }
-        }
-    }
-
-    /**
-     * Prepares DrawerLayout for fragments that should not allow user to open the drawer
-     * Hide DrawerLayout completely
-     */
-    private void hideDrawerMenu() {
-        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        getSupportActionBar().hide(); // Hides action bar
-    }
-
-    /**
-     * Prepares DrawerLayout for fragments that should not allow user to open the drawer
-     * Shows back (home) arrow instead of hamburger icon
-     */
-    public void disableDrawerMenu() {
-        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        this.actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
-    }
-
-    /**
-     * Opens a fragment with information about the node
-     * @param nodeUniqueID unique ID of the node of which properties has to be shown
-     * @param position node's position in drawer menu as reported by adapter
-     */
-    private void openNodeProperties(String nodeUniqueID, int position) {
-        Bundle bundle = new Bundle();
-        bundle.putString("nodeUniqueID", nodeUniqueID);
-        bundle.putInt("position", position);
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
-                .setReorderingAllowed(true)
-                .add(R.id.main_view_fragment, NodePropertiesFragment.class, bundle, "moveNode")
-                .addToBackStack("nodeProperties")
-                .commit();
-        this.hideDrawerMenu();
-    }
-
-    /**
-     * Updates node properties in the database
-     * @param position node's position in drawer menu as reported by adapter
-     * @param nodeUniqueID unique ID of the node for which properties has to be updated
-     * @param name new name of the node
-     * @param progLang new node type
-     * @param noSearchMe 1 - to exclude node from searches, 0 - keep node searches
-     * @param noSearchCh 1 - to exclude subnodes of the node from searches, 0 - keep subnodes of the node in searches
-     * @param reloadNodeContent true - reload node content fragment after changing data, false - do nothing
-     */
-    public void updateNodeProperties(int position, String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh, boolean reloadNodeContent) {
-        getSupportFragmentManager().popBackStack();
-        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-        getSupportActionBar().show();
-        DatabaseReaderFactory.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
-        if (progLang.equals("custom-colors")) {
-            this.mainViewModel.getNodes().get(position).setRichText(true);
-        } else {
-            this.mainViewModel.getNodes().get(position).setRichText(false);
-        }
-        this.mainViewModel.getNodes().get(position).setName(name);
-        this.adapter.notifyItemChanged(position);
-        if (this.mainViewModel.getCurrentNode() != null && this.mainViewModel.getNodes().get(position).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-            // If opened node was changed - reloads node name in toolbar
-            // and reloads node content if reloadNodeContent is true
-            this.mainViewModel.getCurrentNode().setName(name);
-            this.setToolbarTitle(name);
-            if (reloadNodeContent) {
-                this.loadNodeContent();
-            }
-        }
-    }
-
-    /**
-     * Opens node content editor in a different fragment
-     * Disables drawer menu and changes hamburger menu icon to
-     * home button
-     */
-    private void openNodeEditor() {
-        Bundle bundle = new Bundle();
-        ScrollView scrollView = findViewById(R.id.content_fragment_scrollview);
-        bundle.putString("nodeUniqueID", this.mainViewModel.getCurrentNode().getUniqueId());
-        bundle.putInt("scrollY", scrollView.getScrollY());
-        getSupportFragmentManager().beginTransaction()
-                .setReorderingAllowed(true)
-                .add(R.id.main_view_fragment, NodeContentEditorFragment.class, bundle, "editNode")
-                .addToBackStack("editNode")
-                .commit();
-        this.disableDrawerMenu();
-    }
-
-    /**
      * Function used when closing NodeEditorFragment depending on passed boolean variable displayed
      * node content will be reloaded or not. Node content is not read from database but read from
      * MainViewModel, because at avery save it is stored there before saving it into database.
@@ -1976,287 +2093,152 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Function to launch fragment with enlarged image
-     * @param nodeUniqueID unique ID of the node that image is embedded into
+     * Deals with attached/embedded files into database
+     * @param nodeUniqueID unique ID of the node that has attached/embedded file
+     * @param attachedFileFilename filename of the attached/embedded file
+     * @param time timestamp that was saved to the database with the file
      * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
      */
-    public void openImageView(String nodeUniqueID, String control) {
-        Bundle bundle = new Bundle();
-        bundle.putString("type", "image");
-        bundle.putString("nodeUniqueID", nodeUniqueID);
-        bundle.putString("control", control);
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
-                .setReorderingAllowed(true)
-                .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
-                .addToBackStack("imageView")
-                .commit();
-        this.disableDrawerMenu();
-    }
-
-    /**
-     * Function to launch fragment with enlarged latex image
-     * @param latexString latex code extracted from the database
-     */
-    public void openImageView(String latexString) {
-        Bundle bundle = new Bundle();
-        bundle.putString("type", "latex");
-        bundle.putString("latexString", latexString);
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
-                .setReorderingAllowed(true)
-                .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
-                .addToBackStack("imageView")
-                .commit();
-        this.disableDrawerMenu();
-    }
-
-    /**
-     * Opens search in a different fragment
-     * Sets toolbar's title to "Search"
-     */
-    private void openSearch() {
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
-                .setReorderingAllowed(true)
-                .add(R.id.main_view_fragment, SearchFragment.class, null, "search")
-                .addToBackStack("search")
-                .commit();
-        this.setToolbarTitle("Search");
-        this.disableDrawerMenu();
-    }
-
-    /**
-     * Opens node that was passed as an argument
-     * Used to open search results
-     * @param selectedNode Node that has to be opened
-     */
-    public void openSearchResult(ScNode selectedNode) {
-        this.mainViewModel.setCurrentNode(selectedNode);
-        actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
-        onBackPressed();
-        this.resetMenuToCurrentNode();
-        this.loadNodeContent();
-    }
-
-    private void exportPdfSetup() {
-        // Sets the intent for asking user to choose a location where to save a file
-        if (this.mainViewModel.getCurrentNode() != null) {
-            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-            intent.setType("application/pdf");
-            intent.putExtra(Intent.EXTRA_TITLE, this.mainViewModel.getCurrentNode().getName());
-            exportPdf.launch(intent);
-        } else {
-            Toast.makeText(this, R.string.toast_error_please_select_node, Toast.LENGTH_SHORT).show();
+    public void saveOpenFile(String nodeUniqueID, String attachedFileFilename, String time, String control) {
+        // Checks preferences if user choice default action for embedded files
+        FileNameMap fileNameMap  = URLConnection.getFileNameMap();
+        String fileMimeType = fileNameMap.getContentTypeFor(attachedFileFilename);
+        if (fileMimeType == null) {
+            // Custom file extensions (like CherryTree database extensions) are not recognized by Android
+            // If mimeType for selected file can't be recognized. Catch all mimetype has to set
+            // Otherwise app will crash while trying to save the file
+            fileMimeType = "*/*";
         }
-    }
-
-    ActivityResultLauncher<Intent> exportPdf = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-        if (result.getResultCode() == Activity.RESULT_OK) {
-            // If user actually chose a location to save a file
-            try {
-                LinearLayout nodeContent = findViewById(R.id.content_fragment_linearlayout);
-                PdfDocument document = new PdfDocument();
-                int padding = 25; // It's used not only pad the document, but to calculate where title will be placed on the page
-                int top = padding * 4; // This will used to move (translate) cursor where everything has to be drawn on canvas
-                int width = nodeContent.getWidth(); // Width of the PDF page
-
-                for (int i= 0; i < nodeContent.getChildCount(); i++) {
-                    // Going through all the views in node to find if there is a table
-                    // Tables might be wider than screen
-                    View v = nodeContent.getChildAt(i);
-                    if (v instanceof HorizontalScrollView) {
-                        // If table was encountered
-                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) v).getChildAt(0);
-                        if (tableLayout.getWidth() > width) {
-                            // If table is wider than normal view
-                            width = tableLayout.getWidth();
-
-                        }
-                    }
-                }
-
-                //* Creating a title view that will be drawn to PDF
-                //** textPrimaryColor for the theme
-                TypedValue typedValue = new TypedValue();
-                getTheme().resolveAttribute(android.R.attr.textColorPrimary, typedValue, true);
-                int color = ContextCompat.getColor(this, typedValue.resourceId);
-                //**
-                TextPaint paint = new TextPaint();
-                paint.setColor(color);
-                paint.setTextSize(50);
-
-                StaticLayout title = StaticLayout.Builder.obtain(this.mainViewModel.getCurrentNode().getName(), 0, this.mainViewModel.getCurrentNode().getName().length(), paint, nodeContent.getWidth())
-                        .setAlignment(Layout.Alignment.ALIGN_CENTER)
-                        .build();
-                //*
-
-                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(width + (padding * 2), nodeContent.getHeight() + (padding * 4) + title.getHeight(), 1).create();
-                PdfDocument.Page page = document.startPage(pageInfo);
-
-                Canvas canvas = page.getCanvas();
-
-                if ((getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
-                    // Changing background color of the canvas if drawing views from night mode
-                    // Otherwise text wont be visible
-                    canvas.drawColor(getColor(R.color.window_background));
-                }
-
-                //* Drawing title to the canvas
-                canvas.save(); // Saves current coordinates system
-                canvas.translate(padding, padding * 2); // Moves coordinate system
-                title.draw(canvas);
-                top += title.getHeight();
-                canvas.restore();
-                //*
-
-                for (int i= 0; i < nodeContent.getChildCount(); i++) {
-                    View view = nodeContent.getChildAt(i);
-                    canvas.save(); // Saves current coordinates system
-                    canvas.translate(padding, top); // Moves coordinate system
-                    if (view instanceof HorizontalScrollView) {
-                        // If it is a table - TableLayout has to be drawn to canvas and not ScrollView
-                        // Otherwise only visible part of the table will be showed
-                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
-                        tableLayout.draw(canvas);
-                    } else {
-                        // TextView
-                        view.draw(canvas);
-                    }
-                    canvas.restore(); // Restores coordinates system to saved state
-                    top += view.getHeight();
-                }
-
-                document.finishPage(page);
-
-                // Saving to file
-                OutputStream outputStream = getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file
-                document.writeTo(outputStream);
-
-                // Cleaning up
-                outputStream.close();
-                document.close();
-            } catch (Exception e) {
-                Toast.makeText(this, R.string.toast_error_failed_to_export_node_to_pdf, Toast.LENGTH_SHORT).show();
-            }
-        }
-    });
-
-    /**
-     * Sets up database for export
-     * User can be prompted to choose file location
-     * Or confirm to overwrite the newer
-     * Mirror database file
-     */
-    public void exportDatabaseSetup() {
-        // XML without password already saved in external file
-        if (this.sharedPreferences.getString("databaseFileExtension", null).equals("ctd") && this.sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
-            Toast.makeText(this, R.string.toast_message_not_password_protected_xml_saves_changes_externally, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
-            // If user uses MirrorDatabase
-            // Variables that will be put into bundle for MirrorDatabaseProgressDialogFragment
-            Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
-            long mirrorDatabaseDocumentFileLastModified = 0;
-
-            // Reading through files inside Mirror Database Folder
-            Uri mirrorDatabaseFolderUri = Uri.parse(this.sharedPreferences.getString("mirrorDatabaseFolderUri", null));
-            Uri mirrorDatabaseFolderChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mirrorDatabaseFolderUri, DocumentsContract.getTreeDocumentId(mirrorDatabaseFolderUri));
-
-            Cursor cursor = this.getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
-            while (cursor != null && cursor.moveToNext()) {
-                if (cursor.getString(1).equals(this.sharedPreferences.getString("mirrorDatabaseFilename", null))) {
-                    // if file with the Mirror Database File filename was wound inside Mirror Database Folder
-                    mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
-                    mirrorDatabaseDocumentFileLastModified = cursor.getLong(2);
-                    break;
-                }
-            }
-            if (cursor != null) {
-                cursor.close();
-            }
-
-            if (mirrorDatabaseDocumentFileLastModified == 0) {
-                Toast.makeText(this, R.string.toast_error_failed_to_find_mirror_database, Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            // If found Mirror Database File is older or the same as the last time it was synchronized
-            // copying is done immediately
-            if (mirrorDatabaseDocumentFileLastModified <= this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
-                    Bundle bundle = new Bundle();
-                    bundle.putString("exportFileUri", mirrorDatabaseFileUri.toString());
-                    ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
-                    exportDatabaseDialogFragment.setArguments(bundle);
-                    exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
-            } else {
-                // If found Mirror Database File is newer that the last time it was synchronized
-                // User is prompted to choose to cancel or continue
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle(R.string.alert_dialog_warning_newer_mirror_database_will_be_overwritten_title);
-                builder.setMessage(R.string.alert_dialog_warning_newer_mirror_database_will_be_overwritten_message);
-                builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-
-                    }
-                });
-                Uri finalMirrorDatabaseFileUri = mirrorDatabaseFileUri;
-                long finalMirrorDatabaseDocumentFileLastModified = mirrorDatabaseDocumentFileLastModified;
-                builder.setPositiveButton(R.string.button_overwrite, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // Saving new last modified date to preferences
-                        SharedPreferences.Editor sharedPreferencesEditor = MainView.this.sharedPreferences.edit();
-                        sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", finalMirrorDatabaseDocumentFileLastModified);
-                        sharedPreferencesEditor.apply();
-                        // Launching copying dialog
-                        Bundle bundle = new Bundle();
-                        bundle.putString("exportFileUri", finalMirrorDatabaseFileUri.toString());
-                        ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
-                        exportDatabaseDialogFragment.setArguments(bundle);
-                        exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
-                    }
-                });
-                builder.show();
-            }
-        } else {
-            // If MirrorDatabase isn't turned on
-            this.exportDatabaseToFile.launch(this.sharedPreferences.getString("databaseFilename", null));
-        }
-    }
-
-    /**
-     * Launches file chooser to select location
-     * where to export database. If user chooses a file - launches a
-     * export dialog fragment
-     */
-    ActivityResultLauncher<String> exportDatabaseToFile = registerForActivityResult(new ActivityResultContracts.CreateDocument("*/*"), result -> {
-        if (result != null) {
+        String saveOpenFilePreference = this.sharedPreferences.getString("preferences_save_open_file", "Ask");
+        if (saveOpenFilePreference.equals("Ask")) {
+            // Setting up to send arguments to Dialog Fragment
             Bundle bundle = new Bundle();
-            bundle.putString("exportFileUri", result.toString());
-            ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
-            exportDatabaseDialogFragment.setArguments(bundle);
-            exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
-        }
-    });
+            bundle.putString("nodeUniqueID", nodeUniqueID);
+            bundle.putString("filename", attachedFileFilename);
+            bundle.putString("time", time);
+            bundle.putString("offset", control);
+            bundle.putString("fileMimeType", fileMimeType);
 
-    /**
-     * Exists MainView activity with Toast message
-     * telling user that error occurred while reading the database
-     */
-    public void exitWithError() {
-        Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
-        this.finish();
+            // Opening dialog fragment to ask user for a choice
+            SaveOpenDialogFragment saveOpenDialogFragment = new SaveOpenDialogFragment();
+            saveOpenDialogFragment.setArguments(bundle);
+            saveOpenDialogFragment.show(getSupportFragmentManager(), "saveOpenDialog");
+        } else if (saveOpenFilePreference.equals("Save")) {
+            // Saving file
+            saveFile.launch(new String[]{fileMimeType, nodeUniqueID, attachedFileFilename, time});
+        } else {
+            // Opens file with intent for other apps
+            this.openFile(fileMimeType, nodeUniqueID, attachedFileFilename, time, control);
+        }
     }
 
     /**
-     * Unlocks drawer menu and shows it
+     * This function gets the new drawer menu list
+     * and marks currently opened node as such.
      */
-    public void enableDrawer() {
-        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-        getSupportActionBar().show();
+    private void setClickedItemInSubmenu() {
+        this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
+        for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
+            if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
+                this.currentNodePosition = index;
+                this.adapter.markItemSelected(this.currentNodePosition);
+            }
+        }
+    }
+
+    /**
+     * Sets current node as opened in drawer menu
+     * by finding it's nodeUniqueID in drawer menu items
+     * and setting it's index as this.currentNodePosition
+     */
+    private void setCurrentNodePosition() {
+        for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
+            if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
+                this.currentNodePosition = index;
+            }
+        }
+    }
+
+    /**
+     * Start or stops findInView progress bar
+     * @param status true - start progress bar, false - stop progress bar
+     */
+    private void setFindInNodeProgressBar(Boolean status) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                ProgressBar progressBar = findViewById(R.id.find_in_node_progress_bar);
+                progressBar.setIndeterminate(status);
+            }
+        });
+    }
+
+    /**
+     * Sets toolbar title to the provided string
+     * @param title new title for the toolbar
+     */
+    private void setToolbarTitle(String title) {
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        toolbar.setTitle(title);
+    }
+
+    /**
+     * Displays bookmarks instead of normal navigation menu in navigation drawer
+     */
+    private void showBookmarks() {
+        ArrayList<ScNode> bookmarkedNodes = this.reader.getBookmarkedNodes();
+        // Check if there are any bookmarks
+        // If no bookmarks were found a message is displayed
+        // No other action is taken
+        if (bookmarkedNodes == null) {
+            Toast.makeText(this, R.string.toast_no_bookmarks_message, Toast.LENGTH_SHORT).show();
+        } else {
+            // Displaying bookmarks
+            this.navigationNormalMode(false);
+            // Saving current state of the menu
+            this.mainViewModel.saveCurrentNodes();
+            this.tempCurrentNodePosition = this.currentNodePosition;
+
+            // Displaying bookmarks
+            this.mainViewModel.setNodes(bookmarkedNodes);
+            this.currentNodePosition = this.openedNodePositionInDrawerMenu();
+            this.adapter.markItemSelected(this.currentNodePosition);
+            this.adapter.notifyDataSetChanged();
+            this.bookmarksToggle = true;
+        }
+    }
+
+    /**
+     * Makes progress bar at the top of the content view visible. It should be shown to indicate
+     * that Multifile database scan is in progress.
+     * @param show true - show progress bar, false - hide progress bar
+     */
+    private void showHideProgressBar(boolean show) {
+        getHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                if (show) {
+                    findViewById(R.id.database_sync_progress_bar).setVisibility(View.VISIBLE);
+                } else {
+                    findViewById(R.id.database_sync_progress_bar).setVisibility(View.GONE);
+                }
+            }
+        });
+    }
+
+    /**
+     * Sets the count of the results of
+     * findInNode to new value
+     * @param counter new result count
+     */
+    private void updateCounter(int counter) {
+        TextView findInNodeEditTextCount = findViewById(R.id.find_in_node_edit_text_result_count);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                findInNodeEditTextCount.setText(String.valueOf(counter));
+            }
+        });
     }
 
     /**
@@ -2330,33 +2312,48 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Displays toast message on the main thread
-     * @param message message to show
+     * Sets/updates index of currently marked result
      */
-    private void displayToastOnMainThread(String message) {
-        this.handler.post(new Runnable() {
+    private void updateMarkedIndex() {
+        TextView findInNodeEditTextMarkedIndex = findViewById(R.id.find_in_node_edit_text_marked_index);
+        handler.post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(MainView.this, message, Toast.LENGTH_SHORT).show();
+                findInNodeEditTextMarkedIndex.setText(String.valueOf(MainView.this.currentFindInNodeMarked + 1));
             }
         });
     }
 
     /**
-     * Makes progress bar at the top of the content view visible. It should be shown to indicate
-     * that Multifile database scan is in progress.
-     * @param show true - show progress bar, false - hide progress bar
+     * Updates node properties in the database
+     * @param position node's position in drawer menu as reported by adapter
+     * @param nodeUniqueID unique ID of the node for which properties has to be updated
+     * @param name new name of the node
+     * @param progLang new node type
+     * @param noSearchMe 1 - to exclude node from searches, 0 - keep node searches
+     * @param noSearchCh 1 - to exclude subnodes of the node from searches, 0 - keep subnodes of the node in searches
+     * @param reloadNodeContent true - reload node content fragment after changing data, false - do nothing
      */
-    private void showHideProgressBar(boolean show) {
-        getHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                if (show) {
-                    findViewById(R.id.database_sync_progress_bar).setVisibility(View.VISIBLE);
-                } else {
-                    findViewById(R.id.database_sync_progress_bar).setVisibility(View.GONE);
-                }
+    public void updateNodeProperties(int position, String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh, boolean reloadNodeContent) {
+        getSupportFragmentManager().popBackStack();
+        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        getSupportActionBar().show();
+        DatabaseReaderFactory.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
+        if (progLang.equals("custom-colors")) {
+            this.mainViewModel.getNodes().get(position).setRichText(true);
+        } else {
+            this.mainViewModel.getNodes().get(position).setRichText(false);
+        }
+        this.mainViewModel.getNodes().get(position).setName(name);
+        this.adapter.notifyItemChanged(position);
+        if (this.mainViewModel.getCurrentNode() != null && this.mainViewModel.getNodes().get(position).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
+            // If opened node was changed - reloads node name in toolbar
+            // and reloads node content if reloadNodeContent is true
+            this.mainViewModel.getCurrentNode().setName(name);
+            this.setToolbarTitle(name);
+            if (reloadNodeContent) {
+                this.loadNodeContent();
             }
-        });
+        }
     }
 }

@@ -62,104 +62,48 @@ import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 
 public class ExportDatabaseDialogFragment extends DialogFragment {
-    private ExecutorService executor;
-    private Handler handler;
-    private SharedPreferences sharedPreferences;
-    private ProgressBar progressBar;
-    private TextView message;
-    private CheckBox passwordCheckBox;
-    private TextInputEditText password1;
-    private TextInputEditText password2;
     private Button buttonCancel;
     private Button buttonExport;
+    private ExecutorService executor;
     private long fileSize;
+    private Handler handler;
+    private TextView message;
+    private TextInputEditText password1;
+    private TextInputEditText password2;
+    private CheckBox passwordCheckBox;
+    private ProgressBar progressBar;
+    private SharedPreferences sharedPreferences;
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        super.onCreateView(inflater, container, savedInstanceState);
-        return inflater.inflate(R.layout.dialog_fragment_export_database, container, false);
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    /**
+     * Compresses currently opened database file to an encrypted archive
+     * @return File object with compressed database file
+     */
+    private File compressDatabase() {
+        File tmpCompressedDatabase = null;
         try {
-            this.executor = ((MainView) getActivity()).getExecutor();
-            this.handler = ((MainView) getActivity()).getHandler();
-        } catch (RuntimeException e) {
-            this.executor = Executors.newSingleThreadExecutor();
-            this.handler = new Handler(Looper.getMainLooper());
+            String databaseFilename = this.sharedPreferences.getString("databaseFilename", null);
+            tmpCompressedDatabase = File.createTempFile(databaseFilename, null);
+            RandomAccessFile randomAccessFile = new RandomAccessFile(tmpCompressedDatabase, "rw");
+            OutCreateCallback outCreateCallback = new OutCreateCallback(databaseFilename);
+            IOutCreateArchive7z outArchive = SevenZip.openOutArchive7z();
+            outArchive.setLevel(1);
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    ExportDatabaseDialogFragment.this.progressBar.setIndeterminate(false);
+                    ExportDatabaseDialogFragment.this.message.setText(R.string.dialog_fragment_export_database_message_compressing_database);
+                }
+            });
+            outArchive.createArchive(new RandomAccessFileOutStream(randomAccessFile), 1, outCreateCallback);
+            // Cleaning up
+            outArchive.close();
+            randomAccessFile.close();
+            outCreateCallback.closeRandomAccessFileInStream();
+        } catch (IOException e) {
+            Toast.makeText(getContext(), R.string.toast_error_failed_to_compress_database, Toast.LENGTH_SHORT).show();
+            this.dismiss();
         }
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-        this.progressBar = view.findViewById(R.id.dialog_fragment_export_database_progress_bar);
-        this.passwordCheckBox = view.findViewById(R.id.dialog_fragment_export_database_checkbox_password_protect);
-        this.password1 = view.findViewById(R.id.dialog_fragment_export_database_password1);
-        this.password2 = view.findViewById(R.id.dialog_fragment_export_database_password2);
-        this.message = view.findViewById(R.id.dialog_fragment_export_database_message);
-
-        this.passwordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                TextInputLayout editTextPassword1 = view.findViewById(R.id.dialog_fragment_export_database_password1_layout);
-                TextInputLayout editTextPassword2 = view.findViewById(R.id.dialog_fragment_export_database_password2_layout);
-                if (isChecked) {
-                    editTextPassword1.setVisibility(View.VISIBLE);
-                    editTextPassword2.setVisibility(View.VISIBLE);
-                } else {
-                    editTextPassword1.setVisibility(View.GONE);
-                    editTextPassword2.setVisibility(View.GONE);
-                }
-            }
-        });
-
-        String mirrorDatabaseFilename = this.sharedPreferences.getString("mirrorDatabaseFilename", null);
-        if (mirrorDatabaseFilename != null) {
-            String mirrorDatabaseFilenameExtension = mirrorDatabaseFilename.substring(mirrorDatabaseFilename.lastIndexOf('.') + 1);
-            if (mirrorDatabaseFilenameExtension.equals("ctx") || mirrorDatabaseFilenameExtension.equals("ctz")) {
-                this.passwordCheckBox.setChecked(true);
-            }
-        }
-
-        this.buttonCancel = view.findViewById(R.id.dialog_fragment_export_database_button_cancel);
-        buttonCancel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!ExportDatabaseDialogFragment.this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
-                    try {
-                        // Deletes temporary file created by file picker if user decides to cancel export operation
-                        DocumentsContract.deleteDocument(getContext().getContentResolver(), Uri.parse(getArguments().getString("exportFileUri")));
-                    } catch (FileNotFoundException e) {
-                        // If it fails to delete the file user will not be notified
-                    }
-                }
-                ExportDatabaseDialogFragment.this.dismiss();
-            }
-        });
-
-        this.buttonExport = view.findViewById(R.id.dialog_fragment_export_database_button_export);
-        buttonExport.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // At this point user can't dismiss dialog fragment
-                // It will be done after export action is done
-                ExportDatabaseDialogFragment.this.enableUI(false);
-                getDialog().setCancelable(false);
-                if (passwordCheckBox.isChecked()) {
-                    if (!ExportDatabaseDialogFragment.this.password1.getText().toString().equals(ExportDatabaseDialogFragment.this.password2.getText().toString())) {
-                        Toast.makeText(getContext(), R.string.toast_error_passwords_do_not_match, Toast.LENGTH_SHORT).show();
-                        ExportDatabaseDialogFragment.this.enableUI(true);
-                        return;
-                    }
-                }
-                ExportDatabaseDialogFragment.this.executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        ExportDatabaseDialogFragment.this.exportDatabase();
-                    }
-                });
-            }
-        });
+        return tmpCompressedDatabase;
     }
 
     /**
@@ -312,38 +256,6 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
     }
 
     /**
-     * Compresses currently opened database file to an encrypted archive
-     * @return File object with compressed database file
-     */
-    private File compressDatabase() {
-        File tmpCompressedDatabase = null;
-        try {
-            String databaseFilename = this.sharedPreferences.getString("databaseFilename", null);
-            tmpCompressedDatabase = File.createTempFile(databaseFilename, null);
-            RandomAccessFile randomAccessFile = new RandomAccessFile(tmpCompressedDatabase, "rw");
-            OutCreateCallback outCreateCallback = new OutCreateCallback(databaseFilename);
-            IOutCreateArchive7z outArchive = SevenZip.openOutArchive7z();
-            outArchive.setLevel(1);
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    ExportDatabaseDialogFragment.this.progressBar.setIndeterminate(false);
-                    ExportDatabaseDialogFragment.this.message.setText(R.string.dialog_fragment_export_database_message_compressing_database);
-                }
-            });
-            outArchive.createArchive(new RandomAccessFileOutStream(randomAccessFile), 1, outCreateCallback);
-            // Cleaning up
-            outArchive.close();
-            randomAccessFile.close();
-            outCreateCallback.closeRandomAccessFileInStream();
-        } catch (IOException e) {
-            Toast.makeText(getContext(), R.string.toast_error_failed_to_compress_database, Toast.LENGTH_SHORT).show();
-            this.dismiss();
-        }
-        return tmpCompressedDatabase;
-    }
-
-    /**
      * Copies file from app-specific storage to external storage
      * @param inputStream stream of the file to be exported
      * @param outputStream stream of the file to which database has to be exported to
@@ -388,12 +300,100 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
         }
     }
 
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+        return inflater.inflate(R.layout.dialog_fragment_export_database, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        try {
+            this.executor = ((MainView) getActivity()).getExecutor();
+            this.handler = ((MainView) getActivity()).getHandler();
+        } catch (RuntimeException e) {
+            this.executor = Executors.newSingleThreadExecutor();
+            this.handler = new Handler(Looper.getMainLooper());
+        }
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        this.progressBar = view.findViewById(R.id.dialog_fragment_export_database_progress_bar);
+        this.passwordCheckBox = view.findViewById(R.id.dialog_fragment_export_database_checkbox_password_protect);
+        this.password1 = view.findViewById(R.id.dialog_fragment_export_database_password1);
+        this.password2 = view.findViewById(R.id.dialog_fragment_export_database_password2);
+        this.message = view.findViewById(R.id.dialog_fragment_export_database_message);
+
+        this.passwordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                TextInputLayout editTextPassword1 = view.findViewById(R.id.dialog_fragment_export_database_password1_layout);
+                TextInputLayout editTextPassword2 = view.findViewById(R.id.dialog_fragment_export_database_password2_layout);
+                if (isChecked) {
+                    editTextPassword1.setVisibility(View.VISIBLE);
+                    editTextPassword2.setVisibility(View.VISIBLE);
+                } else {
+                    editTextPassword1.setVisibility(View.GONE);
+                    editTextPassword2.setVisibility(View.GONE);
+                }
+            }
+        });
+
+        String mirrorDatabaseFilename = this.sharedPreferences.getString("mirrorDatabaseFilename", null);
+        if (mirrorDatabaseFilename != null) {
+            String mirrorDatabaseFilenameExtension = mirrorDatabaseFilename.substring(mirrorDatabaseFilename.lastIndexOf('.') + 1);
+            if (mirrorDatabaseFilenameExtension.equals("ctx") || mirrorDatabaseFilenameExtension.equals("ctz")) {
+                this.passwordCheckBox.setChecked(true);
+            }
+        }
+
+        this.buttonCancel = view.findViewById(R.id.dialog_fragment_export_database_button_cancel);
+        buttonCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!ExportDatabaseDialogFragment.this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
+                    try {
+                        // Deletes temporary file created by file picker if user decides to cancel export operation
+                        DocumentsContract.deleteDocument(getContext().getContentResolver(), Uri.parse(getArguments().getString("exportFileUri")));
+                    } catch (FileNotFoundException e) {
+                        // If it fails to delete the file user will not be notified
+                    }
+                }
+                ExportDatabaseDialogFragment.this.dismiss();
+            }
+        });
+
+        this.buttonExport = view.findViewById(R.id.dialog_fragment_export_database_button_export);
+        buttonExport.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // At this point user can't dismiss dialog fragment
+                // It will be done after export action is done
+                ExportDatabaseDialogFragment.this.enableUI(false);
+                getDialog().setCancelable(false);
+                if (passwordCheckBox.isChecked()) {
+                    if (!ExportDatabaseDialogFragment.this.password1.getText().toString().equals(ExportDatabaseDialogFragment.this.password2.getText().toString())) {
+                        Toast.makeText(getContext(), R.string.toast_error_passwords_do_not_match, Toast.LENGTH_SHORT).show();
+                        ExportDatabaseDialogFragment.this.enableUI(true);
+                        return;
+                    }
+                }
+                ExportDatabaseDialogFragment.this.executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        ExportDatabaseDialogFragment.this.exportDatabase();
+                    }
+                });
+            }
+        });
+    }
+
     /**
      * Class to provide necessary information about new archive items and to receive information about the progress of the operation.
      */
     private final class OutCreateCallback implements IOutCreateCallback<IOutItem7z>, ICryptoGetTextPassword {
-        private final File currentDatabase;
         private RandomAccessFileInStream randomAccessFileInStream;
+        private final File currentDatabase;
         private final String filenameInsideArchive;
 
         /**
@@ -410,6 +410,11 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
             } catch (IOException e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_close_compression_input_stream, Toast.LENGTH_SHORT).show();
             }
+        }
+
+        @Override
+        public String cryptoGetTextPassword() throws SevenZipException {
+            return ExportDatabaseDialogFragment.this.password1.getText().toString();
         }
 
         @Override
@@ -457,11 +462,6 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
                     ExportDatabaseDialogFragment.this.progressBar.setProgress(percent);
                 }
             });
-        }
-
-        @Override
-        public String cryptoGetTextPassword() throws SevenZipException {
-            return ExportDatabaseDialogFragment.this.password1.getText().toString();
         }
     }
 }

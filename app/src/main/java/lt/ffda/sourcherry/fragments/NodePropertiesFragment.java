@@ -36,9 +36,67 @@ import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 
 public class NodePropertiesFragment extends Fragment {
-    RadioGroup radioGroupNodeType;
-    CheckBox checkBoxExcludeFromSearchesThisNode;
     CheckBox checkBoxExcludeFromSearchesSubnodes;
+    CheckBox checkBoxExcludeFromSearchesThisNode;
+    RadioGroup radioGroupNodeType;
+
+    /**
+     * Returns state of the "Exclude from searches: Subnodes" state
+     * in string form that can be used in node creation
+     * @return "0" - checkbox not checked, "1" - checkbox checked
+     */
+    private String getNoSearchChState() {
+        if (this.checkBoxExcludeFromSearchesSubnodes.isChecked()) {
+            return "1";
+        } else {
+            return "0";
+        }
+    }
+
+    /**
+     * Returns state of the "Exclude from searches: This node" state
+     * in string form that can be used in node creation
+     * @return 0" - checkbox not checked, "1" - checkbox checked
+     */
+    private String getNoSearchMeState() {
+        if (this.checkBoxExcludeFromSearchesThisNode.isChecked()) {
+            return "1";
+        } else {
+            return "0";
+        }
+    }
+
+    /**
+     * Removes leading and trailing spaces
+     * If name is empty then
+     * returns a String containing a question mark (?)
+     * @return node name that can be used for node creation
+     */
+    private String getNodeName() {
+        String nodeName = ((EditText) getView().findViewById(R.id.edit_text_node_name)).getText().toString().trim();
+        if (nodeName.length() == 0) {
+            nodeName = "?";
+        }
+        return nodeName;
+    }
+
+    /**
+     * Returns value of user's selection of node type
+     * that can be used in node creation
+     * @return "custom-colors" - rich text, "plain-text' - plain text, "sh" - automatic_syntax_highlighting
+     */
+    private String getNodeProgLangSelection() {
+        String progLang;
+        int selectedRadioButtonID = radioGroupNodeType.getCheckedRadioButtonId();
+        if (selectedRadioButtonID == R.id.radio_button_rich_text) {
+            progLang = "custom-colors";
+        } else if (selectedRadioButtonID == R.id.radio_button_plain_text) {
+            progLang = "plain-text";
+        } else {
+            progLang = "sh";
+        }
+        return progLang;
+    }
 
     @Nullable
     @Override
@@ -146,63 +204,5 @@ public class NodePropertiesFragment extends Fragment {
             ((MainView) getActivity()).getMainViewModel().getNodes().get(0).setRichText(false);
         }
         ((MainView) getActivity()).updateNodeProperties(getArguments().getInt("position"), nodeUniqueID, this.getNodeName(), progLang, getNoSearchMeState(), getNoSearchChState(), !progLangFromDatabase.equals(progLang));
-    }
-
-    /**
-     * Returns value of user's selection of node type
-     * that can be used in node creation
-     * @return "custom-colors" - rich text, "plain-text' - plain text, "sh" - automatic_syntax_highlighting
-     */
-    private String getNodeProgLangSelection() {
-        String progLang;
-        int selectedRadioButtonID = radioGroupNodeType.getCheckedRadioButtonId();
-        if (selectedRadioButtonID == R.id.radio_button_rich_text) {
-            progLang = "custom-colors";
-        } else if (selectedRadioButtonID == R.id.radio_button_plain_text) {
-            progLang = "plain-text";
-        } else {
-            progLang = "sh";
-        }
-        return progLang;
-    }
-
-    /**
-     * Returns state of the "Exclude from searches: This node" state
-     * in string form that can be used in node creation
-     * @return 0" - checkbox not checked, "1" - checkbox checked
-     */
-    private String getNoSearchMeState() {
-        if (this.checkBoxExcludeFromSearchesThisNode.isChecked()) {
-            return "1";
-        } else {
-            return "0";
-        }
-    }
-
-    /**
-     * Returns state of the "Exclude from searches: Subnodes" state
-     * in string form that can be used in node creation
-     * @return "0" - checkbox not checked, "1" - checkbox checked
-     */
-    private String getNoSearchChState() {
-        if (this.checkBoxExcludeFromSearchesSubnodes.isChecked()) {
-            return "1";
-        } else {
-            return "0";
-        }
-    }
-
-    /**
-     * Removes leading and trailing spaces
-     * If name is empty then
-     * returns a String containing a question mark (?)
-     * @return node name that can be used for node creation
-     */
-    private String getNodeName() {
-        String nodeName = ((EditText) getView().findViewById(R.id.edit_text_node_name)).getText().toString().trim();
-        if (nodeName.length() == 0) {
-            nodeName = "?";
-        }
-        return nodeName;
     }
 }

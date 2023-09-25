@@ -26,25 +26,53 @@ import lt.ffda.sourcherry.model.ScNodeContent;
  */
 public class MainViewModel extends ViewModel {
     private ScNode currentNode = null;
+    // Stores results for FindInNode() int[textView index in findInNodeStorage, start index of matching substring, end index of matching substring]
+    private ArrayList<int[]> findInNodeResultStorage;
+    // String value of every TextView in node
+    private ArrayList<SpannableStringBuilder> findInNodeStorage;
+    private MutableLiveData<ScheduledFuture<?>> multiDatabaseSync;
     private MutableLiveData<ArrayList<ScNodeContent>> nodeContent;
     private ArrayList<ScNode> nodes;
     private ArrayList<ScNode> tempNodes;
     private ArrayList<ScNode> tempSearchNodes;
-    // String value of every TextView in node
-    private ArrayList<SpannableStringBuilder> findInNodeStorage;
-    // Stores results for FindInNode() int[textView index in findInNodeStorage, start index of matching substring, end index of matching substring]
-    private ArrayList<int[]> findInNodeResultStorage;
-    private MutableLiveData<ScheduledFuture<?>> multiDatabaseSync;
 
     /**
-     * LiveData object that stores node content data. Use objects functions to get and set the data.
-     * @return LiveData object with node content
+     * Adds result to FindInNodeResultStorage
+     * @param result array that consists of three integers: index of view that holds this result, start and end of substring that has to be highlighted
      */
-    public MutableLiveData<ArrayList<ScNodeContent>> getNodeContent() {
-        if (this.nodeContent == null) {
-            this.nodeContent = new MutableLiveData<>();
+    public void addFindInNodeResult(int[] result) {
+        this.findInNodeResultStorage.add(result);
+    }
+
+    /**
+     * Adds node content part to content storage for findInNode function
+     * @param contentPart node content part to add to findInNodeStorage ArrayList
+     */
+    public void addFindInNodeStorage(SpannableStringBuilder contentPart) {
+        this.findInNodeStorage.add(contentPart);
+    }
+
+    /**
+     * Deletes stored node content by setting it to empty ArrayList
+     */
+    public void deleteNodeContent() {
+        this.nodeContent.postValue(new ArrayList<>());
+    }
+
+    /**
+     * Initiates or sets to null findInNode and findInNodeResultStorage arrays
+     * @param status true - initiates arrays, false - sets to null
+     */
+    public void findInNodeStorageToggle(Boolean status) {
+        // Depending on boolean creates an array to store node content to search through
+        // or sets it to null to clear it
+        if (status) {
+            this.findInNodeStorage = new ArrayList<>();
+            this.findInNodeResultStorage = new ArrayList<>();
+        } else {
+            this.findInNodeStorage = null;
+            this.findInNodeResultStorage = null;
         }
-        return this.nodeContent;
     }
 
     /**
@@ -64,126 +92,20 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
-     * Set nodes to a list that holds drawer menu items
-     * @param nodes drawer menu items list
+     * Returns the result of FindInNode search
+     * @param resultIndex index of the result
+     * @return FindInNode result
      */
-    public void setNodes(ArrayList<ScNode> nodes) {
-        if (this.nodes != null) {
-            this.nodes.clear();
-            this.nodes.addAll(nodes);
-        } else {
-            this.nodes = nodes;
-        }
+    public int[] getFindInNodeResult(int resultIndex) {
+        return this.findInNodeResultStorage.get(resultIndex);
     }
 
     /**
-     * Returns current drawer menu items
-     * @return drawer menu items
+     * Returns the size of FindInNode result ListArray
+     * @return count of FindInNode results
      */
-    public ArrayList<ScNode> getNodes() {
-        return this.nodes;
-    }
-
-    /**
-     * Finds node's position in drawer menu
-     * @param nodeUniqueID unique ID of the node which position has to found
-     * @return posotion of the node in drawer menu
-     */
-    public int getNodePositionInMenu(String nodeUniqueID) {
-        int position = -1;
-        for (int i = 0; i < this.nodes.size(); i++) {
-            if (this.getNodes().get(i).getUniqueId().equals(nodeUniqueID)) {
-                position = i;
-                break;
-            }
-        }
-        return position;
-    }
-
-    /**
-     * Sets temporary drawer menu node storage to null
-     */
-    public void resetTempNodes() {
-        this.tempNodes = null;
-    }
-
-    /**
-     * Saves current menu items while using bookmarks and search
-     */
-    public void saveCurrentNodes() {
-        this.tempNodes = new ArrayList<>();
-        this.tempNodes.addAll(this.nodes);
-    }
-
-    /**
-     * Sets updated nodes to tempNode variable
-     */
-    public void updateSavedCurrentNodes(ArrayList<ScNode> newNodes) {
-        this.tempNodes = newNodes;
-    }
-
-    /**
-     * Returns items saved using saveCurrentNodes
-     * @return saved drawer menu items
-     */
-    public ArrayList<ScNode> getTempNodes() {
-        return this.tempNodes;
-    }
-
-    /**
-     * Restores saved menu drawer items to the drawer menu
-     */
-    public void restoreSavedCurrentNodes() {
-        this.nodes.clear();
-        this.nodes.addAll(this.tempNodes);
-        this.tempNodes = null;
-    }
-
-    /**
-     * Saves or removes tempSearchNodes depending on passed boolean
-     * @param status true - saves, false - removes
-     */
-    public void tempSearchNodesToggle(Boolean status) {
-        if (status) {
-            this.tempSearchNodes = new ArrayList<>();
-            this.tempSearchNodes.addAll(this.nodes);
-        } else {
-            this.tempSearchNodes = null;
-        }
-    }
-
-    /**
-     * Returns array list that was previously saved with setTempSearchNodes
-     * @return drawer menu node list
-     */
-    public ArrayList<ScNode> getTempSearchNodes() {
-        return this.tempSearchNodes;
-    }
-
-    /**
-     * Stores passed array list to another
-     * Used to store all the nodes for node filter function
-     * @param nodes nodes to save to a different array
-     */
-    public void setTempSearchNodes(ArrayList<ScNode> nodes) {
-        this.tempSearchNodes.clear();
-        this.tempSearchNodes.addAll(nodes);
-    }
-
-    /**
-     * Initiates or sets to null findInNode and findInNodeResultStorage arrays
-     * @param status true - initiates arrays, false - sets to null
-     */
-    public void findInNodeStorageToggle(Boolean status) {
-        // Depending on boolean creates an array to store node content to search through
-        // or sets it to null to clear it
-        if (status) {
-            this.findInNodeStorage = new ArrayList<>();
-            this.findInNodeResultStorage = new ArrayList<>();
-        } else {
-            this.findInNodeStorage = null;
-            this.findInNodeResultStorage = null;
-        }
+    public int getFindInNodeResultCount() {
+        return this.findInNodeResultStorage.size();
     }
 
     /**
@@ -205,36 +127,89 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
-     * Adds node content part to content storage for findInNode function
-     * @param contentPart node content part to add to findInNodeStorage ArrayList
+     * Returns LiveData object that holds ScheduledFuture of MultiFile database background scan.
+     * It survives orientation changes and can be used to cancel the task.
+     * @return LiveData object that holds ScheduledFuture of MultiFile database background scan
      */
-    public void addFindInNodeStorage(SpannableStringBuilder contentPart) {
-        this.findInNodeStorage.add(contentPart);
+    public MutableLiveData<ScheduledFuture<?>> getMultiDatabaseSync() {
+        if (this.multiDatabaseSync == null) {
+            this.multiDatabaseSync = new MutableLiveData<>();
+        }
+        return this.multiDatabaseSync;
     }
 
     /**
-     * Adds result to FindInNodeResultStorage
-     * @param result array that consists of three integers: index of view that holds this result, start and end of substring that has to be highlighted
+     * LiveData object that stores node content data. Use objects functions to get and set the data.
+     * @return LiveData object with node content
      */
-    public void addFindInNodeResult(int[] result) {
-        this.findInNodeResultStorage.add(result);
+    public MutableLiveData<ArrayList<ScNodeContent>> getNodeContent() {
+        if (this.nodeContent == null) {
+            this.nodeContent = new MutableLiveData<>();
+        }
+        return this.nodeContent;
     }
 
     /**
-     * Returns the result of FindInNode search
-     * @param resultIndex index of the result
-     * @return FindInNode result
+     * Finds node's position in drawer menu
+     * @param nodeUniqueID unique ID of the node which position has to found
+     * @return posotion of the node in drawer menu
      */
-    public int[] getFindInNodeResult(int resultIndex) {
-        return this.findInNodeResultStorage.get(resultIndex);
+    public int getNodePositionInMenu(String nodeUniqueID) {
+        int position = -1;
+        for (int i = 0; i < this.nodes.size(); i++) {
+            if (this.getNodes().get(i).getUniqueId().equals(nodeUniqueID)) {
+                position = i;
+                break;
+            }
+        }
+        return position;
     }
 
     /**
-     * Returns the size of FindInNode result ListArray
-     * @return count of FindInNode results
+     * Returns current drawer menu items
+     * @return drawer menu items
      */
-    public int getFindInNodeResultCount() {
-        return this.findInNodeResultStorage.size();
+    public ArrayList<ScNode> getNodes() {
+        return this.nodes;
+    }
+
+    /**
+     * Set nodes to a list that holds drawer menu items
+     * @param nodes drawer menu items list
+     */
+    public void setNodes(ArrayList<ScNode> nodes) {
+        if (this.nodes != null) {
+            this.nodes.clear();
+            this.nodes.addAll(nodes);
+        } else {
+            this.nodes = nodes;
+        }
+    }
+
+    /**
+     * Returns items saved using saveCurrentNodes
+     * @return saved drawer menu items
+     */
+    public ArrayList<ScNode> getTempNodes() {
+        return this.tempNodes;
+    }
+
+    /**
+     * Returns array list that was previously saved with setTempSearchNodes
+     * @return drawer menu node list
+     */
+    public ArrayList<ScNode> getTempSearchNodes() {
+        return this.tempSearchNodes;
+    }
+
+    /**
+     * Stores passed array list to another
+     * Used to store all the nodes for node filter function
+     * @param nodes nodes to save to a different array
+     */
+    public void setTempSearchNodes(ArrayList<ScNode> nodes) {
+        this.tempSearchNodes.clear();
+        this.tempSearchNodes.addAll(nodes);
     }
 
     /**
@@ -248,21 +223,46 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
-     * Deletes stored node content by setting it to empty ArrayList
+     * Sets temporary drawer menu node storage to null
      */
-    public void deleteNodeContent() {
-        this.nodeContent.postValue(new ArrayList<>());
+    public void resetTempNodes() {
+        this.tempNodes = null;
     }
 
     /**
-     * Returns LiveData object that holds ScheduledFuture of MultiFile database background scan.
-     * It survives orientation changes and can be used to cancel the task.
-     * @return LiveData object that holds ScheduledFuture of MultiFile database background scan
+     * Restores saved menu drawer items to the drawer menu
      */
-    public MutableLiveData<ScheduledFuture<?>> getMultiDatabaseSync() {
-        if (this.multiDatabaseSync == null) {
-            this.multiDatabaseSync = new MutableLiveData<>();
+    public void restoreSavedCurrentNodes() {
+        this.nodes.clear();
+        this.nodes.addAll(this.tempNodes);
+        this.tempNodes = null;
+    }
+
+    /**
+     * Saves current menu items while using bookmarks and search
+     */
+    public void saveCurrentNodes() {
+        this.tempNodes = new ArrayList<>();
+        this.tempNodes.addAll(this.nodes);
+    }
+
+    /**
+     * Saves or removes tempSearchNodes depending on passed boolean
+     * @param status true - saves, false - removes
+     */
+    public void tempSearchNodesToggle(Boolean status) {
+        if (status) {
+            this.tempSearchNodes = new ArrayList<>();
+            this.tempSearchNodes.addAll(this.nodes);
+        } else {
+            this.tempSearchNodes = null;
         }
-        return this.multiDatabaseSync;
+    }
+
+    /**
+     * Sets updated nodes to tempNode variable
+     */
+    public void updateSavedCurrentNodes(ArrayList<ScNode> newNodes) {
+        this.tempNodes = newNodes;
     }
 }

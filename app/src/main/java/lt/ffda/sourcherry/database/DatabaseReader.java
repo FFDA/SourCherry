@@ -47,17 +47,71 @@ import lt.ffda.sourcherry.spans.URLSpanWebs;
 public abstract class DatabaseReader {
 
     /**
+     * Adds node to the bookmarks
+     * @param nodeUniqueID node unique ID that has to be added to the bookmarks
+     */
+    public abstract void addNodeToBookmarks(String nodeUniqueID);
+
+    /**
+     * Coverts content of the table row Node (part of table node) to a StringBuilder
+     * used as pat of convertTableNodeContentToPlainText function
+     * Data of every cell is surrounded with "|" (following CherryTree example)
+     * @param tableRow table row that need to be converted
+     * @return StringBuilder that can be added to the table content StringBuilder
+     */
+    public StringBuilder convertTableRowToPlainText(Node tableRow) {
+        StringBuilder rowContent = new StringBuilder();
+        rowContent.append("|");
+        NodeList nodeList = tableRow.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("cell")) {
+                rowContent.append(" ");
+                rowContent.append(node.getTextContent());
+                rowContent.append(" |");
+            }
+        }
+        rowContent.append("\n");
+        return rowContent;
+    }
+
+    /**
+     * Creates new node and writes changes to the database
+     * @param nodeUniqueID unique ID of the node that new node will be created in relation with. Pass 0 to create node in main menu
+     * @param relation relation to the node. 0 - sibling, 1 - subnode
+     * @param name node name
+     * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
+     * @param noSearchMe 0 - marks that node should be searched, 1 - marks that node should be excluded from the search
+     * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
+     * @return Created node
+     */
+    public abstract ScNode createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh);
+
+    /**
+     * Deletes node and it subnodes from database
+     * @param nodeUniqueID unique ID of the node to delete
+     */
+    public abstract void deleteNode(String nodeUniqueID);
+
+    /**
+     * Displays toast message on the main thread
+     * @param message message to display in the toast
+     */
+    public abstract void displayToast(String message);
+
+    /**
+     * Checks database if the node exists in it
+     * @param nodeUniqueID unique ID of the node to check existence of
+     * @return true - if node exists, false - if it doesn't
+     */
+    public abstract boolean doesNodeExist(String nodeUniqueID);
+
+    /**
      * Returns all nodes from the database. Used for search/filter function in drawer menu.
      * @param noSearch true - skips all nodes that are marked not to be searched
      * @return ArrayList of all the nodes in the database.
      */
     public abstract ArrayList<ScNode> getAllNodes(boolean noSearch);
-
-    /**
-     * Returns main/first level (that do not have a parent) nodes in the database
-     * @return ArrayList of main menu nodes in the database.
-     */
-    public abstract ArrayList<ScNode> getMainNodes();
 
     /**
      * Returns bookmarked nodes in the database
@@ -66,12 +120,68 @@ public abstract class DatabaseReader {
     public abstract ArrayList<ScNode> getBookmarkedNodes();
 
     /**
+     * Returns an image span that is used to display a placeholder image
+     * Used when cursor window is to small to get an image blob
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * It will be used during the creation of the node content as needed
+     * @param type pass 0 to get broken image span, pass 1 to get a broken latex span
+     * @return ImageSpan with broken image image
+     */
+    public abstract ImageSpan getBrokenImageSpan(int type);
+
+    /**
+     * Returns byte array (stream) of the embedded file in the database to be written to file or opened
+     * @param nodeUniqueID unique ID of the node to which file was attached to
+     * @param filename filename of the file attached to the node
+     * @param time datetime of when the file was attached (saved by CherryTree)
+     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
+     * @return input steam of the file
+     */
+    public abstract InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control);
+
+    /**
+     * Finds and extracts image from the database
+     * Used in ImageViewFragment because some images can be too large to pass in the bundle
+     * @param nodeUniqueID unique ID of the node in which image was embedded into
+     * @param control control value of the image to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
+     * @return input stream of the image
+     */
+    public abstract InputStream getImageInputStream(String nodeUniqueID, String control);
+
+    /**
+     * Returns main/first level (that do not have a parent) nodes in the database
+     * @return ArrayList of main menu nodes in the database.
+     */
+    public abstract ArrayList<ScNode> getMainNodes();
+
+    /**
      * Returns ScNode list that can be displayed as a DrawerMenu. Node with nodeUniqueID provided as
      * an argument will be made as the Parent node.
      * @param nodeUniqueID unique ID of the node which subnodes to return
      * @return ArrayList of node's subnodes.
      */
     public abstract ArrayList<ScNode> getMenu(String nodeUniqueID);
+
+    /**
+     * @param nodeUniqueID unique ID of the node that content has to be retrieved
+     * @return ArrayList of ScNodeContent interface implementing objects that contain node content
+     */
+    public abstract ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID);
+
+    /**
+     * Returns biggest node unique ID of the database
+     * Used when creating a new node
+     * @return biggest node unique ID of the database
+     */
+    public abstract int getNodeMaxID();
+
+    /**
+     * Retrieves relevant (the ones that app displays) node properties
+     * @param nodeUniqueID unique ID of the node for which properties has to be retrieved
+     * @return Node properties onject
+     */
+    public abstract ScNodeProperties getNodeProperties(String nodeUniqueID);
 
     /**
      * Checks if it is possible to go up in document's node tree from given node
@@ -83,6 +193,16 @@ public abstract class DatabaseReader {
     public abstract ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID);
 
     /**
+     * Separator that is used for formatting of codeboxes, latex
+     * it's made of 33 tilde (~) characters
+     * in plain-text form
+     * @return a separator
+     */
+    public String getSeparator() {
+        return "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+    }
+
+    /**
      * Returns single menu item with current information
      * @param nodeUniqueID unique ID of the node to find and return
      * @return Single drawer menu item.
@@ -90,10 +210,84 @@ public abstract class DatabaseReader {
     public abstract ScNode getSingleMenuItem(String nodeUniqueID);
 
     /**
-     * @param nodeUniqueID unique ID of the node that content has to be retrieved
-     * @return ArrayList of ScNodeContent interface implementing objects that contain node content
+     * Creates one row of the table
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param row Node object that contains one row of the table
+     * @return CharSequence[] of the node's "cell" element text
      */
-    public abstract ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID);
+    public CharSequence[] getTableRow(Node row) {
+        // Returns CharSequence[] of the node's "cell" element text
+        NodeList rowCellNodes = ((Element) row).getElementsByTagName("cell");
+        CharSequence[] rowCells = new CharSequence[rowCellNodes.getLength()];
+        for (int cell = 0; cell < rowCellNodes.getLength(); cell++) {
+            rowCells[cell] = String.valueOf(rowCellNodes.item(cell).getTextContent());
+        }
+        return rowCells;
+    }
+
+    /**
+     * Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
+     * The same color can look like this #ffffffff0000 or like this #ffff00 in the same file
+     * This function is used to constantly get the correct color hash code (made from 7 symbols)
+     * that can be used to set color for the node content
+     * @param originalColorCode color code extracted from the database
+     * @return color hash code
+     */
+    public String getValidColorCode(String originalColorCode) {
+        if (originalColorCode.length() == 7) {
+            // If length of color code is 7 symbols it should be a valid one
+            return originalColorCode;
+        } else {
+            // Creating a normal HEX color code, because XML tag has strange one with 13 symbols
+            StringBuilder validColorCode = new StringBuilder();
+            validColorCode.append("#");
+            validColorCode.append(originalColorCode.substring(1,3));
+            validColorCode.append(originalColorCode.substring(5,7));
+            validColorCode.append(originalColorCode.substring(9,11));
+            return validColorCode.toString();
+        }
+    }
+
+    /**
+     * Checks if node with provided unique ID is bookmarked
+     * @param nodeUniqueID node unique ID that need to be checked
+     * @return true - node is bookmarked, false - if node is not bookmarked
+     */
+    public abstract boolean isNodeBookmarked(String nodeUniqueID);
+
+    /**
+     * Returns an image of anchor in SpannableStringBuilder object.
+     * Used to display anchors (links from other nodes) in the node
+     * It does not respond to touches in any way
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param anchorValue value of the anchor attribute of the encoded_png tag
+     * @return SpannableStringBuilder that has an image in it
+     */
+    public abstract SpannableStringBuilder makeAnchorImageSpan(String anchorValue);
+
+    /**
+     * Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
+     * As in CherryTree it's foreground color #07841B
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param nodeUniqueID unique ID of the node that the link has to load
+     * @param linkAnchorName name of the anchor that opened node has to show. Has no effect in SourCherry
+     * @return ClickableSpan that touched by user will load the other node
+     */
+    public abstract ClickableSpan makeAnchorLinkSpan(String nodeUniqueID, String linkAnchorName);
+
+    /**
+     * Creates and returns a span for a link to external file or folder
+     * When user clicks on the link snackbar displays a path to the file that was saved in the original system
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param type "file" makes snackbar message indicate that external linked files is an file, anything else indicates that it is a folder
+     * @param base64Filename filename of the file/folder to be displayed in the snackbar message
+     * @return ClickableSpan that touched by user will display a snackbar message with a filename
+     */
+    public abstract ClickableSpan makeFileFolderLinkSpan(String type, String base64Filename);
 
     /**
      * Rich text formatting of the node content.
@@ -211,176 +405,6 @@ public abstract class DatabaseReader {
         return formattedNodeText;
     }
 
-//    SpannableStringBuilder makeFormattedCodebox(Node node);
-//    // Returns SpannableStringBuilder that has spans marked for string formatting
-//    // Formatting isn't based on nodes attributes, because all codeboxes will look the same
-
-//    SpannableStringBuilder makeFormattedCodeNode(Node node);
-//    // Returns SpannableStringBuilder that has spans marked for string formatting
-//    // CodeNode is just a CodeBox that do not have height and width (dimensions)
-
-//    SpannableStringBuilder makeImageSpan(Node node);
-//    // Returns SpannableStringBuilder that has spans with images in them
-//    // Images are decoded from Base64 string embedded in the tag
-
-//    SpannableStringBuilder makeAttachedFileSpan(Node node);
-//    // Returns SpannableStringBuilder that has spans with images and filename
-//    // Files are decoded from Base64 string embedded in the tag
-
-    /**
-     * Returns an image of anchor in SpannableStringBuilder object.
-     * Used to display anchors (links from other nodes) in the node
-     * It does not respond to touches in any way
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param anchorValue value of the anchor attribute of the encoded_png tag
-     * @return SpannableStringBuilder that has an image in it
-     */
-    public abstract SpannableStringBuilder makeAnchorImageSpan(String anchorValue);
-
-    /**
-     * Creates and returns clickable span that when touched loads another node which nodeUniqueID was passed as an argument
-     * As in CherryTree it's foreground color #07841B
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param nodeUniqueID unique ID of the node that the link has to load
-     * @param linkAnchorName name of the anchor that opened node has to show. Has no effect in SourCherry
-     * @return ClickableSpan that touched by user will load the other node
-     */
-    public abstract ClickableSpan makeAnchorLinkSpan(String nodeUniqueID, String linkAnchorName);
-
-    /**
-     * Creates and returns a span for a link to external file or folder
-     * When user clicks on the link snackbar displays a path to the file that was saved in the original system
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param type "file" makes snackbar message indicate that external linked files is an file, anything else indicates that it is a folder
-     * @param base64Filename filename of the file/folder to be displayed in the snackbar message
-     * @return ClickableSpan that touched by user will display a snackbar message with a filename
-     */
-    public abstract ClickableSpan makeFileFolderLinkSpan(String type, String base64Filename);
-
-    /**
-     * Creates one row of the table
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param row Node object that contains one row of the table
-     * @return CharSequence[] of the node's "cell" element text
-     */
-    public CharSequence[] getTableRow(Node row) {
-        // Returns CharSequence[] of the node's "cell" element text
-        NodeList rowCellNodes = ((Element) row).getElementsByTagName("cell");
-        CharSequence[] rowCells = new CharSequence[rowCellNodes.getLength()];
-        for (int cell = 0; cell < rowCellNodes.getLength(); cell++) {
-            rowCells[cell] = String.valueOf(rowCellNodes.item(cell).getTextContent());
-        }
-        return rowCells;
-    }
-
-    /**
-     * Returns byte array (stream) of the embedded file in the database to be written to file or opened
-     * @param nodeUniqueID unique ID of the node to which file was attached to
-     * @param filename filename of the file attached to the node
-     * @param time datetime of when the file was attached (saved by CherryTree)
-     * @param control control value of the file to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
-     * @return input steam of the file
-     */
-    public abstract InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control);
-
-    /**
-     * Finds and extracts image from the database
-     * Used in ImageViewFragment because some images can be too large to pass in the bundle
-     * @param nodeUniqueID unique ID of the node in which image was embedded into
-     * @param control control value of the image to get byte array of the right file. For XML/SQL readers it's offset and sha256sum sum of the file for Multifile database reader
-     * @return input stream of the image
-     */
-    public abstract InputStream getImageInputStream(String nodeUniqueID, String control);
-
-    /**
-     * Sometimes, not always(!), CherryTree saves hexadecimal color values with doubled symbols
-     * The same color can look like this #ffffffff0000 or like this #ffff00 in the same file
-     * This function is used to constantly get the correct color hash code (made from 7 symbols)
-     * that can be used to set color for the node content
-     * @param originalColorCode color code extracted from the database
-     * @return color hash code
-     */
-    public String getValidColorCode(String originalColorCode) {
-        if (originalColorCode.length() == 7) {
-            // If length of color code is 7 symbols it should be a valid one
-            return originalColorCode;
-        } else {
-            // Creating a normal HEX color code, because XML tag has strange one with 13 symbols
-            StringBuilder validColorCode = new StringBuilder();
-            validColorCode.append("#");
-            validColorCode.append(originalColorCode.substring(1,3));
-            validColorCode.append(originalColorCode.substring(5,7));
-            validColorCode.append(originalColorCode.substring(9,11));
-            return validColorCode.toString();
-        }
-    }
-
-    /**
-     * Displays toast message on the main thread
-     * @param message message to display in the toast
-     */
-    public abstract void displayToast(String message);
-
-    /**
-     * Returns an image span that is used to display a placeholder image
-     * Used when cursor window is to small to get an image blob
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * It will be used during the creation of the node content as needed
-     * @param type pass 0 to get broken image span, pass 1 to get a broken latex span
-     * @return ImageSpan with broken image image
-     */
-    public abstract ImageSpan getBrokenImageSpan(int type);
-
-    /**
-     * Checks database if the node exists in it
-     * @param nodeUniqueID unique ID of the node to check existence of
-     * @return true - if node exists, false - if it doesn't
-     */
-    public abstract boolean doesNodeExist(String nodeUniqueID);
-
-    /**
-     * Returns biggest node unique ID of the database
-     * Used when creating a new node
-     * @return biggest node unique ID of the database
-     */
-    public abstract int getNodeMaxID();
-
-    /**
-     * Creates new node and writes changes to the database
-     * @param nodeUniqueID unique ID of the node that new node will be created in relation with. Pass 0 to create node in main menu
-     * @param relation relation to the node. 0 - sibling, 1 - subnode
-     * @param name node name
-     * @param progLang prog_lang value if the node. "custom-colors" - means rich text node, "plain-text" - plain text node and "sh" - for the rest
-     * @param noSearchMe 0 - marks that node should be searched, 1 - marks that node should be excluded from the search
-     * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
-     * @return Created node
-     */
-    public abstract ScNode createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh);
-
-    /**
-     * Checks if node with provided unique ID is bookmarked
-     * @param nodeUniqueID node unique ID that need to be checked
-     * @return true - node is bookmarked, false - if node is not bookmarked
-     */
-    public abstract boolean isNodeBookmarked(String nodeUniqueID);
-
-    /**
-     * Adds node to the bookmarks
-     * @param nodeUniqueID node unique ID that has to be added to the bookmarks
-     */
-    public abstract void addNodeToBookmarks(String nodeUniqueID);
-
-    /**
-     * Removes node from the bookmarks
-     * @param nodeUniqueID node unique ID that has to be removed from the bookmarks
-     */
-    public abstract void removeNodeFromBookmarks(String nodeUniqueID);
-
     /**
      * Moves node to different location of the document tree
      * @param targetNodeUniqueID unique ID of the node that user chose to move
@@ -389,60 +413,10 @@ public abstract class DatabaseReader {
     public abstract boolean moveNode(String targetNodeUniqueID, String destinationNodeUniqueID);
 
     /**
-     * Deletes node and it subnodes from database
-     * @param nodeUniqueID unique ID of the node to delete
+     * Removes node from the bookmarks
+     * @param nodeUniqueID node unique ID that has to be removed from the bookmarks
      */
-    public abstract void deleteNode(String nodeUniqueID);
-
-    /**
-     * Retrieves relevant (the ones that app displays) node properties
-     * @param nodeUniqueID unique ID of the node for which properties has to be retrieved
-     * @return Node properties onject
-     */
-    public abstract ScNodeProperties getNodeProperties(String nodeUniqueID);
-
-    /**
-     * Updates properties if the node
-     * @param nodeUniqueID unique ID of the node for which properties has to be updated
-     * @param name new name of the node
-     * @param progLang new node type
-     * @param noSearchMe 1 - to exclude node from searches, 0 - keep node searches
-     * @param noSearchCh 1 - to exclude subnodes of the node from searches, 0 - keep subnodes of the node in searches
-     */
-    public abstract void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh);
-
-    /**
-     * Coverts content of the table row Node (part of table node) to a StringBuilder
-     * used as pat of convertTableNodeContentToPlainText function
-     * Data of every cell is surrounded with "|" (following CherryTree example)
-     * @param tableRow table row that need to be converted
-     * @return StringBuilder that can be added to the table content StringBuilder
-     */
-    public StringBuilder convertTableRowToPlainText(Node tableRow) {
-        StringBuilder rowContent = new StringBuilder();
-        rowContent.append("|");
-        NodeList nodeList = tableRow.getChildNodes();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getNodeName().equals("cell")) {
-                rowContent.append(" ");
-                rowContent.append(node.getTextContent());
-                rowContent.append(" |");
-            }
-        }
-        rowContent.append("\n");
-        return rowContent;
-    }
-
-    /**
-     * Separator that is used for formatting of codeboxes, latex
-     * it's made of 33 tilde (~) characters
-     * in plain-text form
-     * @return a separator
-     */
-    public String getSeparator() {
-        return "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-    }
+    public abstract void removeNodeFromBookmarks(String nodeUniqueID);
 
     /**
      * Writes node content to database
@@ -458,4 +432,14 @@ public abstract class DatabaseReader {
      * @return search ArrayList of search result objects
      */
     public abstract ArrayList<ScSearchNode> search(Boolean noSearch, String query);
+
+    /**
+     * Updates properties if the node
+     * @param nodeUniqueID unique ID of the node for which properties has to be updated
+     * @param name new name of the node
+     * @param progLang new node type
+     * @param noSearchMe 1 - to exclude node from searches, 0 - keep node searches
+     * @param noSearchCh 1 - to exclude subnodes of the node from searches, 0 - keep subnodes of the node in searches
+     */
+    public abstract void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh);
 }

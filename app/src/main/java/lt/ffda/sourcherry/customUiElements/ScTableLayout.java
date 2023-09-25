@@ -14,26 +14,10 @@ import android.content.Context;
 import android.widget.TableLayout;
 
 public class ScTableLayout extends TableLayout {
-    private byte lightInterface;
     private String colWidths;
+    private byte lightInterface;
     public ScTableLayout(Context context) {
         super(context);
-    }
-
-    /**
-     * Is table table using lightweight interface in CherryTree
-     * @return 1 - if table using lightweight interface, 0 - otherwise
-     */
-    public byte getLightInterface() {
-        return this.lightInterface;
-    }
-
-    /**
-     * Setting what interface should be used in CherryTree
-     * @param light 1 - if table using lightweight interface, 0 - otherwise
-     */
-    public void setLightInterface(byte light) {
-        this.lightInterface = light;
     }
 
     /**
@@ -50,5 +34,21 @@ public class ScTableLayout extends TableLayout {
      */
     public void setColWidths(String colWidths) {
         this.colWidths = colWidths;
+    }
+
+    /**
+     * Is table table using lightweight interface in CherryTree
+     * @return 1 - if table using lightweight interface, 0 - otherwise
+     */
+    public byte getLightInterface() {
+        return this.lightInterface;
+    }
+
+    /**
+     * Setting what interface should be used in CherryTree
+     * @param light 1 - if table using lightweight interface, 0 - otherwise
+     */
+    public void setLightInterface(byte light) {
+        this.lightInterface = light;
     }
 }

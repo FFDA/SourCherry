@@ -27,67 +27,18 @@ import java.util.ArrayList;
 import lt.ffda.sourcherry.model.ScNode;
 
 public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFragmentItemAdapter.ViewHolder> {
-    private ArrayList<ScNode> nodeList;
     private Context context;
+    private ArrayList<ScNode> nodeList;
     private OnItemClickListener onItemClickListener;
     private OnLongClickListener onLongClickListener;
     private int selectedPosition = RecyclerView.NO_POSITION;
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
-        public ImageView menuItemPadding; // This item is only needed to make menu items look indented
-        public ImageView menuItemArrow;
-        public TextView menuItemText;
-        public LinearLayout menuItemLinearLayout;
-
-        public ViewHolder(@NonNull View itemView) {
-            super(itemView);
-
-            this.menuItemPadding = itemView.findViewById(R.id.menu_item_padding);
-            this.menuItemArrow = itemView.findViewById(R.id.menu_item_arrow);
-            this.menuItemText = itemView.findViewById(R.id.menu_item_name);
-            this.menuItemLinearLayout = itemView.findViewById(R.id.menu_linear_layout);
-
-            itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    int position = getBindingAdapterPosition();
-                    if (position != RecyclerView.NO_POSITION) {
-                        onItemClickListener.onItemClick(view, position);
-                    }
-                }
-            });
-
-            itemView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View view) {
-                    int position = getBindingAdapterPosition();
-                    if (position != RecyclerView.NO_POSITION) {
-                        onLongClickListener.onLongClick(view, position);
-                    }
-                    return true;
-                }
-            });
-        }
-    }
-
-    public interface OnItemClickListener {
-        void onItemClick(View itemView, int position);
-    }
-
-    public interface OnLongClickListener {
-        void onLongClick(View itemView, int position);
-    }
-
-    public void setOnItemClickListener(MoveNodeFragmentItemAdapter.OnItemClickListener listener) {
-        this.onItemClickListener = listener;
-    }
-
-    public void setOnLongClickListener(MoveNodeFragmentItemAdapter.OnLongClickListener longClickListener) {
-        this.onLongClickListener = longClickListener;
-    }
-
     public MoveNodeFragmentItemAdapter(ArrayList<ScNode> nodeList) {
         this.nodeList = nodeList;
+    }
+
+    public void markItemSelected(int selectedPosition) {
+        this.selectedPosition = selectedPosition;
     }
 
     @NonNull
@@ -143,7 +94,56 @@ public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFr
         return nodeList.size();
     }
 
-    public void markItemSelected(int selectedPosition) {
-        this.selectedPosition = selectedPosition;
+    public void setOnItemClickListener(MoveNodeFragmentItemAdapter.OnItemClickListener listener) {
+        this.onItemClickListener = listener;
+    }
+
+    public void setOnLongClickListener(MoveNodeFragmentItemAdapter.OnLongClickListener longClickListener) {
+        this.onLongClickListener = longClickListener;
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder {
+        public ImageView menuItemArrow;
+        public LinearLayout menuItemLinearLayout;
+        public ImageView menuItemPadding; // This item is only needed to make menu items look indented
+        public TextView menuItemText;
+
+        public ViewHolder(@NonNull View itemView) {
+            super(itemView);
+
+            this.menuItemPadding = itemView.findViewById(R.id.menu_item_padding);
+            this.menuItemArrow = itemView.findViewById(R.id.menu_item_arrow);
+            this.menuItemText = itemView.findViewById(R.id.menu_item_name);
+            this.menuItemLinearLayout = itemView.findViewById(R.id.menu_linear_layout);
+
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    int position = getBindingAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION) {
+                        onItemClickListener.onItemClick(view, position);
+                    }
+                }
+            });
+
+            itemView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    int position = getBindingAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION) {
+                        onLongClickListener.onLongClick(view, position);
+                    }
+                    return true;
+                }
+            });
+        }
+    }
+
+    public interface OnItemClickListener {
+        void onItemClick(View itemView, int position);
+    }
+
+    public interface OnLongClickListener {
+        void onLongClick(View itemView, int position);
     }
 }

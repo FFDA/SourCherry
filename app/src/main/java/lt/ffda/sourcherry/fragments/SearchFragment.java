@@ -45,11 +45,43 @@ import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScSearchNode;
 
 public class SearchFragment extends Fragment {
-    private Handler handler;
     private ExecutorService executor;
-    private LinearLayout searchResultLinearLayout;
+    private Handler handler;
     private TextView resultCount;
     private ProgressBar searchProgressBar;
+    private LinearLayout searchResultLinearLayout;
+    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
+        @Override
+        public void handleOnBackPressed() {
+            remove(); // Otherwise there will be onBackPressed infinite loop
+            ((MainView) getActivity()).returnFromFragmentWithHomeButtonAndRestoreTitle();
+        }
+    };
+
+    /**
+     * Changes background of the parts of the string
+     * Used to mark search query string in search result samples
+     * @param searchResult text to mark
+     * @param query text to match for marking
+     * @return text with marked matching parts
+     */
+    private SpannableStringBuilder markSearchQuery(String searchResult, String query) {
+        int index = 0; // index of start of the found substring
+        int searchLength = query.length();
+
+        SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
+        spannedSearchQuery.append(searchResult);
+        while (index != -1) {
+            index = searchResult.indexOf(query, index);
+            if (index != -1) {
+                int startIndex = index;
+                int endIndex = index + searchLength;
+                spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                index += searchLength; // moves search to the end of the last found string
+            }
+        }
+        return spannedSearchQuery;
+    }
 
     @Nullable
     @Override
@@ -115,14 +147,6 @@ public class SearchFragment extends Fragment {
             }
         });
     }
-
-    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
-        @Override
-        public void handleOnBackPressed() {
-            remove(); // Otherwise there will be onBackPressed infinite loop
-            ((MainView) getActivity()).returnFromFragmentWithHomeButtonAndRestoreTitle();
-        }
-    };
 
     /**
      * Executes search and adds results to UI
@@ -205,30 +229,5 @@ public class SearchFragment extends Fragment {
                 SearchFragment.this.searchProgressBar.setVisibility(View.INVISIBLE);
             }
         });
-    }
-
-    /**
-     * Changes background of the parts of the string
-     * Used to mark search query string in search result samples
-     * @param searchResult text to mark
-     * @param query text to match for marking
-     * @return text with marked matching parts
-     */
-    private SpannableStringBuilder markSearchQuery(String searchResult, String query) {
-        int index = 0; // index of start of the found substring
-        int searchLength = query.length();
-
-        SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-        spannedSearchQuery.append(searchResult);
-        while (index != -1) {
-            index = searchResult.indexOf(query, index);
-            if (index != -1) {
-                int startIndex = index;
-                int endIndex = index + searchLength;
-                spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                index += searchLength; // moves search to the end of the last found string
-            }
-        }
-        return spannedSearchQuery;
     }
 }

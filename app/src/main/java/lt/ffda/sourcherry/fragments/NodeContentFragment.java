@@ -57,87 +57,11 @@ import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
 
 public class NodeContentFragment extends Fragment {
-    private LinearLayout contentFragmentLinearLayout;
-    private MainViewModel mainViewModel;
-    private Handler handler;
-    private SharedPreferences sharedPreferences;
     private boolean backToExit;
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        super.onCreateView(inflater, container, savedInstanceState);
-        View rootView = inflater.inflate(R.layout.fragment_node_content, container, false);
-
-        this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
-        this.contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
-        this.handler = ((MainView) getActivity()).getHandler();
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-        this.backToExit = false;
-        final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {
-            @Override
-            public void onChanged(ArrayList<ScNodeContent> scNodeContents) {
-                NodeContentFragment.this.loadContent();
-            }
-        };
-        this.mainViewModel.getNodeContent().observe(getViewLifecycleOwner(), contentObserver);
-        return rootView;
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        MenuHost menuHost = requireActivity();
-        menuHost.addMenuProvider(new MenuProvider() {
-            @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-                menuInflater.inflate(R.menu.options_menu_node_content_fragment, menu);
-                if (DatabaseReaderFactory.getReader() instanceof MultiReader) {
-                    menu.findItem(R.id.options_menu_rescan_database).setVisible(true);
-                    menu.removeItem(R.id.options_menu_export_database);
-                }
-            }
-
-            @Override
-            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                return false;
-            }
-        }, getViewLifecycleOwner() , Lifecycle.State.RESUMED);
-        // Registers listener for back button clicks
-        this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.callbackDisplayToastBeforeExit);
-
-        if (savedInstanceState != null) {
-            // Tries to scroll screen to the same location where it was when screen orientation happened
-            ScrollView scrollView = view.findViewById(R.id.content_fragment_scrollview);
-            this.handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    double aspectRatio = (double) scrollView.getHeight() / scrollView.getWidth();
-                    // Dividing or multiplying aspectRatio by random numbers to get more precise scroll position
-                    if (aspectRatio < 1) {
-                        aspectRatio /= 0.6;
-                    } else {
-                        aspectRatio *= 0.82;
-                    }
-                    scrollView.setScrollY((int) (savedInstanceState.getInt("scrollY") * aspectRatio));
-                }
-            }, 150);
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        // Top and bottom paddings are always the same: 14px (5dp)
-        this.contentFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        ScrollView scrollView = getView().findViewById(R.id.content_fragment_scrollview);
-        outState.putInt("scrollY", scrollView.getScrollY());
-    }
-
+    private LinearLayout contentFragmentLinearLayout;
+    private Handler handler;
+    private MainViewModel mainViewModel;
+    private SharedPreferences sharedPreferences;
     /**
      * Deals with back button presses.
      * If there are any fragment in the BackStack - removes one
@@ -271,6 +195,96 @@ public class NodeContentFragment extends Fragment {
         }
     }
 
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+        View rootView = inflater.inflate(R.layout.fragment_node_content, container, false);
+
+        this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        this.contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
+        this.handler = ((MainView) getActivity()).getHandler();
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        this.backToExit = false;
+        final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {
+            @Override
+            public void onChanged(ArrayList<ScNodeContent> scNodeContents) {
+                NodeContentFragment.this.loadContent();
+            }
+        };
+        this.mainViewModel.getNodeContent().observe(getViewLifecycleOwner(), contentObserver);
+        return rootView;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        MenuHost menuHost = requireActivity();
+        menuHost.addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+                menuInflater.inflate(R.menu.options_menu_node_content_fragment, menu);
+                if (DatabaseReaderFactory.getReader() instanceof MultiReader) {
+                    menu.findItem(R.id.options_menu_rescan_database).setVisible(true);
+                    menu.removeItem(R.id.options_menu_export_database);
+                }
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                return false;
+            }
+        }, getViewLifecycleOwner() , Lifecycle.State.RESUMED);
+        // Registers listener for back button clicks
+        this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.callbackDisplayToastBeforeExit);
+
+        if (savedInstanceState != null) {
+            // Tries to scroll screen to the same location where it was when screen orientation happened
+            ScrollView scrollView = view.findViewById(R.id.content_fragment_scrollview);
+            this.handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    double aspectRatio = (double) scrollView.getHeight() / scrollView.getWidth();
+                    // Dividing or multiplying aspectRatio by random numbers to get more precise scroll position
+                    if (aspectRatio < 1) {
+                        aspectRatio /= 0.6;
+                    } else {
+                        aspectRatio *= 0.82;
+                    }
+                    scrollView.setScrollY((int) (savedInstanceState.getInt("scrollY") * aspectRatio));
+                }
+            }, 150);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Top and bottom paddings are always the same: 14px (5dp)
+        this.contentFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ScrollView scrollView = getView().findViewById(R.id.content_fragment_scrollview);
+        outState.putInt("scrollY", scrollView.getScrollY());
+    }
+
+    /**
+     * Removes node content from view, mainViewModel
+     */
+    public void removeLoadedNodeContent() {
+        if (this.contentFragmentLinearLayout != null) {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    NodeContentFragment.this.contentFragmentLinearLayout.removeAllViews();
+                }
+            });
+        }
+        this.mainViewModel.deleteNodeContent();
+    }
+
     public void switchFindInNodeHighlight(int previouslyHighlightedViewIndex, int newResultIndex) {
         // Removes highlighting from TextView which findInNodeStorage index is provided with previouslyHighlightedViewIndex
         // And highlights findInNodeResultStorage item that is provided with newResultIndex
@@ -374,20 +388,5 @@ public class NodeContentFragment extends Fragment {
                 }
             }
         }
-    }
-
-    /**
-     * Removes node content from view, mainViewModel
-     */
-    public void removeLoadedNodeContent() {
-        if (this.contentFragmentLinearLayout != null) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    NodeContentFragment.this.contentFragmentLinearLayout.removeAllViews();
-                }
-            });
-        }
-        this.mainViewModel.deleteNodeContent();
     }
 }

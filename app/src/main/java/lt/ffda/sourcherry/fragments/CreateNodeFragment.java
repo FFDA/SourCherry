@@ -32,9 +32,63 @@ import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 
 public class CreateNodeFragment extends Fragment {
-    RadioGroup radioGroupNodeType;
-    CheckBox checkBoxExcludeFromSearchesThisNode;
     CheckBox checkBoxExcludeFromSearchesSubnodes;
+    CheckBox checkBoxExcludeFromSearchesThisNode;
+    RadioGroup radioGroupNodeType;
+
+    /**
+     * Convenience function to call createNewNode in MainView
+     * @param nodeUniqueID unique ID of the node that new node will be created in relation with
+     * @param relation relation to the node. 0 - sibling, 1 - subnode
+     * @param name node name
+     */
+    private void createNode(String nodeUniqueID, int relation, String name) {
+        ((MainView) getActivity()).createNewNode(nodeUniqueID, relation, name, getNodeProgLangSelection(), getNoSearchMeState(), getNoSearchChState());
+    }
+
+    /**
+     * Returns state of the "Exclude from searches: Subnodes" state
+     * in string form that can be used in node creation
+     * @return "0" - checkbox not checked, "1" - checkbox checked
+     */
+    private String getNoSearchChState() {
+        if (this.checkBoxExcludeFromSearchesSubnodes.isChecked()) {
+            return "1";
+        } else {
+            return "0";
+        }
+    }
+
+    /**
+     * Returns state of the "Exclude from searches: This node" state
+     * in string form that can be used in node creation
+     * @return 0" - checkbox not checked, "1" - checkbox checked
+     */
+    private String getNoSearchMeState() {
+        if (this.checkBoxExcludeFromSearchesThisNode.isChecked()) {
+            return "1";
+        } else {
+            return "0";
+        }
+    }
+
+    /**
+     * Returns value of user's selection of node type
+     * that can be used in node creation
+     * @return "custom-colors" - rich text, "plain-text' - plain text, "sh" - automatic_syntax_highlighting
+     */
+    private String getNodeProgLangSelection() {
+        String progLang;
+        int selectedRadioButtonID = radioGroupNodeType.getCheckedRadioButtonId();
+        if (selectedRadioButtonID == R.id.radio_button_rich_text) {
+            progLang = "custom-colors";
+        } else if (selectedRadioButtonID == R.id.radio_button_plain_text) {
+            progLang = "plain-text";
+        } else {
+            progLang = "sh";
+        }
+        return progLang;
+    }
 
     @Nullable
     @Override
@@ -88,60 +142,6 @@ public class CreateNodeFragment extends Fragment {
                 CreateNodeFragment.this.createNode(nodeUniqueID, relation, validateNodeName(editTextNodeName.getText().toString()));
             }
         });
-    }
-
-    /**
-     * Convenience function to call createNewNode in MainView
-     * @param nodeUniqueID unique ID of the node that new node will be created in relation with
-     * @param relation relation to the node. 0 - sibling, 1 - subnode
-     * @param name node name
-     */
-    private void createNode(String nodeUniqueID, int relation, String name) {
-        ((MainView) getActivity()).createNewNode(nodeUniqueID, relation, name, getNodeProgLangSelection(), getNoSearchMeState(), getNoSearchChState());
-    }
-
-    /**
-     * Returns value of user's selection of node type
-     * that can be used in node creation
-     * @return "custom-colors" - rich text, "plain-text' - plain text, "sh" - automatic_syntax_highlighting
-     */
-    private String getNodeProgLangSelection() {
-        String progLang;
-        int selectedRadioButtonID = radioGroupNodeType.getCheckedRadioButtonId();
-        if (selectedRadioButtonID == R.id.radio_button_rich_text) {
-            progLang = "custom-colors";
-        } else if (selectedRadioButtonID == R.id.radio_button_plain_text) {
-            progLang = "plain-text";
-        } else {
-            progLang = "sh";
-        }
-        return progLang;
-    }
-
-    /**
-     * Returns state of the "Exclude from searches: This node" state
-     * in string form that can be used in node creation
-     * @return 0" - checkbox not checked, "1" - checkbox checked
-     */
-    private String getNoSearchMeState() {
-        if (this.checkBoxExcludeFromSearchesThisNode.isChecked()) {
-            return "1";
-        } else {
-            return "0";
-        }
-    }
-
-    /**
-     * Returns state of the "Exclude from searches: Subnodes" state
-     * in string form that can be used in node creation
-     * @return "0" - checkbox not checked, "1" - checkbox checked
-     */
-    private String getNoSearchChState() {
-        if (this.checkBoxExcludeFromSearchesSubnodes.isChecked()) {
-            return "1";
-        } else {
-            return "0";
-        }
     }
 
     /**
