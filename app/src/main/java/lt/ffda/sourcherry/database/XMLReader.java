@@ -473,6 +473,7 @@ public class XMLReader extends DatabaseReader {
                     // Node is Code Node. It's just a big CodeBox with no dimensions
                     nodeContentStringBuilder.append(makeFormattedCodeNode(node));
                 }
+                break;
             }
         }
 
