@@ -381,7 +381,7 @@ public class XMLReader extends DatabaseReader {
     }
 
     @Override
-    public ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID) {
+    public void loadNodeContent(String nodeUniqueID) {
         ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
         ArrayList<ScNodeContentTable> nodeTables = new ArrayList<>(); // Temporary for table storage
@@ -501,7 +501,7 @@ public class XMLReader extends DatabaseReader {
             ScNodeContentText nodeContentText = new ScNodeContentText((byte) 0, nodeContentStringBuilder);
             nodeContent.add(nodeContentText);
         }
-        return nodeContent;
+        this.mainViewModel.getNodeContent().postValue(nodeContent);
     }
 
     @Override

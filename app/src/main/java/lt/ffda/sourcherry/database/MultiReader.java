@@ -460,7 +460,7 @@ public class MultiReader extends DatabaseReader {
     }
 
     @Override
-    public ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID) {
+    public void loadNodeContent(String nodeUniqueID) {
         ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary storage for text, codebox, image formatting
         ArrayList<ScNodeContentTable> nodeTables = new ArrayList<>(); // Temporary storage for tables
@@ -583,7 +583,7 @@ public class MultiReader extends DatabaseReader {
             ScNodeContentText nodeContentText = new ScNodeContentText((byte) 0, nodeContentStringBuilder);
             nodeContent.add(nodeContentText);
         }
-        return nodeContent;
+        this.mainViewModel.getNodeContent().postValue(nodeContent);
     }
 
     @Override

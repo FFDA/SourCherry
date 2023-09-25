@@ -390,7 +390,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     @Override
-    public ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID) {
+    public void loadNodeContent(String nodeUniqueID) {
         // Original XML document has newline characters marked (hopefully it's the same with SQL database)
         // Returns ArrayList of objects implementing ScNodeContent interface
         ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
@@ -615,7 +615,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             ScNodeContentText nodeContentText = new ScNodeContentText((byte) 0, nodeContentStringBuilder);
             nodeContent.add(nodeContentText);
         }
-        return nodeContent;
+        this.mainViewModel.getNodeContent().postValue(nodeContent);
     }
 
     @Override

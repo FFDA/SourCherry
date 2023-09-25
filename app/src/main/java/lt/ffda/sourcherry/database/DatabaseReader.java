@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import lt.ffda.sourcherry.model.ScNode;
-import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 import lt.ffda.sourcherry.model.ScSearchNode;
 import lt.ffda.sourcherry.spans.BackgroundColorSpanCustom;
@@ -164,10 +163,11 @@ public abstract class DatabaseReader {
     public abstract ArrayList<ScNode> getMenu(String nodeUniqueID);
 
     /**
+     * Saves node content data to MainViewModel. MainViewModel has an observer that will load the
+     * data on change.
      * @param nodeUniqueID unique ID of the node that content has to be retrieved
-     * @return ArrayList of ScNodeContent interface implementing objects that contain node content
      */
-    public abstract ArrayList<ScNodeContent> getNodeContent(String nodeUniqueID);
+    public abstract void loadNodeContent(String nodeUniqueID);
 
     /**
      * Returns biggest node unique ID of the database

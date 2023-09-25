@@ -1028,7 +1028,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         this.executor.execute(new Runnable() {
             @Override
             public void run() {
-                MainView.this.mainViewModel.getNodeContent().postValue(MainView.this.reader.getNodeContent(MainView.this.mainViewModel.getCurrentNode().getUniqueId()));
+                MainView.this.reader.loadNodeContent(MainView.this.mainViewModel.getCurrentNode().getUniqueId());
             }
         });
     }
