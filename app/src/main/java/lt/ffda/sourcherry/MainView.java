@@ -985,6 +985,264 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
+     * Initiates all the listeners for DrawerMenu node filter function
+     * @param searchView DrawerMenu's search view
+     */
+    private void initDrawerMenuFilter(SearchView searchView) {
+        CheckBox checkBoxExcludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
+        checkBoxExcludeFromSearch.setChecked(this.sharedPreferences.getBoolean("exclude_from_search", false));
+        checkBoxExcludeFromSearch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (MainView.this.filterNodeToggle) {
+                    // Gets new menu list only if filter mode is activated
+                    MainView.this.mainViewModel.setTempSearchNodes(MainView.this.reader.getAllNodes(isChecked));
+                    MainView.this.adapter.notifyDataSetChanged();
+                    searchView.requestFocus();
+                    MainView.this.filterNodes(searchView.getQuery().toString());
+                    SharedPreferences.Editor editor = MainView.this.sharedPreferences.edit();
+                    editor.putBoolean("exclude_from_search", isChecked);
+                    editor.commit();
+                }
+            }
+        });
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                if (MainView.this.filterNodeToggle) { // This check fixes bug where all database's nodes were displayed after screen rotation
+                    MainView.this.filterNodes(newText);
+                }
+                return false;
+            }
+        });
+
+        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+            // When the user closes search view without selecting a node
+            @Override
+            public boolean onClose() {
+                if (MainView.this.mainViewModel.getCurrentNode() != null) {
+                    MainView.this.mainViewModel.restoreSavedCurrentNodes();
+                    MainView.this.currentNodePosition = MainView.this.tempCurrentNodePosition;
+                    MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
+                    MainView.this.adapter.notifyDataSetChanged();
+                } else {
+                    // If there is no node selected that means that main menu has to be loaded
+                    MainView.this.mainViewModel.setNodes(MainView.this.reader.getMainNodes());
+                }
+                MainView.this.hideNavigation(false);
+                MainView.this.mainViewModel.tempSearchNodesToggle(false);
+                MainView.this.filterNodeToggle = false;
+                return false;
+            }
+        });
+
+        searchView.setOnSearchClickListener(new SearchView.OnClickListener() {
+            // When user taps search icon
+            @Override
+            public void onClick(View v) {
+                if (bookmarksToggle) {
+                    // If bookmark menu was showed at the time of selecting search
+                    // There is less things to change in menu
+                    MainView.this.navigationNormalMode(true);
+                    MainView.this.bookmarksToggle = false;
+                } else {
+                    // If search was selected from normal menu current menu items, selected item have to be saved
+                    MainView.this.mainViewModel.saveCurrentNodes();
+                    MainView.this.tempCurrentNodePosition = MainView.this.currentNodePosition;
+                    MainView.this.currentNodePosition = -1;
+                    MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition); // Removing selection from menu item
+                }
+                MainView.this.hideNavigation(true);
+                MainView.this.mainViewModel.setNodes(MainView.this.reader.getAllNodes(checkBoxExcludeFromSearch.isChecked()));
+                MainView.this.mainViewModel.tempSearchNodesToggle(true);
+                MainView.this.filterNodeToggle = true;
+                MainView.this.adapter.notifyDataSetChanged();
+            }
+        });
+    }
+
+    /**
+     * Initiates listeners for clicks on DrawerMenu items and logic
+     * @param searchView DrawerMenu's search view
+     */
+    private void initDrawerMenuNavigation(SearchView searchView) {
+        this.adapter = new MenuItemAdapter(this.mainViewModel.getNodes(), this);
+        this.adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View itemView, int position) {
+                if (MainView.this.mainViewModel.getCurrentNode() == null || !MainView.this.mainViewModel.getNodes().get(position).getUniqueId().equals(MainView.this.mainViewModel.getCurrentNode().getUniqueId())) {
+                    // If current node is null (empty/nothing opened yet) or selected nodeUniqueID is not the same as currently opened node
+                    MainView.this.mainViewModel.setCurrentNode(MainView.this.mainViewModel.getNodes().get(position));
+                    MainView.this.loadNodeContent();
+                    if (MainView.this.mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked to have subnodes
+                        // In this case it does not matter if node was selected from normal menu, bookmarks or search
+                        if (MainView.this.filterNodeToggle) {
+                            searchView.onActionViewCollapsed();
+                            MainView.this.hideNavigation(false);
+                            MainView.this.filterNodeToggle = false;
+                        }
+                        MainView.this.openSubmenu();
+                    } else {
+                        if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
+                            drawerLayout.close();
+                        }
+                        if (MainView.this.bookmarksToggle) {
+                            // If node was selected from bookmarks
+                            MainView.this.setClickedItemInSubmenu();
+                        } else if (MainView.this.filterNodeToggle) {
+                            // Node selected from the search
+                            searchView.onActionViewCollapsed();
+                            MainView.this.hideNavigation(false);
+                            MainView.this.setClickedItemInSubmenu();
+                            MainView.this.filterNodeToggle = false;
+                        } else {
+                            // Node selected from normal menu
+                            int previousNodePosition = MainView.this.currentNodePosition;
+                            MainView.this.currentNodePosition = position;
+                            MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
+                            MainView.this.adapter.notifyItemChanged(previousNodePosition);
+                            MainView.this.adapter.notifyItemChanged(position);
+                        }
+                    }
+                    if (MainView.this.bookmarksToggle) {
+                        MainView.this.navigationNormalMode(true);
+                        MainView.this.bookmarkVariablesReset();
+                    }
+                } else {
+                    // If already opened node was selected by the user
+                    // Helps to save some reads from database and reloading of navigation menu
+                    if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
+                        drawerLayout.close();
+                    }
+                    if (MainView.this.mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked as having subnodes
+                        if (MainView.this.filterNodeToggle) {
+                            searchView.onActionViewCollapsed();
+                            MainView.this.hideNavigation(false);
+                            MainView.this.filterNodeToggle = false;
+                        }
+                        MainView.this.openSubmenu();
+                    } else {
+                        if (MainView.this.bookmarksToggle) {
+                            // If node was selected from bookmarks
+                            MainView.this.setClickedItemInSubmenu();
+                        } else if (MainView.this.filterNodeToggle) {
+                            // Node selected from the search
+                            searchView.onActionViewCollapsed();
+                            MainView.this.hideNavigation(false);
+                            MainView.this.setClickedItemInSubmenu();
+                            MainView.this.filterNodeToggle = false;
+                        }
+                    }
+                    if (MainView.this.bookmarksToggle) {
+                        MainView.this.navigationNormalMode(true);
+                        MainView.this.bookmarkVariablesReset();
+                    }
+                }
+            }
+        });
+
+        // Listener for long click on drawer menu item
+        this.adapter.setOnLongClickListener(new MenuItemAdapter.OnLongClickListener() {
+            @Override
+            public void onLongClick(View itemView, int position) {
+                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position), position);
+            }
+        });
+
+        // Listener for click on drawer menu item's action icon
+        this.adapter.setOnItemActionMenuClickListener(new MenuItemAdapter.OnActionIconClickListener() {
+            @Override
+            public void onActionIconClick(View itemView, int position) {
+                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position), position);
+            }
+        });
+
+    }
+
+    /**
+     * Initiates all listeners for find in node functionality that allows user to search for
+     * text in currently opened node
+     */
+    private void initSearchInNode() {
+        // Listener for FindInNode search text change
+        EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
+        findInNodeEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // After user types the text in search field
+                // There is a delay of 400 milliseconds
+                // to start the search only when user stops typing
+                if (MainView.this.findInNodeToggle && findInNodeEditText.isFocused()) {
+                    MainView.this.handler.removeCallbacksAndMessages(null);
+                    MainView.this.handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            MainView.this.findInNode(s.toString());
+                        }
+                    }, 400);
+                }
+            }
+        });
+        // Listener for FindInNode "enter" button click
+        // Moves to the next findInNode result
+        findInNodeEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                boolean handled = false;
+                if (actionId == EditorInfo.IME_ACTION_NEXT && MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
+                    MainView.this.findInNodeNext();
+                    handled = true;
+                }
+                return handled;
+            }
+        });
+        // Button in findInView to close it
+        ImageButton findInNodeCloseButton = findViewById(R.id.find_in_node_button_close);
+        findInNodeCloseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MainView.this.closeFindInNode();
+            }
+        });
+        // Button in findInView to jump/show next result
+        ImageButton findInNodeButtonNext = findViewById(R.id.find_in_node_button_next);
+        findInNodeButtonNext.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Only if there are more than one result
+                if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
+                    MainView.this.findInNodeNext();
+                }
+            }
+        });
+        // Button in findInView to jump/show previous result
+        ImageButton findInNodeButtonPrevious = findViewById(R.id.find_in_node_button_previous);
+        findInNodeButtonPrevious.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Only if there are more than one result
+                if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
+                    MainView.this.findInNodePrevious();
+                }
+            }
+        });
+    }
+
+    /**
      * Displays create new node fragment
      * @param nodeUniqueID unique node ID of the node which action menu was launched
      * @param relation relation to the node selected. 0 - sibling, 1 - subnode
@@ -1092,7 +1350,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mainview);
 
@@ -1169,318 +1427,21 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 }
             });
         }
-        // Register with fragmentManager to get result from menuItemActionDialogFragment
-        getSupportFragmentManager().setFragmentResultListener("menuItemAction", this, new FragmentResultListener() {
-            @Override
-            public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
-                if (mainViewModel.getMultiDatabaseSync().getValue() == null) {
-                    MenuItemAction menuItemAction;
-                    if (Build.VERSION.SDK_INT >= 33) {
-                        menuItemAction = result.getSerializable("menuItemActionCode", MenuItemAction.class);
-                    } else {
-                        menuItemAction = (MenuItemAction) result.getSerializable("menuItemActionCode");
-                    }
-                    ScNode node = result.getParcelable("node");
-                    switch (menuItemAction) {
-                        case ADD_SIBLING_NODE:
-                            MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 0);
-                            break;
-                        case ADD_SUBNODE:
-                            MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 1);
-                            break;
-                        case ADD_TO_BOOKMARKS:
-                            MainView.this.addNodeToBookmarks(node.getUniqueId());
-                            break;
-                        case REMOVE_FROM_BOOKMARKS:
-                            MainView.this.removeNodeFromBookmarks(node.getUniqueId(), result.getInt("position"));
-                            break;
-                        case MOVE_NODE:
-                            MainView.this.launchMoveNodeFragment(node);
-                            break;
-                        case DELETE_NODE:
-                            MainView.this.deleteNode(node.getUniqueId(), result.getInt("position"));
-                            break;
-                        case PROPERTIES:
-                            MainView.this.openNodeProperties(node.getUniqueId(), result.getInt("position"));
-                            break;
-                    }
-                } else {
-                    // Prompting user to cancel background Multifile database sync
-                    AlertDialog.Builder builder = new AlertDialog.Builder(MainView.this);
-                    builder.setTitle(R.string.alert_dialog_sync_in_progress_title);
-                    builder.setMessage(R.string.alert_dialog_sync_in_progress_message);
-                    builder.setPositiveButton(R.string.button_wait, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-
-                        }
-                    });
-                    builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            mainViewModel.getMultiDatabaseSync().getValue().cancel(true);
-                        }
-                    });
-                    builder.show();
-                }
-            }
-        });
+        this.registerForOptionsMenuResult();
+        this.initDrawerMenuNavigation(searchView);
+        this.initDrawerMenuFilter(searchView);
+        this.initSearchInNode();
 
         RecyclerView rvMenu = findViewById(R.id.recyclerView);
-        this.adapter = new MenuItemAdapter(this.mainViewModel.getNodes(), this);
-        this.adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(View itemView, int position) {
-                if (MainView.this.mainViewModel.getCurrentNode() == null || !MainView.this.mainViewModel.getNodes().get(position).getUniqueId().equals(MainView.this.mainViewModel.getCurrentNode().getUniqueId())) {
-                    // If current node is null (empty/nothing opened yet) or selected nodeUniqueID is not the same as currently opened node
-                    MainView.this.mainViewModel.setCurrentNode(MainView.this.mainViewModel.getNodes().get(position));
-                    MainView.this.loadNodeContent();
-                    if (MainView.this.mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked to have subnodes
-                        // In this case it does not matter if node was selected from normal menu, bookmarks or search
-                        if (MainView.this.filterNodeToggle) {
-                            searchView.onActionViewCollapsed();
-                            MainView.this.hideNavigation(false);
-                            MainView.this.filterNodeToggle = false;
-                        }
-                        MainView.this.openSubmenu();
-                    } else {
-                        if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
-                            drawerLayout.close();
-                        }
-                        if (MainView.this.bookmarksToggle) {
-                            // If node was selected from bookmarks
-                            MainView.this.setClickedItemInSubmenu();
-                        } else if (MainView.this.filterNodeToggle) {
-                            // Node selected from the search
-                            searchView.onActionViewCollapsed();
-                            MainView.this.hideNavigation(false);
-                            MainView.this.setClickedItemInSubmenu();
-                            MainView.this.filterNodeToggle = false;
-                        } else {
-                            // Node selected from normal menu
-                            int previousNodePosition = MainView.this.currentNodePosition;
-                            MainView.this.currentNodePosition = position;
-                            MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
-                            MainView.this.adapter.notifyItemChanged(previousNodePosition);
-                            MainView.this.adapter.notifyItemChanged(position);
-                        }
-                    }
-                    if (MainView.this.bookmarksToggle) {
-                        MainView.this.navigationNormalMode(true);
-                        MainView.this.bookmarkVariablesReset();
-                    }
-                } else {
-                    // If already opened node was selected by the user
-                    // Helps to save some reads from database and reloading of navigation menu
-                    if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
-                        drawerLayout.close();
-                    }
-                    if (MainView.this.mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked as having subnodes
-                        if (MainView.this.filterNodeToggle) {
-                            searchView.onActionViewCollapsed();
-                            MainView.this.hideNavigation(false);
-                            MainView.this.filterNodeToggle = false;
-                        }
-                        MainView.this.openSubmenu();
-                    } else {
-                        if (MainView.this.bookmarksToggle) {
-                            // If node was selected from bookmarks
-                            MainView.this.setClickedItemInSubmenu();
-                        } else if (MainView.this.filterNodeToggle) {
-                            // Node selected from the search
-                            searchView.onActionViewCollapsed();
-                            MainView.this.hideNavigation(false);
-                            MainView.this.setClickedItemInSubmenu();
-                            MainView.this.filterNodeToggle = false;
-                        }
-                    }
-                    if (MainView.this.bookmarksToggle) {
-                        MainView.this.navigationNormalMode(true);
-                        MainView.this.bookmarkVariablesReset();
-                    }
-                }
-            }
-        });
-
-        // Listener for long click on drawer menu item
-        this.adapter.setOnLongClickListener(new MenuItemAdapter.OnLongClickListener() {
-            @Override
-            public void onLongClick(View itemView, int position) {
-                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position), position);
-            }
-        });
-
-        // Listener for click on drawer menu item's action icon
-        this.adapter.setOnItemActionMenuClickListener(new MenuItemAdapter.OnActionIconClickListener() {
-            @Override
-            public void onActionIconClick(View itemView, int position) {
-                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position), position);
-            }
-        });
-
         rvMenu.setAdapter(this.adapter);
         rvMenu.setLayoutManager(new LinearLayoutManager(this));
-
-        CheckBox checkBoxExcludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
-        checkBoxExcludeFromSearch.setChecked(this.sharedPreferences.getBoolean("exclude_from_search", false));
-        checkBoxExcludeFromSearch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (MainView.this.filterNodeToggle) {
-                    // Gets new menu list only if filter mode is activated
-                    MainView.this.mainViewModel.setTempSearchNodes(MainView.this.reader.getAllNodes(isChecked));
-                    MainView.this.adapter.notifyDataSetChanged();
-                    searchView.requestFocus();
-                    MainView.this.filterNodes(searchView.getQuery().toString());
-                    SharedPreferences.Editor editor = MainView.this.sharedPreferences.edit();
-                    editor.putBoolean("exclude_from_search", isChecked);
-                    editor.commit();
-                }
-            }
-        });
-
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                if (MainView.this.filterNodeToggle) { // This check fixes bug where all database's nodes were displayed after screen rotation
-                    MainView.this.filterNodes(newText);
-                }
-                return false;
-            }
-        });
-
-        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
-            // When the user closes search view without selecting a node
-            @Override
-            public boolean onClose() {
-                if (MainView.this.mainViewModel.getCurrentNode() != null) {
-                    MainView.this.mainViewModel.restoreSavedCurrentNodes();
-                    MainView.this.currentNodePosition = MainView.this.tempCurrentNodePosition;
-                    MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
-                    MainView.this.adapter.notifyDataSetChanged();
-                } else {
-                    // If there is no node selected that means that main menu has to be loaded
-                    MainView.this.mainViewModel.setNodes(MainView.this.reader.getMainNodes());
-                }
-                MainView.this.hideNavigation(false);
-                MainView.this.mainViewModel.tempSearchNodesToggle(false);
-                MainView.this.filterNodeToggle = false;
-                return false;
-            }
-        });
-
-        searchView.setOnSearchClickListener(new SearchView.OnClickListener() {
-            // When user taps search icon
-            @Override
-            public void onClick(View v) {
-                if (bookmarksToggle) {
-                    // If bookmark menu was showed at the time of selecting search
-                    // There is less things to change in menu
-                    MainView.this.navigationNormalMode(true);
-                    MainView.this.bookmarksToggle = false;
-                } else {
-                    // If search was selected from normal menu current menu items, selected item have to be saved
-                    MainView.this.mainViewModel.saveCurrentNodes();
-                    MainView.this.tempCurrentNodePosition = MainView.this.currentNodePosition;
-                    MainView.this.currentNodePosition = -1;
-                    MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition); // Removing selection from menu item
-                }
-                MainView.this.hideNavigation(true);
-                MainView.this.mainViewModel.setNodes(MainView.this.reader.getAllNodes(checkBoxExcludeFromSearch.isChecked()));
-                MainView.this.mainViewModel.tempSearchNodesToggle(true);
-                MainView.this.filterNodeToggle = true;
-                MainView.this.adapter.notifyDataSetChanged();
-            }
-        });
 
         // pass the Open and Close toggle for the drawer layout listener
         // to toggle the button
         drawerLayout.addDrawerListener(actionBarDrawerToggle);
         actionBarDrawerToggle.syncState();
-
         // to make the Navigation drawer icon always appear on the action bar
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        // Button in findInView to close it
-        ImageButton findInNodeCloseButton = findViewById(R.id.find_in_node_button_close);
-        findInNodeCloseButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                MainView.this.closeFindInNode();
-            }
-        });
-
-        // Button in findInView to jump/show next result
-        ImageButton findInNodeButtonNext = findViewById(R.id.find_in_node_button_next);
-        findInNodeButtonNext.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Only if there are more than one result
-                if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
-                    MainView.this.findInNodeNext();
-                }
-            }
-        });
-
-        // Button in findInView to jump/show previous result
-        ImageButton findInNodeButtonPrevious = findViewById(R.id.find_in_node_button_previous);
-        findInNodeButtonPrevious.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Only if there are more than one result
-                if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
-                    MainView.this.findInNodePrevious();
-                }
-            }
-        });
-
-        // Listener for FindInNode search text change
-        EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
-        findInNodeEditText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                // After user types the text in search field
-                // There is a delay of 400 milliseconds
-                // to start the search only when user stops typing
-                if (MainView.this.findInNodeToggle && findInNodeEditText.isFocused()) {
-                    MainView.this.handler.removeCallbacksAndMessages(null);
-                    MainView.this.handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            MainView.this.findInNode(s.toString());
-                        }
-                    }, 400);
-                }
-            }
-        });
-
-        // Listener for FindInNode "enter" button click
-        // Moves to the next findInNode result
-        findInNodeEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                boolean handled = false;
-                if (actionId == EditorInfo.IME_ACTION_NEXT && MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
-                    MainView.this.findInNodeNext();
-                    handled = true;
-                }
-                return handled;
-            }
-        });
-
         // Listener for drawerMenu states
         drawerLayout.addDrawerListener(new DrawerLayout.DrawerListener() {
             @Override
@@ -1912,6 +1873,67 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             }
         }
         return position;
+    }
+
+    /**
+     * Register with fragmentManager to get result from menuItemActionDialogFragment
+     */
+    private void registerForOptionsMenuResult() {
+        getSupportFragmentManager().setFragmentResultListener("menuItemAction", this, new FragmentResultListener() {
+            @Override
+            public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
+                if (mainViewModel.getMultiDatabaseSync().getValue() == null) {
+                    MenuItemAction menuItemAction;
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        menuItemAction = result.getSerializable("menuItemActionCode", MenuItemAction.class);
+                    } else {
+                        menuItemAction = (MenuItemAction) result.getSerializable("menuItemActionCode");
+                    }
+                    ScNode node = result.getParcelable("node");
+                    switch (menuItemAction) {
+                        case ADD_SIBLING_NODE:
+                            MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 0);
+                            break;
+                        case ADD_SUBNODE:
+                            MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 1);
+                            break;
+                        case ADD_TO_BOOKMARKS:
+                            MainView.this.addNodeToBookmarks(node.getUniqueId());
+                            break;
+                        case REMOVE_FROM_BOOKMARKS:
+                            MainView.this.removeNodeFromBookmarks(node.getUniqueId(), result.getInt("position"));
+                            break;
+                        case MOVE_NODE:
+                            MainView.this.launchMoveNodeFragment(node);
+                            break;
+                        case DELETE_NODE:
+                            MainView.this.deleteNode(node.getUniqueId(), result.getInt("position"));
+                            break;
+                        case PROPERTIES:
+                            MainView.this.openNodeProperties(node.getUniqueId(), result.getInt("position"));
+                            break;
+                    }
+                } else {
+                    // Prompting user to cancel background Multifile database sync
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainView.this);
+                    builder.setTitle(R.string.alert_dialog_sync_in_progress_title);
+                    builder.setMessage(R.string.alert_dialog_sync_in_progress_message);
+                    builder.setPositiveButton(R.string.button_wait, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+
+                        }
+                    });
+                    builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            mainViewModel.getMultiDatabaseSync().getValue().cancel(true);
+                        }
+                    });
+                    builder.show();
+                }
+            }
+        });
     }
 
     /**
