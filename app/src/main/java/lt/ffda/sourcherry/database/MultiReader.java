@@ -290,17 +290,28 @@ public class MultiReader extends DatabaseReader {
             Node parentNode = node.getParentNode();
             Uri nodeParentUri = this.getNodeUri(parentNode);
             Uri nodeUri = this.getNodeUri(node);
+            List<String> uniqueIDList = new ArrayList<>(); // Collecting all nodeUniqueIDs to remove them from the bookmarks
             if (nodeUri == null || nodeParentUri == null) {
                 this.displayToast(this.context.getString(R.string.toast_error_failed_to_delete_node));
+                return;
             } else {
                 DocumentsContract.deleteDocument(
                         this.context.getContentResolver(),
                         nodeUri
                 );
-                this.removeNodeFromBookmarks(nodeUniqueID);
+                this.removeNodeFromBookmarks(nodeUniqueID); // TODO: most likely I won't need this anymore
                 this.removeNodeFromLst(DocumentsContract.getDocumentId(nodeParentUri), nodeUniqueID, "subnodes.lst");
             }
+            uniqueIDList.add(node.getAttributes().getNamedItem("unique_id").getNodeValue());
+            NodeList deletedNodeChildren = node.getChildNodes();
+            for (int i = 0; i < deletedNodeChildren.getLength(); i++) {
+                if (deletedNodeChildren.item(i).getNodeName().equals("node")) {
+                    uniqueIDList.add(deletedNodeChildren.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
+                    this.collectUniqueID(uniqueIDList, deletedNodeChildren.item(i).getChildNodes());
+                }
+            }
             parentNode.removeChild(node);
+            this.removeNodesFromBookmarks(uniqueIDList);
             if (parentNode.getChildNodes().getLength() < 1) {
                 ((Element) parentNode).setAttribute("has_subnodes", "0");
             }
@@ -1285,6 +1296,21 @@ public class MultiReader extends DatabaseReader {
     }
 
     /**
+     * Recursively scans through all the nodes in NodeList to collect the uniqueNodeIDs. Adds them
+     * to provided String list
+     * @param uniqueIDList String list to add the found nodeUniqueIDs
+     * @param nodeList NodeList to scan recursively
+     */
+    private void collectUniqueID(List<String> uniqueIDList, NodeList nodeList) {
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            if (nodeList.item(i).getNodeName().equals("node")) {
+                uniqueIDList.add(nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
+                collectUniqueID(uniqueIDList, nodeList.item(i).getChildNodes());
+            }
+        }
+    }
+
+    /**
      * Coverts codebox node content to a StringBuilder
      * used as part of convertRichTextNodeContentToPlainText function
      * @param node codebox node that needs to be converted
@@ -2058,6 +2084,57 @@ public class MultiReader extends DatabaseReader {
         } catch (IOException e) {
             e.printStackTrace();
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
+        }
+    }
+
+    /**
+     * Removes all unique ID of the nodes in the list from the bookmarks
+     * @param nodeUniqueIDs list of node unique IDs to remove from bookmarks
+     */
+    private void removeNodesFromBookmarks(List<String> nodeUniqueIDs) {
+        try {
+            String lstFileDocumentId = null;
+            try (Cursor cursor = this.getNodeChildrenCursorSaf(DocumentsContract.getTreeDocumentId(this.mainFolderUri))) {
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(2).equals("bookmarks.lst")) {
+                        lstFileDocumentId = cursor.getString(0);
+                        break;
+                    }
+                }
+            }
+            // Check if *.lst file was found. The bookmarks.lst file might be missing if there were no bookmarks
+            if (lstFileDocumentId == null) {
+                return;
+            }
+            String[] subnodes = null;
+            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                String line = br.readLine();
+                if (line != null) {
+                    subnodes = line.split(",");
+                }
+            }
+            if (subnodes == null) {
+                this.displayToast(this.context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
+                return;
+            }
+            subnodes = Arrays.stream(subnodes)
+                    .filter(s -> !nodeUniqueIDs.contains(s))
+                    .toArray(String[]::new);
+            if (subnodes.length == 0) {
+                DocumentsContract.deleteDocument(
+                        this.context.getContentResolver(),
+                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId)
+                );
+            } else {
+                try (
+                        OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
+                        PrintWriter pw = new PrintWriter(os)) {
+                    pw.println(String.join(",", subnodes));
+                }
+            }
+        } catch (IOException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
         }
     }
 

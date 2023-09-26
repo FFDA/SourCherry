@@ -38,7 +38,6 @@ import android.text.style.SuperscriptSpan;
 import android.text.style.TypefaceSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -206,10 +205,10 @@ public class XMLReader extends DatabaseReader {
         for (int i = 0; i < deletedNodeChildren.getLength(); i++) {
             if (deletedNodeChildren.item(i).getNodeName().equals("node")) {
                 uniqueIDList.add(deletedNodeChildren.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
-                collectUniqueID(uniqueIDList, deletedNodeChildren.item(i).getChildNodes());
+                this.collectUniqueID(uniqueIDList, deletedNodeChildren.item(i).getChildNodes());
             }
         }
-        removeNodesFromBookmarks(uniqueIDList);
+        this.removeNodesFromBookmarks(uniqueIDList);
         nodeToDelete.getParentNode().removeChild(nodeToDelete);
         this.writeIntoDatabase();
     }
@@ -1122,7 +1121,7 @@ public class XMLReader extends DatabaseReader {
         for (int i = 0; i < nodeList.getLength(); i++) {
             if (nodeList.item(i).getNodeName().equals("node")) {
                 uniqueIDList.add(nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
-                collectUniqueID(uniqueIDList, nodeList.item(i).getChildNodes());
+                this.collectUniqueID(uniqueIDList, nodeList.item(i).getChildNodes());
             }
         }
     }
