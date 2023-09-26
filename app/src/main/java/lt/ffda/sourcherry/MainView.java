@@ -90,7 +90,6 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -309,7 +308,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             // Shows keyboard on API 30 (Android 11) reliably
             WindowCompat.getInsetsController(getWindow(), findInNodeEditText).hide(WindowInsetsCompat.Type.ime());
         } else {
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            this.handler.postDelayed(new Runnable() {
                 // Delays to show soft keyboard by few milliseconds
                 // Otherwise keyboard does not show up
                 // It's a bit hacky (should be fixed)
@@ -778,22 +777,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 .findFirst()
                 .ifPresent(node -> node.setHasSubnodes(false));
         return nodes;
-    }
-
-    /**
-     * Returns ExecutorService to run tasks in the background
-     * @return executor to run tasks in the background
-     */
-    public ExecutorService getExecutor() {
-        return this.executor;
-    }
-
-    /**
-     * Returns handler used to run task on main (UI) thread
-     * @return handler to run task on the main loop
-     */
-    public Handler getHandler() {
-        return this.handler;
     }
 
     /**
@@ -1360,7 +1343,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         this.mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         AppContainer appContainer = ((ScApplication) getApplication()).appContainer;
         this.executor = appContainer.executor;
-        this.handler = new Handler(Looper.getMainLooper());
+        this.handler = appContainer.handler;
         // drawer layout instance to toggle the menu icon to open
         // drawer and back button to close drawer
         this.drawerLayout = findViewById(R.id.drawer_layout);
@@ -2235,7 +2218,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
      * @param show true - show progress bar, false - hide progress bar
      */
     private void showHideProgressBar(boolean show) {
-        getHandler().post(new Runnable() {
+        this.handler.post(new Runnable() {
             @Override
             public void run() {
                 if (show) {

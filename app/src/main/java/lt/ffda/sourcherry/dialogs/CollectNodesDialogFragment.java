@@ -25,18 +25,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.MainActivity;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.ScApplication;
 import lt.ffda.sourcherry.runnables.CollectNodesDialogRunnable;
 import lt.ffda.sourcherry.runnables.NodesCollectedCallback;
 
 public class CollectNodesDialogFragment extends DialogFragment {
-    private ExecutorService executor;
+    private ScheduledThreadPoolExecutor executor;
     private TextView textView; // Message to the user where the count of scanned node will be displayed
 
     @NonNull
@@ -49,7 +50,8 @@ public class CollectNodesDialogFragment extends DialogFragment {
         builder.setTitle(R.string.dialog_fragment_collect_nodes_title);
         builder.setView(view);
         setCancelable(false); // Not allowing user to cancel the the dialog fragment
-        this.executor = Executors.newSingleThreadExecutor();
+        AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
+        this.executor = appContainer.executor;
         this.textView = view.findViewById(R.id.dialog_fragment_collect_nodes_message);
         return builder.create();
     }
@@ -63,7 +65,6 @@ public class CollectNodesDialogFragment extends DialogFragment {
                 @Override
                 public void onNodesCollected(int result) {
                     if (result == 0) {
-                        executor.shutdown();
                         ((MainActivity) getActivity()).startMainViewActivity();
                         dismiss();
                     } else {
@@ -76,11 +77,5 @@ public class CollectNodesDialogFragment extends DialogFragment {
             Toast.makeText(getContext(), R.string.toast_error_failed_to_collect_drawer_menu_xml, Toast.LENGTH_SHORT).show();
             dismiss();
         }
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        this.executor.shutdown();
     }
 }

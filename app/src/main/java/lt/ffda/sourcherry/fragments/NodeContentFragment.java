@@ -47,9 +47,11 @@ import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
 
+import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.ScApplication;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.database.MultiReader;
 import lt.ffda.sourcherry.model.ScNodeContent;
@@ -202,7 +204,8 @@ public class NodeContentFragment extends Fragment {
 
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
-        this.handler = ((MainView) getActivity()).getHandler();
+        AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
+        this.handler = appContainer.handler;
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         this.backToExit = false;
         final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {

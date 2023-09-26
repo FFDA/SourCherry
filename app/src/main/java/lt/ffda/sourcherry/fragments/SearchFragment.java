@@ -37,15 +37,17 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 
 import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.ScApplication;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScSearchNode;
 
 public class SearchFragment extends Fragment {
-    private ExecutorService executor;
+    private ScheduledThreadPoolExecutor executor;
     private Handler handler;
     private TextView resultCount;
     private ProgressBar searchProgressBar;
@@ -91,8 +93,9 @@ public class SearchFragment extends Fragment {
         this.searchProgressBar = view.findViewById(R.id.search_fragment_progressBar);
         this.searchResultLinearLayout = view.findViewById(R.id.search_fragment_results_linear_layout);
         this.resultCount = view.findViewById(R.id.search_fragment_result_count);
-        this.handler = ((MainView) getActivity()).getHandler();
-        this.executor = ((MainView) getActivity()).getExecutor();
+        AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
+        this.handler = appContainer.handler;
+        this.executor = appContainer.executor;
         return view;
     }
 

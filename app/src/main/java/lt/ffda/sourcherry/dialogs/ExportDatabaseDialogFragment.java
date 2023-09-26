@@ -16,7 +16,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.provider.DocumentsContract;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -55,16 +54,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import lt.ffda.sourcherry.MainView;
+import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.ScApplication;
 
 public class ExportDatabaseDialogFragment extends DialogFragment {
     private Button buttonCancel;
     private Button buttonExport;
-    private ExecutorService executor;
+    private ScheduledThreadPoolExecutor executor;
     private long fileSize;
     private Handler handler;
     private TextView message;
@@ -310,13 +309,9 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        try {
-            this.executor = ((MainView) getActivity()).getExecutor();
-            this.handler = ((MainView) getActivity()).getHandler();
-        } catch (RuntimeException e) {
-            this.executor = Executors.newSingleThreadExecutor();
-            this.handler = new Handler(Looper.getMainLooper());
-        }
+        AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
+        this.executor = appContainer.executor;
+        this.handler = appContainer.handler;
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         this.progressBar = view.findViewById(R.id.dialog_fragment_export_database_progress_bar);
         this.passwordCheckBox = view.findViewById(R.id.dialog_fragment_export_database_checkbox_password_protect);

@@ -10,6 +10,9 @@
 
 package lt.ffda.sourcherry;
 
+import android.os.Handler;
+import android.os.Looper;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -18,6 +21,12 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
  */
 public class AppContainer {
     public ScheduledThreadPoolExecutor executor = getExecutor();
+    public Handler handler = getHandler();
+
+    private Handler getHandler() {
+        return new Handler(Looper.getMainLooper());
+    }
+
     private ScheduledThreadPoolExecutor getExecutor() {
         ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(2);
         executor.setRemoveOnCancelPolicy(true);

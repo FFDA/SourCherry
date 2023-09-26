@@ -53,17 +53,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.MainActivity;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.ScApplication;
 
 public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
     private Button buttonCancel;
     private LinearLayout buttonLayout;
     private Button buttonOK;
-    private ExecutorService executor;
+    private ScheduledThreadPoolExecutor executor;
     private long fileSize; // File size of the file (not the archive itself) that is being extracted
     private Handler handler;
     private TextView message;
@@ -221,8 +222,9 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
         this.buttonLayout = view.findViewById(R.id.mirror_database_progress_fragment_button_layout);
         this.buttonOK = view.findViewById(R.id.mirror_database_progress_fragment_password_button_ok);
         this.buttonCancel = view.findViewById(R.id.mirror_database_progress_fragment_password_button_cancel);
-        this.executor = Executors.newSingleThreadExecutor();
-        this.handler = new Handler(Looper.getMainLooper());
+        AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
+        this.executor = appContainer.executor;
+        this.handler = appContainer.handler;
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         // Create the AlertDialog object and return it
@@ -309,12 +311,6 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                 }
             });
         }
-    }
-
-    @Override
-    public void onDestroyView() {
-        executor.shutdownNow();
-        super.onDestroyView();
     }
 
     /**

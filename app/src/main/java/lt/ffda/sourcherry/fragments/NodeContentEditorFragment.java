@@ -64,11 +64,13 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.ScApplication;
 import lt.ffda.sourcherry.customUiElements.ScTableLayout;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNodeContent;
@@ -89,7 +91,7 @@ import me.jfenn.colorpickerdialog.interfaces.OnColorPickedListener;
 public class NodeContentEditorFragment extends Fragment {
     private boolean changesSaved = false;
     private int color;
-    private ExecutorService executor;
+    private ScheduledThreadPoolExecutor executor;
     private Handler handler;
     private MainViewModel mainViewModel;
     private LinearLayout nodeEditorFragmentLinearLayout;
@@ -576,8 +578,9 @@ public class NodeContentEditorFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_node_editor, container, false);
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         this.nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
-        this.handler = ((MainView) getActivity()).getHandler();
-        this.executor = ((MainView) getActivity()).getExecutor();
+        AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
+        this.handler = appContainer.handler;
+        this.executor = appContainer.executor;
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         this.color = this.sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
         final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {
@@ -641,7 +644,7 @@ public class NodeContentEditorFragment extends Fragment {
         ScrollView scrollView = view.findViewById(R.id.edit_node_fragment_scrollview);
         if (savedInstanceState == null) {
             // Tries to scroll screen to the same location where it was when user chose to open editor
-                ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
+                this.handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         scrollView.setScrollY(getArguments().getInt("scrollY"));
@@ -650,7 +653,7 @@ public class NodeContentEditorFragment extends Fragment {
         } else {
             // Tries to scroll screen to the same location where it was when user rotated device
             if (savedInstanceState.getInt("scrollY") != 0) {
-                ((MainView) getActivity()).getHandler().postDelayed(new Runnable() {
+                this.handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         double aspectRatio = (double) scrollView.getHeight() / scrollView.getWidth();

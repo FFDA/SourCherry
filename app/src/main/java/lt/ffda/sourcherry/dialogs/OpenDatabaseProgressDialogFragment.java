@@ -17,7 +17,6 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -43,14 +42,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.MainActivity;
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.ScApplication;
 
 public class OpenDatabaseProgressDialogFragment extends DialogFragment {
-    private ExecutorService executor;
+    private ScheduledThreadPoolExecutor executor;
     private long fileSize; // File size of the file (not the archive itself) that is being extracted
     private Handler handler;
     private TextView message;
@@ -234,8 +234,9 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         // Setting up variables
         this.progressBar = view.findViewById(R.id.progress_fragment_progressBar);
         this.message = view.findViewById(R.id.progress_fragment_message);
-        this.executor = Executors.newSingleThreadExecutor();
-        this.handler = new Handler(Looper.getMainLooper());
+        AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
+        this.executor = appContainer.executor;
+        this.handler = appContainer.handler;
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         // Create the AlertDialog object and return it
@@ -250,6 +251,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
 
     @Override
     public void onDismiss(@NonNull DialogInterface dialog) {
+        super.onDismiss(dialog);
         dismissNow();
     }
 
@@ -277,12 +279,6 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                 }
             });
         }
-    }
-
-    @Override
-    public void onDestroyView() {
-        executor.shutdownNow();
-        super.onDestroyView();
     }
 
     /**
