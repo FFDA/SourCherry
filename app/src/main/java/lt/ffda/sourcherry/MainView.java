@@ -1306,8 +1306,8 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
                 this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
                 this.mainViewModel.getNodes().remove(targetNodePosition);
-                this.adapter.notifyItemRemoved(targetNodePosition);
                 this.adapter.notifyItemChanged(destinationNodePosition);
+                this.adapter.notifyItemRemoved(targetNodePosition);
             } else {
                 if (this.mainViewModel.getNodes().size() <= 2) {
                     this.mainViewModel.setCurrentNode(this.reader.getSingleMenuItem(this.mainViewModel.getCurrentNode().getUniqueId()));
