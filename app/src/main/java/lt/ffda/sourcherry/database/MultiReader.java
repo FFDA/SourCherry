@@ -111,6 +111,17 @@ public class MultiReader extends DatabaseReader {
     private final Uri mainFolderUri;
     private final MainViewModel mainViewModel;
 
+    /**
+     * Class that opens databases based on file system and categories in it. Every node has it's own
+     * catalog, XML file in it with text data of the file. All files, images are saved in the node's
+     * folder with the hash256 as it filename. Provides all function necessary to read and edit the
+     * data in the database.
+     * @param mainFolderUri Uri of the root folder of the database
+     * @param context application context to display toast messages, get resources, handle clicks
+     * @param handler to run methods on main thread
+     * @param mainViewModel ViewModel of MainView activity to store data
+     * @throws ParserConfigurationException Indicates a serious configuration error.
+     */
     public MultiReader(Uri mainFolderUri, Context context, Handler handler, MainViewModel mainViewModel) throws ParserConfigurationException {
         this.mainFolderUri = mainFolderUri;
         this.context = context;

@@ -43,6 +43,12 @@ import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 
+/**
+ * Class that reads data from the database and provides it to MainView and its model to
+ * display it to the user. Moreover, it provides methods that allows user to manipulated/edit/add
+ * the data stored in the database. Most of the methods in the class has to be implemented by the
+ * class that extends this one.
+ */
 public abstract class DatabaseReader {
 
     /**

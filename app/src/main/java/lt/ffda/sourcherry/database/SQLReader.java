@@ -106,6 +106,16 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     private final DocumentBuilder documentBuilder;
     private final Transformer transformer;
 
+    /**
+     * Class that opens databases based on SQL file. Provides all functions necessary to read and edit
+     * the data in the database.
+     * @param sqlite SQLiteDatabase object with opened database
+     * @param context application context to display toast messages, get resources, handle clicks
+     * @param handler to run methods on main thread
+     * @param mainViewModel ViewModel of MainView activity to store data
+     * @throws ParserConfigurationException
+     * @throws TransformerConfigurationException
+     */
     public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler, MainViewModel mainViewModel) throws ParserConfigurationException, TransformerConfigurationException {
         this.sqlite = sqlite;
         this.context = context;

@@ -101,6 +101,15 @@ public class XMLReader extends DatabaseReader {
     private final Handler handler;
     private final MainViewModel mainViewModel;
 
+    /**
+     * Class that opens databases based on XML file. Provides all functions necessary to read and edit
+     * the data in the database.
+     * @param databaseUri uri of the XML database converted to String. This uri will be used to save changes made by the user
+     * @param is InputStream of the database to open Document file
+     * @param context application context to display toast messages, get resources, handle clicks
+     * @param handler to run methods on main thread
+     * @param mainViewModel ViewModel of MainView activity to store data
+     */
     public XMLReader(String databaseUri, InputStream is, Context context, Handler handler, MainViewModel mainViewModel) {
         // Creates a document that can be used to read tags with provided InputStream
         this.databaseUri = databaseUri;
