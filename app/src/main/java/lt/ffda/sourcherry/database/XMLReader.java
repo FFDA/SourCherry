@@ -49,11 +49,13 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -64,6 +66,7 @@ import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -109,20 +112,19 @@ public class XMLReader extends DatabaseReader {
      * @param context application context to display toast messages, get resources, handle clicks
      * @param handler to run methods on main thread
      * @param mainViewModel ViewModel of MainView activity to store data
+     * @throws ParserConfigurationException Indicates a serious configuration error.
+     * @throws IOException Signals that an I/O exception of some sort has occurred.
+     * @throws SAXException Encapsulate a general SAX error or warning.
      */
-    public XMLReader(String databaseUri, InputStream is, Context context, Handler handler, MainViewModel mainViewModel) {
+    public XMLReader(String databaseUri, InputStream is, Context context, Handler handler, MainViewModel mainViewModel) throws ParserConfigurationException, IOException, SAXException {
         // Creates a document that can be used to read tags with provided InputStream
         this.databaseUri = databaseUri;
         this.context = context;
         this.handler = handler;
         this.mainViewModel = mainViewModel;
-        try {
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            this.doc = db.parse(is);
-        } catch (Exception e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_read_database));
-        }
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        this.doc = db.parse(is);
     }
 
     @Override

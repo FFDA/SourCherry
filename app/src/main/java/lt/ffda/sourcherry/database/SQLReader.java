@@ -113,8 +113,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param context application context to display toast messages, get resources, handle clicks
      * @param handler to run methods on main thread
      * @param mainViewModel ViewModel of MainView activity to store data
-     * @throws ParserConfigurationException
-     * @throws TransformerConfigurationException
+     * @throws ParserConfigurationException Indicates a serious configuration error.
+     * @throws TransformerConfigurationException Indicates a serious configuration error.
      */
     public SQLReader(SQLiteDatabase sqlite, Context context, Handler handler, MainViewModel mainViewModel) throws ParserConfigurationException, TransformerConfigurationException {
         this.sqlite = sqlite;
