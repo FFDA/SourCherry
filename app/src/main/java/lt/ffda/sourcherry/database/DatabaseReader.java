@@ -114,7 +114,7 @@ public abstract class DatabaseReader {
 
     /**
      * Returns bookmarked nodes in the database
-     * @return ArrayList of bookmarked nodes in the database.
+     * @return ArrayList of bookmarked nodes in the database or null if there are no bookmarks
      */
     public abstract ArrayList<ScNode> getBookmarkedNodes();
 

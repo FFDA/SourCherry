@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -119,16 +120,13 @@ public class XMLReader extends DatabaseReader {
     public void addNodeToBookmarks(String nodeUniqueID) {
         NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
         Node bookmarksNode = bookmarkTag.item(0);
-        String bookmarks = bookmarksNode.getAttributes().getNamedItem("list").getNodeValue(); // This is a string with all bookmark IDs separated by comma (,)
-
-        if (bookmarks.length() == 0) {
-            bookmarks = nodeUniqueID;
-        } else {
-            bookmarks += "," + nodeUniqueID;
-        }
-
-        bookmarksNode.getAttributes().getNamedItem("list").setTextContent(bookmarks);
-        writeIntoDatabase();
+        List<Integer> bmkrs = Arrays.stream(bookmarksNode.getAttributes().getNamedItem("list").getNodeValue().split(","))
+                .map(Integer::parseInt)
+                .collect(Collectors.toList());
+        bmkrs.add(Integer.parseInt(nodeUniqueID));
+        Collections.sort(bmkrs);
+        bookmarksNode.getAttributes().getNamedItem("list").setTextContent(bmkrs.stream().map(String::valueOf).collect(Collectors.joining(",")));
+        this.writeIntoDatabase();
     }
 
     @Override
@@ -269,8 +267,6 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public ArrayList<ScNode> getBookmarkedNodes() {
-        // Returns bookmarked nodes from the document
-        // Returns null if there aren't any
         ArrayList<ScNode> nodes = new ArrayList<>();
         NodeList nodeBookmarkNode = this.doc.getElementsByTagName("bookmarks");
         List<String> nodeUniqueIDArray = Arrays.asList(nodeBookmarkNode.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
