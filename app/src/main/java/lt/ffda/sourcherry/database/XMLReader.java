@@ -835,6 +835,7 @@ public class XMLReader extends DatabaseReader {
                                 String baseString = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
                                 element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
                                 element.setAttribute("justification", lastFoundJustification);
+                                element.setAttribute("link", "");
                                 element.setTextContent(baseString);
                                 offsetNodes.add(element);
                             } else if (span instanceof ImageSpanLatex) {

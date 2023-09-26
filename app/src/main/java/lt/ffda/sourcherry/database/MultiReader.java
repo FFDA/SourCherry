@@ -950,6 +950,7 @@ public class MultiReader extends DatabaseReader {
                                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
                                 element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
                                 element.setAttribute("justification", lastFoundJustification);
+                                element.setAttribute("link", "");
                                 if (imageSpanImage.getSha256sum() != null) {
                                     // If this value isn't null that means that it was loaded from database
                                     element.setAttribute("sha256sum", imageSpanImage.getSha256sum());
