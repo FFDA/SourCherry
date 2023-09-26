@@ -38,6 +38,7 @@ import android.text.style.SuperscriptSpan;
 import android.text.style.TypefaceSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -96,8 +97,8 @@ import ru.noties.jlatexmath.JLatexMathDrawable;
 public class XMLReader extends DatabaseReader {
     private Document doc;
     private final Context context;
-    private final Handler handler;
     private final String databaseUri;
+    private final Handler handler;
     private final MainViewModel mainViewModel;
 
     public XMLReader(String databaseUri, InputStream is, Context context, Handler handler, MainViewModel mainViewModel) {
@@ -192,14 +193,25 @@ public class XMLReader extends DatabaseReader {
     @Override
     public void deleteNode(String nodeUniqueID) {
         NodeList nodeList = this.doc.getElementsByTagName("node");
+        Node nodeToDelete = null;
+        List<String> uniqueIDList = new ArrayList<>(); // Collecting all nodeUniqueIDs to remove them from the bookmarks
         for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                node.getParentNode().removeChild(node);
-                this.writeIntoDatabase();
+            if (nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                nodeToDelete = nodeList.item(i);
                 break;
             }
         }
+        uniqueIDList.add(nodeToDelete.getAttributes().getNamedItem("unique_id").getNodeValue());
+        NodeList deletedNodeChildren = nodeToDelete.getChildNodes();
+        for (int i = 0; i < deletedNodeChildren.getLength(); i++) {
+            if (deletedNodeChildren.item(i).getNodeName().equals("node")) {
+                uniqueIDList.add(deletedNodeChildren.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
+                collectUniqueID(uniqueIDList, deletedNodeChildren.item(i).getChildNodes());
+            }
+        }
+        removeNodesFromBookmarks(uniqueIDList);
+        nodeToDelete.getParentNode().removeChild(nodeToDelete);
+        this.writeIntoDatabase();
     }
 
     @Override
@@ -710,7 +722,7 @@ public class XMLReader extends DatabaseReader {
     public void removeNodeFromBookmarks(String nodeUniqueID) {
         NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
         Node bookmarksNode = bookmarkTag.item(0);
-        ArrayList<String> bookmarks = new ArrayList<>(Arrays.asList(bookmarkTag.item(0).getAttributes().getNamedItem("list").getNodeValue().split(",")));
+        ArrayList<String> bookmarks = new ArrayList<>(Arrays.asList(bookmarksNode.getAttributes().getNamedItem("list").getNodeValue().split(",")));
         bookmarks.remove(nodeUniqueID);
         bookmarksNode.getAttributes().getNamedItem("list").setTextContent(String.join(",", bookmarks));
         writeIntoDatabase();
@@ -1098,6 +1110,21 @@ public class XMLReader extends DatabaseReader {
         }
         // Returns true if heredity contains unique ID of the target node
         return heredity.contains(targetNodeUniqueID);
+    }
+
+    /**
+     * Recursively scans through all the nodes in NodeList to collect the uniqueNodeIDs. Adds them
+     * to provided String list
+     * @param uniqueIDList String list to add the found nodeUniqueIDs
+     * @param nodeList NodeList to scan recursively
+     */
+    private void collectUniqueID(List<String> uniqueIDList, NodeList nodeList) {
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            if (nodeList.item(i).getNodeName().equals("node")) {
+                uniqueIDList.add(nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
+                collectUniqueID(uniqueIDList, nodeList.item(i).getChildNodes());
+            }
+        }
     }
 
     /**
@@ -1726,6 +1753,20 @@ public class XMLReader extends DatabaseReader {
         }
         imageSpanLatex.setLatexCode(node.getTextContent());
         return formattedLatexImage;
+    }
+
+    /**
+     * Removes all unique ID of the nodes in the list from the bookmarks
+     * @param nodeUniqueIDs list of node unique IDs to remove from bookmarks
+     */
+    private void removeNodesFromBookmarks(List<String> nodeUniqueIDs) {
+        NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
+        Node bookmarksNode = bookmarkTag.item(0);
+        ArrayList<String> bookmarks = new ArrayList<>(Arrays.asList(bookmarksNode.getAttributes().getNamedItem("list").getNodeValue().split(",")));
+        for (String nodeUniqueID : nodeUniqueIDs) {
+            bookmarks.remove(nodeUniqueID);
+        }
+        bookmarksNode.getAttributes().getNamedItem("list").setTextContent(String.join(",", bookmarks));
     }
 
     /**
