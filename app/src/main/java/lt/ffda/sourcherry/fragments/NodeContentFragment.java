@@ -273,21 +273,6 @@ public class NodeContentFragment extends Fragment {
         outState.putInt("scrollY", scrollView.getScrollY());
     }
 
-    /**
-     * Removes node content from view, mainViewModel
-     */
-    public void removeLoadedNodeContent() {
-        if (this.contentFragmentLinearLayout != null) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    NodeContentFragment.this.contentFragmentLinearLayout.removeAllViews();
-                }
-            });
-        }
-        this.mainViewModel.deleteNodeContent();
-    }
-
     public void switchFindInNodeHighlight(int previouslyHighlightedViewIndex, int newResultIndex) {
         // Removes highlighting from TextView which findInNodeStorage index is provided with previouslyHighlightedViewIndex
         // And highlights findInNodeResultStorage item that is provided with newResultIndex
