@@ -98,7 +98,7 @@ import lt.ffda.sourcherry.spans.URLSpanWebs;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class XMLReader extends DatabaseReader {
-    private Document doc;
+    private final Document doc;
     private final Context context;
     private final String databaseUri;
     private final Handler handler;
@@ -664,7 +664,7 @@ public class XMLReader extends DatabaseReader {
             }
 
             @Override
-            public void updateDrawState(TextPaint ds) {
+            public void updateDrawState(@NonNull TextPaint ds) {
                 // Formatting of span text
                 if (type.equals("file")) {
                     ds.setColor(context.getColor(R.color.link_file));

@@ -113,7 +113,7 @@ public class NodeContentFragment extends Fragment {
         for (ScNodeContent part: this.mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
-                SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) scNodeContentText.getContent();
+                SpannableStringBuilder nodeContentSSB = scNodeContentText.getContent();
                 TextView tv = new TextView(getActivity());
                 tv.setTextIsSelectable(true);
                 tv.setMovementMethod(LinkMovementMethod.getInstance()); // Needed to detect click/open links

@@ -91,13 +91,13 @@ public class ScSearchNode extends ScNode {
             boolean isSubnode = source.readInt() == 1;
             boolean isRichText = source.readInt() == 1;
             boolean isBold = source.readInt() == 1;
-            String foregoundColor = source.readString();
+            String foregroundColor = source.readString();
             int iconId = source.readInt();
             boolean isReadOnly = source.readInt() == 1;
             String query = source.readString();
             int resultCount = source.readInt();
             String resultSamples = source.readString();
-            return new ScSearchNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregoundColor, iconId, isReadOnly, query, resultCount, resultSamples);
+            return new ScSearchNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, resultSamples);
         }
 
         @Override

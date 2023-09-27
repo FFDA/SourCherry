@@ -218,10 +218,8 @@ public class MainActivity extends AppCompatActivity {
      */
     private void deleteTempFiles() {
         File cachedFileDir = getCacheDir();
-        if (cachedFileDir.list().length > 0) {
-            for (String filename: cachedFileDir.list()) {
-                new File(cachedFileDir, filename).delete();
-            }
+        for (String filename: cachedFileDir.list()) {
+            new File(cachedFileDir, filename).delete();
         }
     }
 
@@ -429,7 +427,7 @@ public class MainActivity extends AppCompatActivity {
             item.setChecked(!item.isChecked());
             SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
             sharedPreferencesEditor.putBoolean("preferences_external_storage", item.isChecked());
-            sharedPreferencesEditor.commit();
+            sharedPreferencesEditor.apply();
             return true;
         } else {
             return super.onOptionsItemSelected(item);
@@ -540,7 +538,7 @@ public class MainActivity extends AppCompatActivity {
             sharedPreferencesEditor.remove("mirrorDatabaseLastModified");
             sharedPreferencesEditor.remove("mirrorDatabaseFilename");
             sharedPreferencesEditor.putBoolean("mirror_database_switch", false);
-            sharedPreferencesEditor.commit();
+            sharedPreferencesEditor.apply();
         }
     }
 
@@ -549,11 +547,11 @@ public class MainActivity extends AppCompatActivity {
      * on every checkbox tap
      * @param view checkbox that was clicked
      */
-    public void saveCheckboxStatus(View view) {
+    public void saveAutoOpenCheckboxStatus(View view) {
         CheckBox checkBoxAutoOpen = findViewById(R.id.checkBox_auto_open);
         SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
         sharedPreferencesEditor.putBoolean("checkboxAutoOpen", checkBoxAutoOpen.isChecked());
-        sharedPreferencesEditor.commit();
+        sharedPreferencesEditor.apply();
     }
 
     /**

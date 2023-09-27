@@ -660,7 +660,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             if (nodeParentID.equals("0")) {
                 nodes = getMainNodes();
             } else {
-                cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeParentID)});
+                cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeParentID});
                 nodes = returnSubnodeArrayList(cursor, true);
                 nodes.add(0, createParentNode(nodeParentID));
             }
@@ -755,7 +755,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             }
 
             @Override
-            public void updateDrawState(TextPaint ds) {
+            public void updateDrawState(@NonNull TextPaint ds) {
                 // Formatting of span text
                 if (type.equals("file")) {
                     ds.setColor(context.getColor(R.color.link_file));
@@ -1526,7 +1526,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param nodeUniqueID unique ID of the node that is parent node
      * @return ScNode object with properties of a parent node
      */
-    public ScNode createParentNode(String nodeUniqueID) {
+    private ScNode createParentNode(String nodeUniqueID) {
         // Creates and returns the node that will be added to the node array as parent node
         Cursor cursor = this.sqlite.query("node", new String[]{"name", "is_richtxt", "syntax", "is_ro"}, "node_id=?", new String[]{String.valueOf(nodeUniqueID)}, null, null,null);
         String parentNodeName;

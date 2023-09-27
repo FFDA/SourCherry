@@ -209,6 +209,9 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
      */
     private void initMirrorDatabasePreferences() {
         PreferenceCategory mirrorDatabaseCategory = findPreference("preferences_category_mirror_database");
+        if (mirrorDatabaseCategory == null) {
+            return;
+        }
         mirrorDatabaseCategory.setVisible(true);
         // Enabling "Mirror database file" preference if "Mirror database" switch is enabled
         if (mirrorDatabaseSwitch.isChecked()) {
@@ -268,6 +271,9 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
             cursorWindowSizePreference.setVisible(true);
         }
         Preference preferenceVacuumDatabase = findPreference("preference_vacuum_database");
+        if (preferenceVacuumDatabase == null) {
+            return;
+        }
         preferenceVacuumDatabase.setVisible(true);
         preferenceVacuumDatabase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
             @Override
@@ -284,6 +290,9 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
      */
     private void initMultifileDatabasePreferences() {
         SwitchPreference multifileDatabaseAutoSync = findPreference("preference_multifile_auto_sync");
+        if (multifileDatabaseAutoSync == null) {
+            return;
+        }
         multifileDatabaseAutoSync.setVisible(true);
     }
 }

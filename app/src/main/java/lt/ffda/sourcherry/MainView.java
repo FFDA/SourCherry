@@ -227,11 +227,10 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 document.finishPage(page);
 
                 // Saving to file
-                OutputStream outputStream = getContentResolver().openOutputStream(result.getData().getData(), "w"); // Output file
-                document.writeTo(outputStream);
-
+                try (OutputStream outputStream = getContentResolver().openOutputStream(result.getData().getData(), "w")) { // Output file
+                    document.writeTo(outputStream);
+                }
                 // Cleaning up
-                outputStream.close();
                 document.close();
             } catch (Exception e) {
                 Toast.makeText(this, R.string.toast_error_failed_to_export_node_to_pdf, Toast.LENGTH_SHORT).show();
@@ -243,16 +242,13 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
      */
     ActivityResultLauncher<String[]> saveFile = registerForActivityResult(new ReturnSelectedFileUriForSaving(), result -> {
         if (result != null) {
-            try {
-                InputStream inputStream = this.reader.getFileInputStream(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time"), result.getExtras().getString("offset"));
-                OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w"); // Output file
+            try (InputStream inputStream = this.reader.getFileInputStream(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time"), result.getExtras().getString("offset"));
+                 OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w")) {
                 byte[] buf = new byte[4 * 1024];
                 int length;
                 while ((length = inputStream.read(buf)) != -1) {
                     outputStream.write(buf, 0, length);
                 }
-                inputStream.close();
-                outputStream.close();
             } catch (Exception e) {
                 Toast.makeText(this, R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
             }
@@ -843,7 +839,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         } else {
             // If both nodes arrays matches in size it might be the same node (especially main/top)
             // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
-            if (nodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && nodes.get(nodes.size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
+            if (nodes != null && nodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && nodes.get(nodes.size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
                 Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
                 this.mainViewModel.setNodes(nodes);
@@ -2342,11 +2338,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
         DatabaseReaderFactory.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
-        if (progLang.equals("custom-colors")) {
-            this.mainViewModel.getNodes().get(position).setRichText(true);
-        } else {
-            this.mainViewModel.getNodes().get(position).setRichText(false);
-        }
+        this.mainViewModel.getNodes().get(position).setRichText(progLang.equals("custom-colors"));
         this.mainViewModel.getNodes().get(position).setName(name);
         this.adapter.notifyItemChanged(position);
         if (this.mainViewModel.getCurrentNode() != null && this.mainViewModel.getNodes().get(position).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {

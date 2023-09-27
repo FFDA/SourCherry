@@ -152,7 +152,7 @@ public class MainViewModel extends ViewModel {
     /**
      * Finds node's position in drawer menu
      * @param nodeUniqueID unique ID of the node which position has to found
-     * @return posotion of the node in drawer menu
+     * @return position of the node in drawer menu
      */
     public int getNodePositionInMenu(String nodeUniqueID) {
         int position = -1;

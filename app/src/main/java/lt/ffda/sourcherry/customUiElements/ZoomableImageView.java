@@ -19,6 +19,7 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.core.view.GestureDetectorCompat;
 
@@ -168,7 +169,7 @@ public class ZoomableImageView extends AppCompatImageView  {
 
     private final ScaleGestureDetector.OnScaleGestureListener mScaleGestureListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
         @Override
-        public boolean onScaleBegin(ScaleGestureDetector detector) {
+        public boolean onScaleBegin(@NonNull ScaleGestureDetector detector) {
             mode = ZOOM;
             return true;
         }
@@ -198,7 +199,7 @@ public class ZoomableImageView extends AppCompatImageView  {
 
     private final GestureDetector.SimpleOnGestureListener mGestureListener = new GestureDetector.SimpleOnGestureListener() {
         @Override
-        public boolean onDoubleTap(MotionEvent e) {
+        public boolean onDoubleTap(@NonNull MotionEvent e) {
             // Double tap is detected
             float origScale = saveScale;
             float mScaleFactor;
@@ -217,7 +218,7 @@ public class ZoomableImageView extends AppCompatImageView  {
         }
 
         @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        public boolean onFling(@NonNull MotionEvent e1, @NonNull MotionEvent e2, float velocityX, float velocityY) {
             return false;
         }
     };

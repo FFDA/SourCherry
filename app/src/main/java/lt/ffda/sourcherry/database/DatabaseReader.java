@@ -185,7 +185,7 @@ public abstract class DatabaseReader {
     /**
      * Retrieves relevant (the ones that app displays) node properties
      * @param nodeUniqueID unique ID of the node for which properties has to be retrieved
-     * @return Node properties onject
+     * @return Node properties object
      */
     public abstract ScNodeProperties getNodeProperties(String nodeUniqueID);
 

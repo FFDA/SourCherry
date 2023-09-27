@@ -17,7 +17,7 @@ import androidx.annotation.NonNull;
 
 public class ScNode implements Comparable<ScNode>, Parcelable {
     // Keeping it as String because I need it it this way most of the time. Otherwise I would have to convert ot String quite often
-    private String uniqueId;
+    private final String uniqueId;
     private String name;
     // Depending on this value a node will be made look like it's a parent node (will not be indented and have an arrow pointing down)
     private boolean isParent;
@@ -59,10 +59,6 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
 
     public String getUniqueId() {
         return uniqueId;
-    }
-
-    public void setUniqueId(String uniqueId) {
-        this.uniqueId = uniqueId;
     }
 
     public String getName() {

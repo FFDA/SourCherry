@@ -64,7 +64,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
             }
         }
-        dismiss(); // Closes dialog fragment after writing to file (hopefully)
+        this.dismiss(); // Closes dialog fragment after writing to file (hopefully)
     });
 
     @Override

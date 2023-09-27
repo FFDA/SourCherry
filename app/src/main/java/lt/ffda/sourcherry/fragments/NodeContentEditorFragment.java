@@ -171,14 +171,12 @@ public class NodeContentEditorFragment extends Fragment {
                 return;
             }
             BackgroundColorSpanCustom[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, BackgroundColorSpanCustom.class);
-            if (spans.length > 0) {
-                for (BackgroundColorSpanCustom span: spans) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
-                    int backgroundColor = span.getBackgroundColor();
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
-                }
+            for (BackgroundColorSpanCustom span : spans) {
+                int startOfSpan = editText.getText().getSpanStart(span);
+                int endOfSpan = editText.getText().getSpanEnd(span);
+                editText.getText().removeSpan(span);
+                int backgroundColor = span.getBackgroundColor();
+                this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
             }
             BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(this.color);
             editText.getText().setSpan(bcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -204,14 +202,12 @@ public class NodeContentEditorFragment extends Fragment {
                 return;
             }
             ForegroundColorSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, ForegroundColorSpan.class);
-            if (spans.length > 0) {
-                for (ForegroundColorSpan span: spans) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
-                    int foregroundColor = span.getForegroundColor();
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
-                }
+            for (ForegroundColorSpan span : spans) {
+                int startOfSpan = editText.getText().getSpanStart(span);
+                int endOfSpan = editText.getText().getSpanEnd(span);
+                editText.getText().removeSpan(span);
+                int foregroundColor = span.getForegroundColor();
+                this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
             }
             ForegroundColorSpan fcs = new ForegroundColorSpan(this.color);
             editText.getText().setSpan(fcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -365,7 +361,7 @@ public class NodeContentEditorFragment extends Fragment {
             }
 
             @Override
-            public void updateDrawState(TextPaint ds) {
+            public void updateDrawState(@NonNull TextPaint ds) {
                 // Formatting of span text
                 if (clickableSpanLink.getLinkType().equals("file")) {
                     ds.setColor(context.getColor(R.color.link_file));
@@ -458,7 +454,7 @@ public class NodeContentEditorFragment extends Fragment {
             if (part.getContentType() == 0) {
                 // This adds not only text, but images, codeboxes
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
-                SpannableStringBuilder nodeContentSSB = (SpannableStringBuilder) scNodeContentText.getContent();
+                SpannableStringBuilder nodeContentSSB = scNodeContentText.getContent();
                 EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
                 editText.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
                 editText.addTextChangedListener(textWatcher);

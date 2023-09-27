@@ -50,17 +50,17 @@ public class DatabaseReaderFactory {
      * @throws IOException exceptions while opening XML type databases
      */
     public static DatabaseReader getReader(Context context, Handler handler, SharedPreferences sharedPreferences, MainViewModel mainViewModel) throws IOException, ParserConfigurationException, TransformerConfigurationException, SAXException, InterruptedException, ExecutionException {
-        String databaseString = sharedPreferences.getString("databaseUri", null);
+        String databaseString = sharedPreferences.getString("databaseUri", "");
         if (sharedPreferences.getString("databaseStorageType", "").equals("shared")) {
             // If file is in external storage
-            if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
+            if (sharedPreferences.getString("databaseFileExtension", "").equals("ctd")) {
                 // If file is xml
                 InputStream is = context.getContentResolver().openInputStream(Uri.parse(databaseString));
                 databaseReader = new XMLReader(databaseString, is, context, handler, mainViewModel);
                 if (is != null) {
                     is.close();
                 }
-            } else if (sharedPreferences.getString("databaseFileExtension", null).equals("multi")) {
+            } else if (sharedPreferences.getString("databaseFileExtension", "").equals("multi")) {
                 // Multi-file storage
                 databaseReader = new MultiReader(Uri.parse(databaseString), context, handler, mainViewModel);
                 File drawerMenuFile = new File(context.getFilesDir(), "drawer_menu.xml");
@@ -74,7 +74,7 @@ public class DatabaseReaderFactory {
             }
         } else {
             // If file is in internal app storage
-            if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
+            if (sharedPreferences.getString("databaseFileExtension", "").equals("ctd")) {
                 // If file is xml
                 InputStream is = new FileInputStream(sharedPreferences.getString("databaseUri", null));
                 databaseReader = new XMLReader(databaseString, is, context, handler, mainViewModel);
