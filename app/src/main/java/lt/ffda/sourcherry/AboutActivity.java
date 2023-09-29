@@ -31,10 +31,10 @@ public class AboutActivity extends AppCompatActivity {
         ActionBar toolbar = getSupportActionBar();
         if (toolbar != null) {
             toolbar.setDisplayHomeAsUpEnabled(true); // Enables home (arrow back button)
-            toolbar.setTitle(R.string.app_name);
+            toolbar.setTitle(R.string.preferences_about_title);
         }
         TextView versionName = findViewById(R.id.about_activity_app_version_name);
-        versionName.setText(getString(R.string.options_menu_about_version_code, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE));
+        versionName.setText(getString(R.string.preferences_about_version_code, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE));
     }
 
     @Override

@@ -15,5 +15,5 @@
         android:checkable="true" />
     <item
         android:id="@+id/options_menu_about"
-        android:title="@string/options_menu_item_about" />
+        android:title="@string/preferences_about_title" />
 </menu>

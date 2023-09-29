@@ -27,4 +27,14 @@
         android:title="@string/preferences_database"
         android:summary="@string/preferences_database_summary"
         android:fragment="lt.ffda.sourcherry.preferences.PreferencesDatabaseFragment"/>
+
+    <Preference
+        android:key="about_activity"
+        android:title="@string/preferences_about_title"
+        android:summary="@string/preferences_about_summary">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="lt.ffda.sourcherry"
+            android:targetClass="lt.ffda.sourcherry.AboutActivity"/>
+    </Preference>
 </PreferenceScreen>

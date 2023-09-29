@@ -112,12 +112,6 @@
     <string name="toast_error_failed_to_save_node">Failed to save node</string>
     <string name="toast_error_failed_update_drawer_menu">Failed to update drawer menu</string>
     <string name="toast_error_scan_already_in_progress">Scan already in progress</string>
-    <string name="options_menu_item_about">About</string>
-    <string name="options_menu_about_licence">Published under GPL v3</string>
-    <string name="options_menu_about_libraries_title">Software used</string>
-    <string name="options_menu_about_libraries_content" translatable="false">7-Zip-JBinding-4Android - https://github.com/omicronapps/7-Zip-JBinding-4Android\nJLatexMath Android - https://github.com/noties/jlatexmath-android\nColorPickerDialog - https://github.com/fennifith/ColorPickerDialog</string>
-    <string name="options_menu_about_activity_github" translatable="false">GitHub - https://github.com/FFDA/SourCherry</string>
-    <string name="options_menu_about_version_code">%1$s (%2$d)</string>
     <string name="options_menu_item_external_storage">Use external storage</string>
     <string name="options_menu_item_search">Search</string>
     <string name="options_menu_search_checkbox_exclude">Skip nodes marked to exclude</string>
@@ -167,6 +161,13 @@
     <string name="preferences_database_vacuum_summary">Can reduce database size after removing large amount of data</string>
     <string name="preference_multifile_auto_sync_title">Multifile database auto sync</string>
     <string name="preference_multifile_auto_sync_summary">Scans Multifile database folder at startup in the background</string>
+    <string name="preferences_about_title">About</string>
+    <string name="preferences_about_summary">About SourCherry</string>
+    <string name="preferences_about_licence">Published under GPL v3</string>
+    <string name="preferences_about_libraries_title">Software used</string>
+    <string name="preferences_about_libraries_content" translatable="false">7-Zip-JBinding-4Android - https://github.com/omicronapps/7-Zip-JBinding-4Android\nJLatexMath Android - https://github.com/noties/jlatexmath-android\nColorPickerDialog - https://github.com/fennifith/ColorPickerDialog</string>
+    <string name="preferences_about_activity_github" translatable="false">GitHub - https://github.com/FFDA/SourCherry</string>
+    <string name="preferences_about_version_code">%1$s (%2$d)</string>
     <string name="mirror_database_fragment_enter_password_message">Please enter the password</string>
     <string name="navigation_drawer_button_back_content_description">Button BACK. Displayed when bookmarks are being showed to the user. When pressed - returns to menu that was displayed before user tapped bookmarks button.</string>
     <string name="navigation_drawer_button_up_content_description">Button UP. Displayed in normal navigation mode. When pressed - moves/loads menu one node up if it is not at the top of the tree.</string>
