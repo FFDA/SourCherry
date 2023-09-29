@@ -210,6 +210,7 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
     private void initMirrorDatabasePreferences() {
         PreferenceCategory mirrorDatabaseCategory = findPreference("preferences_category_mirror_database");
         if (mirrorDatabaseCategory == null) {
+            Toast.makeText(getContext(), R.string.toast_error_failed_to_show_a_preference, Toast.LENGTH_SHORT).show();
             return;
         }
         mirrorDatabaseCategory.setVisible(true);
@@ -272,6 +273,7 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
         }
         Preference preferenceVacuumDatabase = findPreference("preference_vacuum_database");
         if (preferenceVacuumDatabase == null) {
+            Toast.makeText(getContext(), R.string.toast_error_failed_to_show_a_preference, Toast.LENGTH_SHORT).show();
             return;
         }
         preferenceVacuumDatabase.setVisible(true);
@@ -291,6 +293,7 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
     private void initMultifileDatabasePreferences() {
         SwitchPreference multifileDatabaseAutoSync = findPreference("preference_multifile_auto_sync");
         if (multifileDatabaseAutoSync == null) {
+            Toast.makeText(getContext(), R.string.toast_error_failed_to_show_a_preference, Toast.LENGTH_SHORT).show();
             return;
         }
         multifileDatabaseAutoSync.setVisible(true);

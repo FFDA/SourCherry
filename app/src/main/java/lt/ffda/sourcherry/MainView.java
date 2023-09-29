@@ -1322,7 +1322,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         }
         if (this.reader == null) {
             Toast.makeText(this, R.string.toast_error_failed_to_initiate_reader, Toast.LENGTH_SHORT).show();
-            finish();
+            this.finish();
             return;
         }
         if (savedInstanceState == null) {

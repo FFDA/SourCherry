@@ -112,6 +112,7 @@
     <string name="toast_error_failed_to_save_node">Failed to save node</string>
     <string name="toast_error_failed_update_drawer_menu">Failed to update drawer menu</string>
     <string name="toast_error_scan_already_in_progress">Scan already in progress</string>
+    <string name="toast_error_failed_to_show_a_preference">Failed to show preference</string>
     <string name="options_menu_item_external_storage">Use external storage</string>
     <string name="options_menu_item_search">Search</string>
     <string name="options_menu_search_checkbox_exclude">Skip nodes marked to exclude</string>
