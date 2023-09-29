@@ -493,7 +493,7 @@ public class NodeContentEditorFragment extends Fragment {
                 TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
 
                 //// Creates and formats header for the table
-                CharSequence[] tableHeaderCells = scNodeContentTable.getContent().get(scNodeContentTable.getContent().size() - 1);
+                CharSequence[] tableHeaderCells = scNodeContentTable.getContent().get(0);
                 TableRow tableHeaderRow = new TableRow(getActivity());
                 for (CharSequence cell: tableHeaderCells) {
                     EditText headerTextView = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
@@ -510,7 +510,7 @@ public class NodeContentEditorFragment extends Fragment {
                 ////
 
                 //// Creates and formats data for the table
-                for (int row = 0; row < scNodeContentTable.getContent().size() - 1; row++) {
+                for (int row = 1; row < scNodeContentTable.getContent().size(); row++) {
                     TableRow tableRow = new TableRow(getActivity());
                     CharSequence[] tableRowCells = scNodeContentTable.getContent().get(row);
                     for (CharSequence cell: tableRowCells) {
@@ -843,18 +843,6 @@ public class NodeContentEditorFragment extends Fragment {
                         break;
                 }
                 ArrayList<CharSequence[]> tableContent = new ArrayList<>();
-                // Getting table content
-                // Starting from second row, because header row has to be stored last in the database
-                for (int row = 1; row < tableLayout.getChildCount(); row++) {
-                    TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
-                    CharSequence[] rowCells = new CharSequence[tableRow.getChildCount()];
-                    for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
-                        EditText currentCell = (EditText) tableRow.getChildAt(cell);
-                        currentCell.clearComposingText();
-                        rowCells[cell] = currentCell.getText();
-                    }
-                    tableContent.add(rowCells);
-                }
                 // Getting table header
                 int colMin = 0;
                 int colMax = 0;
@@ -872,6 +860,17 @@ public class NodeContentEditorFragment extends Fragment {
                     }
                 }
                 tableContent.add(headerCells);
+                // Getting table content
+                for (int row = 1; row < tableLayout.getChildCount(); row++) {
+                    TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
+                    CharSequence[] rowCells = new CharSequence[tableRow.getChildCount()];
+                    for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
+                        EditText currentCell = (EditText) tableRow.getChildAt(cell);
+                        currentCell.clearComposingText();
+                        rowCells[cell] = currentCell.getText();
+                    }
+                    tableContent.add(rowCells);
+                }
                 nodeContent.add(new ScNodeContentTable((byte) 1, tableContent, colMin, colMax, tableLayout.getLightInterface(), justification, tableLayout.getColWidths()));
             } else {
                 EditText editText = (EditText) view;

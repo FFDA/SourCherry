@@ -569,7 +569,6 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                 int cellMin = tableCursor.getInt(1);
                                 int cellMax = tableCursor.getInt(2);
                                 ArrayList<CharSequence[]> currentTableContent = new ArrayList<>();
-                                // document.getElementsByTagName(type).item(0).getChildNodes();
                                 Document document = getDocumentFromString(tableCursor.getString(0));
                                 // All the rows of the table. Not like in XML database, there aren't any empty text nodes to be filtered out
                                 NodeList tableRowsNodes = document.getElementsByTagName("table").item(0).getChildNodes();
@@ -577,7 +576,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                 if (!((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light").equals("")) {
                                     lightInterface = Byte.parseByte(((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light"));
                                 }
-                                for (int row = 0; row < tableRowsNodes.getLength(); row++) {
+                                // Tables in database are saved content first and the last row is the header of the table
+                                currentTableContent.add(this.getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
+                                for (int row = 0; row < tableRowsNodes.getLength() - 1; row++) {
                                     currentTableContent.add(this.getTableRow(tableRowsNodes.item(row)));
                                 }
                                 ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, lightInterface, tableCursor.getString(3), ((Element) document.getElementsByTagName("table").item(0)).getAttribute("col_widths"));
@@ -1063,22 +1064,31 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                             collectedCodebox = null;
                         }
                         ScNodeContentTable scNodeContentTable = (ScNodeContentTable) offsetObject;
-                        Element table = doc.createElement("table");
-                        table.setAttribute("col_widths", scNodeContentTable.getColWidths());
-                        table.setAttribute("is_light", String.valueOf(scNodeContentTable.getLightInterface()));
-                        for (CharSequence[] row : scNodeContentTable.getContent()) {
+                        Element tableElement = doc.createElement("table");
+                        tableElement.setAttribute("col_widths", scNodeContentTable.getColWidths());
+                        tableElement.setAttribute("is_light", String.valueOf(scNodeContentTable.getLightInterface()));
+                        // Adding table content
+                        for (int i = 1; i < scNodeContentTable.getContent().size(); i++) {
                             Element rowElement = doc.createElement("row");
-                            for (CharSequence cell : row) {
+                            for (CharSequence cell : scNodeContentTable.getContent().get(i)) {
                                 Element cellElement = doc.createElement("cell");
                                 cellElement.setTextContent(cell.toString());
                                 rowElement.appendChild(cellElement);
                             }
-                            table.appendChild(rowElement);
+                            tableElement.appendChild(rowElement);
                         }
+                        // Adding header at the end of the table tag
+                        Element headerRowElement = doc.createElement("row");
+                        for (CharSequence cell: scNodeContentTable.getContent().get(0)) {
+                            Element cellElement = doc.createElement("cell");
+                            cellElement.setTextContent(cell.toString());
+                            headerRowElement.appendChild(cellElement);
+                        }
+                        tableElement.appendChild(headerRowElement);
                         writer.getBuffer().setLength(0);
                         writer.getBuffer().trimToSize();
                         try {
-                            this.transformer.transform(new DOMSource(table), new StreamResult(writer));
+                            this.transformer.transform(new DOMSource(tableElement), new StreamResult(writer));
                         } catch (TransformerException e) {
                             this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_table));
                             continue;

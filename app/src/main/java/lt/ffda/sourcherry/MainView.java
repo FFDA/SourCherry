@@ -114,6 +114,8 @@ import lt.ffda.sourcherry.fragments.SearchFragment;
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.preferences.PreferencesActivity;
 import lt.ffda.sourcherry.runnables.CollectNodesBackgroundRunnable;
+import lt.ffda.sourcherry.runnables.FindInNodeRunnable;
+import lt.ffda.sourcherry.runnables.FindInNodeRunnableCallback;
 import lt.ffda.sourcherry.runnables.NodesCollectedCallback;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
@@ -617,75 +619,40 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
      * @param query search query
      */
     private void findInNode(String query) {
-        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
         if (query.length() > 0) {
             // If new query is longer when one character
             this.restoreHighlightedView();
-            MainView.this.executor.execute(new Runnable() {
+            this.executor.submit(new FindInNodeRunnable(this.mainViewModel, query, new FindInNodeRunnableCallback() {
                 @Override
-                public void run() {
-
+                public void searchStarted() {
                     MainView.this.setFindInNodeProgressBar(true);
-                    int counter = 0; // To keep track of which item in the nodeContent array it is
-                    for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
-                        View view = contentFragmentLinearLayout.getChildAt(i);
-                        if (view instanceof TextView) {
-                            // if textview
-                            int searchLength = query.length();
-                            SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                            spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
-                            int index = 0;
-                            while ((index != -1)) {
-                                index = spannedSearchQuery.toString().toLowerCase().indexOf(query.toLowerCase(), index); // searches in case insensitive mode
-                                if (index != -1) {
-                                    // If there was a match
-                                    int startIndex = index;
-                                    int endIndex = index + searchLength; // End of the substring that has to be marked
-                                    MainView.this.mainViewModel.addFindInNodeResult(new int[] {counter, startIndex, endIndex});
-                                index += searchLength; // moves search to the end of the last found string
-                                }
-                            }
-                            counter++;
-                        } else if (view instanceof HorizontalScrollView) {
-                            // if it is a table
-                            // Has to go to the cell level to reach text
-                            // to be able to mark it at appropriate place
-                            int searchLength = query.length();
+                }
 
-                            TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
-                            for (int row = 0; row < tableLayout.getChildCount(); row++) {
-                                TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
-                                for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
-                                    SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                                    spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
-                                    int index = 0;
-                                    while ((index != -1)) {
-                                        index = spannedSearchQuery.toString().toLowerCase().indexOf(query.toLowerCase(), index); // searches in case insensitive mode
-                                        if (index != -1) {
-                                            int startIndex = index;
-                                            int endIndex = index + searchLength; // End of the substring that has to be marked
-                                            MainView.this.mainViewModel.addFindInNodeResult(new int[]{counter, startIndex, endIndex});
-                                            index += searchLength; // moves search to the end of the last found string
-                                        }
-                                    }
-                                    counter++;
-                                }
-                            }
-                        }
-                    }
+                @Override
+                public void searchFinished() {
+                    MainView.this.setFindInNodeProgressBar(false);
                     MainView.this.updateCounter(MainView.this.mainViewModel.getFindInNodeResultCount());
                     if (MainView.this.mainViewModel.getFindInNodeResultCount() == 0) {
                         // If user types until there are no matches left
-                        MainView.this.restoreHighlightedView();
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                MainView.this.restoreHighlightedView();
+                            }
+                        });
                     } else {
                         // If there are matches for user query
                         // First result has to be highlighter and scrolled too
-                        MainView.this.currentFindInNodeMarked = 0;
-                        MainView.this.highlightFindInNodeResult(MainView.this.currentFindInNodeMarked);
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                MainView.this.currentFindInNodeMarked = 0;
+                                MainView.this.highlightFindInNodeResult(MainView.this.currentFindInNodeMarked);
+                            }
+                        });
                     }
-                    MainView.this.setFindInNodeProgressBar(false);
                 }
-            });
+            }));
         } else {
             // If new query is 0 characters long, that means that user deleted everything and view should be reset to original
             MainView.this.restoreHighlightedView();
@@ -693,8 +660,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Calculates next result that has to be highlighted
-     * and initiates switchFindInNodeHighlight
+     * Calculates next result that has to be highlighted and initiates switchFindInNodeHighlight
      */
     private void findInNodeNext() {
         this.currentFindInNodeMarked++;
@@ -910,7 +876,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 // Previous "highlight" will be removed while marking the current one
                 if (viewCounter == counter) {
                     SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                    spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                    spannedSearchQuery.append(MainView.this.mainViewModel.getTextViewContent(counter));
                     spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     int line = currentTextView.getLayout().getLineForOffset(startIndex); // Gets the line of the current string in current view
                     int lineHeight = currentTextView.getLineHeight(); // needed to calculate the amount of pixel screen has to be scrolled down
@@ -940,7 +906,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                             // If encountered a view that has to be marked
                             TextView currentCell = (TextView) tableRow.getChildAt(cell);
                             SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                            spannedSearchQuery.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                            spannedSearchQuery.append(MainView.this.mainViewModel.getTextViewContent(counter));
                             spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             int currentLineCounter = lineCounter;
                             this.handler.post(new Runnable() {
@@ -1148,7 +1114,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
      * Initiates all listeners for find in node functionality that allows user to search for
      * text in currently opened node
      */
-    private void initSearchInNode() {
+    private void initFindInNode() {
         // Listener for FindInNode search text change
         EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
         findInNodeEditText.addTextChangedListener(new TextWatcher() {
@@ -1409,7 +1375,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         this.registerForOptionsMenuResult();
         this.initDrawerMenuNavigation(searchView);
         this.initDrawerMenuFilter(searchView);
-        this.initSearchInNode();
+        this.initFindInNode();
 
         RecyclerView rvMenu = findViewById(R.id.recyclerView);
         rvMenu.setAdapter(this.adapter);
@@ -1651,18 +1617,16 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
 
     /**
      * Sets FindInNode UI
-     * and prepares node content for search
      */
     private void openFindInNode() {
         this.findInNodeToggle = true;
         this.mainViewModel.findInNodeStorageToggle(true); // Created an array to store nodeContent
         LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
-        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
         EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
 
         findInNodeLinearLayout.setVisibility(View.VISIBLE); // Making findInView visible at the bottom if the window
 
-        // * Displaying / opening keyboard
+        // Displaying / opening keyboard
         findInNodeEditText.requestFocus();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -1679,36 +1643,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 }
             }, 50);
         }
-        // *
-
-        this.executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                // * Collecting all nodeContent in ArrayList
-                // Every TextView is added as a separate item (SpannableStringBuilder) in array list
-                // If node does not have tables, it's most likely is just one
-                // However, if node has table(s), every cell of the table is added as an item in array
-                for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
-                    View view = contentFragmentLinearLayout.getChildAt(i);
-                    if (view instanceof TextView) {
-                        MainView.this.mainViewModel.addFindInNodeStorage((SpannableStringBuilder) ((TextView) view).getText());
-                    } else if (view instanceof HorizontalScrollView) {
-                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
-                        for (int row = 0; row < tableLayout.getChildCount(); row++) {
-                            TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
-                            for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
-                                // Reaches cell and adds it's text to ArrayList
-                                TextView rowCell = (TextView) tableRow.getChildAt(cell);
-                                SpannableStringBuilder cellSpannableStringBuilder = new SpannableStringBuilder();
-                                cellSpannableStringBuilder.append(rowCell.getText());
-                                MainView.this.mainViewModel.addFindInNodeStorage(cellSpannableStringBuilder);
-                            }
-                        }
-                    }
-                }
-                // *
-            }
-        });
     }
 
     /**
@@ -1990,8 +1924,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Restores TextView to original state that was
-     * changed with highlightFindInNodeResult() function
+     * Restores TextView to original state that was changed with highlightFindInNodeResult() function
      */
     private void restoreHighlightedView() {
         // Uses index of the TextView in currentFindInNodeMarked
@@ -2006,7 +1939,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 if (view instanceof TextView) {
                     if (viewIndex == counter) {
                         SpannableStringBuilder originalText = new SpannableStringBuilder();
-                        originalText.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                        originalText.append(MainView.this.mainViewModel.getTextViewContent(counter));
                         this.handler.post(new Runnable() {
                             @Override
                             public void run() {
@@ -2023,7 +1956,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                             if (viewIndex == counter) {
                                 TextView currentCell = (TextView) tableRow.getChildAt(cell);
                                 SpannableStringBuilder originalText = new SpannableStringBuilder();
-                                originalText.append(MainView.this.mainViewModel.getFindInNodeStorageItem(counter));
+                                originalText.append(MainView.this.mainViewModel.getTextViewContent(counter));
                                 this.handler.post(new Runnable() {
                                     @Override
                                     public void run() {

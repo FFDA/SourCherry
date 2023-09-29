@@ -20,16 +20,16 @@ import java.util.concurrent.ScheduledFuture;
 
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.model.ScNodeContent;
+import lt.ffda.sourcherry.model.ScNodeContentTable;
+import lt.ffda.sourcherry.model.ScNodeContentText;
 
 /**
  * Stores data, that should be kept during screen orientation change
  */
 public class MainViewModel extends ViewModel {
     private ScNode currentNode = null;
-    // Stores results for FindInNode() int[textView index in findInNodeStorage, start index of matching substring, end index of matching substring]
+    // Stores results for FindInNode() int[textView index in nodeContent, start index of matching substring, end index of matching substring]
     private ArrayList<int[]> findInNodeResultStorage;
-    // String value of every TextView in node
-    private ArrayList<SpannableStringBuilder> findInNodeStorage;
     private MutableLiveData<ScheduledFuture<?>> multiDatabaseSync;
     private MutableLiveData<ArrayList<ScNodeContent>> nodeContent;
     private ArrayList<ScNode> nodes;
@@ -42,14 +42,6 @@ public class MainViewModel extends ViewModel {
      */
     public void addFindInNodeResult(int[] result) {
         this.findInNodeResultStorage.add(result);
-    }
-
-    /**
-     * Adds node content part to content storage for findInNode function
-     * @param contentPart node content part to add to findInNodeStorage ArrayList
-     */
-    public void addFindInNodeStorage(SpannableStringBuilder contentPart) {
-        this.findInNodeStorage.add(contentPart);
     }
 
     /**
@@ -67,10 +59,8 @@ public class MainViewModel extends ViewModel {
         // Depending on boolean creates an array to store node content to search through
         // or sets it to null to clear it
         if (status) {
-            this.findInNodeStorage = new ArrayList<>();
             this.findInNodeResultStorage = new ArrayList<>();
         } else {
-            this.findInNodeStorage = null;
             this.findInNodeResultStorage = null;
         }
     }
@@ -118,12 +108,37 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
-     * Returns part of the content to search though it
-     * @param index index of the findInNodeStorage array element to return
-     * @return part of node content
+     * Every text in the nodeContent is placed in a TextView. They can be counted in the order from
+     * top to bottom. Every cell in the table is a separate TextView. This function returns text of
+     * the TextView was placed in when creating the nodeContent. It is used by findInNode and related
+     * functions.
+     * @param index index of the TextView
+     * @return content of the text view
      */
-    public SpannableStringBuilder getFindInNodeStorageItem(int index) {
-        return this.findInNodeStorage.get(index);
+    public SpannableStringBuilder getTextViewContent(int index) {
+        int counter = 0;
+        for (ScNodeContent scNodeContent : this.getNodeContent().getValue()) {
+            if (scNodeContent.getContentType() == 0) {
+                // TextView
+                if (counter == index) {
+                    ScNodeContentText scNodeContentText = (ScNodeContentText) scNodeContent;
+                    return scNodeContentText.getContent();
+                }
+                counter++;
+            } else if (scNodeContent.getContentType() == 1) {
+                // Table
+                ScNodeContentTable scNodeContentTable = (ScNodeContentTable) scNodeContent;
+                for (CharSequence[] row: scNodeContentTable.getContent()) {
+                    for (CharSequence cell: row) {
+                        if (counter == index) {
+                            return new SpannableStringBuilder(cell);
+                        }
+                        counter++;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**

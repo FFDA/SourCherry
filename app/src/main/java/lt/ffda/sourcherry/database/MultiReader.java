@@ -559,7 +559,8 @@ public class MultiReader extends DatabaseReader {
                                         lightInterface = Byte.parseByte(((Element) currentNode).getAttribute("is_light"));
                                     }
                                     NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
-                                    for (int row = 0; row < tableRowsNodes.getLength(); row++) {
+                                    currentTableContent.add(this.getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
+                                    for (int row = 0; row < tableRowsNodes.getLength() - 1; row++) {
                                         currentTableContent.add(this.getTableRow(tableRowsNodes.item(row)));
                                     }
                                     ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], lightInterface, ((Element) currentNode).getAttribute("justification"), ((Element) currentNode).getAttribute("col_widths"));
@@ -1051,15 +1052,24 @@ public class MultiReader extends DatabaseReader {
                     tableElement.setAttribute("col_max", String.valueOf(scNodeContentTable.getColMax()));
                     tableElement.setAttribute("col_widths", scNodeContentTable.getColWidths());
                     tableElement.setAttribute("is_light", String.valueOf(scNodeContentTable.getLightInterface()));
-                    for (CharSequence[] row : scNodeContentTable.getContent()) {
+                    // Adding table content
+                    for (int i = 1; i < scNodeContentTable.getContent().size(); i++) {
                         Element rowElement = doc.createElement("row");
-                        for (CharSequence cell : row) {
+                        for (CharSequence cell: scNodeContentTable.getContent().get(i)) {
                             Element cellElement = doc.createElement("cell");
                             cellElement.setTextContent(cell.toString());
                             rowElement.appendChild(cellElement);
                         }
                         tableElement.appendChild(rowElement);
                     }
+                    // Adding header at the end of the table tag
+                    Element headerRowElement = doc.createElement("row");
+                    for (CharSequence cell: scNodeContentTable.getContent().get(0)) {
+                        Element cellElement = doc.createElement("cell");
+                        cellElement.setTextContent(cell.toString());
+                        headerRowElement.appendChild(cellElement);
+                    }
+                    tableElement.appendChild(headerRowElement);
                     offsetNodes.add(tableElement);
                 }
             }
