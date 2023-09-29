@@ -163,6 +163,7 @@
     <string name="preference_multifile_auto_sync_summary">Scans Multifile database folder at startup in the background</string>
     <string name="preferences_about_title">About</string>
     <string name="preferences_about_summary">About SourCherry</string>
+    <string name="preferences_about_about">Android app to open CherryTree databases: https://www.giuspen.net/cherrytree/</string>
     <string name="preferences_about_licence">Published under GPL v3</string>
     <string name="preferences_about_libraries_title">Software used</string>
     <string name="preferences_about_libraries_content" translatable="false">7-Zip-JBinding-4Android - https://github.com/omicronapps/7-Zip-JBinding-4Android\nJLatexMath Android - https://github.com/noties/jlatexmath-android\nColorPickerDialog - https://github.com/fennifith/ColorPickerDialog</string>

@@ -72,6 +72,15 @@
             android:text="@string/preferences_about_activity_github" />
 
         <TextView
+            android:id="@+id/about_activity_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="10dp"
+            android:autoLink="web"
+            android:text="@string/preferences_about_about"/>
+
+        <TextView
             android:id="@+id/about_activity_libraries_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
