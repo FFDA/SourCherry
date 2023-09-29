@@ -685,6 +685,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             this.currentFindInNodeMarked = -1;
             this.findInNodeNext();
         }
+        this.setFindInNodeProgressBarPercentage();
     }
 
     /**
@@ -714,6 +715,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             this.currentFindInNodeMarked =  this.mainViewModel.getFindInNodeResultCount();
             this.findInNodePrevious();
         }
+        this.setFindInNodeProgressBarPercentage();
     }
 
     /**
@@ -927,6 +929,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                 }
             }
         }
+        this.setFindInNodeProgressBarPercentage();
     }
 
     /**
@@ -1621,6 +1624,8 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     private void openFindInNode() {
         this.findInNodeToggle = true;
         this.mainViewModel.findInNodeStorageToggle(true); // Created an array to store nodeContent
+        ProgressBar progressBar = findViewById(R.id.find_in_node_progress_bar);
+        progressBar.setProgress(0);
         LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
         EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
 
@@ -2093,7 +2098,9 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Start or stops findInView progress bar
+     * Start or stops findInView progress bar. Depending on the status value sets progress bar as
+     * indeterminate or not and set upper range of the progress bar to FindInNode result count. When
+     * indeterminate mode is on - bar will be used to show progress of the change of the results.
      * @param status true - start progress bar, false - stop progress bar
      */
     private void setFindInNodeProgressBar(Boolean status) {
@@ -2101,9 +2108,24 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             @Override
             public void run() {
                 ProgressBar progressBar = findViewById(R.id.find_in_node_progress_bar);
+                if (status) {
+                    progressBar.setIndeterminate(true);
+                } else {
+                    progressBar.setIndeterminate(false);
+                    progressBar.setMax(mainViewModel.getFindInNodeResultCount());
+                }
                 progressBar.setIndeterminate(status);
             }
         });
+    }
+
+    /**
+     * Set FindInNode progress bar's progress. Uses currently mark result from FindInNode results
+     * as the value.
+     */
+    private void setFindInNodeProgressBarPercentage() {
+        ProgressBar progressBar = findViewById(R.id.find_in_node_progress_bar);
+        progressBar.setProgress(currentFindInNodeMarked + 1);
     }
 
     /**
