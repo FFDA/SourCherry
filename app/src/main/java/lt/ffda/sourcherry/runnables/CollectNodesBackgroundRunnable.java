@@ -51,6 +51,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import lt.ffda.sourcherry.R;
+
 public class CollectNodesBackgroundRunnable implements Runnable {
     private final Uri mainFolderUri;
     private final Context context;
@@ -111,8 +113,7 @@ public class CollectNodesBackgroundRunnable implements Runnable {
                 }
             }
             if (subnodes == null) {
-                //TODO: fix this?
-                throw new FileNotFoundException("Could not find subnodes.lst file");
+                throw new FileNotFoundException(context.getString(R.string.toast_error_failed_to_delete_multi_database_file, "subnodes.lst"));
             }
             while (subnodes.size() > 0) {
                 cursor.moveToPosition(-1);

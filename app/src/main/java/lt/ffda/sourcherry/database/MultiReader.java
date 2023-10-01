@@ -310,7 +310,6 @@ public class MultiReader extends DatabaseReader {
                         this.context.getContentResolver(),
                         nodeUri
                 );
-                this.removeNodeFromBookmarks(nodeUniqueID); // TODO: most likely I won't need this anymore
                 this.removeNodeFromLst(DocumentsContract.getDocumentId(nodeParentUri), nodeUniqueID, "subnodes.lst");
             }
             uniqueIDList.add(node.getAttributes().getNamedItem("unique_id").getNodeValue());
