@@ -647,7 +647,7 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
                             @Override
                             public void run() {
                                 MainView.this.currentFindInNodeMarked = 0;
-                                MainView.this.highlightFindInNodeResult(MainView.this.currentFindInNodeMarked);
+                                MainView.this.highlightFindInNodeResult();
                             }
                         });
                     }
@@ -685,7 +685,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             this.currentFindInNodeMarked = -1;
             this.findInNodeNext();
         }
-        this.setFindInNodeProgressBarPercentage();
     }
 
     /**
@@ -715,7 +714,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             this.currentFindInNodeMarked =  this.mainViewModel.getFindInNodeResultCount();
             this.findInNodePrevious();
         }
-        this.setFindInNodeProgressBarPercentage();
     }
 
     /**
@@ -857,79 +855,48 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Highlights result from findInNodeResultStorage (array list) that is identified by currentFindInNodeMarked
-     * @param resultIndex index of result to be highlighted
+     * Highlights all results of the FindInNode search in light red color and call a method that
+     * highlights first result in darker red color. Calls methods that updates other FindInNOde
+     * UI elements.
      */
-    private void highlightFindInNodeResult(int resultIndex) {
-        int viewCounter = this.mainViewModel.getFindInNodeResult(resultIndex)[0]; // Saved index for the view
-        int startIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[1];
-        int endIndex = this.mainViewModel.getFindInNodeResult(resultIndex)[2];
-
+    private void highlightFindInNodeResult() {
+        this.mainViewModel.findInNodeStorageReset();
         LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
-        ScrollView contentFragmentScrollView = findViewById(R.id.content_fragment_scrollview);
-        int lineCounter = 0; // Needed to calculate position where view will have to be scrolled to
         int counter = 0; // Iterator of the all the saved views from node content
-
+        int resultCounter = 0;
+        int[] currentResult;
         for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
             View view = contentFragmentLinearLayout.getChildAt(i);
             if (view instanceof TextView) {
                 TextView currentTextView = (TextView) view;
-                // If substring that has to be marked IS IN the same view as previously marked substring
-                // Previous "highlight" will be removed while marking the current one
-                if (viewCounter == counter) {
-                    SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                    spannedSearchQuery.append(MainView.this.mainViewModel.getTextViewContent(counter));
-                    spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    int line = currentTextView.getLayout().getLineForOffset(startIndex); // Gets the line of the current string in current view
-                    int lineHeight = currentTextView.getLineHeight(); // needed to calculate the amount of pixel screen has to be scrolled down
-                    int currentLineCounter = lineCounter;
-                    this.handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            currentTextView.setText(spannedSearchQuery);
-                            // Scrolls view down to the line of the marked substring (query)
-                            // -100 pixels are to make highlighted substring not to be at the top of the screen
-                            contentFragmentScrollView.scrollTo(0, (line * lineHeight) + currentLineCounter - 100);
-                        }
-                    });
-                    MainView.this.updateMarkedIndex();
+                SpannableStringBuilder currentTextViewContent = MainView.this.mainViewModel.getfindInNodeStorageContent(counter);
+                while (resultCounter < this.mainViewModel.getFindInNodeResultCount() && (currentResult = this.mainViewModel.getFindInNodeResult(resultCounter))[0] == counter) {
+                    currentTextViewContent.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_100)), currentResult[1], currentResult[2], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    resultCounter++;
                 }
-                // Adds all TextView height to lineCounter. Will be used to move screen to correct position if there are more views
-                lineCounter += currentTextView.getHeight();
+                currentTextView.setText(currentTextViewContent);
                 counter++;
             } else if (view instanceof HorizontalScrollView) {
-                // If encountered a table
                 TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
-                    // If substring that has to be marked IS IN the same view as previously marked substring
                 for (int row = 0; row < tableLayout.getChildCount(); row++) {
                     TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
                     for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
-                        if (viewCounter == counter) {
-                            // If encountered a view that has to be marked
-                            TextView currentCell = (TextView) tableRow.getChildAt(cell);
-                            SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                            spannedSearchQuery.append(MainView.this.mainViewModel.getTextViewContent(counter));
-                            spannedSearchQuery.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            int currentLineCounter = lineCounter;
-                            this.handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    currentCell.setText(spannedSearchQuery);
-                                    // Scrolls view down to the line of the marked substring (query)
-                                    // -100 pixels are to make highlighted substring not to be at the top of the screen
-                                    contentFragmentScrollView.scrollTo(0, currentLineCounter - 100);
-                                }
-                            });
-                            MainView.this.updateMarkedIndex();
+                        TextView currentCell = (TextView) tableRow.getChildAt(cell);
+                        SpannableStringBuilder currentTextViewContent = MainView.this.mainViewModel.getfindInNodeStorageContent(counter);
+                        while (resultCounter < this.mainViewModel.getFindInNodeResultCount() && (currentResult = this.mainViewModel.getFindInNodeResult(resultCounter))[0] == counter) {
+                            currentTextViewContent.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_100)), currentResult[1], currentResult[2], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            resultCounter++;
                         }
+                        currentCell.setText(currentTextViewContent);
                         counter++;
                     }
-                    // Adds row's height to lineCounter. Will be used to move screen to correct position if there are more views
-                    lineCounter += tableRow.getHeight();
                 }
             }
         }
-        this.setFindInNodeProgressBarPercentage();
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
+        nodeContentFragment.switchFindInNodeHighlight(-1, this.currentFindInNodeMarked);
+        this.updateMarkedIndex();
     }
 
     /**
@@ -1929,12 +1896,10 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Restores TextView to original state that was changed with highlightFindInNodeResult() function
+     * Restores TextView to original state that was changed with highlightFindInNodeResult() function.
+     * Resets all other variables and UI elements associated with FindInNode too.
      */
     private void restoreHighlightedView() {
-        // Uses index of the TextView in currentFindInNodeMarked
-        // At the end sets currentFindInNodeMarked to 0 (nothing marked)
-        // Resets counters and search result storage too
         LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
         if (this.currentFindInNodeMarked != -1 && contentFragmentLinearLayout != null && this.mainViewModel.getFindInNodeResultStorage().size() > 0) {
             int viewIndex = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked)[0];
@@ -1942,33 +1907,17 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
             for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
                 View view = contentFragmentLinearLayout.getChildAt(i);
                 if (view instanceof TextView) {
-                    if (viewIndex == counter) {
-                        SpannableStringBuilder originalText = new SpannableStringBuilder();
-                        originalText.append(MainView.this.mainViewModel.getTextViewContent(counter));
-                        this.handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                ((TextView) view).setText(originalText);
-                            }
-                        });
-                    }
+                    SpannableStringBuilder originalText = new SpannableStringBuilder(this.mainViewModel.getTextViewContent(counter));
+                    ((TextView) view).setText(originalText);
                     counter++;
                 } else if (view instanceof HorizontalScrollView) {
                     TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
                     for (int row = 0; row < tableLayout.getChildCount(); row++) {
                         TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
                         for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
-                            if (viewIndex == counter) {
-                                TextView currentCell = (TextView) tableRow.getChildAt(cell);
-                                SpannableStringBuilder originalText = new SpannableStringBuilder();
-                                originalText.append(MainView.this.mainViewModel.getTextViewContent(counter));
-                                this.handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        currentCell.setText(originalText);
-                                    }
-                                });
-                            }
+                            TextView currentCell = (TextView) tableRow.getChildAt(cell);
+                            SpannableStringBuilder originalText = new SpannableStringBuilder(this.mainViewModel.getTextViewContent(counter));
+                            currentCell.setText(originalText);
                             counter++;
                         }
                     }
@@ -2120,15 +2069,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Set FindInNode progress bar's progress. Uses currently mark result from FindInNode results
-     * as the value.
-     */
-    private void setFindInNodeProgressBarPercentage() {
-        ProgressBar progressBar = findViewById(R.id.find_in_node_progress_bar);
-        progressBar.setProgress(currentFindInNodeMarked + 1);
-    }
-
-    /**
      * Sets toolbar title to the provided string
      * @param title new title for the toolbar
      */
@@ -2266,14 +2206,16 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     /**
-     * Sets/updates index of currently marked result
+     * Sets/updates index of currently marked result in the counter and progress bar
      */
     private void updateMarkedIndex() {
         TextView findInNodeEditTextMarkedIndex = findViewById(R.id.find_in_node_edit_text_marked_index);
+        ProgressBar progressBar = findViewById(R.id.find_in_node_progress_bar);
         handler.post(new Runnable() {
             @Override
             public void run() {
                 findInNodeEditTextMarkedIndex.setText(String.valueOf(MainView.this.currentFindInNodeMarked + 1));
+                progressBar.setProgress(currentFindInNodeMarked + 1);
             }
         });
     }
