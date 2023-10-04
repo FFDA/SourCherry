@@ -46,7 +46,7 @@ For the same reason (SAF) that prevents file extraction without saving files ins
 ## Fonts used
 * Caladea (Apache 2.0)
 * Comfortaa (OFL)
-* Comfortaa (OFL)
+* Merriweather (OFL)
 
 ## Privacy policy
 
