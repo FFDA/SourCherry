@@ -9,8 +9,8 @@ android {
         applicationId 'lt.ffda.sourcherry'
         minSdk 24
         targetSdk 33
-        versionCode 11
-        versionName "1.4.0"
+        versionCode 12
+        versionName "1.5.0"
 
         archivesBaseName = "SourCherry_" + versionName
 
