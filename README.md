@@ -43,6 +43,11 @@ For the same reason (SAF) that prevents file extraction without saving files ins
 * JLatexMath Android - https://github.com/noties/jlatexmath-android
 * ColorPickerDialog - https://github.com/fennifith/ColorPickerDialog
 
+## Fonts used
+* Caladea (Apache 2.0)
+* Comfortaa (OFL)
+* Comfortaa (OFL)
+
 ## Privacy policy
 
 Generated privacy policy using https://privacypolicytemplate.net, because it is required for apps published on Google Play Store.

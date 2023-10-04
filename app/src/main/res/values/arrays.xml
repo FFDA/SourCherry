@@ -33,4 +33,11 @@
         <item>exit</item>
         <item>save</item>
     </string-array>
+
+    <string-array name="font_types">
+        <item>Default</item>
+        <item>Comfortaa</item>
+        <item>Merriweather</item>
+        <item>Caladea</item>
+    </string-array>
 </resources>

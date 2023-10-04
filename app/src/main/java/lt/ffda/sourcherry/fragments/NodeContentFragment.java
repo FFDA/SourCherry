@@ -11,6 +11,7 @@
 package lt.ffda.sourcherry.fragments;
 
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -37,6 +38,7 @@ import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
@@ -109,7 +111,17 @@ public class NodeContentFragment extends Fragment {
                 }
             });
         }
-
+        Typeface typeface = null;
+        switch (this.sharedPreferences.getString("preference_font_type", "Default")) {
+            case "Comfortaa":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.comfortaa_regular);
+                break;
+            case "Merriweather":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.merriweather_regular);
+                break;
+            case "Caladea":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.caladea_regular);
+        }
         for (ScNodeContent part: this.mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
@@ -119,6 +131,9 @@ public class NodeContentFragment extends Fragment {
                 tv.setMovementMethod(LinkMovementMethod.getInstance()); // Needed to detect click/open links
                 tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
                 tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                if (typeface != null) {
+                    tv.setTypeface(typeface);
+                }
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -161,6 +176,9 @@ public class NodeContentFragment extends Fragment {
                     headerTextView.setLayoutParams(params);
                     headerTextView.setText(cell);
                     headerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                    if (typeface != null) {
+                        headerTextView.setTypeface(typeface);
+                    }
                     tableHeaderRow.addView(headerTextView);
                 }
                 table.addView(tableHeaderRow);
@@ -179,6 +197,9 @@ public class NodeContentFragment extends Fragment {
                         cellTextView.setLayoutParams(params);
                         cellTextView.setText(cell);
                         cellTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                        if (typeface != null) {
+                            cellTextView.setTypeface(typeface);
+                        }
                         tableRow.addView(cellTextView);
                     }
                     table.addView(tableRow);

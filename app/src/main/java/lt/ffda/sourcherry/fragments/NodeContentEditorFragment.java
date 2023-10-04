@@ -13,6 +13,7 @@ package lt.ffda.sourcherry.fragments;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
@@ -53,6 +54,7 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
 import androidx.core.view.WindowCompat;
@@ -449,7 +451,17 @@ public class NodeContentEditorFragment extends Fragment {
                 }
             });
         }
-
+        Typeface typeface = null;
+        switch (this.sharedPreferences.getString("preference_font_type", "Default")) {
+            case "Comfortaa":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.comfortaa_regular);
+                break;
+            case "Merriweather":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.merriweather_regular);
+                break;
+            case "Caladea":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.caladea_regular);
+        }
         for (ScNodeContent part : this.mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 // This adds not only text, but images, codeboxes
@@ -459,6 +471,9 @@ public class NodeContentEditorFragment extends Fragment {
                 editText.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
                 editText.addTextChangedListener(textWatcher);
                 editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                if (typeface != null) {
+                    editText.setTypeface(typeface);
+                }
                 this.handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -504,6 +519,9 @@ public class NodeContentEditorFragment extends Fragment {
                     headerTextView.setLayoutParams(params);
                     headerTextView.setText(cell);
                     headerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                    if (typeface != null) {
+                        headerTextView.setTypeface(typeface);
+                    }
                     tableHeaderRow.addView(headerTextView);
                 }
                 table.addView(tableHeaderRow);
@@ -522,6 +540,9 @@ public class NodeContentEditorFragment extends Fragment {
                         cellTextView.setLayoutParams(params);
                         cellTextView.setText(cell);
                         cellTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                        if (typeface != null) {
+                            cellTextView.setTypeface(typeface);
+                        }
                         tableRow.addView(cellTextView);
                     }
                     table.addView(tableRow);

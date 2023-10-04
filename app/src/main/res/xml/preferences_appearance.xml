@@ -28,6 +28,14 @@
         android:defaultValue="15"
         app:showSeekBarValue="true"/>
 
+    <ListPreference
+        android:key="preference_font_type"
+        android:title="@string/preferences_font_type_title"
+        app:useSimpleSummaryProvider="true"
+        android:defaultValue="Default"
+        android:entries="@array/font_types"
+        android:entryValues="@array/font_types"/>
+
     <PreferenceCategory
         android:key="preferences_category_padding"
         android:title="@string/preferences_category_padding_title"
