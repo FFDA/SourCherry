@@ -120,7 +120,7 @@ import lt.ffda.sourcherry.runnables.NodesCollectedCallback;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
 
-public class MainView extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
+public class MainView extends AppCompatActivity {
 
     private ActionBarDrawerToggle actionBarDrawerToggle;
     private MenuItemAdapter adapter;
@@ -1385,7 +1385,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
 
             }
         });
-        PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -1484,15 +1483,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
     }
 
     @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals("preferences_text_size")) {
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-            nodeContentFragment.loadContent();
-        }
-    }
-
-    @Override
     public void onStop() {
         if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.mainViewModel.getCurrentNode() != null) {
             // Saving current nodeUniqueID to be able to load it on next startup
@@ -1509,7 +1499,6 @@ public class MainView extends AppCompatActivity implements SharedPreferences.OnS
         if (!isChangingConfigurations() && this.mainViewModel.getMultiDatabaseSync().getValue() != null) {
             this.mainViewModel.getMultiDatabaseSync().getValue().cancel(true);
         }
-        PreferenceManager.getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(this);
     }
 
     /**
