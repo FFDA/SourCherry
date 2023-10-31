@@ -10,7 +10,9 @@
 
 package lt.ffda.sourcherry.database;
 
+import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -24,6 +26,10 @@ import android.text.style.StrikethroughSpan;
 import android.text.style.SubscriptSpan;
 import android.text.style.SuperscriptSpan;
 import android.text.style.UnderlineSpan;
+import android.view.View;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.content.res.AppCompatResources;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -34,10 +40,14 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import lt.ffda.sourcherry.MainView;
+import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 import lt.ffda.sourcherry.model.ScSearchNode;
 import lt.ffda.sourcherry.spans.BackgroundColorSpanCustom;
+import lt.ffda.sourcherry.spans.ClickableSpanFile;
+import lt.ffda.sourcherry.spans.ImageSpanFile;
 import lt.ffda.sourcherry.spans.StyleSpanBold;
 import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
@@ -448,4 +458,37 @@ public abstract class DatabaseReader {
      * @param noSearchCh 1 - to exclude subnodes of the node from searches, 0 - keep subnodes of the node in searches
      */
     public abstract void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh);
+
+    /**
+     * Creates String with spanns that can be inserted into no content and it will have formatting
+     * for attached file. This span when saving will make the reader to save attached file in to the
+     * database file.
+     * @param context context of the app to get resources
+     * @param filename filename of the file user chose to attach to the node
+     * @param nodeUniqueID unique ID of the node to which the file has to be attached
+     * @param fileUri file Uri that user wants to attach to the node
+     * @return formatted String to look like attached file in the node content
+     */
+    public static SpannableStringBuilder createAttachFile(Context context, String filename, String nodeUniqueID, String fileUri) {
+        SpannableStringBuilder attachedFile = new SpannableStringBuilder();
+        attachedFile.append(" "); // Needed to insert an image
+        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
+        drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
+        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        attachedFileIcon.setNodeUniqueId(nodeUniqueID);
+        attachedFileIcon.setFilename(filename);
+        attachedFileIcon.setFileUri(fileUri);
+        attachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        attachedFile.append(filename);
+        ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                // There is no need to implelent it here, because this function is called only from
+                // nodeContentEditor and clicks are not detected in that fragment. It is only needed
+                // for text formatting.
+            }
+        };
+        attachedFile.setSpan(imageClickableSpan, 0, attachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return attachedFile;
+    }
 }

@@ -117,6 +117,16 @@
                 android:contentDescription="@string/edit_node_fragment_button_row_strikethrough"
                 android:src="@drawable/baseline_strikethrough_s_24"
                 tools:ignore="RedundantDescriptionCheck"/>
+            <ImageButton
+                android:id="@+id/edit_node_fragment_button_row_attach_file"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:background="?selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/edit_node_fragment_button_row_attach_file"
+                android:src="@drawable/ic_outline_attachment_24"
+                tools:ignore="RedundantDescriptionCheck"/>
         </LinearLayout>
     </HorizontalScrollView>
 </LinearLayout>

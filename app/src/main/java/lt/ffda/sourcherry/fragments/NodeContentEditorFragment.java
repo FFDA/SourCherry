@@ -16,6 +16,7 @@ import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.DocumentsContract;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -51,6 +52,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -59,6 +62,7 @@ import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.Observer;
@@ -74,6 +78,7 @@ import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.ScApplication;
 import lt.ffda.sourcherry.customUiElements.ScTableLayout;
+import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeContentTable;
@@ -138,11 +143,23 @@ public class NodeContentEditorFragment extends Fragment {
     };
 
     /**
+     * Promts user to select a file they want to attach to the node. If user selects a file inserts
+     * file representing string at the possition of the cursor
+     */
+    private final ActivityResultLauncher<String[]> attachFile = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
+        if (result != null) {
+            DocumentFile file = DocumentFile.fromSingleUri(getContext(), result);
+            EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFile(getContext(), file.getName(), this.mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
+        }
+    });
+
+    /**
      * Adds textChangedListeners for all EditText views
-     * Does it in the background
+     * Does it on the main thread
      */
     private void addTextChangedListeners() {
-        this.executor.execute(new Runnable() {
+        this.handler.post(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
@@ -585,7 +602,6 @@ public class NodeContentEditorFragment extends Fragment {
                 }
             }
         });
-
     }
 
     @Nullable
@@ -600,18 +616,6 @@ public class NodeContentEditorFragment extends Fragment {
         this.executor = appContainer.executor;
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         this.color = this.sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
-        final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {
-            @Override
-            public void onChanged(ArrayList<ScNodeContent> scNodeContents) {
-                NodeContentEditorFragment.this.executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        NodeContentEditorFragment.this.loadContent();
-                    }
-                });
-            }
-        };
-        this.mainViewModel.getNodeContent().observe(getViewLifecycleOwner(), contentObserver);
         return view;
     }
 
@@ -768,10 +772,27 @@ public class NodeContentEditorFragment extends Fragment {
                     NodeContentEditorFragment.this.toggleFontStrikethrough();
                 }
             });
+            ImageButton attachFileButton = view.findViewById(R.id.edit_node_fragment_button_row_attach_file);
+            attachFileButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    View view = NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getFocusedChild();
+                    if (view == null) {
+                        Toast.makeText(getContext(), R.string.toast_message_attach_file_place_cursor, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (view instanceof HorizontalScrollView) {
+                        Toast.makeText(getContext(), R.string.toast_message_attach_file_insert_into_table, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    NodeContentEditorFragment.this.attachFile.launch(new String[]{"*/*"});
+                }
+            });
         } else {
             HorizontalScrollView buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row_scrollview);
             buttonRowLinearLayout.setVisibility(View.GONE);
         }
+        this.loadContent();
     }
 
     @Override
@@ -817,10 +838,10 @@ public class NodeContentEditorFragment extends Fragment {
 
     /**
      * Removes all textChangedListeners from EditText views
-     * Does it in the background
+     * Does it on the main thread
      */
     private void removeTextChangedListeners() {
-        this.executor.execute(new Runnable() {
+        this.handler.post(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {

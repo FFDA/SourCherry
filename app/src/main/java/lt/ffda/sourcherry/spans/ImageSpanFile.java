@@ -28,6 +28,7 @@ public class ImageSpanFile extends ImageSpan {
     private int newOffset;
     private String justification;
     private String sha256sum;
+    private String fileUri;
 
     public ImageSpanFile(@NonNull Drawable drawable, int verticalAlignment) {
         super(drawable, verticalAlignment);
@@ -167,5 +168,21 @@ public class ImageSpanFile extends ImageSpan {
      */
     public void setSha256sum(String sha256sum) {
         this.sha256sum = sha256sum;
+    }
+
+    /**
+     * Get file Uri. Used only if file was added during the additing and not yet saved in the file system
+     * @return file Uri or Null
+     */
+    public String getFileUri() {
+        return fileUri;
+    }
+
+    /**
+     * Set file uri that points to the file.
+     * @param fileUri Uri of the file
+     */
+    public void setFileUri(String fileUri) {
+        this.fileUri = fileUri;
     }
 }

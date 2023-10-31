@@ -1932,12 +1932,7 @@ public class MainView extends AppCompatActivity {
             NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
             // Sends ArrayList to fragment to be added added to view
             this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
-            this.executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    nodeContentFragment.loadContent();
-                }
-            });
+            this.loadNodeContent();
         }
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
         onBackPressed();

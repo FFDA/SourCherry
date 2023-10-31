@@ -72,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
             exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
         }
     });
+
     /**
      * Register activity for user to select a multi-file database folder
      * Gets permanent read and write permissions for selected folder
@@ -86,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
             this.setMessageWithDatabaseName();
         }
     });
+
     /**
      * Registers activity for user to select a document
      * Gets permanent read and write permissions for selected document

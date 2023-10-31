@@ -10,6 +10,7 @@
 
 package lt.ffda.sourcherry.database;
 
+import android.content.ContentProvider;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -814,6 +815,22 @@ public class XMLReader extends DatabaseReader {
                                 element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
                                 if (imageSpanFile.isFromDatabase()) {
                                     element.setTextContent(this.getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
+                                } else {
+                                    Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
+                                    try (
+                                            InputStream fileInputSteam = this.context.getContentResolver().openInputStream(fileUri);
+                                            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()
+                                    ) {
+                                        byte[] buf = new byte[4 * 1024];
+                                        int length;
+                                        while ((length = fileInputSteam.read(buf)) != -1) {
+                                            byteArrayOutputStream.write(buf);
+                                        }
+                                        String base64String = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
+                                        element.setTextContent(base64String);
+                                    } catch (IOException e) {
+                                        this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+                                    }
                                 }
                                 offsetNodes.add(element);
                             } else if (span instanceof ClickableSpanFile) {
