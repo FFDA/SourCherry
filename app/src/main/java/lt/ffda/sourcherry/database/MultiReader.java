@@ -1193,8 +1193,10 @@ public class MultiReader extends DatabaseReader {
             element.setTextContent(nodeContent.toString());
             node.appendChild(element);
         }
+        Element cherrytreeElement = doc.createElement("cherrytree");
+        cherrytreeElement.appendChild(node);
         try (OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, documentId))) {
-            this.saveChanges(node, os);
+            this.saveChanges(cherrytreeElement, os);
         } catch (IOException e) {
             this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
         }
