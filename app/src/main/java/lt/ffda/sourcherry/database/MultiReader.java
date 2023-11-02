@@ -54,6 +54,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -64,6 +65,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -101,6 +105,7 @@ import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
+import lt.ffda.sourcherry.utils.Filenames;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class MultiReader extends DatabaseReader {
@@ -933,6 +938,39 @@ public class MultiReader extends DatabaseReader {
                                 if (imageSpanFile.isFromDatabase()) {
                                     element.setAttribute("sha256sum", imageSpanFile.getSha256sum());
                                     fileImageSha256Sums.add(imageSpanFile.getSha256sum());
+                                } else {
+                                    try {
+                                        Uri userAttachedFileUri = Uri.parse(imageSpanFile.getFileUri());
+                                        InputStream inputStream = this.context.getContentResolver().openInputStream(userAttachedFileUri);
+                                        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                                        byte[] buf = new byte[4 * 1024];
+                                        int length;
+                                        while ((length = inputStream.read(buf)) != -1) {
+                                            byteArrayOutputStream.write(buf);
+                                        }
+                                        byte[] hash = MessageDigest.getInstance("SHA-256").digest(byteArrayOutputStream.toByteArray());
+                                        String sha256sum = new BigInteger(1, hash).toString(16);
+                                        byteArrayOutputStream.close();
+                                        inputStream.close();
+                                        String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
+                                        Uri multiFileStorageFileUri = DocumentsContract.createDocument(
+                                                this.context.getContentResolver(),
+                                                this.getNodeUri(this.findSingleNode(this.mainViewModel.getCurrentNode().getUniqueId())),
+                                                "*/*",
+                                                extension != null ? sha256sum + "." + extension : sha256sum
+                                        );
+                                        inputStream = this.context.getContentResolver().openInputStream(userAttachedFileUri);
+                                        OutputStream outputStream = this.context.getContentResolver().openOutputStream(multiFileStorageFileUri);
+                                        while ((length = inputStream.read(buf)) != -1) {
+                                            outputStream.write(buf);
+                                        }
+                                        inputStream.close();
+                                        outputStream.close();
+                                        element.setAttribute("sha256sum", sha256sum);
+                                        fileImageSha256Sums.add(sha256sum);
+                                    } catch (IOException | NoSuchAlgorithmException e) {
+                                        this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+                                    }
                                 }
                                 offsetNodes.add(element);
                             } else if (span instanceof ClickableSpanFile) {
