@@ -1016,7 +1016,6 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         ContentValues contentValues = new ContentValues();
                         contentValues.put("offset", imageSpanFile.getNewOffset() + extraCharOffset);
                         contentValues.put("justification", lastFoundJustification);
-                        String timeStamp = String.valueOf(System.currentTimeMillis() / 1000);
                         try {
                             this.sqlite.beginTransaction();
                             if (imageSpanFile.isFromDatabase()) {
@@ -1026,7 +1025,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                 // The same applies for the check for '__ct_special.tex'
                                 this.sqlite.update("image", contentValues, "node_id = ? AND offset = ? AND NOT filename = '' AND NOT filename = '__ct_special.tex'", new String[]{nodeUniqueID, imageSpanFile.getOriginalOffset()});
                             } else {
-                                // Inserting the file in the image table
+                                // Inserting the file in to the image table
                                 Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
                                 try (
                                         InputStream fileInputSteam = this.context.getContentResolver().openInputStream(fileUri);
@@ -1045,7 +1044,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                 contentValues.put("anchor", "");
                                 contentValues.put("filename", imageSpanFile.getFilename());
                                 contentValues.put("link", "");
-                                contentValues.put("time", timeStamp);
+                                contentValues.put("time", String.valueOf(System.currentTimeMillis() / 1000));
                                 this.sqlite.insert("image", null, contentValues);
                                 // Updating node table to reflect that user inserted a file
                                 contentValues.clear();

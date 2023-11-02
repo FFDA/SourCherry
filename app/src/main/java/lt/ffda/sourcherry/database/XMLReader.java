@@ -812,8 +812,8 @@ public class XMLReader extends DatabaseReader {
                                 element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
                                 element.setAttribute("justification", lastFoundJustification);
                                 element.setAttribute("filename", imageSpanFile.getFilename());
-                                element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
                                 if (imageSpanFile.isFromDatabase()) {
+                                    element.setAttribute("time", imageSpanFile.getTimestamp());
                                     element.setTextContent(this.getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
                                 } else {
                                     Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
@@ -827,6 +827,7 @@ public class XMLReader extends DatabaseReader {
                                             byteArrayOutputStream.write(buf);
                                         }
                                         String base64String = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
+                                        element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
                                         element.setTextContent(base64String);
                                     } catch (IOException e) {
                                         this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));

@@ -934,8 +934,8 @@ public class MultiReader extends DatabaseReader {
                                 element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
                                 element.setAttribute("justification", lastFoundJustification);
                                 element.setAttribute("filename", imageSpanFile.getFilename());
-                                element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
                                 if (imageSpanFile.isFromDatabase()) {
+                                    element.setAttribute("time", imageSpanFile.getTimestamp());
                                     element.setAttribute("sha256sum", imageSpanFile.getSha256sum());
                                     fileImageSha256Sums.add(imageSpanFile.getSha256sum());
                                 } else {
@@ -966,6 +966,7 @@ public class MultiReader extends DatabaseReader {
                                         }
                                         inputStream.close();
                                         outputStream.close();
+                                        element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
                                         element.setAttribute("sha256sum", sha256sum);
                                         fileImageSha256Sums.add(sha256sum);
                                     } catch (IOException | NoSuchAlgorithmException e) {
