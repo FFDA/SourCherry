@@ -23,6 +23,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.text.Layout;
@@ -58,6 +59,7 @@ import org.w3c.dom.NodeList;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -1011,27 +1013,52 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                             collectedCodebox = null;
                         }
                         ImageSpanFile imageSpanFile = (ImageSpanFile) offsetObject;
-                        if (imageSpanFile.isFromDatabase()) {
-                            // If file was loaded from the database, so only it's offset and justification changed
+                        ContentValues contentValues = new ContentValues();
+                        contentValues.put("offset", imageSpanFile.getNewOffset() + extraCharOffset);
+                        contentValues.put("justification", lastFoundJustification);
+                        String timeStamp = String.valueOf(System.currentTimeMillis() / 1000);
+                        try {
                             this.sqlite.beginTransaction();
-                            try {
-                                ContentValues contentValues = new ContentValues();
-                                contentValues.put("offset", imageSpanFile.getNewOffset() + extraCharOffset);
-                                contentValues.put("justification", imageSpanFile.getJustification());
+                            if (imageSpanFile.isFromDatabase()) {
+                                // If file was loaded from the database, so only it's offset and justification changed
                                 // filename = '' is necessary to make sure that any other type of 'image' does not have
-                                // the same offset. Just in face it was written in to database before current file.
-                                // The same applies for check for '__ct_special.tex' - just in case the offset if for
-                                // latex code
+                                // the same offset. Just in case it was written in to database before current file.
+                                // The same applies for the check for '__ct_special.tex'
                                 this.sqlite.update("image", contentValues, "node_id = ? AND offset = ? AND NOT filename = '' AND NOT filename = '__ct_special.tex'", new String[]{nodeUniqueID, imageSpanFile.getOriginalOffset()});
-                                this.sqlite.setTransactionSuccessful();
-                            } finally {
-                                this.sqlite.endTransaction();
+                            } else {
+                                // Inserting the file in the image table
+                                Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
+                                try (
+                                        InputStream fileInputSteam = this.context.getContentResolver().openInputStream(fileUri);
+                                        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()
+                                ) {
+                                    byte[] buf = new byte[4 * 1024];
+                                    int length;
+                                    while ((length = fileInputSteam.read(buf)) != -1) {
+                                        byteArrayOutputStream.write(buf);
+                                    }
+                                    contentValues.put("png", byteArrayOutputStream.toByteArray());
+                                } catch (IOException e) {
+                                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+                                }
+                                contentValues.put("node_id", nodeUniqueID);
+                                contentValues.put("anchor", "");
+                                contentValues.put("filename", imageSpanFile.getFilename());
+                                contentValues.put("link", "");
+                                contentValues.put("time", timeStamp);
+                                this.sqlite.insert("image", null, contentValues);
+                                // Updating node table to reflect that user inserted a file
+                                contentValues.clear();
+                                contentValues.put("has_image", 1);
+                                this.sqlite.update("node", contentValues, "node_id = ?", new String[]{nodeUniqueID});
                             }
+                            this.sqlite.setTransactionSuccessful();
+                        } finally {
+                            this.sqlite.endTransaction();
                         }
                         attachedFileOffset.add(imageSpanFile.getNewOffset() + extraCharOffset);
                         extraCharOffset++;
                     } else if (offsetObject instanceof ImageSpanAnchor) {
-                        //                        case "ImageSpanAnchor":
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
                             this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
