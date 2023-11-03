@@ -979,6 +979,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 // image table. If it does not find an offset in the list - deletes it from the table
                 ArrayList<Integer> attachedFileOffset = new ArrayList<>();
                 TypefaceSpanCodebox collectedCodebox = null;
+                boolean hasImage = false;
+                boolean hasCodebox = false;
+                boolean hasTable = false;
                 // Writing all offset elements to appropriate tables
                 for (Object offsetObject : offsetObjects) {
                     if (offsetObject instanceof TypefaceSpanCodebox) {
@@ -1000,6 +1003,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                             } else {
                                 // If offsets are different join write the previous codebox to
                                 // database and set the new one to the variable
+                                hasCodebox = true;
                                 this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
                                 extraCharOffset++;
                                 collectedCodebox = typefaceSpanCodebox;
@@ -1008,10 +1012,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     } else if (offsetObject instanceof ImageSpanFile) {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
+                            hasCodebox = true;
                             this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
                         }
+                        hasImage = true;
                         ImageSpanFile imageSpanFile = (ImageSpanFile) offsetObject;
                         ContentValues contentValues = new ContentValues();
                         contentValues.put("offset", imageSpanFile.getNewOffset() + extraCharOffset);
@@ -1060,6 +1066,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     } else if (offsetObject instanceof ImageSpanAnchor) {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
+                            hasCodebox = true;
                             this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
@@ -1085,10 +1092,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     } else if (offsetObject instanceof ScNodeContentTable) {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
+                            hasCodebox = true;
                             this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
                         }
+                        hasTable = true;
                         ScNodeContentTable scNodeContentTable = (ScNodeContentTable) offsetObject;
                         Element tableElement = doc.createElement("table");
                         tableElement.setAttribute("col_widths", scNodeContentTable.getColWidths());
@@ -1137,10 +1146,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     } else if (offsetObject instanceof ImageSpanLatex) {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
+                            hasCodebox = true;
                             this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
                         }
+                        hasImage = true;
                         ImageSpanLatex imageSpanLatex = (ImageSpanLatex) offsetObject;
                         this.sqlite.beginTransaction();
                         try {
@@ -1163,10 +1174,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     } else if (offsetObject instanceof ImageSpanImage) {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
+                            hasCodebox = true;
                             this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
                         }
+                        hasImage = true;
                         ImageSpanImage imageSpanImage = (ImageSpanImage) offsetObject;
                         Drawable drawable = imageSpanImage.getDrawable();
                         // Hopefully it's always a Bitmap drawable, because I get it from the same source
@@ -1195,6 +1208,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 }
                 if (collectedCodebox != null) {
                     // Might be that last element if offsetObject was codebox - writing it to database
+                    hasCodebox = true;
                     this.writeCodeboxToDatabase(nodeUniqueID, collectedCodebox, extraCharOffset);
                     collectedCodebox = null;
                 }
@@ -1226,6 +1240,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 // Updating nodeContent - text
                 ContentValues contentValues = new ContentValues();
                 contentValues.put("txt", writer.toString());
+                contentValues.put("has_codebox", hasCodebox ? 1 : 0);
+                contentValues.put("has_table", hasTable ? 1 : 0);
+                contentValues.put("has_image", hasImage ? 1 : 0);
                 contentValues.put("ts_lastsave", System.currentTimeMillis() / 1000);
                 this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
                 this.sqlite.setTransactionSuccessful();
