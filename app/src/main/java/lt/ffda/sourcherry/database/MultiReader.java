@@ -54,7 +54,6 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -411,7 +410,7 @@ public class MultiReader extends DatabaseReader {
     }
 
     @Override
-    public ImageSpan getBrokenImageSpan(int type) {
+    public ImageSpan makeBrokenImageSpan(int type) {
         // Returns an image span that is used to display as placeholder image
         // used when cursor window is to small to get an image blob
         // pass 0 to get broken image span, pass 1 to get broken latex span
@@ -521,7 +520,7 @@ public class MultiReader extends DatabaseReader {
                                     break;
                                 case "codebox": {
                                     int charOffset = this.getCharOffset(currentNode);
-                                    SpannableStringBuilder codeboxText = this.makeFormattedCodebox(currentNode);
+                                    SpannableStringBuilder codeboxText = this.makeFormattedCodeboxSpan(currentNode);
                                     nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
                                     totalCharOffset += codeboxText.length() - 1;
                                     break;
@@ -578,7 +577,7 @@ public class MultiReader extends DatabaseReader {
                         }
                     } else {
                         // Node is Code Node. It's just a big CodeBox with no dimensions
-                        nodeContentStringBuilder.append(this.makeFormattedCodeNode(node));
+                        nodeContentStringBuilder.append(this.makeFormattedCodeNodeSpan(node));
                     }
                 } catch (IOException | SAXException e) {
                     this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_node_content));
@@ -1893,7 +1892,7 @@ public class MultiReader extends DatabaseReader {
      * @param node Node object that contains content of the node
      * @return SpannableStringBuilder that has spans marked for string formatting
      */
-    private SpannableStringBuilder makeFormattedCodeNode(Node node) {
+    private SpannableStringBuilder makeFormattedCodeNodeSpan(Node node) {
         SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
         NodeList nodeList = node.getChildNodes();
         for (int i = 0; i < nodeList.getLength(); i++) {
@@ -1924,7 +1923,7 @@ public class MultiReader extends DatabaseReader {
      * @param node Node object that has codebox content
      * @return SpannableStringBuilder that has spans marked for string formatting
      */
-    private SpannableStringBuilder makeFormattedCodebox(Node node) {
+    private SpannableStringBuilder makeFormattedCodeboxSpan(Node node) {
         SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
         formattedCodebox.append(node.getTextContent());
         // Changes font
@@ -2012,7 +2011,7 @@ public class MultiReader extends DatabaseReader {
                     imageSpanImage.setSha256sum(sha256sum);
                 } catch (FileNotFoundException e) {
                     // Displays a toast message and appends broken image span to display in node content
-                    imageSpanImage = (ImageSpanImage) this.getBrokenImageSpan(0);
+                    imageSpanImage = (ImageSpanImage) this.makeBrokenImageSpan(0);
                     formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
                 }
@@ -2078,7 +2077,7 @@ public class MultiReader extends DatabaseReader {
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken latex image span to display in node content
-            imageSpanLatex = (ImageSpanLatex) this.getBrokenImageSpan(1);
+            imageSpanLatex = (ImageSpanLatex) this.makeBrokenImageSpan(1);
             formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_compile_latex));
         }

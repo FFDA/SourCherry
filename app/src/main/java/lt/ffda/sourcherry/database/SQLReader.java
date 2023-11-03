@@ -297,7 +297,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     @Override
-    public ImageSpan getBrokenImageSpan(int type) {
+    public ImageSpan makeBrokenImageSpan(int type) {
         // Returns an image span that is used to display as placeholder image
         // used when cursor window is to small to get an image blob
         // pass 0 to get broken image span, pass 1 to get broken latex span
@@ -541,7 +541,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                         // And placeholder image is placed
                                         SpannableStringBuilder brokenImageSpan = new SpannableStringBuilder();
                                         brokenImageSpan.append(" ");
-                                        brokenImageSpan.setSpan(this.getBrokenImageSpan(0), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                        brokenImageSpan.setSpan(this.makeBrokenImageSpan(0), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, brokenImageSpan);
                                         this.displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
                                     }
@@ -554,7 +554,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                             // Get codebox entry for current node_id and charOffset
                             Cursor codeboxCursor = this.sqlite.rawQuery(new String("SELECT * FROM codebox WHERE node_id = ? AND offset = ?"), new String[]{nodeUniqueID, String.valueOf(charOffset)});
                             if (codeboxCursor.moveToFirst()) {
-                                SpannableStringBuilder codeboxText = makeFormattedCodebox(codeboxCursor.getString(2), codeboxCursor.getString(3), codeboxCursor.getString(4), codeboxCursor.getInt(5), codeboxCursor.getInt(6), codeboxCursor.getInt(7) == 1, codeboxCursor.getInt(8) == 1, codeboxCursor.getInt(9) == 1);
+                                SpannableStringBuilder codeboxText = makeFormattedCodeboxSpan(codeboxCursor.getString(2), codeboxCursor.getString(3), codeboxCursor.getString(4), codeboxCursor.getInt(5), codeboxCursor.getInt(6), codeboxCursor.getInt(7) == 1, codeboxCursor.getInt(8) == 1, codeboxCursor.getInt(9) == 1);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
                                 codeboxCursor.close();
                                 totalCharOffset += codeboxText.length() - 1;
@@ -597,7 +597,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 nodeContentStringBuilder.append(cursor.getString(0));
             } else {
                 // Node is Code Node. It's just a big CodeBox with no dimensions
-                nodeContentStringBuilder.append(makeFormattedCodeNode(cursor.getString(0)));
+                nodeContentStringBuilder.append(makeFormattedCodeNodeSpan(cursor.getString(0)));
             }
         }
         cursor.close();
@@ -2005,7 +2005,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param nodeContent content of the code node
      * @return SpannableStringBuilder that has spans marked for string formatting
      */
-    private SpannableStringBuilder makeFormattedCodeNode(String nodeContent) {
+    private SpannableStringBuilder makeFormattedCodeNodeSpan(String nodeContent) {
         SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
         formattedCodeNode.append(nodeContent);
 
@@ -2037,7 +2037,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param showLineNumbers should codebox display line numbers. Value should be retrieved from database. It does not have any effect in SourCherry
      * @return SpannableStringBuilder that has spans marked for string formatting
      */
-    private SpannableStringBuilder makeFormattedCodebox(String justification, String nodeContent, String syntax, int width, int height, boolean widthInPixels, boolean highlightBrackets, boolean showLineNumbers) {
+    private SpannableStringBuilder makeFormattedCodeboxSpan(String justification, String nodeContent, String syntax, int width, int height, boolean widthInPixels, boolean highlightBrackets, boolean showLineNumbers) {
         // Returns SpannableStringBuilder that has spans marked for string formatting
         SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
         formattedCodebox.append(nodeContent);
@@ -2125,7 +2125,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken image span to display in node content
-            imageSpanImage = (ImageSpanImage) this.getBrokenImageSpan(0);
+            imageSpanImage = (ImageSpanImage) this.makeBrokenImageSpan(0);
             formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.displayToast(context.getString(R.string.toast_error_failed_to_load_image));
         }
@@ -2196,7 +2196,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken latex image span to display in node content
-            imageSpanLatex = (ImageSpanLatex) this.getBrokenImageSpan(1);
+            imageSpanLatex = (ImageSpanLatex) this.makeBrokenImageSpan(1);
             formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             this.displayToast(context.getString(R.string.toast_error_failed_to_compile_latex));
         }

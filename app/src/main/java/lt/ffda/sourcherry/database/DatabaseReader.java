@@ -40,7 +40,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.model.ScNodeProperties;
@@ -143,7 +142,7 @@ public abstract class DatabaseReader {
      * @param type pass 0 to get broken image span, pass 1 to get a broken latex span
      * @return ImageSpan with broken image image
      */
-    public abstract ImageSpan getBrokenImageSpan(int type);
+    public abstract ImageSpan makeBrokenImageSpan(int type);
 
     /**
      * Returns byte array (stream) of the embedded file in the database to be written to file or opened
@@ -469,7 +468,7 @@ public abstract class DatabaseReader {
      * @param fileUri file Uri that user wants to attach to the node
      * @return formatted String to look like attached file in the node content
      */
-    public static SpannableStringBuilder createAttachFile(Context context, String filename, String nodeUniqueID, String fileUri) {
+    public static SpannableStringBuilder createAttachFileSpan(Context context, String filename, String nodeUniqueID, String fileUri) {
         SpannableStringBuilder attachedFile = new SpannableStringBuilder();
         attachedFile.append(" "); // Needed to insert an image
         Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);

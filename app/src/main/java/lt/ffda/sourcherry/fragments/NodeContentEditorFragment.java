@@ -16,7 +16,6 @@ import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.DocumentsContract;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -65,7 +64,6 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
@@ -150,7 +148,7 @@ public class NodeContentEditorFragment extends Fragment {
         if (result != null) {
             DocumentFile file = DocumentFile.fromSingleUri(getContext(), result);
             EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFile(getContext(), file.getName(), this.mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
+            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFileSpan(getContext(), file.getName(), this.mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
         }
     });
 
