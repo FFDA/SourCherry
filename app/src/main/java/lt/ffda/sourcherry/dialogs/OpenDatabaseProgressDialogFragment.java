@@ -71,9 +71,10 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         Uri databaseUri = Uri.parse(this.sharedPreferences.getString("databaseUri", null));
         this.totalLen = 0;
 
-        try {
-            InputStream databaseInputStream = getContext().getContentResolver().openInputStream(databaseUri);
-            OutputStream databaseOutputStream = new FileOutputStream(databaseOutputFile, false);
+        try (
+                InputStream databaseInputStream = getContext().getContentResolver().openInputStream(databaseUri);
+                OutputStream databaseOutputStream = new FileOutputStream(databaseOutputFile, false);
+                ){
             this.fileSize = databaseInputStream.available();
             handler.post(new Runnable() {
                 @Override
@@ -89,9 +90,6 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                 databaseOutputStream.write(buf, 0, len);
                 OpenDatabaseProgressDialogFragment.this.updateProgressBar(len);
             }
-
-            databaseInputStream.close();
-            databaseOutputStream.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             handler.post(new Runnable() {

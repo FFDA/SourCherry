@@ -50,16 +50,15 @@ public class SaveOpenDialogFragment extends DialogFragment {
     ActivityResultLauncher<Intent> saveFile = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         // Saves attached file to the user selected file
         if (result.getResultCode() == Activity.RESULT_OK) {
-            try {
-                InputStream inputStream = DatabaseReaderFactory.getReader().getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
-                OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w");
+            try (
+                    InputStream inputStream = DatabaseReaderFactory.getReader().getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
+                    OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w");
+                    ) {
                 byte[] buf = new byte[4 * 1024];
                 int length;
                 while ((length = inputStream.read(buf)) != -1) {
                     outputStream.write(buf, 0, length);
                 }
-                inputStream.close();
-                outputStream.close();
             } catch (Exception e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
             }

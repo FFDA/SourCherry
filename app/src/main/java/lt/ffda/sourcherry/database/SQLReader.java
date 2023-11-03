@@ -381,10 +381,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         // Returns main nodes from the database
         // Used to display menu when app starts
         ArrayList<ScNode> nodes = null;
-        try {
-            Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null);
+        try (Cursor cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=0 ORDER BY sequence ASC", null)) {
             nodes = returnSubnodeArrayList(cursor, false);
-            cursor.close();
         } catch (Exception SQLiteException) {
             ((MainView) context).exitWithError();
         }
