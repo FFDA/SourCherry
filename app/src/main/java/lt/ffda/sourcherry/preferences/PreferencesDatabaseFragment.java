@@ -44,6 +44,7 @@ import java.util.Date;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.database.DatabaseVacuum;
+import lt.ffda.sourcherry.utils.Filenames;
 
 public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
     private SharedPreferences sharedPreferences;
@@ -148,7 +149,7 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
     ActivityResultLauncher<String[]> getMirrorDatabaseFile = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
         if (result != null) {
             DocumentFile databaseMirrorDocumentFile = DocumentFile.fromSingleUri(getContext(), result);
-            String selectedFileExtension = databaseMirrorDocumentFile.getName().split("\\.")[1];
+            String selectedFileExtension = Filenames.getFileExtension(databaseMirrorDocumentFile.getName());
             if (selectedFileExtension.equals("ctb") || selectedFileExtension.equals("ctz") || selectedFileExtension.equals("ctx")) {
                 String currentDatabaseType = this.sharedPreferences.getString("databaseFileExtension", null).equals("ctd") ? "xml" : "sql";
                 String selectedDatabaseType = selectedFileExtension.equals("ctz") ? "xml" : "sql";

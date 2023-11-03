@@ -55,6 +55,7 @@ import lt.ffda.sourcherry.dialogs.CollectNodesDialogFragment;
 import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
 import lt.ffda.sourcherry.dialogs.MirrorDatabaseProgressDialogFragment;
 import lt.ffda.sourcherry.dialogs.OpenDatabaseProgressDialogFragment;
+import lt.ffda.sourcherry.utils.Filenames;
 
 public class MainActivity extends AppCompatActivity {
     private SharedPreferences sharedPreferences;
@@ -96,11 +97,11 @@ public class MainActivity extends AppCompatActivity {
     ActivityResultLauncher<String[]> getDatabaseSingle = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
         if (result != null) {
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
-            String databaseFileExtension = databaseDocumentFile.getName().split("\\.")[1];
+            String databaseFileExtension = Filenames.getFileExtension(databaseDocumentFile.getName());
             // Saving filename and path to the file in the preferences
             this.saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, result.toString());
             //
-            if (databaseDocumentFile.getName().split("\\.")[1].equals("ctd")) {
+            if (Filenames.getFileExtension(databaseDocumentFile.getName()).equals("ctd")) {
                 // Only if user selects ctd (not protected xml database) permanent permission should be requested
                 // When uri is received from intent-filter app will crash
                 getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -145,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
                 // Saves selected database's information to the settings
-                MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
+                MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, Filenames.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
                 MainActivity.this.resetMirrorDatabasePreferences();
                 MainActivity.this.setMessageWithDatabaseName();
             }
@@ -156,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean onLongClick(View v) {
                 File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
                 // Saves selected database's information to the settings
-                MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, databaseFilename.split("\\.")[1], selectedDatabaseToOpen.getPath());
+                MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, Filenames.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
                 MainActivity.this.resetMirrorDatabasePreferences();
                 MainActivity.this.setMessageWithDatabaseName();
                 // Opens database
@@ -286,7 +287,7 @@ public class MainActivity extends AppCompatActivity {
                 if (cursor.getString(1).equals(this.sharedPreferences.getString("mirrorDatabaseFilename", null))) {
                     // if file with the Mirror Database File filename was wound inside Mirror Database Folder
                     mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
-                    mirrorDatabaseFileExtension = cursor.getString(1).split("\\.")[1];
+                    mirrorDatabaseFileExtension = Filenames.getFileExtension(cursor.getString(1));
                     mirrorDatabaseDocumentFileLastModified = cursor.getLong(2);
                     break;
                 }
@@ -368,13 +369,13 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if (intent.getAction().equals(Intent.ACTION_VIEW)) {
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, intent.getData());
-            if (databaseDocumentFile.getName().split("\\.").length < 2) {
+            String databaseFileExtension = Filenames.getFileExtension(databaseDocumentFile.getName());
+            if (databaseFileExtension == null) {
                 Toast.makeText(this, R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
                 return;
             }
-            this.saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseDocumentFile.getName().split("\\.")[1], intent.getData().toString());
+            this.saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, intent.getData().toString());
             setMessageWithDatabaseName();
-            String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
             if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {
                 // If database is not protected it can be opened without any user interaction
                 this.openDatabase();

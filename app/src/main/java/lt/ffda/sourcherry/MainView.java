@@ -117,6 +117,7 @@ import lt.ffda.sourcherry.runnables.CollectNodesBackgroundRunnable;
 import lt.ffda.sourcherry.runnables.FindInNodeRunnable;
 import lt.ffda.sourcherry.runnables.FindInNodeRunnableCallback;
 import lt.ffda.sourcherry.runnables.NodesCollectedCallback;
+import lt.ffda.sourcherry.utils.Filenames;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
 
@@ -1543,10 +1544,9 @@ public class MainView extends AppCompatActivity {
      */
     private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time, String control) {
         try {
-            String[] splitFilename = filename.split("\\.");
             // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
             // most important that it will have correct extension
-            File tmpAttachedFile = File.createTempFile(splitFilename[0], "." + splitFilename[splitFilename.length - 1]); // Temporary file that will shared
+            File tmpAttachedFile = File.createTempFile(Filenames.getFileName(filename), "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
 
             // Writes Base64 encoded string to the temporary file
             InputStream in = this.reader.getFileInputStream(nodeUniqueID, filename, time, control);

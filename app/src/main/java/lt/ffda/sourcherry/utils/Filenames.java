@@ -28,4 +28,19 @@ public class Filenames {
             return null;
         }
     }
+
+    /**
+     * Returns name or if file has more than one dot - first part of the name. If filename does not
+     * have any dots in it - returns all of it.
+     * @param filename filename to get the file filename from
+     * @return name of the file
+     */
+    public static String getFileName(String filename) {
+        String[] splitFilename = filename.split("\\.");
+        if (splitFilename.length > 1) {
+            return splitFilename[0];
+        } else {
+            return filename;
+        }
+    }
 }

@@ -39,6 +39,7 @@ import java.io.OutputStream;
 
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
+import lt.ffda.sourcherry.utils.Filenames;
 
 public class SaveOpenDialogFragment extends DialogFragment {
     private String fileMimeType;
@@ -154,10 +155,9 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
     private void openFile() {
         try {
-            String[] splitFilename = filename.split("\\.");
             // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
             // most important that it will have correct extension
-            File tmpAttachedFile = File.createTempFile(splitFilename[0], "." + splitFilename[splitFilename.length - 1]); // Temporary file that will shared
+            File tmpAttachedFile = File.createTempFile(Filenames.getFileName(filename), "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
             // Writes Base64 encoded string to the temporary file
             InputStream in = DatabaseReaderFactory.getReader().getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
             FileOutputStream out = new FileOutputStream(tmpAttachedFile);
