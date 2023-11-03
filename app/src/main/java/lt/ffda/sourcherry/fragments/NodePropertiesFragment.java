@@ -198,7 +198,7 @@ public class NodePropertiesFragment extends Fragment {
      */
     private void updateNode(String nodeUniqueID, String progLangFromDatabase) {
         String progLang = getNodeProgLangSelection();
-        ((MainView) getActivity()).getMainViewModel().getNodes().get(0).setRichText(progLang.equals("custom-colors"));
+        ((MainView) getActivity()).getMainViewModel().getCurrentNode().setRichText(progLang.equals("custom-colors"));
         ((MainView) getActivity()).updateNodeProperties(getArguments().getInt("position"), nodeUniqueID, this.getNodeName(), progLang, getNoSearchMeState(), getNoSearchChState(), !progLangFromDatabase.equals(progLang));
     }
 }
