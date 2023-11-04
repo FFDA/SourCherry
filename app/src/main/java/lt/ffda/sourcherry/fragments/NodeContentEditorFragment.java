@@ -31,6 +31,7 @@ import android.text.style.SubscriptSpan;
 import android.text.style.SuperscriptSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -163,6 +164,14 @@ public class NodeContentEditorFragment extends Fragment {
                     View view = nodeEditorFragmentLinearLayout.getChildAt(i);
                     if (view instanceof TextView) {
                         ((EditText) view).addTextChangedListener(textWatcher);
+                    } else if (view instanceof HorizontalScrollView){
+                        ScTableLayout scTableLayout = (ScTableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                        for (int j = 0; j < scTableLayout.getChildCount(); j++) {
+                            TableRow tableRow = (TableRow) scTableLayout.getChildAt(j);
+                            for (int k = 0; k < tableRow.getChildCount(); k++) {
+                                ((EditText) tableRow.getChildAt(k)).addTextChangedListener(textWatcher);
+                            }
+                        }
                     }
                 }
             }
@@ -536,6 +545,7 @@ public class NodeContentEditorFragment extends Fragment {
                     if (typeface != null) {
                         headerTextView.setTypeface(typeface);
                     }
+                    headerTextView.addTextChangedListener(textWatcher);
                     tableHeaderRow.addView(headerTextView);
                 }
                 table.addView(tableHeaderRow);
@@ -557,6 +567,7 @@ public class NodeContentEditorFragment extends Fragment {
                         if (typeface != null) {
                             cellTextView.setTypeface(typeface);
                         }
+                        cellTextView.addTextChangedListener(textWatcher);
                         tableRow.addView(cellTextView);
                     }
                     table.addView(tableRow);
@@ -845,6 +856,14 @@ public class NodeContentEditorFragment extends Fragment {
                     View view = nodeEditorFragmentLinearLayout.getChildAt(i);
                     if (view instanceof TextView) {
                         ((EditText) view).removeTextChangedListener(textWatcher);
+                    } else if (view instanceof HorizontalScrollView){
+                        ScTableLayout scTableLayout = (ScTableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                        for (int j = 0; j < scTableLayout.getChildCount(); j++) {
+                            TableRow tableRow = (TableRow) scTableLayout.getChildAt(j);
+                            for (int k = 0; k < tableRow.getChildCount(); k++) {
+                                ((EditText) tableRow.getChildAt(k)).removeTextChangedListener(textWatcher);
+                            }
+                        }
                     }
                 }
             }
