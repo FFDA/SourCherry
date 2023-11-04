@@ -806,33 +806,12 @@ public class XMLReader extends DatabaseReader {
                             } else if (span instanceof ImageSpanFile) {
                                 // Attached file
                                 addContent = false;
-                                ImageSpanFile imageSpanFile = (ImageSpanFile) span;
-                                element = this.doc.createElement("encoded_png");
-                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
-                                element.setAttribute("justification", lastFoundJustification);
-                                element.setAttribute("filename", imageSpanFile.getFilename());
-                                if (imageSpanFile.isFromDatabase()) {
-                                    element.setAttribute("time", imageSpanFile.getTimestamp());
-                                    element.setTextContent(this.getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
-                                } else {
-                                    Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
-                                    try (
-                                            InputStream fileInputSteam = this.context.getContentResolver().openInputStream(fileUri);
-                                            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()
-                                    ) {
-                                        byte[] buf = new byte[4 * 1024];
-                                        int length;
-                                        while ((length = fileInputSteam.read(buf)) != -1) {
-                                            byteArrayOutputStream.write(buf);
-                                        }
-                                        String base64String = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
-                                        element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
-                                        element.setTextContent(base64String);
-                                    } catch (IOException e) {
-                                        this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
-                                    }
-                                }
-                                offsetNodes.add(element);
+                                offsetNodes.add(this.saveImageSpanFile(
+                                        (ImageSpanFile) span,
+                                        String.valueOf(currentPartContentLength + totalContentLength),
+                                        lastFoundJustification,
+                                        node
+                                ));
                             } else if (span instanceof ClickableSpanFile) {
                                 // Attached File text part
                                 addContent = false;
@@ -842,72 +821,39 @@ public class XMLReader extends DatabaseReader {
                                 element.setAttribute("foreground", backgroundColor);
                             } else if (span instanceof ImageSpanAnchor) {
                                 addContent = false;
-                                element = this.doc.createElement("encoded_png");
-                                ImageSpanAnchor imageSpanAnchor = (ImageSpanAnchor) span;
-                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
-                                element.setAttribute("justification", lastFoundJustification);
-                                element.setAttribute("anchor", imageSpanAnchor.getAnchorName());
-                                offsetNodes.add(element);
+                                offsetNodes.add(this.saveImageSpanAnchor(
+                                        (ImageSpanAnchor) span,
+                                        String.valueOf(currentPartContentLength + totalContentLength),
+                                        lastFoundJustification
+                                ));
                             } else if (span instanceof ImageSpanImage) {
                                 addContent = false;
-                                element = this.doc.createElement("encoded_png");
-                                ImageSpanImage imageSpanImage = (ImageSpanImage) span;
-                                Drawable drawable = imageSpanImage.getDrawable();
-                                // Hopefully it's always a Bitmap drawable, because I get it from the same source
-                                Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-                                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                                bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-                                String baseString = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
-                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
-                                element.setAttribute("justification", lastFoundJustification);
-                                element.setAttribute("link", "");
-                                element.setTextContent(baseString);
-                                offsetNodes.add(element);
+                                offsetNodes.add(this.saveImageSpanImage(
+                                        (ImageSpanImage) span,
+                                        String.valueOf(currentPartContentLength + totalContentLength),
+                                        lastFoundJustification
+                                ));
                             } else if (span instanceof ImageSpanLatex) {
                                 addContent = false;
-                                ImageSpanLatex imageSpanLatex = (ImageSpanLatex) span;
-                                element = this.doc.createElement("encoded_png");
-                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
-                                element.setAttribute("justification", lastFoundJustification);
-                                element.setAttribute("filename", "__ct_special.tex");
-                                element.setTextContent(imageSpanLatex.getLatexCode());
-                                offsetNodes.add(element);
+                                offsetNodes.add(this.saveImageSpanLatex(
+                                        (ImageSpanLatex) span,
+                                        String.valueOf(currentPartContentLength + totalContentLength),
+                                        lastFoundJustification
+                                ));
                             } else if (span instanceof LeadingMarginSpan.Standard) {
                                 LeadingMarginSpan.Standard leadingMarginSpan = (LeadingMarginSpan.Standard) span;
                                 int indent = leadingMarginSpan.getLeadingMargin(true) / 40;
                                 element.setAttribute("indent", String.valueOf(indent));
                             } else if (span instanceof TypefaceSpanCodebox) {
                                 addContent = false;
-                                element = this.doc.createElement("codebox");
-                                TypefaceSpanCodebox typefaceSpanCodebox = (TypefaceSpanCodebox) span;
-                                element.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
-                                element.setAttribute("justification", lastFoundJustification);
-                                element.setAttribute("frame_width", String.valueOf(typefaceSpanCodebox.getFrameWidth()));
-                                element.setAttribute("frame_height", String.valueOf(typefaceSpanCodebox.getFrameHeight()));
-                                element.setAttribute("width_in_pixels", typefaceSpanCodebox.isWidthInPixel() ? "1" : "0");
-                                element.setAttribute("syntax_highlighting", typefaceSpanCodebox.getSyntaxHighlighting());
-                                element.setAttribute("highlight_brackets", typefaceSpanCodebox.isHighlightBrackets() ? "1" : "0");
-                                element.setAttribute("show_line_numbers", typefaceSpanCodebox.isShowLineNumbers() ? "1" : "0");
-                                element.setTextContent(nodeContent.subSequence(i, next).toString());
-                                offsetNodes.add(element);
+                                offsetNodes.add(this.saveTypefaceSpanCodebox(
+                                        (TypefaceSpanCodebox) span,
+                                        String.valueOf(currentPartContentLength + totalContentLength),
+                                        lastFoundJustification,
+                                        nodeContent.subSequence(i, next).toString()
+                                ));
                             } else if (span instanceof RelativeSizeSpan) {
-                                RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
-                                float size = relativeSizeSpan.getSizeChange();
-                                if (size == 1.75f) {
-                                    element.setAttribute("scale", "h1");
-                                } else if (size == 1.5f) {
-                                    element.setAttribute("scale", "h2");
-                                } else if (size == 1.25f) {
-                                    element.setAttribute("scale", "h3");
-                                } else if (size == 1.20f) {
-                                    element.setAttribute("scale", "h4");
-                                } else if (size == 1.15f) {
-                                    element.setAttribute("scale", "h5");
-                                } else if (size == 1.10f) {
-                                    element.setAttribute("scale", "h6");
-                                } else if (size == 0.75f) {
-                                    element.setAttribute("scale", "small");
-                                }
+                                element.setAttribute("scale", this.saveRelativeSizeSpan((RelativeSizeSpan) span));
                             } else if (span instanceof StrikethroughSpan) {
                                 element.setAttribute("strikethrough", "true");
                             } else if (span instanceof StyleSpanBold) {
@@ -938,33 +884,10 @@ public class XMLReader extends DatabaseReader {
                     totalContentLength += currentPartContentLength;
                     currentPartContentLength = 0;
                 } else {
-                    ScNodeContentTable scNodeContentTable = (ScNodeContentTable) scNodeContent;
-                    Element tableElement = this.doc.createElement("table");
-                    tableElement.setAttribute("char_offset", String.valueOf(currentPartContentLength + totalContentLength));
-                    tableElement.setAttribute("justification", scNodeContentTable.getJustification());
-                    tableElement.setAttribute("col_min", String.valueOf(scNodeContentTable.getColMin()));
-                    tableElement.setAttribute("col_max", String.valueOf(scNodeContentTable.getColMax()));
-                    tableElement.setAttribute("col_widths", scNodeContentTable.getColWidths());
-                    tableElement.setAttribute("is_light", String.valueOf(scNodeContentTable.getLightInterface()));
-                    // Adding table content
-                    for (int i = 1; i < scNodeContentTable.getContent().size(); i++) {
-                        Element rowElement = this.doc.createElement("row");
-                        for (CharSequence cell: scNodeContentTable.getContent().get(i)) {
-                            Element cellElement = this.doc.createElement("cell");
-                            cellElement.setTextContent(cell.toString());
-                            rowElement.appendChild(cellElement);
-                        }
-                        tableElement.appendChild(rowElement);
-                    }
-                    // Adding header at the end of the table tag
-                    Element headerRowElement = this.doc.createElement("row");
-                    for (CharSequence cell : scNodeContentTable.getContent().get(0)) {
-                        Element cellElement = this.doc.createElement("cell");
-                        cellElement.setTextContent(cell.toString());
-                        headerRowElement.appendChild(cellElement);
-                    }
-                    tableElement.appendChild(headerRowElement);
-                    offsetNodes.add(tableElement);
+                    offsetNodes.add(this.saveScNodeContentTable(
+                            (ScNodeContentTable) scNodeContent,
+                            String.valueOf(currentPartContentLength + totalContentLength)
+                    ));
                 }
             }
             this.deleteNodeContent(node);
@@ -1030,6 +953,178 @@ public class XMLReader extends DatabaseReader {
         }
         node.getAttributes().getNamedItem("ts_lastsave").setTextContent(String.valueOf(System.currentTimeMillis() / 1000));
         this.writeIntoDatabase();
+    }
+
+    /**
+     * Converts ImageSpan found in nodeContent to an Element object ready to be written to the database
+     * @param imageSpanImage ImageSpan object from nodeContent
+     * @param offset offset of the image
+     * @param lastFoundJustification justification of the image
+     * @return Element that can be added to Node and writen to the database
+     */
+    private Element saveImageSpanImage(ImageSpanImage imageSpanImage, String offset, String lastFoundJustification) {
+        Element element = this.doc.createElement("encoded_png");
+        Drawable drawable = imageSpanImage.getDrawable();
+        // Hopefully it's always a Bitmap drawable, because I get it from the same source
+        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+        String baseString = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("link", "");
+        element.setTextContent(baseString);
+        return element;
+    }
+
+    /**
+     * Converts ImageSpanLatex found in nodeContent to an Element object ready to be written to the database
+     * @param imageSpanLatex ImageSpanLatex object from nodeContent
+     * @param offset offset of the LaTeX image
+     * @param lastFoundJustification justification of the LaTeX image
+     * @return Element that can be added to Node and writen to the database
+     */
+    private Element saveImageSpanLatex(ImageSpanLatex imageSpanLatex, String offset, String lastFoundJustification) {
+        Element element = this.doc.createElement("encoded_png");
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("filename", "__ct_special.tex");
+        element.setTextContent(imageSpanLatex.getLatexCode());
+        return element;
+    }
+
+    /**
+     * Converts ImageSpanAnchor found in nodeContent to an Element object ready to be written to the database
+     * @param imageSpanAnchor ImageSpanAnchor object from nodeContent
+     * @param offset offset of the Anchor image
+     * @param lastFoundJustification justification of the Anchor image
+     * @return Element that can be added to Node and writen to the database
+     */
+    private Element saveImageSpanAnchor(ImageSpanAnchor imageSpanAnchor, String offset, String lastFoundJustification) {
+        Element element = this.doc.createElement("encoded_png");
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("anchor", imageSpanAnchor.getAnchorName());
+        return element;
+    }
+
+    /**
+     * Converts ImageSpanFile found in nodeContent to an Element object ready to be written to the database
+     * @param imageSpanFile ImageSpanFile object from nodeContent
+     * @param offset offset of the file
+     * @param lastFoundJustification justification of the file
+     * @param node from the database that is being updated/saved
+     * @return Element that can be added to Node and writen to the database
+     */
+    private Element saveImageSpanFile(ImageSpanFile imageSpanFile, String offset, String lastFoundJustification, Node node) {
+        Element element = this.doc.createElement("encoded_png");
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("filename", imageSpanFile.getFilename());
+        if (imageSpanFile.isFromDatabase()) {
+            element.setAttribute("time", imageSpanFile.getTimestamp());
+            element.setTextContent(this.getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
+        } else {
+            Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
+            try (
+                    InputStream fileInputSteam = this.context.getContentResolver().openInputStream(fileUri);
+                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()
+            ) {
+                byte[] buf = new byte[4 * 1024];
+                int length;
+                while ((length = fileInputSteam.read(buf)) != -1) {
+                    byteArrayOutputStream.write(buf);
+                }
+                String base64String = Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
+                element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
+                element.setTextContent(base64String);
+            } catch (IOException e) {
+                this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            }
+        }
+        return element;
+    }
+
+    /**
+     * Converts TypefaceSpanCodebox found in nodeContent to an Element object ready to be written to the database
+     * @param typefaceSpanCodebox TypefaceSpanCodebox object from nodeContent
+     * @param offset offset of the codebox
+     * @param lastFoundJustification justification of the codebox
+     * @param codeboxContent text of the codebox
+     * @return Element that can be added to Node and writen to the database
+     */
+    private Element saveTypefaceSpanCodebox(TypefaceSpanCodebox typefaceSpanCodebox, String offset, String lastFoundJustification, String codeboxContent) {
+        Element element = this.doc.createElement("codebox");
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("frame_width", String.valueOf(typefaceSpanCodebox.getFrameWidth()));
+        element.setAttribute("frame_height", String.valueOf(typefaceSpanCodebox.getFrameHeight()));
+        element.setAttribute("width_in_pixels", typefaceSpanCodebox.isWidthInPixel() ? "1" : "0");
+        element.setAttribute("syntax_highlighting", typefaceSpanCodebox.getSyntaxHighlighting());
+        element.setAttribute("highlight_brackets", typefaceSpanCodebox.isHighlightBrackets() ? "1" : "0");
+        element.setAttribute("show_line_numbers", typefaceSpanCodebox.isShowLineNumbers() ? "1" : "0");
+        element.setTextContent(codeboxContent);
+        return element;
+    }
+
+    /**
+     * Converts ScNodeContentTable found in nodeContent to an Element object ready to be written to the database
+     * @param scNodeContentTable ScNodeContentTable from the nodeContent
+     * @param offset offset of the table
+     * @return Element that can be added to Node and writen to the database
+     */
+    private Element saveScNodeContentTable(ScNodeContentTable scNodeContentTable, String offset) {
+        Element tableElement = this.doc.createElement("table");
+        tableElement.setAttribute("char_offset", offset);
+        tableElement.setAttribute("justification", scNodeContentTable.getJustification());
+        tableElement.setAttribute("col_min", String.valueOf(scNodeContentTable.getColMin()));
+        tableElement.setAttribute("col_max", String.valueOf(scNodeContentTable.getColMax()));
+        tableElement.setAttribute("col_widths", scNodeContentTable.getColWidths());
+        tableElement.setAttribute("is_light", String.valueOf(scNodeContentTable.getLightInterface()));
+        // Adding table content
+        for (int i = 1; i < scNodeContentTable.getContent().size(); i++) {
+            Element rowElement = this.doc.createElement("row");
+            for (CharSequence cell: scNodeContentTable.getContent().get(i)) {
+                Element cellElement = this.doc.createElement("cell");
+                cellElement.setTextContent(cell.toString());
+                rowElement.appendChild(cellElement);
+            }
+            tableElement.appendChild(rowElement);
+        }
+        // Adding header at the end of the table tag
+        Element headerRowElement = this.doc.createElement("row");
+        for (CharSequence cell : scNodeContentTable.getContent().get(0)) {
+            Element cellElement = this.doc.createElement("cell");
+            cellElement.setTextContent(cell.toString());
+            headerRowElement.appendChild(cellElement);
+        }
+        tableElement.appendChild(headerRowElement);
+        return tableElement;
+    }
+
+    /**
+     * Returns scale attribute value for the rich-text tag depending on the size change of the span
+     * @param relativeSizeSpan RelativeSizeSpan from nodeContent
+     * @return scale attribute value
+     */
+    private String saveRelativeSizeSpan(RelativeSizeSpan relativeSizeSpan) {
+        float size = relativeSizeSpan.getSizeChange();
+        if (size == 1.75f) {
+            return "h1";
+        } else if (size == 1.5f) {
+            return "2";
+        } else if (size == 1.25f) {
+            return "h3";
+        } else if (size == 1.20f) {
+            return "h4";
+        } else if (size == 1.15f) {
+            return "h5";
+        } else if (size == 1.10f) {
+            return "h6";
+        } else {
+            // size == 0.75f
+            return "small";
+        }
     }
 
     @Override
