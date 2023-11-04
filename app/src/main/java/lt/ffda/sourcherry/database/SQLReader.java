@@ -1351,30 +1351,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         }
     }
 
-    /**
-     * Returns scale attribute value for the rich-text tag depending on the size change of the span
-     * @param relativeSizeSpan RelativeSizeSpan from nodeContent
-     * @return scale attribute value
-     */
-    private String saveRelativeSizeSpan(RelativeSizeSpan relativeSizeSpan) {
-        float size = relativeSizeSpan.getSizeChange();
-        if (size == 1.75f) {
-            return "h1";
-        } else if (size == 1.5f) {
-            return "2";
-        } else if (size == 1.25f) {
-            return "h3";
-        } else if (size == 1.20f) {
-            return "h4";
-        } else if (size == 1.15f) {
-            return "h5";
-        } else if (size == 1.10f) {
-            return "h6";
-        } else {
-            // size == 0.75f
-            return "small";
-        }
-    }
+
 
     @Override
     public ArrayList<ScSearchNode> search(Boolean noSearch, String query) {
