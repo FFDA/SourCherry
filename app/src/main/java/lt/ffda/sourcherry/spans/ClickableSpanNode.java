@@ -23,22 +23,6 @@ public abstract class ClickableSpanNode extends ClickableSpan {
     private String linkAnchorName;
 
     /**
-     * Get unique ID of the node the link leads to
-     * @return unique ID of the node
-     */
-    public String getNodeUniqueID() {
-        return this.nodeUniqueID;
-    }
-
-    /**
-     * Set unique ID of the node the link leads to
-     * @param nodeUniqueID unique ID of the node
-     */
-    public void setNodeUniqueID(String nodeUniqueID) {
-        this.nodeUniqueID = nodeUniqueID;
-    }
-
-    /**
      * Get anchor name that view has to scroll to when
      * linked node is opened
      * @return anchor name
@@ -54,5 +38,21 @@ public abstract class ClickableSpanNode extends ClickableSpan {
      */
     public void setLinkAnchorName(String linkAnchorName) {
         this.linkAnchorName = linkAnchorName;
+    }
+
+    /**
+     * Get unique ID of the node the link leads to
+     * @return unique ID of the node
+     */
+    public String getNodeUniqueID() {
+        return this.nodeUniqueID;
+    }
+
+    /**
+     * Set unique ID of the node the link leads to
+     * @param nodeUniqueID unique ID of the node
+     */
+    public void setNodeUniqueID(String nodeUniqueID) {
+        this.nodeUniqueID = nodeUniqueID;
     }
 }

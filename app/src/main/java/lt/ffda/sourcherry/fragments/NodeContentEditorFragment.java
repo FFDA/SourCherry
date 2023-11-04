@@ -100,6 +100,17 @@ public class NodeContentEditorFragment extends Fragment {
     private Handler handler;
     private MainViewModel mainViewModel;
     private LinearLayout nodeEditorFragmentLinearLayout;
+    /**
+     * Promts user to select a file they want to attach to the node. If user selects a file inserts
+     * file representing string at the possition of the cursor
+     */
+    private final ActivityResultLauncher<String[]> attachFile = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
+        if (result != null) {
+            DocumentFile file = DocumentFile.fromSingleUri(getContext(), result);
+            EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFileSpan(getContext(), file.getName(), this.mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
+        }
+    });
     private SharedPreferences sharedPreferences;
     private boolean textChanged = false;
     private TextWatcher textWatcher;
@@ -139,18 +150,6 @@ public class NodeContentEditorFragment extends Fragment {
             }
         }
     };
-
-    /**
-     * Promts user to select a file they want to attach to the node. If user selects a file inserts
-     * file representing string at the possition of the cursor
-     */
-    private final ActivityResultLauncher<String[]> attachFile = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
-        if (result != null) {
-            DocumentFile file = DocumentFile.fromSingleUri(getContext(), result);
-            EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFileSpan(getContext(), file.getName(), this.mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
-        }
-    });
 
     /**
      * Adds textChangedListeners for all EditText views
@@ -618,9 +617,31 @@ public class NodeContentEditorFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        // Top and bottom paddings are always the same: 14px (5dp)
+        this.nodeEditorFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ScrollView scrollView = getView().findViewById(R.id.edit_node_fragment_scrollview);
+        if (scrollView != null) {
+            outState.putInt("scrollY", scrollView.getScrollY());
+        }
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         this.textWatcher = new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                NodeContentEditorFragment.this.textChanged = true;
+                NodeContentEditorFragment.this.removeTextChangedListeners();
+            }
+
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
@@ -629,12 +650,6 @@ public class NodeContentEditorFragment extends Fragment {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
 
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                NodeContentEditorFragment.this.textChanged = true;
-                NodeContentEditorFragment.this.removeTextChangedListeners();
             }
         };
 
@@ -791,22 +806,6 @@ public class NodeContentEditorFragment extends Fragment {
             buttonRowLinearLayout.setVisibility(View.GONE);
         }
         this.loadContent();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        // Top and bottom paddings are always the same: 14px (5dp)
-        this.nodeEditorFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        ScrollView scrollView = getView().findViewById(R.id.edit_node_fragment_scrollview);
-        if (scrollView != null) {
-            outState.putInt("scrollY", scrollView.getScrollY());
-        }
     }
 
     /**

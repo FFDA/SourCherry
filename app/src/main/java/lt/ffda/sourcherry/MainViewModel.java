@@ -236,18 +236,6 @@ public class MainViewModel extends ViewModel {
     /**
      * Every text in the nodeContent is placed in a TextView. They can be counted in the order from
      * top to bottom. Every cell in the table is a separate TextView. This function returns text of
-     * the TextView representing the provided index from the storage that fas created for FindInNode
-     * functions.
-     * @param index index of the TextView
-     * @return content of the text view
-     */
-    public SpannableStringBuilder getfindInNodeStorageContent(int index) {
-        return this.findInNodeContentStorage.get(index);
-    }
-
-    /**
-     * Every text in the nodeContent is placed in a TextView. They can be counted in the order from
-     * top to bottom. Every cell in the table is a separate TextView. This function returns text of
      * the TextView was placed in when creating the nodeContent. It is used by findInNode.
      * @param index index of the TextView
      * @return content of the text view
@@ -276,6 +264,18 @@ public class MainViewModel extends ViewModel {
             }
         }
         return null;
+    }
+
+    /**
+     * Every text in the nodeContent is placed in a TextView. They can be counted in the order from
+     * top to bottom. Every cell in the table is a separate TextView. This function returns text of
+     * the TextView representing the provided index from the storage that fas created for FindInNode
+     * functions.
+     * @param index index of the TextView
+     * @return content of the text view
+     */
+    public SpannableStringBuilder getfindInNodeStorageContent(int index) {
+        return this.findInNodeContentStorage.get(index);
     }
 
     /**

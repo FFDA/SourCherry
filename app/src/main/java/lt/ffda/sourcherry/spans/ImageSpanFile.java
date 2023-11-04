@@ -35,37 +35,19 @@ public class ImageSpanFile extends ImageSpan {
     }
 
     /**
-     * Check if span was created from the file embedded into database
-     * or file was attached by the user and still need to be saved
-     * to database if user chooses to do so
-     * @return true - file is from database, false - otherwise
+     * Get file Uri. Used only if file was added during the additing and not yet saved in the file system
+     * @return file Uri or Null
      */
-    public boolean isFromDatabase() {
-        return this.fromDatabase;
+    public String getFileUri() {
+        return fileUri;
     }
 
     /**
-     * Set file origin.
-     * @param fromDatabase true - file is from database, false - otherwise
+     * Set file uri that points to the file.
+     * @param fileUri Uri of the file
      */
-    public void setFromDatabase(boolean fromDatabase) {
-        this.fromDatabase = fromDatabase;
-    }
-
-    /**
-     * Unique ID of the node that attached file belongs to
-     * @return unique id of the node
-     */
-    public String getNodeUniqueId() {
-        return this.nodeUniqueId;
-    }
-
-    /**
-     * Set unique id of the node that attached file belongs to
-     * @param nodeUniqueId unique id of the node
-     */
-    public void setNodeUniqueId(String nodeUniqueId) {
-        this.nodeUniqueId = nodeUniqueId;
+    public void setFileUri(String fileUri) {
+        this.fileUri = fileUri;
     }
 
     /**
@@ -85,19 +67,53 @@ public class ImageSpanFile extends ImageSpan {
     }
 
     /**
-     * Get timestamp of when the file was saved to the database
-     * @return timestamp of when file was saved in to the database. Might be null if file was just attached but never saved to database
+     * Get justification of the element
+     * @return justification of the elements
      */
-    public String getTimestamp() {
-        return this.timestamp;
+    public String getJustification() {
+        return this.justification;
     }
 
     /**
-     * Set timestamp when file was saved to the database
-     * @param timestamp timestamp of when file was saved in to the database
+     * Set justification of the element
+     * @param justification element's justification ("left", "right", "center", "fill")
      */
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
+    public void setJustification(String justification) {
+        this.justification = justification;
+    }
+
+    /**
+     * Get new offset of the element. It shows location where the element has to be inserted back
+     * into the node content when it is being recreated.
+     * @return element's offset
+     */
+    public int getNewOffset() {
+        return this.newOffset;
+    }
+
+    /**
+     * Set new offset of the element. It has to be calculated using the location of the span in the
+     * node content.
+     * @param newOffset element's offset
+     */
+    public void setNewOffset(int newOffset) {
+        this.newOffset = newOffset;
+    }
+
+    /**
+     * Unique ID of the node that attached file belongs to
+     * @return unique id of the node
+     */
+    public String getNodeUniqueId() {
+        return this.nodeUniqueId;
+    }
+
+    /**
+     * Set unique id of the node that attached file belongs to
+     * @param nodeUniqueId unique id of the node
+     */
+    public void setNodeUniqueId(String nodeUniqueId) {
+        this.nodeUniqueId = nodeUniqueId;
     }
 
     /**
@@ -121,40 +137,6 @@ public class ImageSpanFile extends ImageSpan {
     }
 
     /**
-     * Get new offset of the element. It shows location where the element has to be inserted back
-     * into the node content when it is being recreated.
-     * @return element's offset
-     */
-    public int getNewOffset() {
-        return this.newOffset;
-    }
-
-    /**
-     * Set new offset of the element. It has to be calculated using the location of the span in the
-     * node content.
-     * @param newOffset element's offset
-     */
-    public void setNewOffset(int newOffset) {
-        this.newOffset = newOffset;
-    }
-
-    /**
-     * Get justification of the element
-     * @return justification of the elements
-     */
-    public String getJustification() {
-        return this.justification;
-    }
-
-    /**
-     * Set justification of the element
-     * @param justification element's justification ("left", "right", "center", "fill")
-     */
-    public void setJustification(String justification) {
-        this.justification = justification;
-    }
-
-    /**
      * Get sha256sum value of the file. It is only used in Multifile databases as a filename in filesystem
      * @return sha256sum value of the file
      */
@@ -171,18 +153,36 @@ public class ImageSpanFile extends ImageSpan {
     }
 
     /**
-     * Get file Uri. Used only if file was added during the additing and not yet saved in the file system
-     * @return file Uri or Null
+     * Get timestamp of when the file was saved to the database
+     * @return timestamp of when file was saved in to the database. Might be null if file was just attached but never saved to database
      */
-    public String getFileUri() {
-        return fileUri;
+    public String getTimestamp() {
+        return this.timestamp;
     }
 
     /**
-     * Set file uri that points to the file.
-     * @param fileUri Uri of the file
+     * Set timestamp when file was saved to the database
+     * @param timestamp timestamp of when file was saved in to the database
      */
-    public void setFileUri(String fileUri) {
-        this.fileUri = fileUri;
+    public void setTimestamp(String timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    /**
+     * Check if span was created from the file embedded into database
+     * or file was attached by the user and still need to be saved
+     * to database if user chooses to do so
+     * @return true - file is from database, false - otherwise
+     */
+    public boolean isFromDatabase() {
+        return this.fromDatabase;
+    }
+
+    /**
+     * Set file origin.
+     * @param fromDatabase true - file is from database, false - otherwise
+     */
+    public void setFromDatabase(boolean fromDatabase) {
+        this.fromDatabase = fromDatabase;
     }
 }

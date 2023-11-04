@@ -29,6 +29,22 @@ public class ImageSpanLatex extends ImageSpan {
     }
 
     /**
+     * Get justification of the element
+     * @return justification of the elements
+     */
+    public String getJustification() {
+        return this.justification;
+    }
+
+    /**
+     * Set justification of the element
+     * @param justification element's justification ("left", "right", "center", "fill")
+     */
+    public void setJustification(String justification) {
+        this.justification = justification;
+    }
+
+    /**
      * Get latex code that was used to compile latex image
      * @return latex code
      */
@@ -60,21 +76,5 @@ public class ImageSpanLatex extends ImageSpan {
      */
     public void setNewOffset(int newOffset) {
         this.newOffset = newOffset;
-    }
-
-    /**
-     * Get justification of the element
-     * @return justification of the elements
-     */
-    public String getJustification() {
-        return this.justification;
-    }
-
-    /**
-     * Set justification of the element
-     * @param justification element's justification ("left", "right", "center", "fill")
-     */
-    public void setJustification(String justification) {
-        this.justification = justification;
     }
 }

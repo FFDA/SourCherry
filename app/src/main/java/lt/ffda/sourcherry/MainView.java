@@ -123,20 +123,6 @@ import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
 
 public class MainView extends AppCompatActivity {
 
-    private ActionBarDrawerToggle actionBarDrawerToggle;
-    private MenuItemAdapter adapter;
-    private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
-    private int currentFindInNodeMarked; // Index of the result that is marked from FindInNode results. -1 Means nothing is selected
-    private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
-    private DrawerLayout drawerLayout;
-    private ScheduledThreadPoolExecutor executor;
-    private boolean filterNodeToggle;
-    private boolean findInNodeToggle; // Holds true when FindInNode view is initiated
-    private Handler handler;
-    private MainViewModel mainViewModel;
-    private DatabaseReader reader;
-    private SharedPreferences sharedPreferences;
-    private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
     /**
      * Launches file chooser to select location
      * where to export database. If user chooses a file - launches a
@@ -151,6 +137,17 @@ public class MainView extends AppCompatActivity {
             exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
         }
     });
+    private ActionBarDrawerToggle actionBarDrawerToggle;
+    private MenuItemAdapter adapter;
+    private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
+    private int currentFindInNodeMarked; // Index of the result that is marked from FindInNode results. -1 Means nothing is selected
+    private int currentNodePosition; // In menu / MenuItemAdapter for marking menu item opened/selected
+    private DrawerLayout drawerLayout;
+    private ScheduledThreadPoolExecutor executor;
+    private boolean filterNodeToggle;
+    private boolean findInNodeToggle; // Holds true when FindInNode view is initiated
+    private Handler handler;
+    private MainViewModel mainViewModel;
     ActivityResultLauncher<Intent> exportPdf = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (result.getResultCode() == Activity.RESULT_OK) {
             // If user actually chose a location to save a file
@@ -240,6 +237,7 @@ public class MainView extends AppCompatActivity {
             }
         }
     });
+    private DatabaseReader reader;
     /**
      * Launches activity to save the attached file to the device
      */
@@ -257,6 +255,8 @@ public class MainView extends AppCompatActivity {
             }
         }
     });
+    private SharedPreferences sharedPreferences;
+    private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
 
     /**
      * Adds node to bookmark list
@@ -625,11 +625,6 @@ public class MainView extends AppCompatActivity {
             this.restoreHighlightedView();
             this.executor.submit(new FindInNodeRunnable(this.mainViewModel, query, new FindInNodeRunnableCallback() {
                 @Override
-                public void searchStarted() {
-                    MainView.this.setFindInNodeProgressBar(true);
-                }
-
-                @Override
                 public void searchFinished() {
                     MainView.this.setFindInNodeProgressBar(false);
                     MainView.this.updateCounter(MainView.this.mainViewModel.getFindInNodeResultCount());
@@ -652,6 +647,11 @@ public class MainView extends AppCompatActivity {
                             }
                         });
                     }
+                }
+
+                @Override
+                public void searchStarted() {
+                    MainView.this.setFindInNodeProgressBar(true);
                 }
             }));
         } else {
@@ -925,15 +925,15 @@ public class MainView extends AppCompatActivity {
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
-
-            @Override
             public boolean onQueryTextChange(String newText) {
                 if (MainView.this.filterNodeToggle) { // This check fixes bug where all database's nodes were displayed after screen rotation
                     MainView.this.filterNodes(newText);
                 }
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextSubmit(String query) {
                 return false;
             }
         });
@@ -1090,14 +1090,6 @@ public class MainView extends AppCompatActivity {
         EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
         findInNodeEditText.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
             public void afterTextChanged(Editable s) {
                 // After user types the text in search field
                 // There is a delay of 400 milliseconds
@@ -1111,6 +1103,14 @@ public class MainView extends AppCompatActivity {
                         }
                     }, 400);
                 }
+            }
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
             }
         });
         // Listener for FindInNode "enter" button click
@@ -1361,7 +1361,7 @@ public class MainView extends AppCompatActivity {
         // Listener for drawerMenu states
         drawerLayout.addDrawerListener(new DrawerLayout.DrawerListener() {
             @Override
-            public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
+            public void onDrawerClosed(@NonNull View drawerView) {
 
             }
 
@@ -1377,7 +1377,7 @@ public class MainView extends AppCompatActivity {
             }
 
             @Override
-            public void onDrawerClosed(@NonNull View drawerView) {
+            public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
 
             }
 
@@ -1389,30 +1389,10 @@ public class MainView extends AppCompatActivity {
     }
 
     @Override
-    public void onResume() {
-        // At this stage it is possible to load the content to the fragment after the screen rotation
-        // at earlier point app will crash
-        super.onResume();
-        if (this.mainViewModel.getCurrentNode() != null) {
-            this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
-            this.adapter.markItemSelected(this.currentNodePosition);
-            this.adapter.notifyItemChanged(this.currentNodePosition);
-            // Even if LiveData can restore node content after screen rotation it has old context
-            // and any clicks (like opening images) will cause a crash
-            this.loadNodeContent();
-        }
-
-        if (this.filterNodeToggle) {
-            this.hideNavigation(true);
-        }
-
-        if (this.bookmarksToggle) {
-            this.navigationNormalMode(false);
-        }
-
-        // Restoring FindInNode variables to original state
-        if (this.findInNodeToggle) {
-            this.closeFindInNode();
+    public void onDestroy() {
+        super.onDestroy();
+        if (!isChangingConfigurations() && this.mainViewModel.getMultiDatabaseSync().getValue() != null) {
+            this.mainViewModel.getMultiDatabaseSync().getValue().cancel(true);
         }
     }
 
@@ -1473,6 +1453,34 @@ public class MainView extends AppCompatActivity {
     }
 
     @Override
+    public void onResume() {
+        // At this stage it is possible to load the content to the fragment after the screen rotation
+        // at earlier point app will crash
+        super.onResume();
+        if (this.mainViewModel.getCurrentNode() != null) {
+            this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
+            this.adapter.markItemSelected(this.currentNodePosition);
+            this.adapter.notifyItemChanged(this.currentNodePosition);
+            // Even if LiveData can restore node content after screen rotation it has old context
+            // and any clicks (like opening images) will cause a crash
+            this.loadNodeContent();
+        }
+
+        if (this.filterNodeToggle) {
+            this.hideNavigation(true);
+        }
+
+        if (this.bookmarksToggle) {
+            this.navigationNormalMode(false);
+        }
+
+        // Restoring FindInNode variables to original state
+        if (this.findInNodeToggle) {
+            this.closeFindInNode();
+        }
+    }
+
+    @Override
     public void onSaveInstanceState(@Nullable Bundle outState) {
         // Saving some variables to make it possible to restore the content after screen rotation
         outState.putInt("currentNodePosition", this.currentNodePosition);
@@ -1492,14 +1500,6 @@ public class MainView extends AppCompatActivity {
             sharedPreferencesEditor.apply();
         }
         super.onStop();
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (!isChangingConfigurations() && this.mainViewModel.getMultiDatabaseSync().getValue() != null) {
-            this.mainViewModel.getMultiDatabaseSync().getValue().cancel(true);
-        }
     }
 
     /**

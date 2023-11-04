@@ -215,6 +215,12 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         }
     }
 
+    @Override
+    public void onCancel(@NonNull DialogInterface dialog) {
+        ((MainActivity) getActivity()).startMainViewActivity();
+        dismissNow();
+    }
+
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -238,12 +244,6 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
 
         // Create the AlertDialog object and return it
         return builder.create();
-    }
-
-    @Override
-    public void onCancel(@NonNull DialogInterface dialog) {
-        ((MainActivity) getActivity()).startMainViewActivity();
-        dismissNow();
     }
 
     @Override

@@ -23,13 +23,13 @@ public class AppContainer {
     public ScheduledThreadPoolExecutor executor = getExecutor();
     public Handler handler = getHandler();
 
-    private Handler getHandler() {
-        return new Handler(Looper.getMainLooper());
-    }
-
     private ScheduledThreadPoolExecutor getExecutor() {
         ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(2);
         executor.setRemoveOnCancelPolicy(true);
         return executor;
+    }
+
+    private Handler getHandler() {
+        return new Handler(Looper.getMainLooper());
     }
 }

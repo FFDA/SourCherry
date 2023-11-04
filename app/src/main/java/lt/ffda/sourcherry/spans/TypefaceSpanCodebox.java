@@ -34,22 +34,18 @@ public class TypefaceSpanCodebox extends TypefaceSpan implements Cloneable {
         super(family);
     }
 
-    /**
-     * Get the width of the codebox
-     * Has no effect in SourCherry
-     * @return width of the codebox
-     */
-    public int getFrameWidth() {
-        return this.frameWidth;
-    }
-
-    /**
-     * Set the width of the codebox
-     * Has no effect in SourCherry
-     * @param frameWidth width of the codebox
-     */
-    public void setFrameWidth(int frameWidth) {
-        this.frameWidth = frameWidth;
+    @NonNull
+    @Override
+    public TypefaceSpanCodebox clone() {
+        try {
+            TypefaceSpanCodebox codeboxClone = (TypefaceSpanCodebox) super.clone();
+            codeboxClone.syntaxHighlighting = ((TypefaceSpanCodebox) super.clone()).getSyntaxHighlighting();
+            codeboxClone.spanContent = ((TypefaceSpanCodebox) super.clone()).spanContent;
+            codeboxClone.justification = ((TypefaceSpanCodebox) super.clone()).justification;
+            return codeboxClone;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -71,21 +67,71 @@ public class TypefaceSpanCodebox extends TypefaceSpan implements Cloneable {
     }
 
     /**
-     * Get codebox property: width in pixels or percents
+     * Get the width of the codebox
      * Has no effect in SourCherry
-     * @return true - width is calculated int pixels, false - width is calculated in percentages
+     * @return width of the codebox
      */
-    public boolean isWidthInPixel() {
-        return this.widthInPixel;
+    public int getFrameWidth() {
+        return this.frameWidth;
     }
 
     /**
-     * Set codebox property: width in pixel
+     * Set the width of the codebox
      * Has no effect in SourCherry
-     * @param widthInPixel true - width is calculated int pixels, false - width is calculated in percentages
+     * @param frameWidth width of the codebox
      */
-    public void setWidthInPixel(boolean widthInPixel) {
-        this.widthInPixel = widthInPixel;
+    public void setFrameWidth(int frameWidth) {
+        this.frameWidth = frameWidth;
+    }
+
+    /**
+     * Get justification of the element
+     * @return justification of the elements
+     */
+    public String getJustification() {
+        return this.justification;
+    }
+
+    /**
+     * Set justification of the element
+     * @param justification element's justification ("left", "right", "center", "fill")
+     */
+    public void setJustification(String justification) {
+        this.justification = justification;
+    }
+
+    /**
+     * Get new offset of the element. It shows location where the element has to be inserted back
+     * into the node content when it is being recreated.
+     * @return element's offset
+     */
+    public int getNewOffset() {
+        return this.newOffset;
+    }
+
+    /**
+     * Set new offset of the element. It has to be calculated using the location of the span in the
+     * node content.
+     * @param newOffset element's offset
+     */
+    public void setNewOffset(int newOffset) {
+        this.newOffset = newOffset;
+    }
+
+    /**
+     * Get span content. Used only in SQLReader to pass span content for sorting
+     * @return span content
+     */
+    public String getSpanContent() {
+        return this.spanContent;
+    }
+
+    /**
+     * Set span content. Used only in SQLReader to pass span content for sorting
+     * @param spanContent content that span marks
+     */
+    public void setSpanContent(String spanContent) {
+        this.spanContent = spanContent;
     }
 
     /**
@@ -143,66 +189,20 @@ public class TypefaceSpanCodebox extends TypefaceSpan implements Cloneable {
     }
 
     /**
-     * Get span content. Used only in SQLReader to pass span content for sorting
-     * @return span content
+     * Get codebox property: width in pixels or percents
+     * Has no effect in SourCherry
+     * @return true - width is calculated int pixels, false - width is calculated in percentages
      */
-    public String getSpanContent() {
-        return this.spanContent;
+    public boolean isWidthInPixel() {
+        return this.widthInPixel;
     }
 
     /**
-     * Set span content. Used only in SQLReader to pass span content for sorting
-     * @param spanContent content that span marks
+     * Set codebox property: width in pixel
+     * Has no effect in SourCherry
+     * @param widthInPixel true - width is calculated int pixels, false - width is calculated in percentages
      */
-    public void setSpanContent(String spanContent) {
-        this.spanContent = spanContent;
-    }
-
-    /**
-     * Get new offset of the element. It shows location where the element has to be inserted back
-     * into the node content when it is being recreated.
-     * @return element's offset
-     */
-    public int getNewOffset() {
-        return this.newOffset;
-    }
-
-    /**
-     * Set new offset of the element. It has to be calculated using the location of the span in the
-     * node content.
-     * @param newOffset element's offset
-     */
-    public void setNewOffset(int newOffset) {
-        this.newOffset = newOffset;
-    }
-
-    /**
-     * Get justification of the element
-     * @return justification of the elements
-     */
-    public String getJustification() {
-        return this.justification;
-    }
-
-    /**
-     * Set justification of the element
-     * @param justification element's justification ("left", "right", "center", "fill")
-     */
-    public void setJustification(String justification) {
-        this.justification = justification;
-    }
-
-    @NonNull
-    @Override
-    public TypefaceSpanCodebox clone() {
-        try {
-            TypefaceSpanCodebox codeboxClone = (TypefaceSpanCodebox) super.clone();
-            codeboxClone.syntaxHighlighting = ((TypefaceSpanCodebox) super.clone()).getSyntaxHighlighting();
-            codeboxClone.spanContent = ((TypefaceSpanCodebox) super.clone()).spanContent;
-            codeboxClone.justification = ((TypefaceSpanCodebox) super.clone()).justification;
-            return codeboxClone;
-        } catch (CloneNotSupportedException e) {
-            throw new AssertionError();
-        }
+    public void setWidthInPixel(boolean widthInPixel) {
+        this.widthInPixel = widthInPixel;
     }
 }

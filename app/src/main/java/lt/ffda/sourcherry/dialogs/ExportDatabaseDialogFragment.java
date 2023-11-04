@@ -387,9 +387,9 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
      * Class to provide necessary information about new archive items and to receive information about the progress of the operation.
      */
     private final class OutCreateCallback implements IOutCreateCallback<IOutItem7z>, ICryptoGetTextPassword {
-        private RandomAccessFileInStream randomAccessFileInStream;
         private final File currentDatabase;
         private final String filenameInsideArchive;
+        private RandomAccessFileInStream randomAccessFileInStream;
 
         /**
          * Constructor that creates current opened database's File object
@@ -413,11 +413,6 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
         }
 
         @Override
-        public void setOperationResult(boolean operationResultOk) throws SevenZipException {
-
-        }
-
-        @Override
         public IOutItem7z getItemInformation(int index, OutItemFactory<IOutItem7z> outItemFactory) throws SevenZipException {
             IOutItem7z item = outItemFactory.createOutItem();
             item.setDataSize(this.currentDatabase.length());
@@ -438,11 +433,6 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
             return randomAccessFileInStream;
         }
 
-        @Override
-        public void setTotal(long total) throws SevenZipException {
-            ExportDatabaseDialogFragment.this.fileSize = total;
-        }
-
         /**
          * Calculates how many percentages where process and set's progress bar to that value
          * @param complete amount of bytes that were processed
@@ -457,6 +447,16 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
                     ExportDatabaseDialogFragment.this.progressBar.setProgress(percent);
                 }
             });
+        }
+
+        @Override
+        public void setOperationResult(boolean operationResultOk) throws SevenZipException {
+
+        }
+
+        @Override
+        public void setTotal(long total) throws SevenZipException {
+            ExportDatabaseDialogFragment.this.fileSize = total;
         }
     }
 }

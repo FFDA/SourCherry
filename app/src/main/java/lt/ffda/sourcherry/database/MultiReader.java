@@ -108,12 +108,12 @@ import lt.ffda.sourcherry.utils.Filenames;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class MultiReader extends DatabaseReader {
-    private Document drawerMenu;
     private final Context context;
     private final DocumentBuilder documentBuilder;
     private final Handler handler;
     private final Uri mainFolderUri;
     private final MainViewModel mainViewModel;
+    private Document drawerMenu;
 
     /**
      * Class that opens databases based on file system and categories in it. Every node has it's own
@@ -181,6 +181,239 @@ public class MultiReader extends DatabaseReader {
         } catch (IOException e) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "bookmarks.lst"));
         }
+    }
+
+    /**
+     * There are *.lst files in Multifile database, that holds list of NodeUniqueID. This method appends
+     * NodeUniqueID to that list. If file does not exists it will be created with the file name provided
+     * @param documentId   SAF documentID of the folder under witch *.lst file has to be updated
+     * @param nodeUniqueID unique ID of the node to add to the file
+     */
+    private void addNodeToLst(String documentId, String nodeUniqueID) {
+        try {
+            String lstFileDocumentId = null;
+            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(2).equals("subnodes.lst")) {
+                        lstFileDocumentId = cursor.getString(0);
+                        break;
+                    }
+                }
+            }
+            if (lstFileDocumentId == null) {
+                lstFileDocumentId = DocumentsContract.getDocumentId(DocumentsContract.createDocument(
+                        this.context.getContentResolver(),
+                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, documentId),
+                        "application/octet-stream",
+                        "subnodes.lst"
+                ));
+            }
+            List<Integer> list = null;
+            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                String line = br.readLine();
+                if (line != null) {
+                    list = Arrays.stream(line.split(","))
+                            .map(Integer::parseInt)
+                            .collect(Collectors.toList());
+                }
+                if (list == null) {
+                    list = new ArrayList<>();
+                }
+                list.add(Integer.parseInt(nodeUniqueID));
+            }
+            try (
+                    OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
+                    PrintWriter pw = new PrintWriter(os)) {
+                pw.println(list.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(",")));
+            }
+        } catch (IOException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
+        }
+    }
+
+    /**
+     * There are *.lst files in Multifile database, that holds list of NodeUniqueID. This method adds
+     * NodeUniqueID to that list after unique ID of the node indicated by siblingNodeUniqueID. If file does not exists
+     * it will be created with the file name provided
+     * @param documentId          SAF documentID of the folder under witch *.lst file has to be
+     * @param siblingNodeUniqueID unique ID of the node after which new node should appear in DrawerMenu
+     * @param nodeUniqueID        unique ID of the node to add to the file
+     */
+    private void addNodeToLst(String documentId, String siblingNodeUniqueID, String nodeUniqueID) {
+        try {
+            String lstFileDocumentId = null;
+            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(2).equals("subnodes.lst")) {
+                        lstFileDocumentId = cursor.getString(0);
+                        break;
+                    }
+                }
+            }
+            if (lstFileDocumentId == null) {
+                lstFileDocumentId = DocumentsContract.getDocumentId(DocumentsContract.createDocument(
+                        this.context.getContentResolver(),
+                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, documentId),
+                        "application/octet-stream",
+                        "subnodes.lst"
+                ));
+            }
+            List<Integer> list = null;
+            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                String line = br.readLine();
+                if (line != null) {
+                    list = Arrays.stream(line.split(","))
+                            .map(Integer::parseInt)
+                            .collect(Collectors.toList());
+                }
+                if (list == null) {
+                    list = new ArrayList<>();
+                }
+                list.add(list.indexOf(Integer.valueOf(siblingNodeUniqueID)) + 1, Integer.parseInt(nodeUniqueID));
+            }
+            try (
+                    OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
+                    PrintWriter pw = new PrintWriter(os)) {
+                pw.println(list.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(",")));
+            }
+        } catch (IOException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
+        }
+    }
+
+    /**
+     * Recursively scans through all the nodes in NodeList to collect the uniqueNodeIDs. Adds them
+     * to provided String list
+     * @param uniqueIDList String list to add the found nodeUniqueIDs
+     * @param nodeList NodeList to scan recursively
+     */
+    private void collectUniqueID(List<String> uniqueIDList, NodeList nodeList) {
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            if (nodeList.item(i).getNodeName().equals("node")) {
+                uniqueIDList.add(nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
+                collectUniqueID(uniqueIDList, nodeList.item(i).getChildNodes());
+            }
+        }
+    }
+
+    /**
+     * Coverts codebox node content to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param node codebox node that needs to be converted
+     * @return StringBuilder that can be added to the node StringBuilder at the proper offset
+     */
+    private StringBuilder convertCodeboxToPlainText(Node node) {
+        StringBuilder codeboxContent = new StringBuilder();
+        codeboxContent.append("\n");
+        codeboxContent.append(getSeparator());
+        codeboxContent.append("\n");
+        codeboxContent.append(node.getTextContent());
+        codeboxContent.append("\n");
+        codeboxContent.append(getSeparator());
+        codeboxContent.append("\n");
+        return codeboxContent;
+    }
+
+    /**
+     * Converts latex node content to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param node latex node that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
+    private StringBuilder convertLatexToPlainText(Node node) {
+        StringBuilder latexContent = new StringBuilder();
+        latexContent.append(node.getTextContent());
+        latexContent.delete(0, 79);
+        latexContent.delete(latexContent.length()-14, latexContent.length());
+        latexContent.insert(0,getSeparator());
+        latexContent.insert(0, "\n");
+        latexContent.append(getSeparator());
+        latexContent.append("\n");
+        return latexContent;
+    }
+
+    /**
+     * Coverts content of provided node from rich-text to plain-text or automatic-syntax-highlighting
+     * Conversion adds all the content from the node's rich-text tags to StringBuilder
+     * that can be added to the new rich-text (single) tag later
+     * @param contentNode node that needs to be converted
+     * @return StringBuilder with all the node content without addition tags
+     */
+    private StringBuilder convertRichTextNodeContentToPlainText(Node contentNode) {
+        StringBuilder nodeContent = new StringBuilder();
+        int totalCharOffset = 0;
+        NodeList nodeList = contentNode.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("rich_text")) {
+                nodeContent.append(node.getTextContent());
+            } else if (node.getNodeName().equals("table")) {
+                int charOffset = getCharOffset(node) + totalCharOffset;
+                StringBuilder tableContent = this.convertTableNodeContentToPlainText(node);
+                nodeContent.insert(charOffset, tableContent);
+                totalCharOffset += tableContent.length() - 1;
+            } else if (node.getNodeName().equals("encoded_png")) {
+                if (node.getAttributes().getNamedItem("filename") != null) {
+                    if (node.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
+                        // For latex boxes
+                        int charOffset = getCharOffset(node) + totalCharOffset;
+                        StringBuilder latexContent = this.convertLatexToPlainText(node);
+                        nodeContent.insert(charOffset, latexContent);
+                        totalCharOffset += latexContent.length() - 1;
+                        continue;
+                    } else {
+                        totalCharOffset -= 1;
+                    }
+                    // For every element, even ones that will not be added
+                    // 1 has to be deducted from totalCharOffset
+                    // to make node's data be displayed in order
+                } else if (node.getAttributes().getNamedItem("anchor") != null) {
+                    totalCharOffset -= 1;
+                } else {
+                    totalCharOffset -= 1;
+                }
+            } else if (node.getNodeName().equals("codebox")) {
+                int charOffset = getCharOffset(node) + totalCharOffset;
+                StringBuilder codeboxContent = this.convertCodeboxToPlainText(node);
+                nodeContent.insert(charOffset, codeboxContent);
+                totalCharOffset += codeboxContent.length() - 1;
+            }
+        }
+        return nodeContent;
+    }
+
+    /**
+     * Coverts content of the table Node (part of content node) to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param tableNode table node that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
+    private StringBuilder convertTableNodeContentToPlainText(Node tableNode) {
+        StringBuilder tableContent = new StringBuilder();
+        NodeList nodeList = tableNode.getChildNodes();
+        int tableRowCount = nodeList.getLength() / 2;
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("row")) {
+                // Header row for the table is kept at the end of the table
+                // When converting to string it has to be added to the beginning
+                // of the string fro the information to make sense
+                if (tableRowCount > 1) {
+                    tableContent.append(this.convertTableRowToPlainText(node));
+                } else {
+                    tableContent.insert(0, this.convertTableRowToPlainText(node));
+                }
+                tableRowCount--;
+            }
+        }
+        tableContent.insert(0, "\n");
+        return tableContent;
     }
 
     @Override
@@ -298,6 +531,59 @@ public class MultiReader extends DatabaseReader {
         return scNode;
     }
 
+    /**
+     * Convenience method to create single node with parent node properties
+     * @param node node object to create ScNode object from. This object has to be from drawer_menu.xml file
+     * @return ScNode object ready to be displayed in DrawerMenu as a parent node
+     */
+    private ScNode createParentNode(Node node) {
+        return this.createSingleMenuItem(node, true, false);
+    }
+
+    /**
+     * Creates single ScNode object from provided Node object.
+     * @param node node object to create ScNode object from. This object has to be from drawer_menu.xml file
+     * @param isParent true - mark node to be displayed as a parent node (will not have indentation and will have arrow pointing down), false - opposite of that
+     * @param isSubnode true - mark node to be displayed as a subnode (will have indentation), false - opposite of that
+     * @return ScNode object ready to be displayed in DrawerMenu
+     */
+    private ScNode createSingleMenuItem(Node node, boolean isParent, boolean isSubnode) {
+        NamedNodeMap nodeAttribute = node.getAttributes();
+        return new ScNode(
+                nodeAttribute.getNamedItem("unique_id").getNodeValue(),
+                nodeAttribute.getNamedItem("name").getNodeValue(),
+                isParent,
+                nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"),
+                isSubnode,
+                nodeAttribute.getNamedItem("is_rich_text").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("is_bold").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("foreground_color").getNodeValue(),
+                Integer.parseInt(nodeAttribute.getNamedItem("icon_id").getNodeValue()),
+                nodeAttribute.getNamedItem("readonly").getNodeValue().equals("1")
+        );
+    }
+
+    /**
+     * Creates single ScNode object from provided Node object.
+     * @param node node object to create ScNode object from. This object has to be from drawer_menu.xml file
+     * @return ScNode object ready to be displayed in DrawerMenu
+     */
+    private ScNode createSingleMenuItem(Node node) {
+        NamedNodeMap nodeAttribute = node.getAttributes();
+        return new ScNode(
+                nodeAttribute.getNamedItem("unique_id").getNodeValue(),
+                nodeAttribute.getNamedItem("name").getNodeValue(),
+                nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"), // If node, has subnodes - it means it can be marked as parent
+                nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"),
+                !nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"), // If node, has subnodes - it means it can't be marked as subnode,
+                nodeAttribute.getNamedItem("is_rich_text").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("is_bold").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("foreground_color").getNodeValue(),
+                Integer.parseInt(nodeAttribute.getNamedItem("icon_id").getNodeValue()),
+                nodeAttribute.getNamedItem("readonly").getNodeValue().equals("1")
+        );
+    }
+
     @Override
     public void deleteNode(String nodeUniqueID) {
         try {
@@ -335,6 +621,21 @@ public class MultiReader extends DatabaseReader {
         }
     }
 
+    /**
+     * Removes all rich_text tags from the node
+     * Used to prepare node for conversion from rich-text to plain-text
+     * @param node node from which to delete all the content
+     */
+    private void deleteNodeContent(Node node) {
+        NodeList nodeList = node.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node currentNode = nodeList.item(i);
+            if (!currentNode.getNodeName().equals("node")) {
+                node.removeChild(currentNode);
+            }
+        }
+    }
+
     @Override
     public void displayToast(String message) {
         this.handler.post(new Runnable() {
@@ -358,6 +659,179 @@ public class MultiReader extends DatabaseReader {
             }
         }
         return false;
+    }
+
+    /**
+     * Searches through node's content
+     * @param node node to search in
+     * @param query string to search for
+     * @param hasSubnodes true if node has subnodes, else - false
+     * @param isParent true if node is a parent node, else - false
+     * @param isSubnode true if node is a subnode, else - false
+     * @return search result object or null if nothing was found
+     */
+    private ScSearchNode findInNode(Node node, String query, boolean hasSubnodes, boolean isParent, boolean isSubnode) {
+        // This string builder will hold oll text content of the node
+        StringBuilder nodeContent = new StringBuilder();
+        // As in reader that all the text would be in order user sees it
+        // filenames, table and codebox content hast to be inserted in correct location of the string
+        // To help calculate that location totalCharOffset is used
+        int totalCharOffset = 0;
+        // Gets all child nodes
+        NodeList nodeContentNodeList = node.getChildNodes();
+        for (int i = 0; i < nodeContentNodeList.getLength(); i++) {
+            // Going through all the tags of the node
+            // Skipping other "node" tags (subnodes).
+            // To decide if these nodes have to be search are for a job for
+            // searchNodesSkippingExcluded() or searchInNodeList()
+            switch (nodeContentNodeList.item(i).getNodeName()) {
+                case "rich_text":
+                    // All the text of the node
+                    nodeContent.append(nodeContentNodeList.item(i).getTextContent());
+                    break;
+                case "table":
+                    // Table of the node
+                    // offset where table's content has to be inserted
+                    int tableContentCharOffset = Integer.parseInt(nodeContentNodeList.item(i).getAttributes().getNamedItem("char_offset").getNodeValue());
+                    StringBuilder tableContent = new StringBuilder();
+                    // Getting all the rows of the table
+                    // It would be possible to add all the table content directly from the nodeContentNodeList.item(i)
+                    // However, "header" of the table is places in the last row, so it would be showed at the end of tables content
+                    NodeList tableRows = nodeContentNodeList.item(i).getChildNodes();
+
+                    // Adding all rows to arraylist
+                    ArrayList<String> tableRowArray = new ArrayList<>();
+                    for (int row = 0; row < tableRows.getLength(); row++) {
+                        if (tableRows.item(row).getNodeName().equals("row")) {
+                            tableRowArray.add(tableRows.item(row).getTextContent());
+                        }
+                    }
+                    // Adding the last row of the table to string builder as first because that's where header of the table is located
+                    tableContent.append(tableRowArray.get(tableRowArray.size() - 1));
+                    // Rest of the rows can be added in order
+                    for (int x = 0; x < tableRowArray.size() - 1; x++) {
+                        tableContent.append(tableRowArray.get(x));
+                    }
+                    // Adding table's content to nodes content string builder
+                    nodeContent.insert(tableContentCharOffset + totalCharOffset, tableContent);
+                    // Changing total offset value with a value of the table content, because CherryTree uses different GUI toolkit
+                    // And without doing this the first element with offset would mess node content order (or maybe that's by design)
+                    totalCharOffset += tableContent.length() - 1;
+                    break;
+                case "codebox":
+                    int codeboxContentCharOffset = Integer.parseInt(nodeContentNodeList.item(i).getAttributes().getNamedItem("char_offset").getNodeValue());
+                    StringBuilder codeboxContent = new StringBuilder();
+                    codeboxContent.append(nodeContentNodeList.item(i).getTextContent());
+                    if (nodeContent.length() < codeboxContentCharOffset + totalCharOffset) {
+                        // This check most likely needed in Searcher, but not in Reader
+                        // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                        nodeContent.append(codeboxContent);
+                    } else {
+                        nodeContent.insert(codeboxContentCharOffset + totalCharOffset, codeboxContent);
+                    }
+                    totalCharOffset += codeboxContent.length() - 1;
+                    break;
+                case "encoded_png":
+                    // Getting just image's filename and inserting it in the nodeContent string that it would be possible to search for them
+                    Node filename = nodeContentNodeList.item(i).getAttributes().getNamedItem("filename");
+                    if (filename != null) {
+                        if (!filename.getNodeValue().equals("__ct_special.tex")) {
+                            // Ignoring LaTeX formulas
+                            int encodedPngContentCharOffset = Integer.parseInt(nodeContentNodeList.item(i).getAttributes().getNamedItem("char_offset").getNodeValue());
+                            StringBuilder encodedPngContent = new StringBuilder();
+                            encodedPngContent.append(filename.getNodeValue());
+                            encodedPngContent.append(" ");
+                            nodeContent.insert(encodedPngContentCharOffset + totalCharOffset, encodedPngContent);
+                            totalCharOffset += encodedPngContent.length() - 1;
+                        }
+                    }
+                    break;
+            }
+        }
+        // Search
+        int queryLength = query.length();
+        int resultCount = 0;
+        int index = 0;
+        String nodeName = null; // To display in results
+        String nodeUniqueID = null; // That it could be returned to MainView to load selected node
+        boolean isRichText = false;
+        boolean isBold = false;
+        String foregroundColor = "";
+        int iconId = 0;
+        boolean isReadOnly = false;
+        StringBuilder samples = new StringBuilder(); // This will hold 3 samples to show to user
+        // Removing all spaces and new line character from the node content string
+        String preparedNodeContent = nodeContent.toString().toLowerCase().replaceAll("\n", " ").replaceAll(" +", " ");
+        while (index != -1) {
+            index = preparedNodeContent.indexOf(query, index);
+            if (index != -1) {
+                // if match to search query was found in the node's content
+                if (resultCount < 1) {
+                    // If it's first match
+                    // Settings node name and unique_id values that they could be returned with result
+                    nodeName = node.getAttributes().getNamedItem("name").getNodeValue();
+                    nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+                    isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
+                    isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
+                    foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
+                    iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
+                    isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
+                }
+                if (resultCount < 3 ) {
+                    // Results display only first three found instances of search query
+                    int startIndex = 0; // Start of sample substring that will be created
+                    int endIndex = preparedNodeContent.length(); // End of sample substring that will be created
+                    String sampleStart = "";
+                    String sampleEnd = "";
+                    if (index > 20) {
+                        // if index is further than 20 symbols from the start of the node content
+                        // ... are added to the start of the sample
+                        // and only 20 preceding symbols before query match are showed
+                        startIndex = index - 20;
+                        sampleStart = "...";
+                    }
+                    if ((index + queryLength + 20) < endIndex) {
+                        // if index is more than 20 symbols from the end of the node content
+                        // ... are added to the end of the sample
+                        // and only 20 proceeding symbols before query match are showed
+                        endIndex = index + queryLength + 20;
+                        sampleEnd = "...";
+                    }
+                    // Building a sample for search result from using previously formatted parts
+                    StringBuilder sample = new StringBuilder();
+                    sample.append(sampleStart);
+                    sample.append(preparedNodeContent.substring(startIndex, endIndex).trim());
+                    sample.append(sampleEnd);
+                    sample.append("<br/>");
+                    samples.append(sample);
+                }
+                resultCount++;
+                index += queryLength; // moving search start to the end of the last position that search query was found
+            }
+        }
+        if (nodeName != null) {
+            // if node name isn't null that means match for a query was found
+            return new ScSearchNode(nodeUniqueID, nodeName, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Search through DrawerMenu item and returns one with specific node unique ID
+     * @param nodeUniqueID unique ID of the node to search for
+     * @return found Node or null
+     */
+    private Node findSingleNode(String nodeUniqueID) {
+        Node node = null;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            if (nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                node = nodeList.item(i);
+                break;
+            }
+        }
+        return node;
     }
 
     @Override
@@ -409,25 +883,17 @@ public class MultiReader extends DatabaseReader {
         return nodes;
     }
 
-    @Override
-    public ImageSpan makeBrokenImageSpan(int type) {
-        // Returns an image span that is used to display as placeholder image
-        // used when cursor window is to small to get an image blob
-        // pass 0 to get broken image span, pass 1 to get broken latex span
-        SpannableStringBuilder brokenSpan = new SpannableStringBuilder();
-        brokenSpan.append(" ");
-        Drawable drawableBrokenImage;
-        ImageSpan brokenImage;
-        if (type == 0) {
-            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_image_48);
-            brokenImage = new ImageSpanImage(drawableBrokenImage);
-        } else {
-            drawableBrokenImage =  AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_latex_48);
-            brokenImage = new ImageSpanLatex(drawableBrokenImage);
-        }
-        //// Inserting image
-        drawableBrokenImage.setBounds(0,0, drawableBrokenImage.getIntrinsicWidth(), drawableBrokenImage.getIntrinsicHeight());
-        return brokenImage;
+    /**
+     * Returns character offset value that is used in codebox and encoded_png tags
+     * It is needed to add text in the correct location
+     * One needs to -1 from the value to make it work
+     * I don't have any idea why
+     * @param node Node object to extract it's character offset
+     * @return offset of the node content
+     */
+    private int getCharOffset(Node node) {
+        Element element = (Element) node;
+        return Integer.parseInt(element.getAttribute("char_offset"));
     }
 
     @Override
@@ -470,6 +936,21 @@ public class MultiReader extends DatabaseReader {
         return this.returnSubnodeArrayList(nodelist, false);
     }
 
+    /**
+     * Returns cursor with children of the root folder of the Multifile database
+     * @return SAF cursor. Cursor should be closed after use manually. Cursor has 3 fields: 0 - document_id, 1 - mime_type, 2 - _display_name
+     */
+    private Cursor getMainNodesCursor() {
+        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
+        return this.context.getContentResolver().query(
+                childrenUri,
+                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
+                null,
+                null,
+                null
+        );
+    }
+
     @Override
     public ArrayList<ScNode> getMenu(String nodeUniqueID) {
         ArrayList<ScNode> nodes = new ArrayList<>();
@@ -482,6 +963,174 @@ public class MultiReader extends DatabaseReader {
             }
         }
         return nodes;
+    }
+
+    /**
+     * Creates node's children cursor
+     * @param nodeUniqueID unique ID of the node to get the children cursor for
+     * @return SAF cursor object with all the children of the folder. Cursor has three columns: document_id, mime_type and _display_name. Cursor has to be closed after user.
+     */
+    private Cursor getNodeChildrenCursor(String nodeUniqueID) {
+        Cursor cursor = null;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node item = nodeList.item(i);
+            if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                        this.mainFolderUri,
+                        item.getAttributes().getNamedItem("saf_id").getNodeValue());
+                cursor = this.context.getContentResolver().query(
+                        uri,
+                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
+                        null,
+                        null,
+                        null
+                );
+            }
+        }
+        return cursor;
+    }
+
+    /**
+     * Creates node's children cursor
+     * @param node node object to get the children cursor for
+     * @return SAF cursor object with all the children of the folder. Cursor has three columns: document_id, mime_type and _display_name. Cursor has to be closed after user.
+     */
+    private Cursor getNodeChildrenCursor(Node node) {
+        Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                        this.mainFolderUri,
+                        node.getAttributes().getNamedItem("saf_id").getNodeValue()
+        );
+        return this.context.getContentResolver().query(
+                        uri,
+                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
+                        null,
+                        null,
+                        null
+                );
+    }
+
+    /**
+     * Creates cursor with children of the document using SAF documentId. DocumentId has to be of a
+     * children of this.mainFolderUri.
+     * @param documentId documentId of the document to create children of
+     * @return cursor with children documents. Has to be closed after use.
+     */
+    private Cursor getNodeChildrenCursorSaf(String documentId) {
+        Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, documentId);
+        return this.context.getContentResolver().query(
+                uri,
+                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
+                null,
+                null,
+                null
+        );
+    }
+
+    @Override
+    public int getNodeMaxID() {
+        int maxID = -1;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            int foundNodeUniqueID = Integer.parseInt(node.getAttributes().getNamedItem("unique_id").getNodeValue());
+            if (foundNodeUniqueID > maxID) {
+                maxID = foundNodeUniqueID;
+            }
+        }
+        return maxID;
+    }
+
+    @Override
+    public ScNodeProperties getNodeProperties(String nodeUniqueID) {
+        Node node = this.findSingleNode(nodeUniqueID);
+        String name = node.getAttributes().getNamedItem("name").getNodeValue();
+        String progLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
+        byte noSearchMe = Byte.parseByte(node.getAttributes().getNamedItem("nosearch_me").getNodeValue());
+        byte noSearchCh = Byte.parseByte(node.getAttributes().getNamedItem("nosearch_ch").getNodeValue());
+        if (name == null) {
+            return null;
+        } else {
+            return new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
+        }
+    }
+
+    /**
+     * Creates document Uri of the node
+     * @param node node for with folder to create Uri for. It has to be child of the drawerMenu document.
+     * @return Uri of node's folder
+     */
+    private Uri getNodeUri(Node node) {
+        return DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, node.getAttributes().getNamedItem("saf_id").getNodeValue());
+    }
+
+    @Override
+    public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
+        ArrayList<ScNode> nodes = null;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                Node parentNode = node.getParentNode();
+                if (parentNode == null) {
+                    return nodes;
+                } else if (parentNode.getNodeName().equals("sourcherry")) {
+                    nodes = this.getMainNodes();
+                } else {
+                    nodes = this.returnSubnodeArrayList(parentNode.getChildNodes(), true);
+                    nodes.add(0, this.createParentNode(parentNode));
+                }
+            }
+        }
+        return nodes;
+    }
+
+    @Override
+    public ScNode getSingleMenuItem(String nodeUniqueID) {
+        ScNode node = null;
+        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node item = nodeList.item(i);
+            if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                node = this.createSingleMenuItem(item);
+            }
+        }
+        return node;
+    }
+
+    /**
+     * Returns embedded table dimensions in the node
+     * Used to set min and max width for the table cell
+     * @param node table Node object
+     * @return CharSequence[] {colMax, colMin} of table dimensions
+     */
+    private int[] getTableMinMax(Node node) {
+        Element el = (Element) node;
+        int colMin = Integer.parseInt(el.getAttribute("col_min"));
+        int colMax = Integer.parseInt(el.getAttribute("col_max"));
+        return new int[] {colMin, colMax};
+    }
+
+    @Override
+    public boolean isNodeBookmarked(String nodeUniqueID) {
+        boolean nodeBookmarked = false;
+        try (Cursor cursor = this.getMainNodesCursor()) {
+            while (cursor.moveToNext()) {
+                if (cursor.getString(2).equals("bookmarks.lst")) {
+                    try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
+                        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                        String line = br.readLine();
+                        if (line != null) {
+                            nodeBookmarked = Arrays.asList(line.split(",")).contains(nodeUniqueID);
+                        }
+                    } catch (IOException e) {
+                        this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
+                    }
+                    break;
+                }
+            }
+        }
+        return nodeBookmarked;
     }
 
     @Override
@@ -613,90 +1262,6 @@ public class MultiReader extends DatabaseReader {
     }
 
     @Override
-    public int getNodeMaxID() {
-        int maxID = -1;
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            int foundNodeUniqueID = Integer.parseInt(node.getAttributes().getNamedItem("unique_id").getNodeValue());
-            if (foundNodeUniqueID > maxID) {
-                maxID = foundNodeUniqueID;
-            }
-        }
-        return maxID;
-    }
-
-    @Override
-    public ScNodeProperties getNodeProperties(String nodeUniqueID) {
-        Node node = this.findSingleNode(nodeUniqueID);
-        String name = node.getAttributes().getNamedItem("name").getNodeValue();
-        String progLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
-        byte noSearchMe = Byte.parseByte(node.getAttributes().getNamedItem("nosearch_me").getNodeValue());
-        byte noSearchCh = Byte.parseByte(node.getAttributes().getNamedItem("nosearch_ch").getNodeValue());
-        if (name == null) {
-            return null;
-        } else {
-            return new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
-        }
-    }
-
-    @Override
-    public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
-        ArrayList<ScNode> nodes = null;
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                Node parentNode = node.getParentNode();
-                if (parentNode == null) {
-                    return nodes;
-                } else if (parentNode.getNodeName().equals("sourcherry")) {
-                    nodes = this.getMainNodes();
-                } else {
-                    nodes = this.returnSubnodeArrayList(parentNode.getChildNodes(), true);
-                    nodes.add(0, this.createParentNode(parentNode));
-                }
-            }
-        }
-        return nodes;
-    }
-
-    @Override
-    public ScNode getSingleMenuItem(String nodeUniqueID) {
-        ScNode node = null;
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node item = nodeList.item(i);
-            if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                node = this.createSingleMenuItem(item);
-            }
-        }
-        return node;
-    }
-
-    @Override
-    public boolean isNodeBookmarked(String nodeUniqueID) {
-        boolean nodeBookmarked = false;
-        try (Cursor cursor = this.getMainNodesCursor()) {
-            while (cursor.moveToNext()) {
-                if (cursor.getString(2).equals("bookmarks.lst")) {
-                    try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
-                        BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                        String line = br.readLine();
-                        if (line != null) {
-                            nodeBookmarked = Arrays.asList(line.split(",")).contains(nodeUniqueID);
-                        }
-                    } catch (IOException e) {
-                        this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
-                    }
-                    break;
-                }
-            }
-        }
-        return nodeBookmarked;
-    }
-
-    @Override
     public SpannableStringBuilder makeAnchorImageSpan(String anchorValue) {
         // Makes an image span that displays an anchor to mark position of it.
         // It does not respond to touches in any way
@@ -734,6 +1299,73 @@ public class MultiReader extends DatabaseReader {
         return clickableSpanNode;
     }
 
+    /**
+     * Creates a clickable span that initiates a context to open/save attached file
+     * Files are decoded from Base64 string embedded in the tag
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param node Node object that contains filename and datetime parameters
+     * @param nodeUniqueID unique ID of the node to which file was attached to
+     * @return SpannableStringBuilder that has spans with image and filename
+     */
+    private SpannableStringBuilder makeAttachedFileSpan(Node node, String nodeUniqueID) {
+        String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
+        String time = node.getAttributes().getNamedItem("time").getNodeValue();
+        String offset = node.getAttributes().getNamedItem("char_offset").getNodeValue();
+        String sha256sum = node.getAttributes().getNamedItem("sha256sum").getNodeValue();
+        SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
+        formattedAttachedFile.append(" "); // Needed to insert an image
+        // Inserting image
+        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
+        drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
+        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        attachedFileIcon.setFromDatabase(true);
+        attachedFileIcon.setNodeUniqueId(nodeUniqueID);
+        attachedFileIcon.setFilename(attachedFileFilename);
+        attachedFileIcon.setTimestamp(time);
+        attachedFileIcon.setOriginalOffset(offset);
+        attachedFileIcon.setSha256sum(sha256sum);
+        formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        formattedAttachedFile.append(attachedFileFilename); // Appending filename
+        // Detects touches on icon and filename
+        ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                // Launches function in MainView that checks if there is a default action in for attached files
+                ((MainView) MultiReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, sha256sum);
+            }
+        };
+        formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+        String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
+        if (justificationAttribute.equals("right")) {
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justificationAttribute.equals("center")) {
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return formattedAttachedFile;
+    }
+
+    @Override
+    public ImageSpan makeBrokenImageSpan(int type) {
+        // Returns an image span that is used to display as placeholder image
+        // used when cursor window is to small to get an image blob
+        // pass 0 to get broken image span, pass 1 to get broken latex span
+        SpannableStringBuilder brokenSpan = new SpannableStringBuilder();
+        brokenSpan.append(" ");
+        Drawable drawableBrokenImage;
+        ImageSpan brokenImage;
+        if (type == 0) {
+            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_image_48);
+            brokenImage = new ImageSpanImage(drawableBrokenImage);
+        } else {
+            drawableBrokenImage =  AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_latex_48);
+            brokenImage = new ImageSpanLatex(drawableBrokenImage);
+        }
+        //// Inserting image
+        drawableBrokenImage.setBounds(0,0, drawableBrokenImage.getIntrinsicWidth(), drawableBrokenImage.getIntrinsicHeight());
+        return brokenImage;
+    }
+
     @Override
     public ClickableSpan makeFileFolderLinkSpan(String type, String base64Filename) {
         // Creates and returns a span for a link to external file or folder
@@ -759,6 +1391,214 @@ public class MultiReader extends DatabaseReader {
         clickableSpanLink.setLinkType(type);
         clickableSpanLink.setBase64Link(base64Filename);
         return clickableSpanLink;
+    }
+
+    /**
+     * Creates SpannableStringBuilder with the content of the CodeNode
+     * CodeNode is just a CodeBox that do not have height and width (dimensions)
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param node Node object that contains content of the node
+     * @return SpannableStringBuilder that has spans marked for string formatting
+     */
+    private SpannableStringBuilder makeFormattedCodeNodeSpan(Node node) {
+        SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
+        NodeList nodeList = node.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node currentNode = nodeList.item(i);
+            if (currentNode.getNodeName().equals("rich_text")) {
+                formattedCodeNode.append(currentNode.getTextContent());
+                break;
+            }
+        }
+        // Changes font
+        TypefaceSpan tf = new TypefaceSpan("monospace");
+        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        // Changes background color
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return formattedCodeNode;
+    }
+
+    /**
+     * Creates a codebox span from the provided Node object
+     * Formatting depends on new line characters in Node object
+     * if codebox content has new line character it means that it has to span multiple lines
+     * if not it's a single line box
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param node Node object that has codebox content
+     * @return SpannableStringBuilder that has spans marked for string formatting
+     */
+    private SpannableStringBuilder makeFormattedCodeboxSpan(Node node) {
+        SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
+        formattedCodebox.append(node.getTextContent());
+        // Changes font
+        TypefaceSpanCodebox typefaceSpanCodebox = new TypefaceSpanCodebox("monospace");
+        // Saving codebox attribute to the span
+        Element element = (Element) node;
+        String justificationAttribute = element.getAttribute("justification");
+        typefaceSpanCodebox.setFrameWidth(Integer.parseInt(element.getAttribute("frame_width")));
+        typefaceSpanCodebox.setFrameHeight(Integer.parseInt(element.getAttribute("frame_height")));
+        typefaceSpanCodebox.setWidthInPixel(element.getAttribute("width_in_pixels").equals("1"));
+        typefaceSpanCodebox.setSyntaxHighlighting(element.getAttribute("syntax_highlighting"));
+        typefaceSpanCodebox.setHighlightBrackets(element.getAttribute("highlight_brackets").equals("1"));
+        typefaceSpanCodebox.setShowLineNumbers(element.getAttribute("show_line_numbers").equals("1"));
+        if (node.getTextContent().contains("\n")) {
+            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            // Adds vertical line in front the paragraph, to make it stand out as quote
+            QuoteSpan qs;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                qs = new QuoteSpan(Color.parseColor("#AC1111"), 5, 30);
+            } else {
+                qs = new QuoteSpan(Color.RED);
+            }
+            formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            // Changes background color
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+                formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            }
+        } else {
+            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
+            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        if (justificationAttribute.equals("right")) {
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justificationAttribute.equals("center")) {
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return formattedCodebox;
+    }
+
+    /**
+     * Creates a SpannableStringBuilder with image in it
+     * Image is created from Base64 string embedded in the tag
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param cursor SAF cursor that holds all node data
+     * @param sha256sum image file sha256sum that doubles as the filename for the image
+     * @param nodeUniqueID unique ID of the node that has image embedded in it
+     * @return SpannableStringBuilder that has spans with image in them
+     */
+    private SpannableStringBuilder makeImageSpan(Cursor cursor, String sha256sum, String nodeUniqueID) {
+        SpannableStringBuilder formattedImage = new SpannableStringBuilder();
+        ImageSpanImage imageSpanImage;
+        while (cursor.moveToNext()) {
+            if (cursor.getString(1).equals("image/png") && cursor.getString(2).substring(0, cursor.getString(2).lastIndexOf(".")).equals(sha256sum)) {
+                try {
+                    formattedImage.append(" ");
+                    InputStream inputStream = this.context.getContentResolver().openInputStream(
+                            DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)));
+                    Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                    Drawable image = new BitmapDrawable(context.getResources(), bitmap);
+                    image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
+                    int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+                    if (image.getIntrinsicWidth() > width) {
+                        // If image is wider than screen it is scaled down to fit the screen
+                        // otherwise it will not load/be display
+                        float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
+                        int newWidth = (int) (image.getIntrinsicWidth() * scale);
+                        int newHeight = (int) (image.getIntrinsicHeight() * scale);
+                        image.setBounds(0, 0, newWidth, newHeight);
+                    }
+                    imageSpanImage = new ImageSpanImage(image);
+                    formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    //** Detects image touches/clicks
+                    ClickableSpan imageClickableSpan = new ClickableSpan() {
+                        @Override
+                        public void onClick(@NonNull View widget) {
+                            // Starting fragment to view enlarged zoomable image
+                            ((MainView) context).openImageView(nodeUniqueID, sha256sum);
+                        }
+                    };
+                    formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+                    //**
+                    imageSpanImage.setSha256sum(sha256sum);
+                } catch (FileNotFoundException e) {
+                    // Displays a toast message and appends broken image span to display in node content
+                    imageSpanImage = (ImageSpanImage) this.makeBrokenImageSpan(0);
+                    formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
+                }
+            }
+        }
+        return formattedImage;
+    }
+
+    /**
+     * Creates a SpannableStringBuilder with image with drawn Latex formula
+     * Image is created from latex code string embedded in the tag
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param node Node object that has a Latex code embedded in it
+     * @return SpannableStringBuilder that has span with Latex image in them
+     */
+    private SpannableStringBuilder makeLatexImageSpan(Node node) {
+        SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
+        ImageSpanLatex imageSpanLatex;
+        //* Creates and adds image to the span
+        try {
+            // Embedded latex code has tags/code that is not recognized by jlatexmath-android
+            // It has to be removed
+            formattedLatexImage.append(" ");
+            String latexString = node.getTextContent()
+                    .replace("\\documentclass{article}\n" +
+                            "\\pagestyle{empty}\n" +
+                            "\\usepackage{amsmath}\n" +
+                            "\\begin{document}\n" +
+                            "\\begin{align*}", "")
+                    .replace("\\end{align*}\n\\end{document}", "")
+                    .replaceAll("&=", "="); // Removing '&' sing, otherwise latex image fails to compile
+            final JLatexMathDrawable latexDrawable = JLatexMathDrawable.builder(latexString)
+                    .textSize(40)
+                    .padding(8)
+                    .background(0xFFffffff)
+                    .align(JLatexMathDrawable.ALIGN_RIGHT)
+                    .build();
+
+            latexDrawable.setBounds(0, 0, latexDrawable.getIntrinsicWidth(), latexDrawable.getIntrinsicHeight());
+
+            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+            if (latexDrawable.getIntrinsicWidth() > width - 50) {
+                // If image is wider than screen-50 px it is scaled down to fit the screen
+                // otherwise it will not load/be display
+                float scale = ((float) width / latexDrawable.getIntrinsicWidth()) - (float) 0.2;
+                int newWidth = (int) (latexDrawable.getIntrinsicWidth() * scale);
+                int newHeight = (int) (latexDrawable.getIntrinsicHeight() * scale);
+                latexDrawable.setBounds(0, 0, newWidth, newHeight);
+            }
+            imageSpanLatex = new ImageSpanLatex(latexDrawable);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            //** Detects image touches/clicks
+            ClickableSpan imageClickableSpan = new ClickableSpan() {
+                @Override
+                public void onClick(@NonNull View widget) {
+                    // Starting fragment to view enlarged zoomable image
+                    ((MainView) MultiReader.this.context).openImageView(latexString);
+                }
+            };
+            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+            //**
+        } catch (Exception e) {
+            // Displays a toast message and appends broken latex image span to display in node content
+            imageSpanLatex = (ImageSpanLatex) this.makeBrokenImageSpan(1);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_compile_latex));
+        }
+        //*
+        String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
+        if (justificationAttribute.equals("right")) {
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justificationAttribute.equals("center")) {
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        imageSpanLatex.setLatexCode(node.getTextContent());
+        return formattedLatexImage;
     }
 
     @Override
@@ -838,6 +1678,301 @@ public class MultiReader extends DatabaseReader {
     @Override
     public void removeNodeFromBookmarks(String nodeUniqueID) {
         this.removeNodeFromLst(DocumentsContract.getTreeDocumentId(this.mainFolderUri), nodeUniqueID, "bookmarks.lst");
+    }
+
+    /**
+     * There are *.lst files in Multifile database, that holds list of NodeUniqueID. This method
+     * removes NodeUniqueID from the file or if it's the only NodeUniqueID in the *.lst file -
+     * deletes the file
+     * @param documentId SAF documentID of the folder under witch *.lst file has to be updated
+     * @param nodeUniqueID unique ID of the node to remove from the file
+     * @param filename filename from which to remove the file. It is used for error message
+     */
+    private void removeNodeFromLst(String documentId, String nodeUniqueID, String filename) {
+        try {
+            String lstFileDocumentId = null;
+            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(2).equals(filename)) {
+                        lstFileDocumentId = cursor.getString(0);
+                        break;
+                    }
+                }
+            }
+            // Check if *.lst file was found. Displays message only for subnodes.lst file because
+            // bookmarks.lst can be missing if there were no bookmarks
+            if (lstFileDocumentId == null) {
+                if (filename.equals("subnodes.lst")) {
+                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
+                }
+                return;
+            }
+            String[] subnodes = null;
+            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                String line = br.readLine();
+                if (line != null) {
+                    subnodes = line.split(",");
+                }
+            }
+            subnodes = Arrays.stream(subnodes)
+                    .filter(s -> !s.equals(nodeUniqueID))
+                    .toArray(String[]::new);
+            if (subnodes.length == 0) {
+                DocumentsContract.deleteDocument(
+                        this.context.getContentResolver(),
+                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId)
+                );
+            } else {
+                try (
+                        OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
+                        PrintWriter pw = new PrintWriter(os)) {
+                    pw.println(String.join(",", subnodes));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
+        }
+    }
+
+    /**
+     * Removes all unique ID of the nodes in the list from the bookmarks
+     * @param nodeUniqueIDs list of node unique IDs to remove from bookmarks
+     */
+    private void removeNodesFromBookmarks(List<String> nodeUniqueIDs) {
+        try {
+            String lstFileDocumentId = null;
+            try (Cursor cursor = this.getNodeChildrenCursorSaf(DocumentsContract.getTreeDocumentId(this.mainFolderUri))) {
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(2).equals("bookmarks.lst")) {
+                        lstFileDocumentId = cursor.getString(0);
+                        break;
+                    }
+                }
+            }
+            // Check if *.lst file was found. The bookmarks.lst file might be missing if there were no bookmarks
+            if (lstFileDocumentId == null) {
+                return;
+            }
+            String[] subnodes = null;
+            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                String line = br.readLine();
+                if (line != null) {
+                    subnodes = line.split(",");
+                }
+            }
+            if (subnodes == null) {
+                this.displayToast(this.context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
+                return;
+            }
+            subnodes = Arrays.stream(subnodes)
+                    .filter(s -> !nodeUniqueIDs.contains(s))
+                    .toArray(String[]::new);
+            if (subnodes.length == 0) {
+                DocumentsContract.deleteDocument(
+                        this.context.getContentResolver(),
+                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId)
+                );
+            } else {
+                try (
+                        OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
+                        PrintWriter pw = new PrintWriter(os)) {
+                    pw.println(String.join(",", subnodes));
+                }
+            }
+        } catch (IOException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
+        }
+    }
+
+    /**
+     * Creates ArrayList of ScNode objects from all the nodes in provided NodeList
+     * @param nodelist nodes to make ScNode object list from
+     * @param isSubnode true - nodes have to be marked as subnodes, false - opposite of that
+     * @return ScNode object list ready to be used in DrawerMenu
+     */
+    private ArrayList<ScNode> returnSubnodeArrayList(NodeList nodelist, boolean isSubnode) {
+        ArrayList<ScNode> nodes = new ArrayList<>();
+        for (int i = 0; i < nodelist.getLength(); i++) {
+            nodes.add(this.createSingleMenuItem(nodelist.item(i), false, isSubnode));
+        }
+        return nodes;
+    }
+
+    /**
+     * Creates ArrayList of ScNode objects from all the nodes in provided NodeList filtering out
+     * nodes that are marked to be skipped in search
+     * @param nodelist nodes to make ScNode object list from
+     * @return ScNode object list ready to be used in DrawerMenu
+     */
+    private ArrayList<ScNode> returnSubnodeSearchArrayList(NodeList nodelist) {
+        ArrayList<ScNode> nodes = new ArrayList<>();
+        for (int i = 0; i < nodelist.getLength(); i++) {
+            Node item = nodelist.item(i);
+            if (item.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
+                nodes.add(this.createSingleMenuItem(item, false, false));
+            }
+            if (item.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
+                nodes.addAll(this.returnSubnodeSearchArrayList(item.getChildNodes()));
+            }
+        }
+        return nodes;
+    }
+
+    /**
+     * Writes XML document to output stream. Used to save created or updated node data to permanent storage
+     * @param node document to write
+     * @param outputStream output stream to write the file into
+     */
+    private void saveChanges(Node node, OutputStream outputStream) {
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer;
+        try {
+            transformer = transformerFactory.newTransformer();
+            DOMSource dSource = new DOMSource(node);
+            StreamResult result = new StreamResult(outputStream);
+            transformer.transform(dSource, result);
+        } catch (TransformerException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+        }
+    }
+
+    /**
+     * Writes drawerMenu global variable to drawer_menu.xml file
+     */
+    private void saveDrawerMenuToStorage() {
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer;
+        try {
+            transformer = transformerFactory.newTransformer();
+            DOMSource dSource = new DOMSource(this.drawerMenu);
+            OutputStream fileOutputStream = new FileOutputStream(new File(this.context.getFilesDir(), "drawer_menu.xml"));
+            StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
+            transformer.transform(dSource, result);
+            fileOutputStream.close();
+        } catch (TransformerException | IOException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+        }
+    }
+
+    /**
+     * Converts ImageSpanAnchor found in nodeContent to an Element object ready to be written to the database
+     * @param doc document object instance to create Element objects
+     * @param imageSpanAnchor ImageSpanAnchor object from nodeContent
+     * @param offset offset of the Anchor image
+     * @param lastFoundJustification justification of the Anchor image
+     * @return Element that can be added to Node and writen to the node.xml file
+     */
+    private Element saveImageSpanAnchor(Document doc, ImageSpanAnchor imageSpanAnchor, String offset, String lastFoundJustification) {
+        Element element = doc.createElement("encoded_png");
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("anchor", imageSpanAnchor.getAnchorName());
+        return element;
+    }
+
+    /**
+     * Converts ImageSpanFile found in nodeContent to an Element object ready to be written to the
+     * database. This element does not containt file data, only file sha256sum. File it self sould
+     * be stored in the same folder as node.xml file this Element object will be added to.
+     * @param doc document object instance to create Element objects
+     * @param fileImageSha256Sums list that contains all the sha256sums to be saved to the database
+     * @param imageSpanFile ImageSpanFile object from nodeContent
+     * @param offset offset of the file
+     * @param lastFoundJustification justification of the file
+     * @return Element that can be added to Node and writen to the node.xml file
+     */
+    private Element saveImageSpanFile(Document doc, List<String> fileImageSha256Sums, ImageSpanFile imageSpanFile, String offset, String lastFoundJustification) {
+        Element element = doc.createElement("encoded_png");
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("filename", imageSpanFile.getFilename());
+        if (imageSpanFile.isFromDatabase()) {
+            element.setAttribute("time", imageSpanFile.getTimestamp());
+            element.setAttribute("sha256sum", imageSpanFile.getSha256sum());
+            fileImageSha256Sums.add(imageSpanFile.getSha256sum());
+        } else {
+            try {
+                Uri userAttachedFileUri = Uri.parse(imageSpanFile.getFileUri());
+                InputStream inputStream = this.context.getContentResolver().openInputStream(userAttachedFileUri);
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                byte[] buf = new byte[4 * 1024];
+                int length;
+                while ((length = inputStream.read(buf)) != -1) {
+                    byteArrayOutputStream.write(buf);
+                }
+                byte[] hash = MessageDigest.getInstance("SHA-256").digest(byteArrayOutputStream.toByteArray());
+                String sha256sum = new BigInteger(1, hash).toString(16);
+                byteArrayOutputStream.close();
+                inputStream.close();
+                String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
+                Uri multiFileStorageFileUri = DocumentsContract.createDocument(
+                        this.context.getContentResolver(),
+                        this.getNodeUri(this.findSingleNode(this.mainViewModel.getCurrentNode().getUniqueId())),
+                        "*/*",
+                        extension != null ? sha256sum + "." + extension : sha256sum
+                );
+                inputStream = this.context.getContentResolver().openInputStream(userAttachedFileUri);
+                OutputStream outputStream = this.context.getContentResolver().openOutputStream(multiFileStorageFileUri);
+                while ((length = inputStream.read(buf)) != -1) {
+                    outputStream.write(buf);
+                }
+                inputStream.close();
+                outputStream.close();
+                element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
+                element.setAttribute("sha256sum", sha256sum);
+                fileImageSha256Sums.add(sha256sum);
+            } catch (IOException | NoSuchAlgorithmException e) {
+                this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            }
+        }
+        return element;
+    }
+
+    /**
+     * Converts ImageSpan found in nodeContent to an Element object ready to be written to the database
+     * @param doc document object instance to create Element objects
+     * @param fileImageSha256Sums list that contains all the sha256sums to be saved to the database
+     * @param imageSpanImage ImageSpan object from nodeContent
+     * @param offset offset of the image
+     * @param lastFoundJustification justification of the image
+     * @return Element that can be added to Node and writen to the node.xml file
+     */
+    private Element saveImageSpanImage(Document doc, List<String> fileImageSha256Sums, ImageSpanImage imageSpanImage, String offset, String lastFoundJustification) {
+        Element element = doc.createElement("encoded_png");
+        Drawable drawable = imageSpanImage.getDrawable();
+        // Hopefully it's always a Bitmap drawable, because I get it from the same source
+        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("link", "");
+        if (imageSpanImage.getSha256sum() != null) {
+            // If this value isn't null that means that it was loaded from database
+            element.setAttribute("sha256sum", imageSpanImage.getSha256sum());
+            fileImageSha256Sums.add(imageSpanImage.getSha256sum());
+        }
+        return element;
+    }
+
+    /**
+     * Converts ImageSpanLatex found in nodeContent to an Element object ready to be written to the database
+     * @param doc document object instance to create Element objects
+     * @param imageSpanLatex ImageSpanLatex object from nodeContent
+     * @param offset offset of the LaTeX image
+     * @param lastFoundJustification justification of the LaTeX image
+     * @return Element that can be added to Node and writen to the node.xml file
+     */
+    private Element saveImageSpanLatex(Document doc, ImageSpanLatex imageSpanLatex, String offset, String lastFoundJustification) {
+        Element element = doc.createElement("encoded_png");
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("filename", "__ct_special.tex");
+        element.setTextContent(imageSpanLatex.getLatexCode());
+        return element;
     }
 
     @Override
@@ -1112,147 +2247,6 @@ public class MultiReader extends DatabaseReader {
     }
 
     /**
-     * Converts ImageSpan found in nodeContent to an Element object ready to be written to the database
-     * @param doc document object instance to create Element objects
-     * @param fileImageSha256Sums list that contains all the sha256sums to be saved to the database
-     * @param imageSpanImage ImageSpan object from nodeContent
-     * @param offset offset of the image
-     * @param lastFoundJustification justification of the image
-     * @return Element that can be added to Node and writen to the node.xml file
-     */
-    private Element saveImageSpanImage(Document doc, List<String> fileImageSha256Sums, ImageSpanImage imageSpanImage, String offset, String lastFoundJustification) {
-        Element element = doc.createElement("encoded_png");
-        Drawable drawable = imageSpanImage.getDrawable();
-        // Hopefully it's always a Bitmap drawable, because I get it from the same source
-        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-        element.setAttribute("char_offset", offset);
-        element.setAttribute("justification", lastFoundJustification);
-        element.setAttribute("link", "");
-        if (imageSpanImage.getSha256sum() != null) {
-            // If this value isn't null that means that it was loaded from database
-            element.setAttribute("sha256sum", imageSpanImage.getSha256sum());
-            fileImageSha256Sums.add(imageSpanImage.getSha256sum());
-        }
-        return element;
-    }
-
-    /**
-     * Converts ImageSpanLatex found in nodeContent to an Element object ready to be written to the database
-     * @param doc document object instance to create Element objects
-     * @param imageSpanLatex ImageSpanLatex object from nodeContent
-     * @param offset offset of the LaTeX image
-     * @param lastFoundJustification justification of the LaTeX image
-     * @return Element that can be added to Node and writen to the node.xml file
-     */
-    private Element saveImageSpanLatex(Document doc, ImageSpanLatex imageSpanLatex, String offset, String lastFoundJustification) {
-        Element element = doc.createElement("encoded_png");
-        element.setAttribute("char_offset", offset);
-        element.setAttribute("justification", lastFoundJustification);
-        element.setAttribute("filename", "__ct_special.tex");
-        element.setTextContent(imageSpanLatex.getLatexCode());
-        return element;
-    }
-
-    /**
-     * Converts ImageSpanAnchor found in nodeContent to an Element object ready to be written to the database
-     * @param doc document object instance to create Element objects
-     * @param imageSpanAnchor ImageSpanAnchor object from nodeContent
-     * @param offset offset of the Anchor image
-     * @param lastFoundJustification justification of the Anchor image
-     * @return Element that can be added to Node and writen to the node.xml file
-     */
-    private Element saveImageSpanAnchor(Document doc, ImageSpanAnchor imageSpanAnchor, String offset, String lastFoundJustification) {
-        Element element = doc.createElement("encoded_png");
-        element.setAttribute("char_offset", offset);
-        element.setAttribute("justification", lastFoundJustification);
-        element.setAttribute("anchor", imageSpanAnchor.getAnchorName());
-        return element;
-    }
-
-    /**
-     * Converts ImageSpanFile found in nodeContent to an Element object ready to be written to the
-     * database. This element does not containt file data, only file sha256sum. File it self sould
-     * be stored in the same folder as node.xml file this Element object will be added to.
-     * @param doc document object instance to create Element objects
-     * @param fileImageSha256Sums list that contains all the sha256sums to be saved to the database
-     * @param imageSpanFile ImageSpanFile object from nodeContent
-     * @param offset offset of the file
-     * @param lastFoundJustification justification of the file
-     * @return Element that can be added to Node and writen to the node.xml file
-     */
-    private Element saveImageSpanFile(Document doc, List<String> fileImageSha256Sums, ImageSpanFile imageSpanFile, String offset, String lastFoundJustification) {
-        Element element = doc.createElement("encoded_png");
-        element.setAttribute("char_offset", offset);
-        element.setAttribute("justification", lastFoundJustification);
-        element.setAttribute("filename", imageSpanFile.getFilename());
-        if (imageSpanFile.isFromDatabase()) {
-            element.setAttribute("time", imageSpanFile.getTimestamp());
-            element.setAttribute("sha256sum", imageSpanFile.getSha256sum());
-            fileImageSha256Sums.add(imageSpanFile.getSha256sum());
-        } else {
-            try {
-                Uri userAttachedFileUri = Uri.parse(imageSpanFile.getFileUri());
-                InputStream inputStream = this.context.getContentResolver().openInputStream(userAttachedFileUri);
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                byte[] buf = new byte[4 * 1024];
-                int length;
-                while ((length = inputStream.read(buf)) != -1) {
-                    byteArrayOutputStream.write(buf);
-                }
-                byte[] hash = MessageDigest.getInstance("SHA-256").digest(byteArrayOutputStream.toByteArray());
-                String sha256sum = new BigInteger(1, hash).toString(16);
-                byteArrayOutputStream.close();
-                inputStream.close();
-                String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
-                Uri multiFileStorageFileUri = DocumentsContract.createDocument(
-                        this.context.getContentResolver(),
-                        this.getNodeUri(this.findSingleNode(this.mainViewModel.getCurrentNode().getUniqueId())),
-                        "*/*",
-                        extension != null ? sha256sum + "." + extension : sha256sum
-                );
-                inputStream = this.context.getContentResolver().openInputStream(userAttachedFileUri);
-                OutputStream outputStream = this.context.getContentResolver().openOutputStream(multiFileStorageFileUri);
-                while ((length = inputStream.read(buf)) != -1) {
-                    outputStream.write(buf);
-                }
-                inputStream.close();
-                outputStream.close();
-                element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
-                element.setAttribute("sha256sum", sha256sum);
-                fileImageSha256Sums.add(sha256sum);
-            } catch (IOException | NoSuchAlgorithmException e) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
-            }
-        }
-        return element;
-    }
-
-    /**
-     * Converts TypefaceSpanCodebox found in nodeContent to an Element object ready to be written to the database
-     * @param doc document object instance to create Element objects
-     * @param typefaceSpanCodebox TypefaceSpanCodebox object from nodeContent
-     * @param offset offset of the codebox
-     * @param lastFoundJustification justification of the codebox
-     * @param codeboxContent text of the codebox
-     * @return Element that can be added to Node and writen to the node.xml file
-     */
-    private Element saveTypefaceSpanCodebox(Document doc, TypefaceSpanCodebox typefaceSpanCodebox, String offset, String lastFoundJustification, String codeboxContent) {
-        Element element = doc.createElement("codebox");
-        element.setAttribute("char_offset", offset);
-        element.setAttribute("justification", lastFoundJustification);
-        element.setAttribute("frame_width", String.valueOf(typefaceSpanCodebox.getFrameWidth()));
-        element.setAttribute("frame_height", String.valueOf(typefaceSpanCodebox.getFrameHeight()));
-        element.setAttribute("width_in_pixels", typefaceSpanCodebox.isWidthInPixel() ? "1" : "0");
-        element.setAttribute("syntax_highlighting", typefaceSpanCodebox.getSyntaxHighlighting());
-        element.setAttribute("highlight_brackets", typefaceSpanCodebox.isHighlightBrackets() ? "1" : "0");
-        element.setAttribute("show_line_numbers", typefaceSpanCodebox.isShowLineNumbers() ? "1" : "0");
-        element.setTextContent(codeboxContent);
-        return element;
-    }
-
-    /**
      * Converts ScNodeContentTable found in nodeContent to an Element object ready to be written to the database
      * @param doc document object instance to create Element objects
      * @param scNodeContentTable ScNodeContentTable from the nodeContent
@@ -1288,6 +2282,29 @@ public class MultiReader extends DatabaseReader {
         return tableElement;
     }
 
+    /**
+     * Converts TypefaceSpanCodebox found in nodeContent to an Element object ready to be written to the database
+     * @param doc document object instance to create Element objects
+     * @param typefaceSpanCodebox TypefaceSpanCodebox object from nodeContent
+     * @param offset offset of the codebox
+     * @param lastFoundJustification justification of the codebox
+     * @param codeboxContent text of the codebox
+     * @return Element that can be added to Node and writen to the node.xml file
+     */
+    private Element saveTypefaceSpanCodebox(Document doc, TypefaceSpanCodebox typefaceSpanCodebox, String offset, String lastFoundJustification, String codeboxContent) {
+        Element element = doc.createElement("codebox");
+        element.setAttribute("char_offset", offset);
+        element.setAttribute("justification", lastFoundJustification);
+        element.setAttribute("frame_width", String.valueOf(typefaceSpanCodebox.getFrameWidth()));
+        element.setAttribute("frame_height", String.valueOf(typefaceSpanCodebox.getFrameHeight()));
+        element.setAttribute("width_in_pixels", typefaceSpanCodebox.isWidthInPixel() ? "1" : "0");
+        element.setAttribute("syntax_highlighting", typefaceSpanCodebox.getSyntaxHighlighting());
+        element.setAttribute("highlight_brackets", typefaceSpanCodebox.isHighlightBrackets() ? "1" : "0");
+        element.setAttribute("show_line_numbers", typefaceSpanCodebox.isShowLineNumbers() ? "1" : "0");
+        element.setTextContent(codeboxContent);
+        return element;
+    }
+
     @Override
     public ArrayList<ScSearchNode> search(Boolean noSearch, String query) {
         ArrayList<ScSearchNode> searchResult;
@@ -1297,1062 +2314,6 @@ public class MultiReader extends DatabaseReader {
             searchResult = this.searchAllNodes(query);
         }
         return searchResult;
-    }
-
-    @Override
-    public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        Node drawerMenuItem = this.findSingleNode(nodeUniqueID);
-        try (Cursor cursor = this.getNodeChildrenCursor(drawerMenuItem)) {
-            while (cursor.moveToNext()) {
-                if (cursor.getString(2).equals("node.xml")) {
-                    InputStream inputStream = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)));
-                    Document document = this.documentBuilder.parse(inputStream);
-                    Node node = document.getElementsByTagName("node").item(0);
-                    if (node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors") && !progLang.equals("custom-colors")) {
-                        StringBuilder nodeContent = this.convertRichTextNodeContentToPlainText(node);
-                        this.deleteNodeContent(node);
-                        Element newContentNode = document.createElement("rich_text");
-                        newContentNode.setTextContent(nodeContent.toString());
-                        node.appendChild(newContentNode);
-                    }
-                    node.getAttributes().getNamedItem("name").setNodeValue(name);
-                    node.getAttributes().getNamedItem("prog_lang").setNodeValue(progLang);
-                    node.getAttributes().getNamedItem("nosearch_me").setNodeValue(noSearchMe);
-                    node.getAttributes().getNamedItem("nosearch_ch").setNodeValue(noSearchCh);
-                    node.getAttributes().getNamedItem("ts_lastsave").setNodeValue(String.valueOf(System.currentTimeMillis() / 1000));
-                    OutputStream outputStream = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)), "wt");
-                    this.saveChanges(document, outputStream);
-                    inputStream.close();
-                    outputStream.close();
-                    break;
-                }
-            }
-        } catch (IOException | SAXException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_get_node_properties));
-        }
-        Element element = (Element) drawerMenuItem;
-        element.setAttribute("name", name);
-        element.setAttribute("prog_lang", progLang);
-        element.setAttribute("nosearch_me", noSearchMe);
-        element.setAttribute("nosearch_ch", noSearchCh);
-        this.saveDrawerMenuToStorage();
-    }
-
-    /**
-     * There are *.lst files in Multifile database, that holds list of NodeUniqueID. This method appends
-     * NodeUniqueID to that list. If file does not exists it will be created with the file name provided
-     * @param documentId   SAF documentID of the folder under witch *.lst file has to be updated
-     * @param nodeUniqueID unique ID of the node to add to the file
-     */
-    private void addNodeToLst(String documentId, String nodeUniqueID) {
-        try {
-            String lstFileDocumentId = null;
-            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
-                while (cursor.moveToNext()) {
-                    if (cursor.getString(2).equals("subnodes.lst")) {
-                        lstFileDocumentId = cursor.getString(0);
-                        break;
-                    }
-                }
-            }
-            if (lstFileDocumentId == null) {
-                lstFileDocumentId = DocumentsContract.getDocumentId(DocumentsContract.createDocument(
-                        this.context.getContentResolver(),
-                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, documentId),
-                        "application/octet-stream",
-                        "subnodes.lst"
-                ));
-            }
-            List<Integer> list = null;
-            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
-                BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                String line = br.readLine();
-                if (line != null) {
-                    list = Arrays.stream(line.split(","))
-                            .map(Integer::parseInt)
-                            .collect(Collectors.toList());
-                }
-                if (list == null) {
-                    list = new ArrayList<>();
-                }
-                list.add(Integer.parseInt(nodeUniqueID));
-            }
-            try (
-                    OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
-                    PrintWriter pw = new PrintWriter(os)) {
-                pw.println(list.stream()
-                        .map(String::valueOf)
-                        .collect(Collectors.joining(",")));
-            }
-        } catch (IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
-        }
-    }
-
-    /**
-     * There are *.lst files in Multifile database, that holds list of NodeUniqueID. This method adds
-     * NodeUniqueID to that list after unique ID of the node indicated by siblingNodeUniqueID. If file does not exists
-     * it will be created with the file name provided
-     * @param documentId          SAF documentID of the folder under witch *.lst file has to be
-     * @param siblingNodeUniqueID unique ID of the node after which new node should appear in DrawerMenu
-     * @param nodeUniqueID        unique ID of the node to add to the file
-     */
-    private void addNodeToLst(String documentId, String siblingNodeUniqueID, String nodeUniqueID) {
-        try {
-            String lstFileDocumentId = null;
-            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
-                while (cursor.moveToNext()) {
-                    if (cursor.getString(2).equals("subnodes.lst")) {
-                        lstFileDocumentId = cursor.getString(0);
-                        break;
-                    }
-                }
-            }
-            if (lstFileDocumentId == null) {
-                lstFileDocumentId = DocumentsContract.getDocumentId(DocumentsContract.createDocument(
-                        this.context.getContentResolver(),
-                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, documentId),
-                        "application/octet-stream",
-                        "subnodes.lst"
-                ));
-            }
-            List<Integer> list = null;
-            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
-                BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                String line = br.readLine();
-                if (line != null) {
-                    list = Arrays.stream(line.split(","))
-                            .map(Integer::parseInt)
-                            .collect(Collectors.toList());
-                }
-                if (list == null) {
-                    list = new ArrayList<>();
-                }
-                list.add(list.indexOf(Integer.valueOf(siblingNodeUniqueID)) + 1, Integer.parseInt(nodeUniqueID));
-            }
-            try (
-                    OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
-                    PrintWriter pw = new PrintWriter(os)) {
-                pw.println(list.stream()
-                        .map(String::valueOf)
-                        .collect(Collectors.joining(",")));
-            }
-        } catch (IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
-        }
-    }
-
-    /**
-     * Recursively scans through all the nodes in NodeList to collect the uniqueNodeIDs. Adds them
-     * to provided String list
-     * @param uniqueIDList String list to add the found nodeUniqueIDs
-     * @param nodeList NodeList to scan recursively
-     */
-    private void collectUniqueID(List<String> uniqueIDList, NodeList nodeList) {
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            if (nodeList.item(i).getNodeName().equals("node")) {
-                uniqueIDList.add(nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
-                collectUniqueID(uniqueIDList, nodeList.item(i).getChildNodes());
-            }
-        }
-    }
-
-    /**
-     * Coverts codebox node content to a StringBuilder
-     * used as part of convertRichTextNodeContentToPlainText function
-     * @param node codebox node that needs to be converted
-     * @return StringBuilder that can be added to the node StringBuilder at the proper offset
-     */
-    private StringBuilder convertCodeboxToPlainText(Node node) {
-        StringBuilder codeboxContent = new StringBuilder();
-        codeboxContent.append("\n");
-        codeboxContent.append(getSeparator());
-        codeboxContent.append("\n");
-        codeboxContent.append(node.getTextContent());
-        codeboxContent.append("\n");
-        codeboxContent.append(getSeparator());
-        codeboxContent.append("\n");
-        return codeboxContent;
-    }
-
-    /**
-     * Converts latex node content to a StringBuilder
-     * used as part of convertRichTextNodeContentToPlainText function
-     * @param node latex node that needs to be converted
-     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
-     */
-    private StringBuilder convertLatexToPlainText(Node node) {
-        StringBuilder latexContent = new StringBuilder();
-        latexContent.append(node.getTextContent());
-        latexContent.delete(0, 79);
-        latexContent.delete(latexContent.length()-14, latexContent.length());
-        latexContent.insert(0,getSeparator());
-        latexContent.insert(0, "\n");
-        latexContent.append(getSeparator());
-        latexContent.append("\n");
-        return latexContent;
-    }
-
-    /**
-     * Coverts content of provided node from rich-text to plain-text or automatic-syntax-highlighting
-     * Conversion adds all the content from the node's rich-text tags to StringBuilder
-     * that can be added to the new rich-text (single) tag later
-     * @param contentNode node that needs to be converted
-     * @return StringBuilder with all the node content without addition tags
-     */
-    private StringBuilder convertRichTextNodeContentToPlainText(Node contentNode) {
-        StringBuilder nodeContent = new StringBuilder();
-        int totalCharOffset = 0;
-        NodeList nodeList = contentNode.getChildNodes();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getNodeName().equals("rich_text")) {
-                nodeContent.append(node.getTextContent());
-            } else if (node.getNodeName().equals("table")) {
-                int charOffset = getCharOffset(node) + totalCharOffset;
-                StringBuilder tableContent = this.convertTableNodeContentToPlainText(node);
-                nodeContent.insert(charOffset, tableContent);
-                totalCharOffset += tableContent.length() - 1;
-            } else if (node.getNodeName().equals("encoded_png")) {
-                if (node.getAttributes().getNamedItem("filename") != null) {
-                    if (node.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
-                        // For latex boxes
-                        int charOffset = getCharOffset(node) + totalCharOffset;
-                        StringBuilder latexContent = this.convertLatexToPlainText(node);
-                        nodeContent.insert(charOffset, latexContent);
-                        totalCharOffset += latexContent.length() - 1;
-                        continue;
-                    } else {
-                        totalCharOffset -= 1;
-                    }
-                    // For every element, even ones that will not be added
-                    // 1 has to be deducted from totalCharOffset
-                    // to make node's data be displayed in order
-                } else if (node.getAttributes().getNamedItem("anchor") != null) {
-                    totalCharOffset -= 1;
-                } else {
-                    totalCharOffset -= 1;
-                }
-            } else if (node.getNodeName().equals("codebox")) {
-                int charOffset = getCharOffset(node) + totalCharOffset;
-                StringBuilder codeboxContent = this.convertCodeboxToPlainText(node);
-                nodeContent.insert(charOffset, codeboxContent);
-                totalCharOffset += codeboxContent.length() - 1;
-            }
-        }
-        return nodeContent;
-    }
-
-    /**
-     * Coverts content of the table Node (part of content node) to a StringBuilder
-     * used as part of convertRichTextNodeContentToPlainText function
-     * @param tableNode table node that needs to be converted
-     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
-     */
-    private StringBuilder convertTableNodeContentToPlainText(Node tableNode) {
-        StringBuilder tableContent = new StringBuilder();
-        NodeList nodeList = tableNode.getChildNodes();
-        int tableRowCount = nodeList.getLength() / 2;
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getNodeName().equals("row")) {
-                // Header row for the table is kept at the end of the table
-                // When converting to string it has to be added to the beginning
-                // of the string fro the information to make sense
-                if (tableRowCount > 1) {
-                    tableContent.append(this.convertTableRowToPlainText(node));
-                } else {
-                    tableContent.insert(0, this.convertTableRowToPlainText(node));
-                }
-                tableRowCount--;
-            }
-        }
-        tableContent.insert(0, "\n");
-        return tableContent;
-    }
-
-    /**
-     * Convenience method to create single node with parent node properties
-     * @param node node object to create ScNode object from. This object has to be from drawer_menu.xml file
-     * @return ScNode object ready to be displayed in DrawerMenu as a parent node
-     */
-    private ScNode createParentNode(Node node) {
-        return this.createSingleMenuItem(node, true, false);
-    }
-
-    /**
-     * Creates single ScNode object from provided Node object.
-     * @param node node object to create ScNode object from. This object has to be from drawer_menu.xml file
-     * @param isParent true - mark node to be displayed as a parent node (will not have indentation and will have arrow pointing down), false - opposite of that
-     * @param isSubnode true - mark node to be displayed as a subnode (will have indentation), false - opposite of that
-     * @return ScNode object ready to be displayed in DrawerMenu
-     */
-    private ScNode createSingleMenuItem(Node node, boolean isParent, boolean isSubnode) {
-        NamedNodeMap nodeAttribute = node.getAttributes();
-        return new ScNode(
-                nodeAttribute.getNamedItem("unique_id").getNodeValue(),
-                nodeAttribute.getNamedItem("name").getNodeValue(),
-                isParent,
-                nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"),
-                isSubnode,
-                nodeAttribute.getNamedItem("is_rich_text").getNodeValue().equals("1"),
-                nodeAttribute.getNamedItem("is_bold").getNodeValue().equals("1"),
-                nodeAttribute.getNamedItem("foreground_color").getNodeValue(),
-                Integer.parseInt(nodeAttribute.getNamedItem("icon_id").getNodeValue()),
-                nodeAttribute.getNamedItem("readonly").getNodeValue().equals("1")
-        );
-    }
-
-    /**
-     * Creates single ScNode object from provided Node object.
-     * @param node node object to create ScNode object from. This object has to be from drawer_menu.xml file
-     * @return ScNode object ready to be displayed in DrawerMenu
-     */
-    private ScNode createSingleMenuItem(Node node) {
-        NamedNodeMap nodeAttribute = node.getAttributes();
-        return new ScNode(
-                nodeAttribute.getNamedItem("unique_id").getNodeValue(),
-                nodeAttribute.getNamedItem("name").getNodeValue(),
-                nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"), // If node, has subnodes - it means it can be marked as parent
-                nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"),
-                !nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"), // If node, has subnodes - it means it can't be marked as subnode,
-                nodeAttribute.getNamedItem("is_rich_text").getNodeValue().equals("1"),
-                nodeAttribute.getNamedItem("is_bold").getNodeValue().equals("1"),
-                nodeAttribute.getNamedItem("foreground_color").getNodeValue(),
-                Integer.parseInt(nodeAttribute.getNamedItem("icon_id").getNodeValue()),
-                nodeAttribute.getNamedItem("readonly").getNodeValue().equals("1")
-        );
-    }
-
-    /**
-     * Removes all rich_text tags from the node
-     * Used to prepare node for conversion from rich-text to plain-text
-     * @param node node from which to delete all the content
-     */
-    private void deleteNodeContent(Node node) {
-        NodeList nodeList = node.getChildNodes();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node currentNode = nodeList.item(i);
-            if (!currentNode.getNodeName().equals("node")) {
-                node.removeChild(currentNode);
-            }
-        }
-    }
-
-    /**
-     * Searches through node's content
-     * @param node node to search in
-     * @param query string to search for
-     * @param hasSubnodes true if node has subnodes, else - false
-     * @param isParent true if node is a parent node, else - false
-     * @param isSubnode true if node is a subnode, else - false
-     * @return search result object or null if nothing was found
-     */
-    private ScSearchNode findInNode(Node node, String query, boolean hasSubnodes, boolean isParent, boolean isSubnode) {
-        // This string builder will hold oll text content of the node
-        StringBuilder nodeContent = new StringBuilder();
-        // As in reader that all the text would be in order user sees it
-        // filenames, table and codebox content hast to be inserted in correct location of the string
-        // To help calculate that location totalCharOffset is used
-        int totalCharOffset = 0;
-        // Gets all child nodes
-        NodeList nodeContentNodeList = node.getChildNodes();
-        for (int i = 0; i < nodeContentNodeList.getLength(); i++) {
-            // Going through all the tags of the node
-            // Skipping other "node" tags (subnodes).
-            // To decide if these nodes have to be search are for a job for
-            // searchNodesSkippingExcluded() or searchInNodeList()
-            switch (nodeContentNodeList.item(i).getNodeName()) {
-                case "rich_text":
-                    // All the text of the node
-                    nodeContent.append(nodeContentNodeList.item(i).getTextContent());
-                    break;
-                case "table":
-                    // Table of the node
-                    // offset where table's content has to be inserted
-                    int tableContentCharOffset = Integer.parseInt(nodeContentNodeList.item(i).getAttributes().getNamedItem("char_offset").getNodeValue());
-                    StringBuilder tableContent = new StringBuilder();
-                    // Getting all the rows of the table
-                    // It would be possible to add all the table content directly from the nodeContentNodeList.item(i)
-                    // However, "header" of the table is places in the last row, so it would be showed at the end of tables content
-                    NodeList tableRows = nodeContentNodeList.item(i).getChildNodes();
-
-                    // Adding all rows to arraylist
-                    ArrayList<String> tableRowArray = new ArrayList<>();
-                    for (int row = 0; row < tableRows.getLength(); row++) {
-                        if (tableRows.item(row).getNodeName().equals("row")) {
-                            tableRowArray.add(tableRows.item(row).getTextContent());
-                        }
-                    }
-                    // Adding the last row of the table to string builder as first because that's where header of the table is located
-                    tableContent.append(tableRowArray.get(tableRowArray.size() - 1));
-                    // Rest of the rows can be added in order
-                    for (int x = 0; x < tableRowArray.size() - 1; x++) {
-                        tableContent.append(tableRowArray.get(x));
-                    }
-                    // Adding table's content to nodes content string builder
-                    nodeContent.insert(tableContentCharOffset + totalCharOffset, tableContent);
-                    // Changing total offset value with a value of the table content, because CherryTree uses different GUI toolkit
-                    // And without doing this the first element with offset would mess node content order (or maybe that's by design)
-                    totalCharOffset += tableContent.length() - 1;
-                    break;
-                case "codebox":
-                    int codeboxContentCharOffset = Integer.parseInt(nodeContentNodeList.item(i).getAttributes().getNamedItem("char_offset").getNodeValue());
-                    StringBuilder codeboxContent = new StringBuilder();
-                    codeboxContent.append(nodeContentNodeList.item(i).getTextContent());
-                    if (nodeContent.length() < codeboxContentCharOffset + totalCharOffset) {
-                        // This check most likely needed in Searcher, but not in Reader
-                        // Because in search some objects (like images) are being skipped, however their offset is still being counted
-                        nodeContent.append(codeboxContent);
-                    } else {
-                        nodeContent.insert(codeboxContentCharOffset + totalCharOffset, codeboxContent);
-                    }
-                    totalCharOffset += codeboxContent.length() - 1;
-                    break;
-                case "encoded_png":
-                    // Getting just image's filename and inserting it in the nodeContent string that it would be possible to search for them
-                    Node filename = nodeContentNodeList.item(i).getAttributes().getNamedItem("filename");
-                    if (filename != null) {
-                        if (!filename.getNodeValue().equals("__ct_special.tex")) {
-                            // Ignoring LaTeX formulas
-                            int encodedPngContentCharOffset = Integer.parseInt(nodeContentNodeList.item(i).getAttributes().getNamedItem("char_offset").getNodeValue());
-                            StringBuilder encodedPngContent = new StringBuilder();
-                            encodedPngContent.append(filename.getNodeValue());
-                            encodedPngContent.append(" ");
-                            nodeContent.insert(encodedPngContentCharOffset + totalCharOffset, encodedPngContent);
-                            totalCharOffset += encodedPngContent.length() - 1;
-                        }
-                    }
-                    break;
-            }
-        }
-        // Search
-        int queryLength = query.length();
-        int resultCount = 0;
-        int index = 0;
-        String nodeName = null; // To display in results
-        String nodeUniqueID = null; // That it could be returned to MainView to load selected node
-        boolean isRichText = false;
-        boolean isBold = false;
-        String foregroundColor = "";
-        int iconId = 0;
-        boolean isReadOnly = false;
-        StringBuilder samples = new StringBuilder(); // This will hold 3 samples to show to user
-        // Removing all spaces and new line character from the node content string
-        String preparedNodeContent = nodeContent.toString().toLowerCase().replaceAll("\n", " ").replaceAll(" +", " ");
-        while (index != -1) {
-            index = preparedNodeContent.indexOf(query, index);
-            if (index != -1) {
-                // if match to search query was found in the node's content
-                if (resultCount < 1) {
-                    // If it's first match
-                    // Settings node name and unique_id values that they could be returned with result
-                    nodeName = node.getAttributes().getNamedItem("name").getNodeValue();
-                    nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                    isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-                    isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-                    foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-                    iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-                    isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
-                }
-                if (resultCount < 3 ) {
-                    // Results display only first three found instances of search query
-                    int startIndex = 0; // Start of sample substring that will be created
-                    int endIndex = preparedNodeContent.length(); // End of sample substring that will be created
-                    String sampleStart = "";
-                    String sampleEnd = "";
-                    if (index > 20) {
-                        // if index is further than 20 symbols from the start of the node content
-                        // ... are added to the start of the sample
-                        // and only 20 preceding symbols before query match are showed
-                        startIndex = index - 20;
-                        sampleStart = "...";
-                    }
-                    if ((index + queryLength + 20) < endIndex) {
-                        // if index is more than 20 symbols from the end of the node content
-                        // ... are added to the end of the sample
-                        // and only 20 proceeding symbols before query match are showed
-                        endIndex = index + queryLength + 20;
-                        sampleEnd = "...";
-                    }
-                    // Building a sample for search result from using previously formatted parts
-                    StringBuilder sample = new StringBuilder();
-                    sample.append(sampleStart);
-                    sample.append(preparedNodeContent.substring(startIndex, endIndex).trim());
-                    sample.append(sampleEnd);
-                    sample.append("<br/>");
-                    samples.append(sample);
-                }
-                resultCount++;
-                index += queryLength; // moving search start to the end of the last position that search query was found
-            }
-        }
-        if (nodeName != null) {
-            // if node name isn't null that means match for a query was found
-            return new ScSearchNode(nodeUniqueID, nodeName, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Search through DrawerMenu item and returns one with specific node unique ID
-     * @param nodeUniqueID unique ID of the node to search for
-     * @return found Node or null
-     */
-    private Node findSingleNode(String nodeUniqueID) {
-        Node node = null;
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            if (nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                node = nodeList.item(i);
-                break;
-            }
-        }
-        return node;
-    }
-
-    /**
-     * Returns character offset value that is used in codebox and encoded_png tags
-     * It is needed to add text in the correct location
-     * One needs to -1 from the value to make it work
-     * I don't have any idea why
-     * @param node Node object to extract it's character offset
-     * @return offset of the node content
-     */
-    private int getCharOffset(Node node) {
-        Element element = (Element) node;
-        return Integer.parseInt(element.getAttribute("char_offset"));
-    }
-
-    /**
-     * Returns cursor with children of the root folder of the Multifile database
-     * @return SAF cursor. Cursor should be closed after use manually. Cursor has 3 fields: 0 - document_id, 1 - mime_type, 2 - _display_name
-     */
-    private Cursor getMainNodesCursor() {
-        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
-        return this.context.getContentResolver().query(
-                childrenUri,
-                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                null,
-                null,
-                null
-        );
-    }
-
-    /**
-     * Creates node's children cursor
-     * @param nodeUniqueID unique ID of the node to get the children cursor for
-     * @return SAF cursor object with all the children of the folder. Cursor has three columns: document_id, mime_type and _display_name. Cursor has to be closed after user.
-     */
-    private Cursor getNodeChildrenCursor(String nodeUniqueID) {
-        Cursor cursor = null;
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node item = nodeList.item(i);
-            if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(
-                        this.mainFolderUri,
-                        item.getAttributes().getNamedItem("saf_id").getNodeValue());
-                cursor = this.context.getContentResolver().query(
-                        uri,
-                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                        null,
-                        null,
-                        null
-                );
-            }
-        }
-        return cursor;
-    }
-
-    /**
-     * Creates node's children cursor
-     * @param node node object to get the children cursor for
-     * @return SAF cursor object with all the children of the folder. Cursor has three columns: document_id, mime_type and _display_name. Cursor has to be closed after user.
-     */
-    private Cursor getNodeChildrenCursor(Node node) {
-        Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(
-                        this.mainFolderUri,
-                        node.getAttributes().getNamedItem("saf_id").getNodeValue()
-        );
-        return this.context.getContentResolver().query(
-                        uri,
-                        new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                        null,
-                        null,
-                        null
-                );
-    }
-
-    /**
-     * Creates cursor with children of the document using SAF documentId. DocumentId has to be of a
-     * children of this.mainFolderUri.
-     * @param documentId documentId of the document to create children of
-     * @return cursor with children documents. Has to be closed after use.
-     */
-    private Cursor getNodeChildrenCursorSaf(String documentId) {
-        Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, documentId);
-        return this.context.getContentResolver().query(
-                uri,
-                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                null,
-                null,
-                null
-        );
-    }
-
-    /**
-     * Creates document Uri of the node
-     * @param node node for with folder to create Uri for. It has to be child of the drawerMenu document.
-     * @return Uri of node's folder
-     */
-    private Uri getNodeUri(Node node) {
-        return DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, node.getAttributes().getNamedItem("saf_id").getNodeValue());
-    }
-
-    /**
-     * Returns embedded table dimensions in the node
-     * Used to set min and max width for the table cell
-     * @param node table Node object
-     * @return CharSequence[] {colMax, colMin} of table dimensions
-     */
-    private int[] getTableMinMax(Node node) {
-        Element el = (Element) node;
-        int colMin = Integer.parseInt(el.getAttribute("col_min"));
-        int colMax = Integer.parseInt(el.getAttribute("col_max"));
-        return new int[] {colMin, colMax};
-    }
-
-    /**
-     * Creates a clickable span that initiates a context to open/save attached file
-     * Files are decoded from Base64 string embedded in the tag
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param node Node object that contains filename and datetime parameters
-     * @param nodeUniqueID unique ID of the node to which file was attached to
-     * @return SpannableStringBuilder that has spans with image and filename
-     */
-    private SpannableStringBuilder makeAttachedFileSpan(Node node, String nodeUniqueID) {
-        String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
-        String time = node.getAttributes().getNamedItem("time").getNodeValue();
-        String offset = node.getAttributes().getNamedItem("char_offset").getNodeValue();
-        String sha256sum = node.getAttributes().getNamedItem("sha256sum").getNodeValue();
-        SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
-        formattedAttachedFile.append(" "); // Needed to insert an image
-        // Inserting image
-        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
-        drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        attachedFileIcon.setFromDatabase(true);
-        attachedFileIcon.setNodeUniqueId(nodeUniqueID);
-        attachedFileIcon.setFilename(attachedFileFilename);
-        attachedFileIcon.setTimestamp(time);
-        attachedFileIcon.setOriginalOffset(offset);
-        attachedFileIcon.setSha256sum(sha256sum);
-        formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        formattedAttachedFile.append(attachedFileFilename); // Appending filename
-        // Detects touches on icon and filename
-        ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
-            @Override
-            public void onClick(@NonNull View widget) {
-                // Launches function in MainView that checks if there is a default action in for attached files
-                ((MainView) MultiReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, sha256sum);
-            }
-        };
-        formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
-        String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
-        if (justificationAttribute.equals("right")) {
-            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else if (justificationAttribute.equals("center")) {
-            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return formattedAttachedFile;
-    }
-
-    /**
-     * Creates SpannableStringBuilder with the content of the CodeNode
-     * CodeNode is just a CodeBox that do not have height and width (dimensions)
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param node Node object that contains content of the node
-     * @return SpannableStringBuilder that has spans marked for string formatting
-     */
-    private SpannableStringBuilder makeFormattedCodeNodeSpan(Node node) {
-        SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
-        NodeList nodeList = node.getChildNodes();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node currentNode = nodeList.item(i);
-            if (currentNode.getNodeName().equals("rich_text")) {
-                formattedCodeNode.append(currentNode.getTextContent());
-                break;
-            }
-        }
-        // Changes font
-        TypefaceSpan tf = new TypefaceSpan("monospace");
-        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        // Changes background color
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return formattedCodeNode;
-    }
-
-    /**
-     * Creates a codebox span from the provided Node object
-     * Formatting depends on new line characters in Node object
-     * if codebox content has new line character it means that it has to span multiple lines
-     * if not it's a single line box
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param node Node object that has codebox content
-     * @return SpannableStringBuilder that has spans marked for string formatting
-     */
-    private SpannableStringBuilder makeFormattedCodeboxSpan(Node node) {
-        SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
-        formattedCodebox.append(node.getTextContent());
-        // Changes font
-        TypefaceSpanCodebox typefaceSpanCodebox = new TypefaceSpanCodebox("monospace");
-        // Saving codebox attribute to the span
-        Element element = (Element) node;
-        String justificationAttribute = element.getAttribute("justification");
-        typefaceSpanCodebox.setFrameWidth(Integer.parseInt(element.getAttribute("frame_width")));
-        typefaceSpanCodebox.setFrameHeight(Integer.parseInt(element.getAttribute("frame_height")));
-        typefaceSpanCodebox.setWidthInPixel(element.getAttribute("width_in_pixels").equals("1"));
-        typefaceSpanCodebox.setSyntaxHighlighting(element.getAttribute("syntax_highlighting"));
-        typefaceSpanCodebox.setHighlightBrackets(element.getAttribute("highlight_brackets").equals("1"));
-        typefaceSpanCodebox.setShowLineNumbers(element.getAttribute("show_line_numbers").equals("1"));
-        if (node.getTextContent().contains("\n")) {
-            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-            // Adds vertical line in front the paragraph, to make it stand out as quote
-            QuoteSpan qs;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                qs = new QuoteSpan(Color.parseColor("#AC1111"), 5, 30);
-            } else {
-                qs = new QuoteSpan(Color.RED);
-            }
-            formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-            // Changes background color
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-                formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-            }
-        } else {
-            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
-            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        if (justificationAttribute.equals("right")) {
-            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else if (justificationAttribute.equals("center")) {
-            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return formattedCodebox;
-    }
-
-    /**
-     * Creates a SpannableStringBuilder with image in it
-     * Image is created from Base64 string embedded in the tag
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param cursor SAF cursor that holds all node data
-     * @param sha256sum image file sha256sum that doubles as the filename for the image
-     * @param nodeUniqueID unique ID of the node that has image embedded in it
-     * @return SpannableStringBuilder that has spans with image in them
-     */
-    private SpannableStringBuilder makeImageSpan(Cursor cursor, String sha256sum, String nodeUniqueID) {
-        SpannableStringBuilder formattedImage = new SpannableStringBuilder();
-        ImageSpanImage imageSpanImage;
-        while (cursor.moveToNext()) {
-            if (cursor.getString(1).equals("image/png") && cursor.getString(2).substring(0, cursor.getString(2).lastIndexOf(".")).equals(sha256sum)) {
-                try {
-                    formattedImage.append(" ");
-                    InputStream inputStream = this.context.getContentResolver().openInputStream(
-                            DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)));
-                    Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                    Drawable image = new BitmapDrawable(context.getResources(), bitmap);
-                    image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
-                    int width = Resources.getSystem().getDisplayMetrics().widthPixels;
-                    if (image.getIntrinsicWidth() > width) {
-                        // If image is wider than screen it is scaled down to fit the screen
-                        // otherwise it will not load/be display
-                        float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
-                        int newWidth = (int) (image.getIntrinsicWidth() * scale);
-                        int newHeight = (int) (image.getIntrinsicHeight() * scale);
-                        image.setBounds(0, 0, newWidth, newHeight);
-                    }
-                    imageSpanImage = new ImageSpanImage(image);
-                    formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    //** Detects image touches/clicks
-                    ClickableSpan imageClickableSpan = new ClickableSpan() {
-                        @Override
-                        public void onClick(@NonNull View widget) {
-                            // Starting fragment to view enlarged zoomable image
-                            ((MainView) context).openImageView(nodeUniqueID, sha256sum);
-                        }
-                    };
-                    formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
-                    //**
-                    imageSpanImage.setSha256sum(sha256sum);
-                } catch (FileNotFoundException e) {
-                    // Displays a toast message and appends broken image span to display in node content
-                    imageSpanImage = (ImageSpanImage) this.makeBrokenImageSpan(0);
-                    formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
-                }
-            }
-        }
-        return formattedImage;
-    }
-
-    /**
-     * Creates a SpannableStringBuilder with image with drawn Latex formula
-     * Image is created from latex code string embedded in the tag
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param node Node object that has a Latex code embedded in it
-     * @return SpannableStringBuilder that has span with Latex image in them
-     */
-    private SpannableStringBuilder makeLatexImageSpan(Node node) {
-        SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
-        ImageSpanLatex imageSpanLatex;
-        //* Creates and adds image to the span
-        try {
-            // Embedded latex code has tags/code that is not recognized by jlatexmath-android
-            // It has to be removed
-            formattedLatexImage.append(" ");
-            String latexString = node.getTextContent()
-                    .replace("\\documentclass{article}\n" +
-                            "\\pagestyle{empty}\n" +
-                            "\\usepackage{amsmath}\n" +
-                            "\\begin{document}\n" +
-                            "\\begin{align*}", "")
-                    .replace("\\end{align*}\n\\end{document}", "")
-                    .replaceAll("&=", "="); // Removing '&' sing, otherwise latex image fails to compile
-            final JLatexMathDrawable latexDrawable = JLatexMathDrawable.builder(latexString)
-                    .textSize(40)
-                    .padding(8)
-                    .background(0xFFffffff)
-                    .align(JLatexMathDrawable.ALIGN_RIGHT)
-                    .build();
-
-            latexDrawable.setBounds(0, 0, latexDrawable.getIntrinsicWidth(), latexDrawable.getIntrinsicHeight());
-
-            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
-            if (latexDrawable.getIntrinsicWidth() > width - 50) {
-                // If image is wider than screen-50 px it is scaled down to fit the screen
-                // otherwise it will not load/be display
-                float scale = ((float) width / latexDrawable.getIntrinsicWidth()) - (float) 0.2;
-                int newWidth = (int) (latexDrawable.getIntrinsicWidth() * scale);
-                int newHeight = (int) (latexDrawable.getIntrinsicHeight() * scale);
-                latexDrawable.setBounds(0, 0, newWidth, newHeight);
-            }
-            imageSpanLatex = new ImageSpanLatex(latexDrawable);
-            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-            //** Detects image touches/clicks
-            ClickableSpan imageClickableSpan = new ClickableSpan() {
-                @Override
-                public void onClick(@NonNull View widget) {
-                    // Starting fragment to view enlarged zoomable image
-                    ((MainView) MultiReader.this.context).openImageView(latexString);
-                }
-            };
-            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
-            //**
-        } catch (Exception e) {
-            // Displays a toast message and appends broken latex image span to display in node content
-            imageSpanLatex = (ImageSpanLatex) this.makeBrokenImageSpan(1);
-            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_compile_latex));
-        }
-        //*
-        String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
-        if (justificationAttribute.equals("right")) {
-            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else if (justificationAttribute.equals("center")) {
-            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        imageSpanLatex.setLatexCode(node.getTextContent());
-        return formattedLatexImage;
-    }
-
-    /**
-     * There are *.lst files in Multifile database, that holds list of NodeUniqueID. This method
-     * removes NodeUniqueID from the file or if it's the only NodeUniqueID in the *.lst file -
-     * deletes the file
-     * @param documentId SAF documentID of the folder under witch *.lst file has to be updated
-     * @param nodeUniqueID unique ID of the node to remove from the file
-     * @param filename filename from which to remove the file. It is used for error message
-     */
-    private void removeNodeFromLst(String documentId, String nodeUniqueID, String filename) {
-        try {
-            String lstFileDocumentId = null;
-            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
-                while (cursor.moveToNext()) {
-                    if (cursor.getString(2).equals(filename)) {
-                        lstFileDocumentId = cursor.getString(0);
-                        break;
-                    }
-                }
-            }
-            // Check if *.lst file was found. Displays message only for subnodes.lst file because
-            // bookmarks.lst can be missing if there were no bookmarks
-            if (lstFileDocumentId == null) {
-                if (filename.equals("subnodes.lst")) {
-                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
-                }
-                return;
-            }
-            String[] subnodes = null;
-            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
-                BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                String line = br.readLine();
-                if (line != null) {
-                    subnodes = line.split(",");
-                }
-            }
-            subnodes = Arrays.stream(subnodes)
-                    .filter(s -> !s.equals(nodeUniqueID))
-                    .toArray(String[]::new);
-            if (subnodes.length == 0) {
-                DocumentsContract.deleteDocument(
-                        this.context.getContentResolver(),
-                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId)
-                );
-            } else {
-                try (
-                        OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
-                        PrintWriter pw = new PrintWriter(os)) {
-                    pw.println(String.join(",", subnodes));
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
-        }
-    }
-
-    /**
-     * Removes all unique ID of the nodes in the list from the bookmarks
-     * @param nodeUniqueIDs list of node unique IDs to remove from bookmarks
-     */
-    private void removeNodesFromBookmarks(List<String> nodeUniqueIDs) {
-        try {
-            String lstFileDocumentId = null;
-            try (Cursor cursor = this.getNodeChildrenCursorSaf(DocumentsContract.getTreeDocumentId(this.mainFolderUri))) {
-                while (cursor.moveToNext()) {
-                    if (cursor.getString(2).equals("bookmarks.lst")) {
-                        lstFileDocumentId = cursor.getString(0);
-                        break;
-                    }
-                }
-            }
-            // Check if *.lst file was found. The bookmarks.lst file might be missing if there were no bookmarks
-            if (lstFileDocumentId == null) {
-                return;
-            }
-            String[] subnodes = null;
-            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
-                BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                String line = br.readLine();
-                if (line != null) {
-                    subnodes = line.split(",");
-                }
-            }
-            if (subnodes == null) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
-                return;
-            }
-            subnodes = Arrays.stream(subnodes)
-                    .filter(s -> !nodeUniqueIDs.contains(s))
-                    .toArray(String[]::new);
-            if (subnodes.length == 0) {
-                DocumentsContract.deleteDocument(
-                        this.context.getContentResolver(),
-                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId)
-                );
-            } else {
-                try (
-                        OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
-                        PrintWriter pw = new PrintWriter(os)) {
-                    pw.println(String.join(",", subnodes));
-                }
-            }
-        } catch (IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
-        }
-    }
-
-    /**
-     * Creates ArrayList of ScNode objects from all the nodes in provided NodeList
-     * @param nodelist nodes to make ScNode object list from
-     * @param isSubnode true - nodes have to be marked as subnodes, false - opposite of that
-     * @return ScNode object list ready to be used in DrawerMenu
-     */
-    private ArrayList<ScNode> returnSubnodeArrayList(NodeList nodelist, boolean isSubnode) {
-        ArrayList<ScNode> nodes = new ArrayList<>();
-        for (int i = 0; i < nodelist.getLength(); i++) {
-            nodes.add(this.createSingleMenuItem(nodelist.item(i), false, isSubnode));
-        }
-        return nodes;
-    }
-
-    /**
-     * Creates ArrayList of ScNode objects from all the nodes in provided NodeList filtering out
-     * nodes that are marked to be skipped in search
-     * @param nodelist nodes to make ScNode object list from
-     * @return ScNode object list ready to be used in DrawerMenu
-     */
-    private ArrayList<ScNode> returnSubnodeSearchArrayList(NodeList nodelist) {
-        ArrayList<ScNode> nodes = new ArrayList<>();
-        for (int i = 0; i < nodelist.getLength(); i++) {
-            Node item = nodelist.item(i);
-            if (item.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
-                nodes.add(this.createSingleMenuItem(item, false, false));
-            }
-            if (item.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
-                nodes.addAll(this.returnSubnodeSearchArrayList(item.getChildNodes()));
-            }
-        }
-        return nodes;
-    }
-
-    /**
-     * Writes XML document to output stream. Used to save created or updated node data to permanent storage
-     * @param node document to write
-     * @param outputStream output stream to write the file into
-     */
-    private void saveChanges(Node node, OutputStream outputStream) {
-        TransformerFactory transformerFactory = TransformerFactory.newInstance();
-        Transformer transformer;
-        try {
-            transformer = transformerFactory.newTransformer();
-            DOMSource dSource = new DOMSource(node);
-            StreamResult result = new StreamResult(outputStream);
-            transformer.transform(dSource, result);
-        } catch (TransformerException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
-        }
-    }
-
-    /**
-     * Writes drawerMenu global variable to drawer_menu.xml file
-     */
-    private void saveDrawerMenuToStorage() {
-        TransformerFactory transformerFactory = TransformerFactory.newInstance();
-        Transformer transformer;
-        try {
-            transformer = transformerFactory.newTransformer();
-            DOMSource dSource = new DOMSource(this.drawerMenu);
-            OutputStream fileOutputStream = new FileOutputStream(new File(this.context.getFilesDir(), "drawer_menu.xml"));
-            StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
-            transformer.transform(dSource, result);
-            fileOutputStream.close();
-        } catch (TransformerException | IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
-        }
     }
 
     /**
@@ -2433,5 +2394,44 @@ public class MultiReader extends DatabaseReader {
         try (InputStream is = new FileInputStream(new File(this.context.getFilesDir(), "drawer_menu.xml"))) {
             this.drawerMenu = documentBuilder.parse(is);
         }
+    }
+
+    @Override
+    public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
+        Node drawerMenuItem = this.findSingleNode(nodeUniqueID);
+        try (Cursor cursor = this.getNodeChildrenCursor(drawerMenuItem)) {
+            while (cursor.moveToNext()) {
+                if (cursor.getString(2).equals("node.xml")) {
+                    InputStream inputStream = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)));
+                    Document document = this.documentBuilder.parse(inputStream);
+                    Node node = document.getElementsByTagName("node").item(0);
+                    if (node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors") && !progLang.equals("custom-colors")) {
+                        StringBuilder nodeContent = this.convertRichTextNodeContentToPlainText(node);
+                        this.deleteNodeContent(node);
+                        Element newContentNode = document.createElement("rich_text");
+                        newContentNode.setTextContent(nodeContent.toString());
+                        node.appendChild(newContentNode);
+                    }
+                    node.getAttributes().getNamedItem("name").setNodeValue(name);
+                    node.getAttributes().getNamedItem("prog_lang").setNodeValue(progLang);
+                    node.getAttributes().getNamedItem("nosearch_me").setNodeValue(noSearchMe);
+                    node.getAttributes().getNamedItem("nosearch_ch").setNodeValue(noSearchCh);
+                    node.getAttributes().getNamedItem("ts_lastsave").setNodeValue(String.valueOf(System.currentTimeMillis() / 1000));
+                    OutputStream outputStream = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)), "wt");
+                    this.saveChanges(document, outputStream);
+                    inputStream.close();
+                    outputStream.close();
+                    break;
+                }
+            }
+        } catch (IOException | SAXException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_get_node_properties));
+        }
+        Element element = (Element) drawerMenuItem;
+        element.setAttribute("name", name);
+        element.setAttribute("prog_lang", progLang);
+        element.setAttribute("nosearch_me", noSearchMe);
+        element.setAttribute("nosearch_ch", noSearchCh);
+        this.saveDrawerMenuToStorage();
     }
 }

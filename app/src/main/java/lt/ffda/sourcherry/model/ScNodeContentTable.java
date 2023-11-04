@@ -44,30 +44,20 @@ public class ScNodeContentTable implements ScNodeContent {
         this.colWidths = colWidths;
     }
 
-    @Override
-    public void setContentType(byte type) {
-        this.type = type;
-    }
-
-    @Override
-    public byte getContentType() {
-        return this.type;
+    /**
+     * Get table column max width
+     * @return table column max width
+     */
+    public int getColMax() {
+        return this.colMax;
     }
 
     /**
-     * Get node's table content
-     * @return node's table content
+     * Set table column max width
+     * @param colMax table column max width
      */
-    public ArrayList<CharSequence[]> getContent() {
-        return this.content;
-    }
-
-    /**
-     * Set node's table content
-     * @param content node's table content
-     */
-    public void setContent(ArrayList<CharSequence[]> content) {
-        this.content = content;
+    public void setColMax(int colMax) {
+        this.colMax = colMax;
     }
 
     /**
@@ -87,19 +77,45 @@ public class ScNodeContentTable implements ScNodeContent {
     }
 
     /**
-     * Get table column max width
-     * @return table column max width
+     * Get width of every value
+     * @return comma separated values of column width. 0 means user did not modify the column width and default should be used
      */
-    public int getColMax() {
-        return this.colMax;
+    public String getColWidths() {
+        return colWidths;
     }
 
     /**
-     * Set table column max width
-     * @param colMax table column max width
+     * Set widths for individual table columns.
+     * @param colWidths Values for each column has to be comma separated. Default value - 0, other positive value - user changed value
      */
-    public void setColMax(int colMax) {
-        this.colMax = colMax;
+    public void setColWidths(String colWidths) {
+        this.colWidths = colWidths;
+    }
+
+    /**
+     * Get node's table content
+     * @return node's table content
+     */
+    public ArrayList<CharSequence[]> getContent() {
+        return this.content;
+    }
+
+    /**
+     * Set node's table content
+     * @param content node's table content
+     */
+    public void setContent(ArrayList<CharSequence[]> content) {
+        this.content = content;
+    }
+
+    @Override
+    public byte getContentType() {
+        return this.type;
+    }
+
+    @Override
+    public void setContentType(byte type) {
+        this.type = type;
     }
 
     /**
@@ -151,21 +167,5 @@ public class ScNodeContentTable implements ScNodeContent {
      */
     public void setNewOffset(int newOffset) {
         this.newOffset = newOffset;
-    }
-
-    /**
-     * Get width of every value
-     * @return comma separated values of column width. 0 means user did not modify the column width and default should be used
-     */
-    public String getColWidths() {
-        return colWidths;
-    }
-
-    /**
-     * Set widths for individual table columns.
-     * @param colWidths Values for each column has to be comma separated. Default value - 0, other positive value - user changed value
-     */
-    public void setColWidths(String colWidths) {
-        this.colWidths = colWidths;
     }
 }

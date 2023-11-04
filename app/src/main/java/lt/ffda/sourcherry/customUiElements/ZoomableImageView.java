@@ -29,30 +29,79 @@ public class ZoomableImageView extends AppCompatImageView  {
     // https://stackoverflow.com/a/54474590
     // Mostly the later
 
-    Matrix matrix;
-
     // We can be in one of these 3 states
     static final int NONE = 0;
     static final int DRAG = 1;
     static final int ZOOM = 2;
+    static final int CLICK = 3;
+    protected float origWidth, origHeight;
+    Matrix matrix;
     int mode = NONE;
-
     // Remember some things for zooming
     PointF last = new PointF();
     PointF start = new PointF();
     float minScale = 0.3f;
     float maxScale = 5.0f;
     float[] m;
-
     int viewWidth, viewHeight;
-    static final int CLICK = 3;
     float saveScale = 1f;
-    protected float origWidth, origHeight;
-    int oldMeasuredWidth, oldMeasuredHeight;
+    private final ScaleGestureDetector.OnScaleGestureListener mScaleGestureListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            float mScaleFactor = detector.getScaleFactor();
+            float origScale = saveScale;
+            saveScale *= mScaleFactor;
+            if (saveScale > maxScale) {
+                saveScale = maxScale;
+                mScaleFactor = maxScale / origScale;
+            } else if (saveScale < minScale) {
+                saveScale = minScale;
+                mScaleFactor = minScale / origScale;
+            }
 
+            if (origWidth * saveScale <= viewWidth || origHeight * saveScale <= viewHeight) {
+                matrix.postScale(mScaleFactor, mScaleFactor,viewWidth / 2,viewHeight / 2);
+            } else {
+                matrix.postScale(mScaleFactor, mScaleFactor, detector.getFocusX(), detector.getFocusY());
+            }
+            fixTrans();
+            return true;
+        }
+
+        @Override
+        public boolean onScaleBegin(@NonNull ScaleGestureDetector detector) {
+            mode = ZOOM;
+            return true;
+        }
+    };
+    private final GestureDetector.SimpleOnGestureListener mGestureListener = new GestureDetector.SimpleOnGestureListener() {
+        @Override
+        public boolean onDoubleTap(@NonNull MotionEvent e) {
+            // Double tap is detected
+            float origScale = saveScale;
+            float mScaleFactor;
+
+            if (saveScale == maxScale) {
+                saveScale = minScale;
+                mScaleFactor = minScale / origScale;
+            } else {
+                saveScale = maxScale;
+                mScaleFactor = maxScale / origScale;
+            }
+
+            matrix.postScale(mScaleFactor, mScaleFactor, viewWidth / 2,viewHeight / 2);
+            fixTrans();
+            return false;
+        }
+
+        @Override
+        public boolean onFling(@NonNull MotionEvent e1, @NonNull MotionEvent e2, float velocityX, float velocityY) {
+            return false;
+        }
+    };
+    int oldMeasuredWidth, oldMeasuredHeight;
     ScaleGestureDetector mScaleDetector;
     GestureDetectorCompat mGestureDetector;
-
     Context context;
 
     public ZoomableImageView(Context context) {
@@ -77,50 +126,44 @@ public class ZoomableImageView extends AppCompatImageView  {
 
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        mScaleDetector.onTouchEvent(event);
-        mGestureDetector.onTouchEvent(event);
+    void fixTrans() {
+        matrix.getValues(m);
+        float transX = m[Matrix.MTRANS_X];
+        float transY = m[Matrix.MTRANS_Y];
 
-        PointF curr = new PointF(event.getX(), event.getY());
+        float fixTransX = getFixTrans(transX, viewWidth, origWidth * saveScale);
+        float fixTransY = getFixTrans(transY, viewHeight, origHeight
+                * saveScale);
 
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                last.set(curr);
-                start.set(last);
-                mode = DRAG;
-                break;
+        if (fixTransX != 0 || fixTransY != 0)
+            matrix.postTranslate(fixTransX, fixTransY);
+    }
 
-            case MotionEvent.ACTION_MOVE:
-                if (mode == DRAG) {
-                    /// Made dragging ~30% fasted than the examples
-                    float deltaX = (curr.x - last.x) * 1.3f;
-                    float deltaY = (curr.y - last.y) * 1.3f;
-                    ///
-                    float fixTransX = getFixDragTrans(deltaX, viewWidth,origWidth * saveScale);
-                    float fixTransY = getFixDragTrans(deltaY, viewHeight, origHeight * saveScale);
-                    matrix.postTranslate(fixTransX, fixTransY);
-                    fixTrans();
-                    last.set(curr.x, curr.y);
-                }
-                break;
+    float getFixDragTrans(float delta, float viewSize, float contentSize) {
+        if (contentSize <= viewSize) {
+            return 0;
+        }
+        return delta;
+    }
 
-            case MotionEvent.ACTION_UP:
-                mode = NONE;
-                int xDiff = (int) Math.abs(curr.x - start.x);
-                int yDiff = (int) Math.abs(curr.y - start.y);
-                if (xDiff < CLICK && yDiff < CLICK)
-                    performClick();
-                break;
+    float getFixTrans(float trans, float viewSize, float contentSize) {
+        float minTrans, maxTrans;
 
-            case MotionEvent.ACTION_POINTER_UP:
-                mode = NONE;
-                break;
+        if (contentSize <= viewSize) {
+            minTrans = 0;
+            maxTrans = viewSize - contentSize;
+        } else {
+            minTrans = viewSize - contentSize;
+            maxTrans = 0;
         }
 
-        setImageMatrix(matrix);
-        invalidate();
-        return true; // indicate event was handled
+        if (trans < minTrans) {
+            return -trans + minTrans;
+        }
+        if (trans > maxTrans) {
+            return -trans + maxTrans;
+        }
+        return 0;
     }
 
     @Override
@@ -167,99 +210,49 @@ public class ZoomableImageView extends AppCompatImageView  {
         fixTrans();
     }
 
-    private final ScaleGestureDetector.OnScaleGestureListener mScaleGestureListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
-        @Override
-        public boolean onScaleBegin(@NonNull ScaleGestureDetector detector) {
-            mode = ZOOM;
-            return true;
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        mScaleDetector.onTouchEvent(event);
+        mGestureDetector.onTouchEvent(event);
+
+        PointF curr = new PointF(event.getX(), event.getY());
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                last.set(curr);
+                start.set(last);
+                mode = DRAG;
+                break;
+
+            case MotionEvent.ACTION_MOVE:
+                if (mode == DRAG) {
+                    /// Made dragging ~30% fasted than the examples
+                    float deltaX = (curr.x - last.x) * 1.3f;
+                    float deltaY = (curr.y - last.y) * 1.3f;
+                    ///
+                    float fixTransX = getFixDragTrans(deltaX, viewWidth,origWidth * saveScale);
+                    float fixTransY = getFixDragTrans(deltaY, viewHeight, origHeight * saveScale);
+                    matrix.postTranslate(fixTransX, fixTransY);
+                    fixTrans();
+                    last.set(curr.x, curr.y);
+                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+                mode = NONE;
+                int xDiff = (int) Math.abs(curr.x - start.x);
+                int yDiff = (int) Math.abs(curr.y - start.y);
+                if (xDiff < CLICK && yDiff < CLICK)
+                    performClick();
+                break;
+
+            case MotionEvent.ACTION_POINTER_UP:
+                mode = NONE;
+                break;
         }
 
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            float mScaleFactor = detector.getScaleFactor();
-            float origScale = saveScale;
-            saveScale *= mScaleFactor;
-            if (saveScale > maxScale) {
-                saveScale = maxScale;
-                mScaleFactor = maxScale / origScale;
-            } else if (saveScale < minScale) {
-                saveScale = minScale;
-                mScaleFactor = minScale / origScale;
-            }
-
-            if (origWidth * saveScale <= viewWidth || origHeight * saveScale <= viewHeight) {
-                matrix.postScale(mScaleFactor, mScaleFactor,viewWidth / 2,viewHeight / 2);
-            } else {
-                matrix.postScale(mScaleFactor, mScaleFactor, detector.getFocusX(), detector.getFocusY());
-            }
-            fixTrans();
-            return true;
-        }
-    };
-
-    private final GestureDetector.SimpleOnGestureListener mGestureListener = new GestureDetector.SimpleOnGestureListener() {
-        @Override
-        public boolean onDoubleTap(@NonNull MotionEvent e) {
-            // Double tap is detected
-            float origScale = saveScale;
-            float mScaleFactor;
-
-            if (saveScale == maxScale) {
-                saveScale = minScale;
-                mScaleFactor = minScale / origScale;
-            } else {
-                saveScale = maxScale;
-                mScaleFactor = maxScale / origScale;
-            }
-
-            matrix.postScale(mScaleFactor, mScaleFactor, viewWidth / 2,viewHeight / 2);
-            fixTrans();
-            return false;
-        }
-
-        @Override
-        public boolean onFling(@NonNull MotionEvent e1, @NonNull MotionEvent e2, float velocityX, float velocityY) {
-            return false;
-        }
-    };
-
-    void fixTrans() {
-        matrix.getValues(m);
-        float transX = m[Matrix.MTRANS_X];
-        float transY = m[Matrix.MTRANS_Y];
-
-        float fixTransX = getFixTrans(transX, viewWidth, origWidth * saveScale);
-        float fixTransY = getFixTrans(transY, viewHeight, origHeight
-                * saveScale);
-
-        if (fixTransX != 0 || fixTransY != 0)
-            matrix.postTranslate(fixTransX, fixTransY);
-    }
-
-    float getFixTrans(float trans, float viewSize, float contentSize) {
-        float minTrans, maxTrans;
-
-        if (contentSize <= viewSize) {
-            minTrans = 0;
-            maxTrans = viewSize - contentSize;
-        } else {
-            minTrans = viewSize - contentSize;
-            maxTrans = 0;
-        }
-
-        if (trans < minTrans) {
-            return -trans + minTrans;
-        }
-        if (trans > maxTrans) {
-            return -trans + maxTrans;
-        }
-        return 0;
-    }
-
-    float getFixDragTrans(float delta, float viewSize, float contentSize) {
-        if (contentSize <= viewSize) {
-            return 0;
-        }
-        return delta;
+        setImageMatrix(matrix);
+        invalidate();
+        return true; // indicate event was handled
     }
 }

@@ -141,6 +141,210 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         this.fixBookmarkNodeSequence();
     }
 
+    /**
+     * Checks if node is a subnode if another node
+     * Not really sure if it does not return false positives
+     * However all my tests worked
+     * @param targetNodeUniqueID unique ID of the node that needs to be check if it's a parent node
+     * @param destinationNodeUniqueID unique ID of the node that has to be check if it's a child
+     * @return true - if target node is a parent of destination node
+     */
+    private boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
+        ArrayList<String> heredity = new ArrayList<>();
+        heredity.add(destinationNodeUniqueID);
+        while (true) {
+            Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id = ?", new String[]{destinationNodeUniqueID}, null, null, null, null);
+            if (cursor.moveToFirst()) {
+                destinationNodeUniqueID = cursor.getString(0);
+                heredity.add(destinationNodeUniqueID);
+                if (destinationNodeUniqueID.equals("0")) {
+                    cursor.close();
+                    break;
+                }
+            } else {
+                cursor.close();
+                break;
+            }
+            cursor.close();
+        }
+        return heredity.contains(targetNodeUniqueID);
+    }
+
+    /**
+     * Coverts codebox string retrieved from codebox table in database to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param codebox string that needs to be converted
+     * @return StringBuilder that can be added to the node StringBuilder at the proper offset
+     */
+    private StringBuilder convertCodeboxToPlainText(String codebox) {
+        StringBuilder codeboxContent = new StringBuilder();
+        codeboxContent.append("\n");
+        codeboxContent.append(getSeparator());
+        codeboxContent.append("\n");
+        codeboxContent.append(codebox);
+        codeboxContent.append("\n");
+        codeboxContent.append(getSeparator());
+        codeboxContent.append("\n");
+        return codeboxContent;
+    }
+
+    /**
+     * Converts latex string retrieved from image table in database to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param latex latex string that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
+    private StringBuilder convertLatexToPlainText(String latex) {
+        StringBuilder latexContent = new StringBuilder();
+        latexContent.append(latex);
+        latexContent.delete(0, 79);
+        latexContent.delete(latexContent.length()-14, latexContent.length());
+        latexContent.insert(0,getSeparator());
+        latexContent.insert(0, "\n");
+        latexContent.append(getSeparator());
+        latexContent.append("\n");
+        return latexContent;
+    }
+
+    /**
+     * Converts Exclude from search This node and The Subnodes values
+     * from int that are saved in SQL databases to separate
+     * noSearchMe and noSearchCh values that are used in XML databases and throughout
+     * the code in this app
+     * @param level value that was saved in SQL database
+     * @return Array that holds values {noSearchMe, ne SearchCh}
+     */
+    private byte[] convertLevelToNoSearch(int level) {
+        byte[] noSearch = new byte[2];
+        switch (level) {
+            case 0:
+                noSearch[0] = 0;
+                noSearch[1] = 0;
+                break;
+            case 1:
+                noSearch[0] = 1;
+                noSearch[1] = 0;
+                break;
+            case 2:
+                noSearch[0] = 0;
+                noSearch[1] = 1;
+                break;
+            case 3:
+                noSearch[0] = 1;
+                noSearch[1] = 1;
+        }
+        return noSearch;
+    }
+
+    /**
+     * Convert noSearchMe and noSearchCh values that are used in XML databases and throughout
+     * the code in this app to int value Level that is used in SQL type databases
+     * @param noSearchMe exclude this node from search value. 0 - search the node, 1 - exclude
+     * @param noSearchCh exclude the subnode from search value. 0 - search the subnodes, 1 - exclude
+     * @return level value. 0 - search the node and subnodes, 1 - exclude the node, 2 - exclude subnodes, 3 - exclude both
+     */
+    private byte convertNoSearchToLevel(String noSearchMe, String noSearchCh) {
+        byte level = 0;
+        if (noSearchMe.equals("1") && noSearchCh.equals("1")) {
+            level = 3;
+        } else if (noSearchMe.equals("1")) {
+            level = 1;
+        } else if (noSearchCh.equals("1")) {
+            level = 2;
+        }
+        return level;
+    }
+
+    /**
+     * Coverts content of provided node (unique ID) from rich-text to plain-text or automatic-syntax-highlighting
+     * Conversion adds all the content from the node's rich-text tags to StringBuilder
+     * that can be added to the node table txt field
+     * @param nodeUniqueID unique id of the node that needs to be converted
+     * @return StringBuilder with all the node content without addition tags
+     */
+    private StringBuilder convertRichTextNodeContentToPlainText(String txt, String nodeUniqueID) {
+        StringBuilder nodeContent = new StringBuilder();
+        int totalCharOffset = 0;
+        // Getting text data of the node
+        NodeList nodeList =  this.getDocumentFromString(txt).getElementsByTagName("node").item(0).getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            nodeContent.append(node.getTextContent());
+        }
+        // Getting offset data for all images (latex, images, files), tables and codeboxes
+        // Adding 7 - for codebox, 8 - for table and 9 for image as a second column
+        Cursor codeboxTableImageCursor = this.sqlite.rawQuery(new String("SELECT offset, 7 FROM codebox WHERE node_id=? UNION SELECT offset, 8 FROM grid WHERE node_id=? UNION SELECT offset, 9 FROM image WHERE node_id=? ORDER BY offset ASC"), new String[]{nodeUniqueID, nodeUniqueID, nodeUniqueID});
+        while (codeboxTableImageCursor.moveToNext()) {
+            if (codeboxTableImageCursor.getInt(1) == 7) {
+                Cursor cursorCodeboxes = this.sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
+                while (cursorCodeboxes.moveToNext()) {
+                    int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
+                    StringBuilder codeboxContent = this.convertCodeboxToPlainText(cursorCodeboxes.getString(0));
+                    nodeContent.insert(charOffset, codeboxContent);
+                    totalCharOffset += codeboxContent.length() - 1;
+                }
+                cursorCodeboxes.close();
+            }
+            if (codeboxTableImageCursor.getInt(1) == 8) {
+                Cursor cursorTables = this.sqlite.query("grid", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
+                while (cursorTables.moveToNext()) {
+                    int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
+                    StringBuilder tableContent = this.convertTableContentToPlainText(cursorTables.getString(0));
+                    nodeContent.insert(charOffset, tableContent);
+                    totalCharOffset += tableContent.length() - 1;
+                }
+                cursorTables.close();
+            }
+            if (codeboxTableImageCursor.getInt(1) == 9) {
+                Cursor cursorImages = this.sqlite.query("image", new String[]{"anchor", "png", "filename"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
+                while (cursorImages.moveToNext()) {
+                    if (cursorImages.getString(2).equals("__ct_special.tex")) {
+                        int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
+                        StringBuilder imageContent = this.convertLatexToPlainText(new String(cursorImages.getBlob(1)));
+                        nodeContent.insert(charOffset, imageContent);
+                        totalCharOffset += imageContent.length() - 1;
+                    } else {
+                        // For every element, even ones that will not be added
+                        // 1 has to be deducted from totalCharOffset
+                        // to make node's data be displayed in order
+                        totalCharOffset -= 1;
+                    }
+                }
+                cursorImages.close();
+            }
+        }
+        codeboxTableImageCursor.close();
+        return nodeContent;
+    }
+
+    /**
+     * Coverts table string retrieved from grid table in database to a StringBuilder
+     * used as part of convertRichTextNodeContentToPlainText function
+     * @param table string that needs to be converted
+     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
+     */
+    private StringBuilder convertTableContentToPlainText(String table) {
+        StringBuilder tableContent = new StringBuilder();
+        NodeList nodeList = this.getDocumentFromString(table).getElementsByTagName("table").item(0).getChildNodes();
+        int tableRowCount = nodeList.getLength();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("row")) {
+                // Header row for the table is kept at the end of the table
+                // When converting to string it has to be added to the beginning
+                // of the string fro the information to make sense
+                if (tableRowCount > 1) {
+                    tableContent.append(this.convertTableRowToPlainText(node));
+                } else {
+                    tableContent.insert(0, this.convertTableRowToPlainText(node));
+                }
+                tableRowCount--;
+            }
+        }
+        tableContent.insert(0, "\n");
+        return tableContent;
+    }
+
     @Override
     public ScNode createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh){
         // Updating node table
@@ -212,6 +416,35 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         return new ScNode(String.valueOf(newNodeUniqueID), name, false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
     }
 
+    /**
+     * Parent node (top) in the drawer menu
+     * Used when creating a drawer menu
+     * @param nodeUniqueID unique ID of the node that is parent node
+     * @return ScNode object with properties of a parent node
+     */
+    private ScNode createParentNode(String nodeUniqueID) {
+        // Creates and returns the node that will be added to the node array as parent node
+        Cursor cursor = this.sqlite.query("node", new String[]{"name", "is_richtxt", "syntax", "is_ro"}, "node_id=?", new String[]{String.valueOf(nodeUniqueID)}, null, null,null);
+        String parentNodeName;
+        if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
+            parentNodeName = cursor.getString(0);
+        } else {
+            return null;
+        }
+        boolean parentNodeHasSubnodes = hasSubnodes(nodeUniqueID);
+        boolean isRichText = cursor.getString(2).equals("custom-colors");
+        boolean isBold = ((cursor.getInt(1) >> 1) & 0x01) == 1;
+        String foregoundColor = "";
+        if (((cursor.getInt(1) >> 2) & 0x01) == 1) {
+            foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+        }
+        int iconId = cursor.getInt(3) >> 1;
+        boolean isReadOnly = (cursor.getInt(3) & 0x01) == 1;
+        ScNode node = new ScNode(nodeUniqueID, parentNodeName, true, parentNodeHasSubnodes, false, isRichText, isBold, foregoundColor, iconId, isReadOnly);
+        cursor.close();
+        return node;
+    }
+
     @Override
     public void deleteNode(String nodeUniqueID) {
         String parentNodeUniqueID;
@@ -240,6 +473,33 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         this.fixBookmarkNodeSequence();
     }
 
+    /**
+     * Deletes node and it subnodes from database
+     * Difference from deleteNode() is that this function does not do
+     * any cleanup functions like fixing sequences of bookmarks
+     * and original node's parent sequence of children node
+     * @param nodeUniqueID unique ID of the node to delete
+     */
+    private void deleteNodeChildren(String nodeUniqueID) {
+        this.sqlite.beginTransaction();
+        try {
+            this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("children", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
+            this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
+            Cursor childrenNodeUniqueID = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+            while (childrenNodeUniqueID.moveToNext()) {
+                this.deleteNodeChildren(childrenNodeUniqueID.getString(0));
+            }
+            childrenNodeUniqueID.close();
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
+    }
+
     @Override
     public void displayToast(String message) {
         // Displays a toast on main thread
@@ -264,6 +524,272 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             cursor.close();
             return false;
         }
+    }
+
+    /**
+     * Searches through node's content
+     * @param cursor cursor that holds all the data of the of the node to search through
+     * @param query string to search for
+     * @param hasSubnodes true if node has subnodes, else - false
+     * @param isParent true if node is a parent node, else - false
+     * @param isSubnode isSubnode true if node is a subnode, else - false
+     * @return search result object or null if nothing was found
+     */
+    private ScSearchNode findInNode(Cursor cursor, String query, boolean hasSubnodes, boolean isParent, boolean isSubnode) {
+        // This string builder will hold oll text content of the node
+        StringBuilder nodeContent = new StringBuilder();
+        // As in reader that all the text would be in order user sees it
+        // filenames, table and codebox content hast to be inserted in correct location of the string
+        // To help calculate that location totalCharOffset is used
+        int totalCharOffset = 0;
+
+        // ***Creating node content string
+        String nodeSyntax = cursor.getString(3);
+
+        if (nodeSyntax.equals("custom-colors")) {
+            // This is formatting for Rich Text and Plain Text nodes
+            // Gets all the subnodes/childnodes of selected node
+            NodeList nodeContentNodeList = this.getDocumentFromString(cursor.getString(2)).getElementsByTagName("node").item(0).getChildNodes();
+            for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
+                // Loops through nodes/tags of selected node
+                nodeContent.append(nodeContentNodeList.item(x).getTextContent());
+            }
+            int hasCodebox = cursor.getInt(7);
+            int hasTable = cursor.getInt(8);
+            int hasImage = cursor.getInt(9);
+
+            // If it is marked that node has codebox, table or image
+            if (hasCodebox == 1 || hasTable == 1 || hasImage == 1) {
+                //// Building string for SQLQuery
+                // Because every type of element (image, table, codeboxes) are in it's own table
+                // Only the ones that actually are in the node will be searched
+                // For search only text is needed so only offset, and text (filenames too) will be selected
+                StringBuilder codeboxTableImageQueryString = new StringBuilder();
+
+                // Depending on how many tables will be searched
+                // instances of how many time nodeUniqueID will have to be inserted will differ
+                int queryCounter = 0; // This is the counter for that
+                if (hasCodebox == 1) {
+                    // Means that node has has codeboxes in it
+                    codeboxTableImageQueryString.append("SELECT offset, txt, 7 FROM codebox WHERE node_id=? ");
+                    queryCounter++;
+                }
+                if (hasTable == 1) {
+                    // Means that node has tables in it
+                    if (hasCodebox == 1) {
+                        codeboxTableImageQueryString.append("UNION ");
+                    }
+                    codeboxTableImageQueryString.append("SELECT offset, txt, 8 FROM grid WHERE node_id=? ");
+                    queryCounter++;
+                }
+                if (hasImage == 1) {
+                    // Means that node has images (images, anchors or files) in it
+                    if (hasCodebox == 1 || hasTable == 1) {
+                        codeboxTableImageQueryString.append("UNION ");
+                    }
+                    codeboxTableImageQueryString.append("SELECT offset, filename, 9 FROM image WHERE node_id=? ");
+                    queryCounter++;
+                }
+                codeboxTableImageQueryString.append("ORDER BY offset ASC");
+
+                /// Creating the array that will be used to insert nodeUniqueIDs
+                String[] queryArguments = new String[queryCounter];
+                Arrays.fill(queryArguments, cursor.getString(0));
+                ///
+                ////
+
+                Cursor codeboxTableImageCursor = this.sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
+
+                while (codeboxTableImageCursor.moveToNext()) {
+                    int charOffset = codeboxTableImageCursor.getInt(0);
+                    if (codeboxTableImageCursor.getInt(2) == 9) {
+                        if (!codeboxTableImageCursor.getString(1).isEmpty()) {
+                            // Text in column 5 means that this line is for file OR LaTeX formula box
+                            if (!codeboxTableImageCursor.getString(1).equals("__ct_special.tex")) {
+                                // If it is not LaTex file
+                                String attachedFileFilename = " " + codeboxTableImageCursor.getString(1) + " ";
+                                if (nodeContent.length() < charOffset + totalCharOffset) {
+                                    // This check most likely needed in Searcher, but not in Reader
+                                    // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                                    nodeContent.append(attachedFileFilename);
+                                } else {
+                                    nodeContent.insert(charOffset + totalCharOffset, attachedFileFilename);
+                                }
+                                totalCharOffset += attachedFileFilename.length() - 1;
+                                continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                            }
+                        }
+                    } else if (codeboxTableImageCursor.getInt(2) == 7) {
+                        // codebox row
+                        String codeboxText = codeboxTableImageCursor.getString(1);
+                        if (nodeContent.length() < charOffset + totalCharOffset) {
+                            // This check most likely needed in Searcher, but not in Reader
+                            // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                            nodeContent.append(codeboxText);
+                        } else {
+                            nodeContent.insert(charOffset + totalCharOffset, codeboxText);
+                        }
+                        totalCharOffset += codeboxText.length() - 1;
+                    } else if (codeboxTableImageCursor.getInt(2) == 8) {
+                        StringBuilder tableContent = new StringBuilder();
+                        // table row
+                        NodeList tableRows = this.getDocumentFromString(codeboxTableImageCursor.getString(1)).getElementsByTagName("table").item(0).getChildNodes();
+                        // Adding all rows to arraylist
+                        ArrayList<String> tableRowArray = new ArrayList<>();
+                        for (int row = 0; row < tableRows.getLength(); row++) {
+                            if (tableRows.item(row).getNodeName().equals("row")) {
+                                // For table content from SQL database spaces around each cell needs to be added
+                                // because there aren't any
+                                // All cells from one row has to be connected to one string that represents a row
+                                // Otherwise it might be not possible to put table header to the top of the table
+                                StringBuilder rowStringBuilder = new StringBuilder();
+                                NodeList cells = tableRows.item(row).getChildNodes();
+                                for (int cell = 0; cell < cells.getLength(); cell++) {
+                                    rowStringBuilder.append(" ").append(cells.item(cell).getTextContent()).append(" ");
+                                }
+                                tableRowArray.add(rowStringBuilder.toString());
+                            }
+                        }
+
+                        // Adding the last row of the table to string builder as first because that's where header of the table is located
+                        tableContent.append(tableRowArray.get(tableRowArray.size() - 1));
+                        // Rest of the rows can be added in order
+                        for (int x = 0; x < tableRowArray.size() - 1; x++) {
+                            tableContent.append(tableRowArray.get(x));
+                        }
+
+                        // Adding table's content to nodes content string builder
+                        if (nodeContent.length() < charOffset + totalCharOffset) {
+                            // This check most likely needed in Searcher, but not in Reader
+                            // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                            nodeContent.append(tableContent);
+                        } else {
+                            nodeContent.insert(charOffset + totalCharOffset, tableContent);
+                        }
+                        // Changing total offset value with a value of the table content, because CherryTree uses different GUI toolkit
+                        // And without doing this the first element with offset would mess node content order (or maybe that's by design)
+                        totalCharOffset += tableContent.length() - 1;
+                    }
+                }
+                codeboxTableImageCursor.close();
+            }
+        } else if (nodeSyntax.equals("plain-text")) {
+            // Plain text node does not have any formatting and has not node embedded in to it
+            nodeContent.append(cursor.getString(2));
+        } else {
+            // Node is Code Node. It's just a big CodeBox with no dimensions
+            nodeContent.append(cursor.getString(2));
+        }
+
+        // ***Search
+        int queryLength = query.length();
+        int resultCount = 0;
+        int index = 0;
+        StringBuilder samples = new StringBuilder(); // This will hold 3 samples to show to user
+
+        // Removing all spaces and new line character from the node content string
+        String preparedNodeContent = nodeContent.toString().toLowerCase().replaceAll("\n", " ").replaceAll(" +", " ");
+
+        while (index != -1) {
+            index = preparedNodeContent.indexOf(query, index);
+            if (index != -1) {
+                // if match to search query was found in the node's content
+                if (resultCount < 3 ) {
+                    // Results display only first three found instances of search query
+                    int startIndex = 0; // Start of sample substring that will be created
+                    int endIndex = preparedNodeContent.length(); // End of sample substring that will be created
+                    String sampleStart = "";
+                    String sampleEnd = "";
+                    if (index > 20) {
+                        // if index is further than 20 symbols from the start of the node content
+                        // ... are added to the start of the sample
+                        // and only 20 preceding symbols before query match are showed
+                        startIndex = index - 20;
+                        sampleStart = "...";
+                    }
+                    if ((index + queryLength + 20) < endIndex) {
+                        // if index is more than 20 symbols from the end of the node content
+                        // ... are added to the end of the sample
+                        // and only 20 proceeding symbols before query match are showed
+                        endIndex = index + queryLength + 20;
+                        sampleEnd = "...";
+                    }
+
+                    // Building a sample for search result from using previously formatted parts
+                    StringBuilder sample = new StringBuilder();
+                    sample.append(sampleStart);
+                    sample.append(preparedNodeContent.substring(startIndex, endIndex).trim());
+                    sample.append(sampleEnd);
+                    sample.append("<br/>");
+                    samples.append(sample);
+                }
+
+                resultCount++;
+                index += queryLength; // moving search start to the end of the last position that search query was found
+            }
+        }
+
+        if (resultCount > 0) {
+            // if node count of matches is more than 0 that a match of q query was found
+            boolean isBold = ((cursor.getInt(6) >> 1) & 0x01) == 1;
+            String foregroundColor = "";
+            if (((cursor.getInt(6) >> 2) & 0x01) == 1) {
+                foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+            }
+            int iconId = cursor.getInt(5) >> 1;
+            boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
+            return new ScSearchNode(cursor.getString(0), cursor.getString(1), isParent, hasSubnodes, isSubnode, cursor.getString(3).equals("custom-colors"), isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Reorders bookmark table's node sequence
+     * Removes any gaps that might have been left after deleting node
+     * or removing it from bookmarks
+     */
+    private void fixBookmarkNodeSequence() {
+        this.sqlite.beginTransaction();
+        try {
+            Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, null, null, null, null, "node_id ASC", null);
+            int counter = 1;
+            ContentValues contentValues = new ContentValues();
+            while (cursor.moveToNext()) {
+                contentValues.clear();
+                contentValues.put("sequence", counter);
+                this.sqlite.update("bookmark", contentValues, "node_id = ?", new String[]{cursor.getString(0)});
+                counter++;
+            }
+            cursor.close();
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
+    }
+
+    /**
+     * Orders children of the node in sequence (children table)
+     * Needed after moving the node to a different parent
+     * That might create an empty spot in a middle of the children sequence
+     * @param nodeUniqueID unique ID of the node which children sequence needs to be fixed
+     */
+    private void fixChildrenNodeSequence(String nodeUniqueID) {
+        int sequenceCounter = 1;
+        Cursor cursor = this.sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id = ?", new String[]{nodeUniqueID}, null, null, "sequence ASC", null);
+        this.sqlite.beginTransaction();
+        try {
+            while (cursor.moveToNext()) {
+                ContentValues contentValues = new ContentValues();
+                contentValues.put("sequence", sequenceCounter);
+                this.sqlite.update("children", contentValues, "node_id=?", new String[]{cursor.getString(0)});
+                sequenceCounter++;
+            }
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
+        cursor.close();
     }
 
     @Override
@@ -296,25 +822,21 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         return nodes;
     }
 
-    @Override
-    public ImageSpan makeBrokenImageSpan(int type) {
-        // Returns an image span that is used to display as placeholder image
-        // used when cursor window is to small to get an image blob
-        // pass 0 to get broken image span, pass 1 to get broken latex span
-        SpannableStringBuilder brokenSpan = new SpannableStringBuilder();
-        brokenSpan.append(" ");
-        Drawable drawableBrokenImage;
-        ImageSpan brokenImage;
-        if (type == 0) {
-            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_image_48);
-            brokenImage = new ImageSpanImage(drawableBrokenImage);
-        } else {
-            drawableBrokenImage =  AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_latex_48);
-            brokenImage = new ImageSpanLatex(drawableBrokenImage);
+    /**
+     * SQL Database has a XML document inserted in to it in a form of the String
+     * With all the tags an attributes the same way as in XML document
+     * So SQL document is just a XML document with extra steps
+     * @param nodeString String object with all the information of the node or it's table
+     * @return NodeList object with content of the node
+     */
+    private Document getDocumentFromString(String nodeString) {
+        try {
+            return this.documentBuilder.parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            this.displayToast(context.getString(R.string.toast_error_failed_to_convert_string_to_nodelist));
         }
-        //// Inserting image
-        drawableBrokenImage.setBounds(0,0, drawableBrokenImage.getIntrinsicWidth(), drawableBrokenImage.getIntrinsicHeight());
-        return brokenImage;
+
+        return null;
     }
 
     @Override
@@ -397,6 +919,127 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         nodes.add(0, createParentNode(String.valueOf(nodeUniqueID)));
         cursor.close();
         return nodes;
+    }
+
+    /**
+     * Returns next available children's sequence number of the node
+     * sequence number is used to order nodes in the drawer menu
+     * @param nodeUniqueID unique id of the node which next available children's sequence number to return
+     * @return next available sequence number
+     */
+    private int getNewNodeSequenceNumber(String nodeUniqueID) {
+        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {nodeUniqueID});
+        cursor.moveToFirst();
+        int sequence = cursor.getInt(0);
+        cursor.close();
+        return sequence + 1;
+    }
+
+    @Override
+    public int getNodeMaxID() {
+        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(node_id) FROM node", null);
+        cursor.moveToFirst();
+        int nodeUniqueID = cursor.getInt(0);
+        cursor.close();
+        return nodeUniqueID;
+    }
+
+    @Override
+    public ScNodeProperties getNodeProperties(String nodeUniqueID) {
+        Cursor cursor = this.sqlite.query("node", new String[]{"name", "syntax", "level"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        cursor.moveToFirst();
+        byte[] noSearch = this.convertLevelToNoSearch(cursor.getInt(2));
+        ScNodeProperties nodeProperties = new ScNodeProperties(nodeUniqueID, cursor.getString(0), cursor.getString(1), noSearch[0], noSearch[1]);
+        cursor.close();
+        return nodeProperties;
+    }
+
+    /**
+     * Get unique id of parent node of provided node
+     * @param nodeUniqueID unique ID of the node which parent unique ID to find
+     * @return unique id of the node
+     */
+    private int getParentNodeUniqueID(String nodeUniqueID) {
+        Cursor cursor = this.sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {nodeUniqueID});
+        cursor.moveToFirst();
+        int parentNodeUniqueID = cursor.getInt(0);
+        cursor.close();
+        return parentNodeUniqueID;
+    }
+
+    @Override
+    public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
+        // Checks if it is possible to go up in document's node tree from given node's uniqueID
+        // Returns array with appropriate nodes
+        ArrayList<ScNode> nodes = null;
+        String nodeParentID;
+        Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null);
+        if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
+            nodeParentID = cursor.getString(0);
+            cursor.close();
+            if (nodeParentID.equals("0")) {
+                nodes = getMainNodes();
+            } else {
+                cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeParentID});
+                nodes = returnSubnodeArrayList(cursor, true);
+                nodes.add(0, createParentNode(nodeParentID));
+            }
+        }
+        cursor.close();
+        return nodes;
+    }
+
+    @Override
+    public ScNode getSingleMenuItem(String nodeUniqueID) {
+        // Returns single menu item to be used when opening anchor links
+        ScNode currentScNode = null;
+        Cursor cursor = this.sqlite.query("node", new String[]{"name", "is_richtxt", "syntax", "is_ro"}, "node_id=?", new String[]{nodeUniqueID}, null, null,null);
+        if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
+            // Node name and unique_id always the same for the node
+            String nameValue = cursor.getString(0);
+            boolean isRichText = cursor.getString(2).equals("custom-colors");
+            boolean isBold = ((cursor.getInt(1) >> 1) & 0x01) == 1;
+            String foregroundColor = "";
+            if (((cursor.getInt(1) >> 2) & 0x01) == 1) {
+                foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+            }
+            int iconId = cursor.getInt(3) >> 1;
+            boolean isReadOnly = (cursor.getInt(3) & 0x01) == 1;
+            if (hasSubnodes(nodeUniqueID)) {
+                // if node has subnodes, then it has to be opened as a parent node and displayed as such
+                currentScNode = new ScNode(nodeUniqueID, nameValue, true, true, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+            } else {
+                // If node doesn't have subnodes, then it has to be opened as subnode of some other node
+                currentScNode = new ScNode(nodeUniqueID, nameValue, false, false, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+            }
+        }
+        cursor.close();
+        return currentScNode;
+    }
+
+    /**
+     * Checks if provided Node object has a subnode(s)
+     * @param nodeUniqueID unique ID of the node that is being checked for subnodes
+     * @return true if node has a subnode, false - if not
+     */
+    private boolean hasSubnodes(String nodeUniqueID) {
+        // Checks if node with provided unique_id has subnodes
+        Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID},null,null,null);
+        if (cursor.getCount() > 0) {
+            cursor.close();
+            return true;
+        } else {
+            cursor.close();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isNodeBookmarked(String nodeUniqueID) {
+        Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null, null);
+        boolean isNodeBookmarked = cursor.getCount() > 0;
+        cursor.close();
+        return isNodeBookmarked;
     }
 
     @Override
@@ -630,83 +1273,6 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     @Override
-    public int getNodeMaxID() {
-        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(node_id) FROM node", null);
-        cursor.moveToFirst();
-        int nodeUniqueID = cursor.getInt(0);
-        cursor.close();
-        return nodeUniqueID;
-    }
-
-    @Override
-    public ScNodeProperties getNodeProperties(String nodeUniqueID) {
-        Cursor cursor = this.sqlite.query("node", new String[]{"name", "syntax", "level"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-        cursor.moveToFirst();
-        byte[] noSearch = this.convertLevelToNoSearch(cursor.getInt(2));
-        ScNodeProperties nodeProperties = new ScNodeProperties(nodeUniqueID, cursor.getString(0), cursor.getString(1), noSearch[0], noSearch[1]);
-        cursor.close();
-        return nodeProperties;
-    }
-
-    @Override
-    public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
-        // Checks if it is possible to go up in document's node tree from given node's uniqueID
-        // Returns array with appropriate nodes
-        ArrayList<ScNode> nodes = null;
-        String nodeParentID;
-        Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null);
-        if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
-            nodeParentID = cursor.getString(0);
-            cursor.close();
-            if (nodeParentID.equals("0")) {
-                nodes = getMainNodes();
-            } else {
-                cursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeParentID});
-                nodes = returnSubnodeArrayList(cursor, true);
-                nodes.add(0, createParentNode(nodeParentID));
-            }
-        }
-        cursor.close();
-        return nodes;
-    }
-
-    @Override
-    public ScNode getSingleMenuItem(String nodeUniqueID) {
-        // Returns single menu item to be used when opening anchor links
-        ScNode currentScNode = null;
-        Cursor cursor = this.sqlite.query("node", new String[]{"name", "is_richtxt", "syntax", "is_ro"}, "node_id=?", new String[]{nodeUniqueID}, null, null,null);
-        if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
-            // Node name and unique_id always the same for the node
-            String nameValue = cursor.getString(0);
-            boolean isRichText = cursor.getString(2).equals("custom-colors");
-            boolean isBold = ((cursor.getInt(1) >> 1) & 0x01) == 1;
-            String foregroundColor = "";
-            if (((cursor.getInt(1) >> 2) & 0x01) == 1) {
-                foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
-            }
-            int iconId = cursor.getInt(3) >> 1;
-            boolean isReadOnly = (cursor.getInt(3) & 0x01) == 1;
-            if (hasSubnodes(nodeUniqueID)) {
-                // if node has subnodes, then it has to be opened as a parent node and displayed as such
-                currentScNode = new ScNode(nodeUniqueID, nameValue, true, true, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-            } else {
-                // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-                currentScNode = new ScNode(nodeUniqueID, nameValue, false, false, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-            }
-        }
-        cursor.close();
-        return currentScNode;
-    }
-
-    @Override
-    public boolean isNodeBookmarked(String nodeUniqueID) {
-        Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null, null);
-        boolean isNodeBookmarked = cursor.getCount() > 0;
-        cursor.close();
-        return isNodeBookmarked;
-    }
-
-    @Override
     public SpannableStringBuilder makeAnchorImageSpan(String anchorValue) {
         // Makes an image span that displays an anchor to mark position of it.
         // It does not respond to touches in any way
@@ -744,6 +1310,70 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         return clickableSpanNode;
     }
 
+    /**
+     * Creates a clickable span that initiates a context to open/save attached file
+     * Arguments that a passed to this function has to be retrieved from the appropriate tables in the database
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param nodeUniqueID unique ID of the node that has file attached in it
+     * @param attachedFileFilename filename of the attached file
+     * @param time datetime of when file was attached to the node
+     * @param originalOffset offset value that the file was originally saved in the database with
+     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
+     * @return Clickable spannableStringBuilder that has spans with image and filename
+     */
+    private SpannableStringBuilder makeAttachedFileSpan(String nodeUniqueID, String attachedFileFilename, String time, String originalOffset, String justification) {
+        SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
+        formattedAttachedFile.append(" "); // Needed to insert image
+        // Inserting image
+        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
+        drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
+        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        attachedFileIcon.setFromDatabase(true);
+        attachedFileIcon.setNodeUniqueId(nodeUniqueID);
+        attachedFileIcon.setFilename(attachedFileFilename);
+        attachedFileIcon.setTimestamp(time);
+        attachedFileIcon.setOriginalOffset(originalOffset);
+        formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        formattedAttachedFile.append(attachedFileFilename); // Appending filename
+        // Detects touches on icon and filename
+        ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
+            @Override
+            public void onClick(@NonNull View widget) {
+            // Launches function in MainView that checks if there is a default action in for attached files
+            ((MainView) SQLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, originalOffset);
+            }
+        };
+        formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+        if (justification.equals("right")) {
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justification.equals("center")) {
+            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return formattedAttachedFile;
+    }
+
+    @Override
+    public ImageSpan makeBrokenImageSpan(int type) {
+        // Returns an image span that is used to display as placeholder image
+        // used when cursor window is to small to get an image blob
+        // pass 0 to get broken image span, pass 1 to get broken latex span
+        SpannableStringBuilder brokenSpan = new SpannableStringBuilder();
+        brokenSpan.append(" ");
+        Drawable drawableBrokenImage;
+        ImageSpan brokenImage;
+        if (type == 0) {
+            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_image_48);
+            brokenImage = new ImageSpanImage(drawableBrokenImage);
+        } else {
+            drawableBrokenImage =  AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_latex_48);
+            brokenImage = new ImageSpanLatex(drawableBrokenImage);
+        }
+        //// Inserting image
+        drawableBrokenImage.setBounds(0,0, drawableBrokenImage.getIntrinsicWidth(), drawableBrokenImage.getIntrinsicHeight());
+        return brokenImage;
+    }
+
     @Override
     public ClickableSpanLink makeFileFolderLinkSpan(String type, String base64Filename) {
         // Creates and returns a span for a link to external file or folder
@@ -769,6 +1399,219 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         clickableSpanLink.setLinkType(type);
         clickableSpanLink.setBase64Link(base64Filename);
         return clickableSpanLink;
+    }
+
+    /**
+     * Creates SpannableStringBuilder with the content of the CodeNode
+     * CodeNode is just a CodeBox that do not have height and width (dimensions)
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param nodeContent content of the code node
+     * @return SpannableStringBuilder that has spans marked for string formatting
+     */
+    private SpannableStringBuilder makeFormattedCodeNodeSpan(String nodeContent) {
+        SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
+        formattedCodeNode.append(nodeContent);
+
+        // Changes font
+        TypefaceSpan tf = new TypefaceSpan("monospace");
+        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+
+        // Changes background color
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        }
+
+        return formattedCodeNode;
+    }
+
+    /**
+     * Creates a codebox span from the provided nodeContent string
+     * Formatting depends on new line characters nodeContent string
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
+     * @param nodeContent content of the codebox
+     * @param syntax type of syntax used in the codebox. It does not have any difference in SourCherry
+     * @param width width value of the codebox that was saved in the database. It does not have any effect in SourCherry
+     * @param height height value of the codebox that was saved in the database. It does not have any effect in SourCherry
+     * @param widthInPixels is width calculated in pixels or percentages value that was saved in the database. It does not have any effect in SourCherry
+     * @param highlightBrackets should codebox highlight brackets. Value should be retrieved from database. It does not have any effect in SourCherry
+     * @param showLineNumbers should codebox display line numbers. Value should be retrieved from database. It does not have any effect in SourCherry
+     * @return SpannableStringBuilder that has spans marked for string formatting
+     */
+    private SpannableStringBuilder makeFormattedCodeboxSpan(String justification, String nodeContent, String syntax, int width, int height, boolean widthInPixels, boolean highlightBrackets, boolean showLineNumbers) {
+        // Returns SpannableStringBuilder that has spans marked for string formatting
+        SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
+        formattedCodebox.append(nodeContent);
+        // Changes font
+        TypefaceSpanCodebox typefaceSpanCodebox = new TypefaceSpanCodebox("monospace");
+        // Saving codebox attribute to the span
+        typefaceSpanCodebox.setFrameWidth(width);
+        typefaceSpanCodebox.setFrameHeight(height);
+        typefaceSpanCodebox.setWidthInPixel(widthInPixels);
+        typefaceSpanCodebox.setSyntaxHighlighting(syntax);
+        typefaceSpanCodebox.setHighlightBrackets(highlightBrackets);
+        typefaceSpanCodebox.setShowLineNumbers(showLineNumbers);
+        if (nodeContent.contains("\n")) {
+            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            // Adds vertical line in front the paragraph, to make it stand out as quote
+            QuoteSpan qs;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                qs = new QuoteSpan(Color.parseColor("#AC1111"), 5, 30);
+            } else {
+                qs = new QuoteSpan(Color.RED);
+            }
+            formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            // Changes background color
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+                formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            }
+        } else {
+            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
+            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        if (justification.equals("right")) {
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justification.equals("center")) {
+            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return formattedCodebox;
+    }
+
+    /**
+     * Creates a SpannableStringBuilder with image in it
+     * Image is created from byte[]
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param imageBlob byte[] that has data for the image
+     * @param nodeUniqueID unique ID of the node that has the image embedded
+     * @param imageOffset offset of the image in the node
+     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
+     * @return SpannableStringBuilder that has spans with image in them
+     */
+    private SpannableStringBuilder makeImageSpan(byte[] imageBlob, String nodeUniqueID, String imageOffset, String justification) {
+        // Returns SpannableStringBuilder that has spans with images in them
+        // Images are decoded from byte array that was passed to the function
+        SpannableStringBuilder formattedImage = new SpannableStringBuilder();
+        ImageSpanImage imageSpanImage;
+        //* Adds image to the span
+        try {
+            formattedImage.append(" ");
+            Bitmap decodedByte = BitmapFactory.decodeByteArray(imageBlob, 0, imageBlob.length);
+            Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
+            image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
+            imageSpanImage = new ImageSpanImage(image);
+            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+            if (image.getIntrinsicWidth() > width) {
+                // If image is wider than screen it is scaled down to fit the screen
+                // otherwise it will not load/be displayed
+                float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
+                int newWidth = (int) (image.getIntrinsicWidth() * scale);
+                int newHeight = (int) (image.getIntrinsicHeight() * scale);
+                image.setBounds(0, 0, newWidth, newHeight);
+            }
+
+            //** Detects image touches/clicks
+            ClickableSpan imageClickableSpan = new ClickableSpan() {
+                @Override
+                public void onClick(@NonNull View widget) {
+                    // Starting fragment to view enlarged zoomable image
+                    ((MainView) context).openImageView(nodeUniqueID, imageOffset);
+                }
+            };
+            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+            //**
+        } catch (Exception e) {
+            // Displays a toast message and appends broken image span to display in node content
+            imageSpanImage = (ImageSpanImage) this.makeBrokenImageSpan(0);
+            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            this.displayToast(context.getString(R.string.toast_error_failed_to_load_image));
+        }
+        //*
+        if (justification.equals("right")) {
+            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justification.equals("center")) {
+            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return formattedImage;
+    }
+
+    /**
+     * Creates a SpannableStringBuilder with image with drawn Latex formula in it
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * @param imageBlob byte[] that is actually a String that contains LaTex formula
+     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
+     * @return SpannableStringBuilder that has span with Latex image in them
+     */
+    private SpannableStringBuilder makeLatexImageSpan(byte[] imageBlob, String justification) {
+        // Image is created from byte[] that is passed as an arguments
+        SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
+        ImageSpanLatex imageSpanLatex;
+        //* Creates and adds image to the span
+        try {
+            formattedLatexImage.append(" ");
+            String latexString = new String(imageBlob)
+                .replace("\\documentclass{article}\n" +
+                        "\\pagestyle{empty}\n" +
+                        "\\usepackage{amsmath}\n" +
+                        "\\begin{document}\n" +
+                        "\\begin{align*}", "")
+                .replace("\\end{align*}\n\\end{document}", "")
+                .replaceAll("&=", "="); // Removing '&' sing, otherwise latex image fails to compile
+
+            final JLatexMathDrawable latexDrawable = JLatexMathDrawable.builder(latexString)
+                    .textSize(40)
+                    .padding(8)
+                    .background(0xFFffffff)
+                    .align(JLatexMathDrawable.ALIGN_RIGHT)
+                    .build();
+
+            latexDrawable.setBounds(0, 0, latexDrawable.getIntrinsicWidth(), latexDrawable.getIntrinsicHeight());
+
+            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+            if (latexDrawable.getIntrinsicWidth() > width - 50) {
+                // If image is wider than screen-50 px it is scaled down to fit the screen
+                // otherwise it will not load/be display
+                float scale = ((float) width / latexDrawable.getIntrinsicWidth()) - (float) 0.2;
+                int newWidth = (int) (latexDrawable.getIntrinsicWidth() * scale);
+                int newHeight = (int) (latexDrawable.getIntrinsicHeight() * scale);
+                latexDrawable.setBounds(0, 0, newWidth, newHeight);
+            }
+
+            imageSpanLatex = new ImageSpanLatex(latexDrawable);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            //** Detects image touches/clicks
+            ClickableSpan imageClickableSpan = new ClickableSpan() {
+                @Override
+                public void onClick(@NonNull View widget) {
+                    // Starting fragment to view enlarged zoomable image
+                    ((MainView) SQLReader.this.context).openImageView(latexString);
+                }
+            };
+            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
+            //**
+        } catch (Exception e) {
+            // Displays a toast message and appends broken latex image span to display in node content
+            imageSpanLatex = (ImageSpanLatex) this.makeBrokenImageSpan(1);
+            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            this.displayToast(context.getString(R.string.toast_error_failed_to_compile_latex));
+        }
+        //*
+        if (justification.equals("right")) {
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else if (justification.equals("center")) {
+            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        imageSpanLatex.setLatexCode(new String(imageBlob));
+        return formattedLatexImage;
     }
 
     @Override
@@ -806,6 +1649,228 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     public void removeNodeFromBookmarks(String nodeUniqueID) {
         this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
         this.fixBookmarkNodeSequence();
+    }
+
+    /**
+     * This function scans provided Cursor to collect all the nodes from it to be displayed as subnodes in drawer menu
+     * Most of the time it is used to collect information about subnodes of the node that is being opened
+     * However, it can be used to create information Main menu items
+     * In that case isSubnode should passed as false
+     * If true this value will make node look indented
+     * @param cursor SQL Cursor object that contains nodes from which to make a node list
+     * @param isSubnode true - means that node is a subnode and should not be displayed indented in the drawer menu. false - apposite of that
+     * @return ArrayList of node's subnodes.
+     */
+    private ArrayList<ScNode> returnSubnodeArrayList(Cursor cursor, boolean isSubnode) {
+        ArrayList<ScNode> nodes = new ArrayList<>();
+        while (cursor.moveToNext()) {
+            String nodeUniqueID = cursor.getString(1);
+            String nameValue = cursor.getString(0);
+            boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+            boolean isRichText = cursor.getString(3).equals("custom-colors");
+            boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
+            String foregroundColor = "";
+            if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
+                foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+            }
+            int iconId = cursor.getInt(4) >> 1;
+            boolean isReadOnly = (cursor.getInt(4) & 0x01) == 1;
+            // There is only one parent Node and its added manually in getSubNodes()
+            nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly));
+        }
+        return nodes;
+    }
+
+    /**
+     * Creates an ArrayList of ScNode objects that can be used to display nodes during drawer menu search/filter function
+     * ArrayList is created based on node.level value (to exclude node/subnodes from search)
+     * @param cursor SQL Cursor object that contains nodes from which to make a node list
+     * @return ArrayList that contains all the nodes of the provided cursor object
+     */
+    private ArrayList<ScNode> returnSubnodeSearchArrayList(Cursor cursor) {
+        ArrayList<ScNode> nodes = new ArrayList<>();
+        while (cursor.moveToNext()) {
+            if (cursor.getInt(3) == 0) {
+                // If node and subnodes are not selected to be excluded from search
+                String nodeUniqueID = cursor.getString(1);
+                String nameValue = cursor.getString(0);
+                boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+                boolean isRichText = cursor.getString(2).equals("custom-colors");
+                boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
+                String foregroundColor = "";
+                if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
+                    foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+                }
+                int iconId = cursor.getInt(5) >> 1;
+                boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
+                // There are no "parent" nodes in search. All nodes displayed without indentation
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
+                if (hasSubnodes) {
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.level, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
+                    nodes.addAll(returnSubnodeSearchArrayList(subCursor));
+                    subCursor.close();
+                }
+            } else if (cursor.getInt(3) == 1) {
+                // If only node is selected to be excluded from search
+                String nodeUniqueID = cursor.getString(1);
+                boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+                if (hasSubnodes) {
+                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.level, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
+                    nodes.addAll(returnSubnodeSearchArrayList(subCursor));
+                    subCursor.close();
+                }
+            } else if (cursor.getInt(3) == 2) {
+                // if only subnodes are selected to be excluded from search
+                String nodeUniqueID = cursor.getString(1);
+                String nameValue = cursor.getString(0);
+                boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+                boolean isRichText = cursor.getString(2).equals("custom-colors");
+                boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
+                String foregroundColor = "";
+                if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
+                    foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
+                }
+                int iconId = cursor.getInt(5) >> 1;
+                boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
+                // There is only one parent Node and its added manually in getSubNodes()
+                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
+            }
+        }
+        return nodes;
+    }
+
+    /**
+     * Saves ImageSpanAnchor found in nodeContent in to the appropriate table of the database
+     * @param imageSpanAnchor ImageSpanAnchor object from nodeContent
+     * @param nodeUniqueID unique ID of the node associated with Anchor image
+     * @param offset offset of the Anchor image
+     * @param lastFoundJustification justification of the Anchor image
+     */
+    private void saveImageSpanAnchor(ImageSpanAnchor imageSpanAnchor, String nodeUniqueID, int offset, String lastFoundJustification) {
+        this.sqlite.beginTransaction();
+        try {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("node_id", nodeUniqueID);
+            contentValues.put("offset", offset);
+            contentValues.put("justification", imageSpanAnchor.getJustification());
+            contentValues.put("anchor", imageSpanAnchor.getAnchorName());
+            contentValues.put("filename", "");
+            contentValues.put("link", "");
+            contentValues.put("time", 0);
+            this.sqlite.insert("image", null, contentValues);
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
+    }
+
+    /**
+     * Saves ImageSpanFile found in nodeContent in to the appropriate table of the database
+     * @param imageSpanFile ImageSpanFile object from nodeContent
+     * @param nodeUniqueID unique ID of the node associated with the file
+     * @param offset offset of the file
+     * @param lastFoundJustification justification of the file
+     */
+    private void saveImageSpanFile(ImageSpanFile imageSpanFile, String nodeUniqueID, int offset, String lastFoundJustification) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("offset", offset);
+        contentValues.put("justification", lastFoundJustification);
+        try {
+            this.sqlite.beginTransaction();
+            if (imageSpanFile.isFromDatabase()) {
+                // If file was loaded from the database, so only it's offset and justification changed
+                // filename = '' is necessary to make sure that any other type of 'image' does not have
+                // the same offset. Just in case it was written in to database before current file.
+                // The same applies for the check for '__ct_special.tex'
+                this.sqlite.update("image", contentValues, "node_id = ? AND offset = ? AND NOT filename = '' AND NOT filename = '__ct_special.tex'", new String[]{nodeUniqueID, imageSpanFile.getOriginalOffset()});
+            } else {
+                // Inserting the file in to the image table
+                Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
+                try (
+                        InputStream fileInputSteam = this.context.getContentResolver().openInputStream(fileUri);
+                        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()
+                ) {
+                    byte[] buf = new byte[4 * 1024];
+                    int length;
+                    while ((length = fileInputSteam.read(buf)) != -1) {
+                        byteArrayOutputStream.write(buf);
+                    }
+                    contentValues.put("png", byteArrayOutputStream.toByteArray());
+                } catch (IOException e) {
+                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+                }
+                contentValues.put("node_id", nodeUniqueID);
+                contentValues.put("anchor", "");
+                contentValues.put("filename", imageSpanFile.getFilename());
+                contentValues.put("link", "");
+                contentValues.put("time", String.valueOf(System.currentTimeMillis() / 1000));
+                this.sqlite.insert("image", null, contentValues);
+                // Updating node table to reflect that user inserted a file
+                contentValues.clear();
+                contentValues.put("has_image", 1);
+                this.sqlite.update("node", contentValues, "node_id = ?", new String[]{nodeUniqueID});
+            }
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
+    }
+
+    /**
+     * Saves ImageSpan found in nodeContent in to the appropriate table of the database
+     * @param imageSpanImage ImageSpan object from nodeContent
+     * @param nodeUniqueID unique ID of the node associated with image
+     * @param offset offset of the image
+     * @param lastFoundJustification justification of the image
+     */
+    private void saveImageSpanImage(ImageSpanImage imageSpanImage, String nodeUniqueID, int offset, String lastFoundJustification) {
+        Drawable drawable = imageSpanImage.getDrawable();
+        // Hopefully it's always a Bitmap drawable, because I get it from the same source
+        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+        this.sqlite.beginTransaction();
+        try {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("node_id", nodeUniqueID);
+            contentValues.put("offset", offset);
+            contentValues.put("justification", imageSpanImage.getJustification());
+            contentValues.put("anchor", "");
+            contentValues.put("png", byteArrayOutputStream.toByteArray());
+            contentValues.put("filename", "");
+            contentValues.put("link", "");
+            contentValues.put("time", 0);
+            this.sqlite.insert("image", null, contentValues);
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
+    }
+
+    /**
+     * Saves ImageSpanLatex found in nodeContent in to the appropriate table of the database
+     * @param imageSpanLatex ImageSpanLatex object from nodeContent
+     * @param nodeUniqueID unique ID of the node associated with LaTeX image
+     * @param offset offset of the LaTeX image
+     * @param lastFoundJustification justification of the LaTeX image
+     */
+    private void saveImageSpanLatex(ImageSpanLatex imageSpanLatex, String nodeUniqueID, int offset, String lastFoundJustification) {
+        this.sqlite.beginTransaction();
+        try {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("node_id", nodeUniqueID);
+            contentValues.put("offset", offset);
+            contentValues.put("justification", imageSpanLatex.getJustification());
+            contentValues.put("anchor", "");
+            contentValues.put("png", imageSpanLatex.getLatexCode().getBytes());
+            contentValues.put("filename", "__ct_special.tex");
+            contentValues.put("link", "");
+            contentValues.put("time", 0);
+            this.sqlite.insert("image", null, contentValues);
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
     }
 
     @Override
@@ -1137,167 +2202,6 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     /**
-     * Saves ImageSpan found in nodeContent in to the appropriate table of the database
-     * @param imageSpanImage ImageSpan object from nodeContent
-     * @param nodeUniqueID unique ID of the node associated with image
-     * @param offset offset of the image
-     * @param lastFoundJustification justification of the image
-     */
-    private void saveImageSpanImage(ImageSpanImage imageSpanImage, String nodeUniqueID, int offset, String lastFoundJustification) {
-        Drawable drawable = imageSpanImage.getDrawable();
-        // Hopefully it's always a Bitmap drawable, because I get it from the same source
-        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-        this.sqlite.beginTransaction();
-        try {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put("node_id", nodeUniqueID);
-            contentValues.put("offset", offset);
-            contentValues.put("justification", imageSpanImage.getJustification());
-            contentValues.put("anchor", "");
-            contentValues.put("png", byteArrayOutputStream.toByteArray());
-            contentValues.put("filename", "");
-            contentValues.put("link", "");
-            contentValues.put("time", 0);
-            this.sqlite.insert("image", null, contentValues);
-            this.sqlite.setTransactionSuccessful();
-        } finally {
-            this.sqlite.endTransaction();
-        }
-    }
-
-    /**
-     * Saves ImageSpanLatex found in nodeContent in to the appropriate table of the database
-     * @param imageSpanLatex ImageSpanLatex object from nodeContent
-     * @param nodeUniqueID unique ID of the node associated with LaTeX image
-     * @param offset offset of the LaTeX image
-     * @param lastFoundJustification justification of the LaTeX image
-     */
-    private void saveImageSpanLatex(ImageSpanLatex imageSpanLatex, String nodeUniqueID, int offset, String lastFoundJustification) {
-        this.sqlite.beginTransaction();
-        try {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put("node_id", nodeUniqueID);
-            contentValues.put("offset", offset);
-            contentValues.put("justification", imageSpanLatex.getJustification());
-            contentValues.put("anchor", "");
-            contentValues.put("png", imageSpanLatex.getLatexCode().getBytes());
-            contentValues.put("filename", "__ct_special.tex");
-            contentValues.put("link", "");
-            contentValues.put("time", 0);
-            this.sqlite.insert("image", null, contentValues);
-            this.sqlite.setTransactionSuccessful();
-        } finally {
-            this.sqlite.endTransaction();
-        }
-    }
-
-    /**
-     * Saves ImageSpanAnchor found in nodeContent in to the appropriate table of the database
-     * @param imageSpanAnchor ImageSpanAnchor object from nodeContent
-     * @param nodeUniqueID unique ID of the node associated with Anchor image
-     * @param offset offset of the Anchor image
-     * @param lastFoundJustification justification of the Anchor image
-     */
-    private void saveImageSpanAnchor(ImageSpanAnchor imageSpanAnchor, String nodeUniqueID, int offset, String lastFoundJustification) {
-        this.sqlite.beginTransaction();
-        try {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put("node_id", nodeUniqueID);
-            contentValues.put("offset", offset);
-            contentValues.put("justification", imageSpanAnchor.getJustification());
-            contentValues.put("anchor", imageSpanAnchor.getAnchorName());
-            contentValues.put("filename", "");
-            contentValues.put("link", "");
-            contentValues.put("time", 0);
-            this.sqlite.insert("image", null, contentValues);
-            this.sqlite.setTransactionSuccessful();
-        } finally {
-            this.sqlite.endTransaction();
-        }
-    }
-
-    /**
-     * Saves ImageSpanFile found in nodeContent in to the appropriate table of the database
-     * @param imageSpanFile ImageSpanFile object from nodeContent
-     * @param nodeUniqueID unique ID of the node associated with the file
-     * @param offset offset of the file
-     * @param lastFoundJustification justification of the file
-     */
-    private void saveImageSpanFile(ImageSpanFile imageSpanFile, String nodeUniqueID, int offset, String lastFoundJustification) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put("offset", offset);
-        contentValues.put("justification", lastFoundJustification);
-        try {
-            this.sqlite.beginTransaction();
-            if (imageSpanFile.isFromDatabase()) {
-                // If file was loaded from the database, so only it's offset and justification changed
-                // filename = '' is necessary to make sure that any other type of 'image' does not have
-                // the same offset. Just in case it was written in to database before current file.
-                // The same applies for the check for '__ct_special.tex'
-                this.sqlite.update("image", contentValues, "node_id = ? AND offset = ? AND NOT filename = '' AND NOT filename = '__ct_special.tex'", new String[]{nodeUniqueID, imageSpanFile.getOriginalOffset()});
-            } else {
-                // Inserting the file in to the image table
-                Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
-                try (
-                        InputStream fileInputSteam = this.context.getContentResolver().openInputStream(fileUri);
-                        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()
-                ) {
-                    byte[] buf = new byte[4 * 1024];
-                    int length;
-                    while ((length = fileInputSteam.read(buf)) != -1) {
-                        byteArrayOutputStream.write(buf);
-                    }
-                    contentValues.put("png", byteArrayOutputStream.toByteArray());
-                } catch (IOException e) {
-                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
-                }
-                contentValues.put("node_id", nodeUniqueID);
-                contentValues.put("anchor", "");
-                contentValues.put("filename", imageSpanFile.getFilename());
-                contentValues.put("link", "");
-                contentValues.put("time", String.valueOf(System.currentTimeMillis() / 1000));
-                this.sqlite.insert("image", null, contentValues);
-                // Updating node table to reflect that user inserted a file
-                contentValues.clear();
-                contentValues.put("has_image", 1);
-                this.sqlite.update("node", contentValues, "node_id = ?", new String[]{nodeUniqueID});
-            }
-            this.sqlite.setTransactionSuccessful();
-        } finally {
-            this.sqlite.endTransaction();
-        }
-    }
-
-    /**
-     * Whites codebox entry in to codebox table
-     * @param nodeUniqueID unique ID of the node to which codebox belongs to
-     * @param typefaceSpanCodebox span holding most of the codebox data
-     * @param extraCharOffset codebox offset it has to be inserted into the node content
-     */
-    private void saveTypefaceSpanCodebox(TypefaceSpanCodebox typefaceSpanCodebox, String nodeUniqueID, int extraCharOffset) {
-        this.sqlite.beginTransaction();
-        try {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put("node_id", nodeUniqueID);
-            contentValues.put("offset", typefaceSpanCodebox.getNewOffset() + extraCharOffset);
-            contentValues.put("justification", typefaceSpanCodebox.getJustification());
-            contentValues.put("txt", typefaceSpanCodebox.getSpanContent());
-            contentValues.put("syntax", typefaceSpanCodebox.getSyntaxHighlighting());
-            contentValues.put("width", typefaceSpanCodebox.getFrameWidth());
-            contentValues.put("height", typefaceSpanCodebox.getFrameHeight());
-            contentValues.put("is_width_pix", typefaceSpanCodebox.isWidthInPixel());
-            contentValues.put("do_highl_bra", typefaceSpanCodebox.isHighlightBrackets());
-            contentValues.put("do_show_linenum", typefaceSpanCodebox.isShowLineNumbers());
-            this.sqlite.insert("codebox", null, contentValues);
-            this.sqlite.setTransactionSuccessful();
-        } finally {
-            this.sqlite.endTransaction();
-        }
-    }
-
-    /**
      * Saves ScNodeContentTable found in nodeContent in to the appropriate table of the database
      * @param doc Document object instance to create Element objects
      * @param writer StringWriter object to help convert Document object to String
@@ -1351,7 +2255,32 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         }
     }
 
-
+    /**
+     * Whites codebox entry in to codebox table
+     * @param nodeUniqueID unique ID of the node to which codebox belongs to
+     * @param typefaceSpanCodebox span holding most of the codebox data
+     * @param extraCharOffset codebox offset it has to be inserted into the node content
+     */
+    private void saveTypefaceSpanCodebox(TypefaceSpanCodebox typefaceSpanCodebox, String nodeUniqueID, int extraCharOffset) {
+        this.sqlite.beginTransaction();
+        try {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("node_id", nodeUniqueID);
+            contentValues.put("offset", typefaceSpanCodebox.getNewOffset() + extraCharOffset);
+            contentValues.put("justification", typefaceSpanCodebox.getJustification());
+            contentValues.put("txt", typefaceSpanCodebox.getSpanContent());
+            contentValues.put("syntax", typefaceSpanCodebox.getSyntaxHighlighting());
+            contentValues.put("width", typefaceSpanCodebox.getFrameWidth());
+            contentValues.put("height", typefaceSpanCodebox.getFrameHeight());
+            contentValues.put("is_width_pix", typefaceSpanCodebox.isWidthInPixel());
+            contentValues.put("do_highl_bra", typefaceSpanCodebox.isHighlightBrackets());
+            contentValues.put("do_show_linenum", typefaceSpanCodebox.isShowLineNumbers());
+            this.sqlite.insert("codebox", null, contentValues);
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
+    }
 
     @Override
     public ArrayList<ScSearchNode> search(Boolean noSearch, String query) {
@@ -1415,983 +2344,6 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             cursor.close();
             return searchResult;
         }
-    }
-
-    @Override
-    public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        Cursor cursor = this.sqlite.query("node", new String[]{"txt", "is_richtxt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-        cursor.moveToFirst();
-        boolean isRichText = cursor.getInt(1) == 1;
-        this.sqlite.beginTransaction();
-        try {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put("name", name);
-            if (isRichText && !progLang.equals("custom-colors")) {
-                // If user chose to convert rich text type node to plain text or automatic system highlighting type
-                contentValues.put("txt", this.convertRichTextNodeContentToPlainText(cursor.getString(0), nodeUniqueID).toString());
-                this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
-                this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
-                this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
-                contentValues.put("has_codebox", 0);
-                contentValues.put("has_table", 0);
-                contentValues.put("has_image", 0);
-            } else if (!isRichText && progLang.equals("custom-colors")) {
-                // If user chose to convert plain text or automatic system highlighting type node to rich text type
-                StringWriter writer = new StringWriter();
-                Document doc = this.documentBuilder.newDocument();
-                Node node = doc.createElement("node");
-                Element element = doc.createElement("rich_text");
-                element.setTextContent(cursor.getString(0));
-                node.appendChild(element);
-                try {
-                    this.transformer.transform(new DOMSource(node), new StreamResult(writer));
-                } catch (TransformerException e) {
-                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
-                    return;
-                }
-                contentValues.put("txt", writer.toString());
-            }
-            cursor.close();
-            contentValues.put("syntax", progLang);
-            contentValues.put("is_richtxt", progLang.equals("custom-colors") ? 1 : 0);
-            contentValues.put("level", this.convertNoSearchToLevel(noSearchMe, noSearchCh));
-            contentValues.put("ts_lastsave", String.valueOf(System.currentTimeMillis() / 1000));
-            this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
-            this.sqlite.setTransactionSuccessful();
-        } finally {
-            this.sqlite.endTransaction();
-        }
-    }
-
-    /**
-     * Checks if node is a subnode if another node
-     * Not really sure if it does not return false positives
-     * However all my tests worked
-     * @param targetNodeUniqueID unique ID of the node that needs to be check if it's a parent node
-     * @param destinationNodeUniqueID unique ID of the node that has to be check if it's a child
-     * @return true - if target node is a parent of destination node
-     */
-    private boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
-        ArrayList<String> heredity = new ArrayList<>();
-        heredity.add(destinationNodeUniqueID);
-        while (true) {
-            Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id = ?", new String[]{destinationNodeUniqueID}, null, null, null, null);
-            if (cursor.moveToFirst()) {
-                destinationNodeUniqueID = cursor.getString(0);
-                heredity.add(destinationNodeUniqueID);
-                if (destinationNodeUniqueID.equals("0")) {
-                    cursor.close();
-                    break;
-                }
-            } else {
-                cursor.close();
-                break;
-            }
-            cursor.close();
-        }
-        return heredity.contains(targetNodeUniqueID);
-    }
-
-    /**
-     * Coverts codebox string retrieved from codebox table in database to a StringBuilder
-     * used as part of convertRichTextNodeContentToPlainText function
-     * @param codebox string that needs to be converted
-     * @return StringBuilder that can be added to the node StringBuilder at the proper offset
-     */
-    private StringBuilder convertCodeboxToPlainText(String codebox) {
-        StringBuilder codeboxContent = new StringBuilder();
-        codeboxContent.append("\n");
-        codeboxContent.append(getSeparator());
-        codeboxContent.append("\n");
-        codeboxContent.append(codebox);
-        codeboxContent.append("\n");
-        codeboxContent.append(getSeparator());
-        codeboxContent.append("\n");
-        return codeboxContent;
-    }
-
-    /**
-     * Converts latex string retrieved from image table in database to a StringBuilder
-     * used as part of convertRichTextNodeContentToPlainText function
-     * @param latex latex string that needs to be converted
-     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
-     */
-    private StringBuilder convertLatexToPlainText(String latex) {
-        StringBuilder latexContent = new StringBuilder();
-        latexContent.append(latex);
-        latexContent.delete(0, 79);
-        latexContent.delete(latexContent.length()-14, latexContent.length());
-        latexContent.insert(0,getSeparator());
-        latexContent.insert(0, "\n");
-        latexContent.append(getSeparator());
-        latexContent.append("\n");
-        return latexContent;
-    }
-
-    /**
-     * Converts Exclude from search This node and The Subnodes values
-     * from int that are saved in SQL databases to separate
-     * noSearchMe and noSearchCh values that are used in XML databases and throughout
-     * the code in this app
-     * @param level value that was saved in SQL database
-     * @return Array that holds values {noSearchMe, ne SearchCh}
-     */
-    private byte[] convertLevelToNoSearch(int level) {
-        byte[] noSearch = new byte[2];
-        switch (level) {
-            case 0:
-                noSearch[0] = 0;
-                noSearch[1] = 0;
-                break;
-            case 1:
-                noSearch[0] = 1;
-                noSearch[1] = 0;
-                break;
-            case 2:
-                noSearch[0] = 0;
-                noSearch[1] = 1;
-                break;
-            case 3:
-                noSearch[0] = 1;
-                noSearch[1] = 1;
-        }
-        return noSearch;
-    }
-
-    /**
-     * Convert noSearchMe and noSearchCh values that are used in XML databases and throughout
-     * the code in this app to int value Level that is used in SQL type databases
-     * @param noSearchMe exclude this node from search value. 0 - search the node, 1 - exclude
-     * @param noSearchCh exclude the subnode from search value. 0 - search the subnodes, 1 - exclude
-     * @return level value. 0 - search the node and subnodes, 1 - exclude the node, 2 - exclude subnodes, 3 - exclude both
-     */
-    private byte convertNoSearchToLevel(String noSearchMe, String noSearchCh) {
-        byte level = 0;
-        if (noSearchMe.equals("1") && noSearchCh.equals("1")) {
-            level = 3;
-        } else if (noSearchMe.equals("1")) {
-            level = 1;
-        } else if (noSearchCh.equals("1")) {
-            level = 2;
-        }
-        return level;
-    }
-
-    /**
-     * Coverts content of provided node (unique ID) from rich-text to plain-text or automatic-syntax-highlighting
-     * Conversion adds all the content from the node's rich-text tags to StringBuilder
-     * that can be added to the node table txt field
-     * @param nodeUniqueID unique id of the node that needs to be converted
-     * @return StringBuilder with all the node content without addition tags
-     */
-    private StringBuilder convertRichTextNodeContentToPlainText(String txt, String nodeUniqueID) {
-        StringBuilder nodeContent = new StringBuilder();
-        int totalCharOffset = 0;
-        // Getting text data of the node
-        NodeList nodeList =  this.getDocumentFromString(txt).getElementsByTagName("node").item(0).getChildNodes();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            nodeContent.append(node.getTextContent());
-        }
-        // Getting offset data for all images (latex, images, files), tables and codeboxes
-        // Adding 7 - for codebox, 8 - for table and 9 for image as a second column
-        Cursor codeboxTableImageCursor = this.sqlite.rawQuery(new String("SELECT offset, 7 FROM codebox WHERE node_id=? UNION SELECT offset, 8 FROM grid WHERE node_id=? UNION SELECT offset, 9 FROM image WHERE node_id=? ORDER BY offset ASC"), new String[]{nodeUniqueID, nodeUniqueID, nodeUniqueID});
-        while (codeboxTableImageCursor.moveToNext()) {
-            if (codeboxTableImageCursor.getInt(1) == 7) {
-                Cursor cursorCodeboxes = this.sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
-                while (cursorCodeboxes.moveToNext()) {
-                    int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
-                    StringBuilder codeboxContent = this.convertCodeboxToPlainText(cursorCodeboxes.getString(0));
-                    nodeContent.insert(charOffset, codeboxContent);
-                    totalCharOffset += codeboxContent.length() - 1;
-                }
-                cursorCodeboxes.close();
-            }
-            if (codeboxTableImageCursor.getInt(1) == 8) {
-                Cursor cursorTables = this.sqlite.query("grid", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
-                while (cursorTables.moveToNext()) {
-                    int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
-                    StringBuilder tableContent = this.convertTableContentToPlainText(cursorTables.getString(0));
-                    nodeContent.insert(charOffset, tableContent);
-                    totalCharOffset += tableContent.length() - 1;
-                }
-                cursorTables.close();
-            }
-            if (codeboxTableImageCursor.getInt(1) == 9) {
-                Cursor cursorImages = this.sqlite.query("image", new String[]{"anchor", "png", "filename"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
-                while (cursorImages.moveToNext()) {
-                    if (cursorImages.getString(2).equals("__ct_special.tex")) {
-                        int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
-                        StringBuilder imageContent = this.convertLatexToPlainText(new String(cursorImages.getBlob(1)));
-                        nodeContent.insert(charOffset, imageContent);
-                        totalCharOffset += imageContent.length() - 1;
-                    } else {
-                        // For every element, even ones that will not be added
-                        // 1 has to be deducted from totalCharOffset
-                        // to make node's data be displayed in order
-                        totalCharOffset -= 1;
-                    }
-                }
-                cursorImages.close();
-            }
-        }
-        codeboxTableImageCursor.close();
-        return nodeContent;
-    }
-
-    /**
-     * Coverts table string retrieved from grid table in database to a StringBuilder
-     * used as part of convertRichTextNodeContentToPlainText function
-     * @param table string that needs to be converted
-     * @return StringBuilder that can be added to the content node StringBuilder at the proper offset
-     */
-    private StringBuilder convertTableContentToPlainText(String table) {
-        StringBuilder tableContent = new StringBuilder();
-        NodeList nodeList = this.getDocumentFromString(table).getElementsByTagName("table").item(0).getChildNodes();
-        int tableRowCount = nodeList.getLength();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getNodeName().equals("row")) {
-                // Header row for the table is kept at the end of the table
-                // When converting to string it has to be added to the beginning
-                // of the string fro the information to make sense
-                if (tableRowCount > 1) {
-                    tableContent.append(this.convertTableRowToPlainText(node));
-                } else {
-                    tableContent.insert(0, this.convertTableRowToPlainText(node));
-                }
-                tableRowCount--;
-            }
-        }
-        tableContent.insert(0, "\n");
-        return tableContent;
-    }
-
-    /**
-     * Parent node (top) in the drawer menu
-     * Used when creating a drawer menu
-     * @param nodeUniqueID unique ID of the node that is parent node
-     * @return ScNode object with properties of a parent node
-     */
-    private ScNode createParentNode(String nodeUniqueID) {
-        // Creates and returns the node that will be added to the node array as parent node
-        Cursor cursor = this.sqlite.query("node", new String[]{"name", "is_richtxt", "syntax", "is_ro"}, "node_id=?", new String[]{String.valueOf(nodeUniqueID)}, null, null,null);
-        String parentNodeName;
-        if (cursor.move(1)) { // Cursor items start at 1 not 0!!!
-            parentNodeName = cursor.getString(0);
-        } else {
-            return null;
-        }
-        boolean parentNodeHasSubnodes = hasSubnodes(nodeUniqueID);
-        boolean isRichText = cursor.getString(2).equals("custom-colors");
-        boolean isBold = ((cursor.getInt(1) >> 1) & 0x01) == 1;
-        String foregoundColor = "";
-        if (((cursor.getInt(1) >> 2) & 0x01) == 1) {
-            foregoundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
-        }
-        int iconId = cursor.getInt(3) >> 1;
-        boolean isReadOnly = (cursor.getInt(3) & 0x01) == 1;
-        ScNode node = new ScNode(nodeUniqueID, parentNodeName, true, parentNodeHasSubnodes, false, isRichText, isBold, foregoundColor, iconId, isReadOnly);
-        cursor.close();
-        return node;
-    }
-
-    /**
-     * Deletes node and it subnodes from database
-     * Difference from deleteNode() is that this function does not do
-     * any cleanup functions like fixing sequences of bookmarks
-     * and original node's parent sequence of children node
-     * @param nodeUniqueID unique ID of the node to delete
-     */
-    private void deleteNodeChildren(String nodeUniqueID) {
-        this.sqlite.beginTransaction();
-        try {
-            this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
-            this.sqlite.delete("children", "node_id = ?", new String[]{nodeUniqueID});
-            this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
-            this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
-            this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
-            this.sqlite.delete("node", "node_id = ?", new String[]{nodeUniqueID});
-            Cursor childrenNodeUniqueID = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-            while (childrenNodeUniqueID.moveToNext()) {
-                this.deleteNodeChildren(childrenNodeUniqueID.getString(0));
-            }
-            childrenNodeUniqueID.close();
-            this.sqlite.setTransactionSuccessful();
-        } finally {
-            this.sqlite.endTransaction();
-        }
-    }
-
-    /**
-     * Searches through node's content
-     * @param cursor cursor that holds all the data of the of the node to search through
-     * @param query string to search for
-     * @param hasSubnodes true if node has subnodes, else - false
-     * @param isParent true if node is a parent node, else - false
-     * @param isSubnode isSubnode true if node is a subnode, else - false
-     * @return search result object or null if nothing was found
-     */
-    private ScSearchNode findInNode(Cursor cursor, String query, boolean hasSubnodes, boolean isParent, boolean isSubnode) {
-        // This string builder will hold oll text content of the node
-        StringBuilder nodeContent = new StringBuilder();
-        // As in reader that all the text would be in order user sees it
-        // filenames, table and codebox content hast to be inserted in correct location of the string
-        // To help calculate that location totalCharOffset is used
-        int totalCharOffset = 0;
-
-        // ***Creating node content string
-        String nodeSyntax = cursor.getString(3);
-
-        if (nodeSyntax.equals("custom-colors")) {
-            // This is formatting for Rich Text and Plain Text nodes
-            // Gets all the subnodes/childnodes of selected node
-            NodeList nodeContentNodeList = this.getDocumentFromString(cursor.getString(2)).getElementsByTagName("node").item(0).getChildNodes();
-            for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
-                // Loops through nodes/tags of selected node
-                nodeContent.append(nodeContentNodeList.item(x).getTextContent());
-            }
-            int hasCodebox = cursor.getInt(7);
-            int hasTable = cursor.getInt(8);
-            int hasImage = cursor.getInt(9);
-
-            // If it is marked that node has codebox, table or image
-            if (hasCodebox == 1 || hasTable == 1 || hasImage == 1) {
-                //// Building string for SQLQuery
-                // Because every type of element (image, table, codeboxes) are in it's own table
-                // Only the ones that actually are in the node will be searched
-                // For search only text is needed so only offset, and text (filenames too) will be selected
-                StringBuilder codeboxTableImageQueryString = new StringBuilder();
-
-                // Depending on how many tables will be searched
-                // instances of how many time nodeUniqueID will have to be inserted will differ
-                int queryCounter = 0; // This is the counter for that
-                if (hasCodebox == 1) {
-                    // Means that node has has codeboxes in it
-                    codeboxTableImageQueryString.append("SELECT offset, txt, 7 FROM codebox WHERE node_id=? ");
-                    queryCounter++;
-                }
-                if (hasTable == 1) {
-                    // Means that node has tables in it
-                    if (hasCodebox == 1) {
-                        codeboxTableImageQueryString.append("UNION ");
-                    }
-                    codeboxTableImageQueryString.append("SELECT offset, txt, 8 FROM grid WHERE node_id=? ");
-                    queryCounter++;
-                }
-                if (hasImage == 1) {
-                    // Means that node has images (images, anchors or files) in it
-                    if (hasCodebox == 1 || hasTable == 1) {
-                        codeboxTableImageQueryString.append("UNION ");
-                    }
-                    codeboxTableImageQueryString.append("SELECT offset, filename, 9 FROM image WHERE node_id=? ");
-                    queryCounter++;
-                }
-                codeboxTableImageQueryString.append("ORDER BY offset ASC");
-
-                /// Creating the array that will be used to insert nodeUniqueIDs
-                String[] queryArguments = new String[queryCounter];
-                Arrays.fill(queryArguments, cursor.getString(0));
-                ///
-                ////
-
-                Cursor codeboxTableImageCursor = this.sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
-
-                while (codeboxTableImageCursor.moveToNext()) {
-                    int charOffset = codeboxTableImageCursor.getInt(0);
-                    if (codeboxTableImageCursor.getInt(2) == 9) {
-                        if (!codeboxTableImageCursor.getString(1).isEmpty()) {
-                            // Text in column 5 means that this line is for file OR LaTeX formula box
-                            if (!codeboxTableImageCursor.getString(1).equals("__ct_special.tex")) {
-                                // If it is not LaTex file
-                                String attachedFileFilename = " " + codeboxTableImageCursor.getString(1) + " ";
-                                if (nodeContent.length() < charOffset + totalCharOffset) {
-                                    // This check most likely needed in Searcher, but not in Reader
-                                    // Because in search some objects (like images) are being skipped, however their offset is still being counted
-                                    nodeContent.append(attachedFileFilename);
-                                } else {
-                                    nodeContent.insert(charOffset + totalCharOffset, attachedFileFilename);
-                                }
-                                totalCharOffset += attachedFileFilename.length() - 1;
-                                continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
-                            }
-                        }
-                    } else if (codeboxTableImageCursor.getInt(2) == 7) {
-                        // codebox row
-                        String codeboxText = codeboxTableImageCursor.getString(1);
-                        if (nodeContent.length() < charOffset + totalCharOffset) {
-                            // This check most likely needed in Searcher, but not in Reader
-                            // Because in search some objects (like images) are being skipped, however their offset is still being counted
-                            nodeContent.append(codeboxText);
-                        } else {
-                            nodeContent.insert(charOffset + totalCharOffset, codeboxText);
-                        }
-                        totalCharOffset += codeboxText.length() - 1;
-                    } else if (codeboxTableImageCursor.getInt(2) == 8) {
-                        StringBuilder tableContent = new StringBuilder();
-                        // table row
-                        NodeList tableRows = this.getDocumentFromString(codeboxTableImageCursor.getString(1)).getElementsByTagName("table").item(0).getChildNodes();
-                        // Adding all rows to arraylist
-                        ArrayList<String> tableRowArray = new ArrayList<>();
-                        for (int row = 0; row < tableRows.getLength(); row++) {
-                            if (tableRows.item(row).getNodeName().equals("row")) {
-                                // For table content from SQL database spaces around each cell needs to be added
-                                // because there aren't any
-                                // All cells from one row has to be connected to one string that represents a row
-                                // Otherwise it might be not possible to put table header to the top of the table
-                                StringBuilder rowStringBuilder = new StringBuilder();
-                                NodeList cells = tableRows.item(row).getChildNodes();
-                                for (int cell = 0; cell < cells.getLength(); cell++) {
-                                    rowStringBuilder.append(" ").append(cells.item(cell).getTextContent()).append(" ");
-                                }
-                                tableRowArray.add(rowStringBuilder.toString());
-                            }
-                        }
-
-                        // Adding the last row of the table to string builder as first because that's where header of the table is located
-                        tableContent.append(tableRowArray.get(tableRowArray.size() - 1));
-                        // Rest of the rows can be added in order
-                        for (int x = 0; x < tableRowArray.size() - 1; x++) {
-                            tableContent.append(tableRowArray.get(x));
-                        }
-
-                        // Adding table's content to nodes content string builder
-                        if (nodeContent.length() < charOffset + totalCharOffset) {
-                            // This check most likely needed in Searcher, but not in Reader
-                            // Because in search some objects (like images) are being skipped, however their offset is still being counted
-                            nodeContent.append(tableContent);
-                        } else {
-                            nodeContent.insert(charOffset + totalCharOffset, tableContent);
-                        }
-                        // Changing total offset value with a value of the table content, because CherryTree uses different GUI toolkit
-                        // And without doing this the first element with offset would mess node content order (or maybe that's by design)
-                        totalCharOffset += tableContent.length() - 1;
-                    }
-                }
-                codeboxTableImageCursor.close();
-            }
-        } else if (nodeSyntax.equals("plain-text")) {
-            // Plain text node does not have any formatting and has not node embedded in to it
-            nodeContent.append(cursor.getString(2));
-        } else {
-            // Node is Code Node. It's just a big CodeBox with no dimensions
-            nodeContent.append(cursor.getString(2));
-        }
-
-        // ***Search
-        int queryLength = query.length();
-        int resultCount = 0;
-        int index = 0;
-        StringBuilder samples = new StringBuilder(); // This will hold 3 samples to show to user
-
-        // Removing all spaces and new line character from the node content string
-        String preparedNodeContent = nodeContent.toString().toLowerCase().replaceAll("\n", " ").replaceAll(" +", " ");
-
-        while (index != -1) {
-            index = preparedNodeContent.indexOf(query, index);
-            if (index != -1) {
-                // if match to search query was found in the node's content
-                if (resultCount < 3 ) {
-                    // Results display only first three found instances of search query
-                    int startIndex = 0; // Start of sample substring that will be created
-                    int endIndex = preparedNodeContent.length(); // End of sample substring that will be created
-                    String sampleStart = "";
-                    String sampleEnd = "";
-                    if (index > 20) {
-                        // if index is further than 20 symbols from the start of the node content
-                        // ... are added to the start of the sample
-                        // and only 20 preceding symbols before query match are showed
-                        startIndex = index - 20;
-                        sampleStart = "...";
-                    }
-                    if ((index + queryLength + 20) < endIndex) {
-                        // if index is more than 20 symbols from the end of the node content
-                        // ... are added to the end of the sample
-                        // and only 20 proceeding symbols before query match are showed
-                        endIndex = index + queryLength + 20;
-                        sampleEnd = "...";
-                    }
-
-                    // Building a sample for search result from using previously formatted parts
-                    StringBuilder sample = new StringBuilder();
-                    sample.append(sampleStart);
-                    sample.append(preparedNodeContent.substring(startIndex, endIndex).trim());
-                    sample.append(sampleEnd);
-                    sample.append("<br/>");
-                    samples.append(sample);
-                }
-
-                resultCount++;
-                index += queryLength; // moving search start to the end of the last position that search query was found
-            }
-        }
-
-        if (resultCount > 0) {
-            // if node count of matches is more than 0 that a match of q query was found
-            boolean isBold = ((cursor.getInt(6) >> 1) & 0x01) == 1;
-            String foregroundColor = "";
-            if (((cursor.getInt(6) >> 2) & 0x01) == 1) {
-                foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
-            }
-            int iconId = cursor.getInt(5) >> 1;
-            boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
-            return new ScSearchNode(cursor.getString(0), cursor.getString(1), isParent, hasSubnodes, isSubnode, cursor.getString(3).equals("custom-colors"), isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Reorders bookmark table's node sequence
-     * Removes any gaps that might have been left after deleting node
-     * or removing it from bookmarks
-     */
-    private void fixBookmarkNodeSequence() {
-        this.sqlite.beginTransaction();
-        try {
-            Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, null, null, null, null, "node_id ASC", null);
-            int counter = 1;
-            ContentValues contentValues = new ContentValues();
-            while (cursor.moveToNext()) {
-                contentValues.clear();
-                contentValues.put("sequence", counter);
-                this.sqlite.update("bookmark", contentValues, "node_id = ?", new String[]{cursor.getString(0)});
-                counter++;
-            }
-            cursor.close();
-            this.sqlite.setTransactionSuccessful();
-        } finally {
-            this.sqlite.endTransaction();
-        }
-    }
-
-    /**
-     * Orders children of the node in sequence (children table)
-     * Needed after moving the node to a different parent
-     * That might create an empty spot in a middle of the children sequence
-     * @param nodeUniqueID unique ID of the node which children sequence needs to be fixed
-     */
-    private void fixChildrenNodeSequence(String nodeUniqueID) {
-        int sequenceCounter = 1;
-        Cursor cursor = this.sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id = ?", new String[]{nodeUniqueID}, null, null, "sequence ASC", null);
-        this.sqlite.beginTransaction();
-        try {
-            while (cursor.moveToNext()) {
-                ContentValues contentValues = new ContentValues();
-                contentValues.put("sequence", sequenceCounter);
-                this.sqlite.update("children", contentValues, "node_id=?", new String[]{cursor.getString(0)});
-                sequenceCounter++;
-            }
-            this.sqlite.setTransactionSuccessful();
-        } finally {
-            this.sqlite.endTransaction();
-        }
-        cursor.close();
-    }
-
-    /**
-     * SQL Database has a XML document inserted in to it in a form of the String
-     * With all the tags an attributes the same way as in XML document
-     * So SQL document is just a XML document with extra steps
-     * @param nodeString String object with all the information of the node or it's table
-     * @return NodeList object with content of the node
-     */
-    private Document getDocumentFromString(String nodeString) {
-        try {
-            return this.documentBuilder.parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8)));
-        } catch (Exception e) {
-            this.displayToast(context.getString(R.string.toast_error_failed_to_convert_string_to_nodelist));
-        }
-
-        return null;
-    }
-
-    /**
-     * Returns next available children's sequence number of the node
-     * sequence number is used to order nodes in the drawer menu
-     * @param nodeUniqueID unique id of the node which next available children's sequence number to return
-     * @return next available sequence number
-     */
-    private int getNewNodeSequenceNumber(String nodeUniqueID) {
-        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {nodeUniqueID});
-        cursor.moveToFirst();
-        int sequence = cursor.getInt(0);
-        cursor.close();
-        return sequence + 1;
-    }
-
-    /**
-     * Get unique id of parent node of provided node
-     * @param nodeUniqueID unique ID of the node which parent unique ID to find
-     * @return unique id of the node
-     */
-    private int getParentNodeUniqueID(String nodeUniqueID) {
-        Cursor cursor = this.sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {nodeUniqueID});
-        cursor.moveToFirst();
-        int parentNodeUniqueID = cursor.getInt(0);
-        cursor.close();
-        return parentNodeUniqueID;
-    }
-
-    /**
-     * Checks if provided Node object has a subnode(s)
-     * @param nodeUniqueID unique ID of the node that is being checked for subnodes
-     * @return true if node has a subnode, false - if not
-     */
-    private boolean hasSubnodes(String nodeUniqueID) {
-        // Checks if node with provided unique_id has subnodes
-        Cursor cursor = this.sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID},null,null,null);
-        if (cursor.getCount() > 0) {
-            cursor.close();
-            return true;
-        } else {
-            cursor.close();
-            return false;
-        }
-    }
-
-    /**
-     * Creates a clickable span that initiates a context to open/save attached file
-     * Arguments that a passed to this function has to be retrieved from the appropriate tables in the database
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param nodeUniqueID unique ID of the node that has file attached in it
-     * @param attachedFileFilename filename of the attached file
-     * @param time datetime of when file was attached to the node
-     * @param originalOffset offset value that the file was originally saved in the database with
-     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
-     * @return Clickable spannableStringBuilder that has spans with image and filename
-     */
-    private SpannableStringBuilder makeAttachedFileSpan(String nodeUniqueID, String attachedFileFilename, String time, String originalOffset, String justification) {
-        SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
-        formattedAttachedFile.append(" "); // Needed to insert image
-        // Inserting image
-        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
-        drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        attachedFileIcon.setFromDatabase(true);
-        attachedFileIcon.setNodeUniqueId(nodeUniqueID);
-        attachedFileIcon.setFilename(attachedFileFilename);
-        attachedFileIcon.setTimestamp(time);
-        attachedFileIcon.setOriginalOffset(originalOffset);
-        formattedAttachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        formattedAttachedFile.append(attachedFileFilename); // Appending filename
-        // Detects touches on icon and filename
-        ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
-            @Override
-            public void onClick(@NonNull View widget) {
-            // Launches function in MainView that checks if there is a default action in for attached files
-            ((MainView) SQLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, originalOffset);
-            }
-        };
-        formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
-        if (justification.equals("right")) {
-            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else if (justification.equals("center")) {
-            formattedAttachedFile.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedAttachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return formattedAttachedFile;
-    }
-
-    /**
-     * Creates SpannableStringBuilder with the content of the CodeNode
-     * CodeNode is just a CodeBox that do not have height and width (dimensions)
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param nodeContent content of the code node
-     * @return SpannableStringBuilder that has spans marked for string formatting
-     */
-    private SpannableStringBuilder makeFormattedCodeNodeSpan(String nodeContent) {
-        SpannableStringBuilder formattedCodeNode = new SpannableStringBuilder();
-        formattedCodeNode.append(nodeContent);
-
-        // Changes font
-        TypefaceSpan tf = new TypefaceSpan("monospace");
-        formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-
-        // Changes background color
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-            formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-        }
-
-        return formattedCodeNode;
-    }
-
-    /**
-     * Creates a codebox span from the provided nodeContent string
-     * Formatting depends on new line characters nodeContent string
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
-     * @param nodeContent content of the codebox
-     * @param syntax type of syntax used in the codebox. It does not have any difference in SourCherry
-     * @param width width value of the codebox that was saved in the database. It does not have any effect in SourCherry
-     * @param height height value of the codebox that was saved in the database. It does not have any effect in SourCherry
-     * @param widthInPixels is width calculated in pixels or percentages value that was saved in the database. It does not have any effect in SourCherry
-     * @param highlightBrackets should codebox highlight brackets. Value should be retrieved from database. It does not have any effect in SourCherry
-     * @param showLineNumbers should codebox display line numbers. Value should be retrieved from database. It does not have any effect in SourCherry
-     * @return SpannableStringBuilder that has spans marked for string formatting
-     */
-    private SpannableStringBuilder makeFormattedCodeboxSpan(String justification, String nodeContent, String syntax, int width, int height, boolean widthInPixels, boolean highlightBrackets, boolean showLineNumbers) {
-        // Returns SpannableStringBuilder that has spans marked for string formatting
-        SpannableStringBuilder formattedCodebox = new SpannableStringBuilder();
-        formattedCodebox.append(nodeContent);
-        // Changes font
-        TypefaceSpanCodebox typefaceSpanCodebox = new TypefaceSpanCodebox("monospace");
-        // Saving codebox attribute to the span
-        typefaceSpanCodebox.setFrameWidth(width);
-        typefaceSpanCodebox.setFrameHeight(height);
-        typefaceSpanCodebox.setWidthInPixel(widthInPixels);
-        typefaceSpanCodebox.setSyntaxHighlighting(syntax);
-        typefaceSpanCodebox.setHighlightBrackets(highlightBrackets);
-        typefaceSpanCodebox.setShowLineNumbers(showLineNumbers);
-        if (nodeContent.contains("\n")) {
-            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-            // Adds vertical line in front the paragraph, to make it stand out as quote
-            QuoteSpan qs;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                qs = new QuoteSpan(Color.parseColor("#AC1111"), 5, 30);
-            } else {
-                qs = new QuoteSpan(Color.RED);
-            }
-            formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-            // Changes background color
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
-                formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-            }
-        } else {
-            formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
-            formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        if (justification.equals("right")) {
-            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else if (justification.equals("center")) {
-            formattedCodebox.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return formattedCodebox;
-    }
-
-    /**
-     * Creates a SpannableStringBuilder with image in it
-     * Image is created from byte[]
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param imageBlob byte[] that has data for the image
-     * @param nodeUniqueID unique ID of the node that has the image embedded
-     * @param imageOffset offset of the image in the node
-     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
-     * @return SpannableStringBuilder that has spans with image in them
-     */
-    private SpannableStringBuilder makeImageSpan(byte[] imageBlob, String nodeUniqueID, String imageOffset, String justification) {
-        // Returns SpannableStringBuilder that has spans with images in them
-        // Images are decoded from byte array that was passed to the function
-        SpannableStringBuilder formattedImage = new SpannableStringBuilder();
-        ImageSpanImage imageSpanImage;
-        //* Adds image to the span
-        try {
-            formattedImage.append(" ");
-            Bitmap decodedByte = BitmapFactory.decodeByteArray(imageBlob, 0, imageBlob.length);
-            Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
-            image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
-            imageSpanImage = new ImageSpanImage(image);
-            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
-            if (image.getIntrinsicWidth() > width) {
-                // If image is wider than screen it is scaled down to fit the screen
-                // otherwise it will not load/be displayed
-                float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
-                int newWidth = (int) (image.getIntrinsicWidth() * scale);
-                int newHeight = (int) (image.getIntrinsicHeight() * scale);
-                image.setBounds(0, 0, newWidth, newHeight);
-            }
-
-            //** Detects image touches/clicks
-            ClickableSpan imageClickableSpan = new ClickableSpan() {
-                @Override
-                public void onClick(@NonNull View widget) {
-                    // Starting fragment to view enlarged zoomable image
-                    ((MainView) context).openImageView(nodeUniqueID, imageOffset);
-                }
-            };
-            formattedImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
-            //**
-        } catch (Exception e) {
-            // Displays a toast message and appends broken image span to display in node content
-            imageSpanImage = (ImageSpanImage) this.makeBrokenImageSpan(0);
-            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.displayToast(context.getString(R.string.toast_error_failed_to_load_image));
-        }
-        //*
-        if (justification.equals("right")) {
-            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else if (justification.equals("center")) {
-            formattedImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        return formattedImage;
-    }
-
-    /**
-     * Creates a SpannableStringBuilder with image with drawn Latex formula in it
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * @param imageBlob byte[] that is actually a String that contains LaTex formula
-     * @param justification justification value that has to be set for the span. It can be retrieved from database. Possible values: left, right, center. Justified - value does not have any value effect.
-     * @return SpannableStringBuilder that has span with Latex image in them
-     */
-    private SpannableStringBuilder makeLatexImageSpan(byte[] imageBlob, String justification) {
-        // Image is created from byte[] that is passed as an arguments
-        SpannableStringBuilder formattedLatexImage = new SpannableStringBuilder();
-        ImageSpanLatex imageSpanLatex;
-        //* Creates and adds image to the span
-        try {
-            formattedLatexImage.append(" ");
-            String latexString = new String(imageBlob)
-                .replace("\\documentclass{article}\n" +
-                        "\\pagestyle{empty}\n" +
-                        "\\usepackage{amsmath}\n" +
-                        "\\begin{document}\n" +
-                        "\\begin{align*}", "")
-                .replace("\\end{align*}\n\\end{document}", "")
-                .replaceAll("&=", "="); // Removing '&' sing, otherwise latex image fails to compile
-
-            final JLatexMathDrawable latexDrawable = JLatexMathDrawable.builder(latexString)
-                    .textSize(40)
-                    .padding(8)
-                    .background(0xFFffffff)
-                    .align(JLatexMathDrawable.ALIGN_RIGHT)
-                    .build();
-
-            latexDrawable.setBounds(0, 0, latexDrawable.getIntrinsicWidth(), latexDrawable.getIntrinsicHeight());
-
-            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
-            if (latexDrawable.getIntrinsicWidth() > width - 50) {
-                // If image is wider than screen-50 px it is scaled down to fit the screen
-                // otherwise it will not load/be display
-                float scale = ((float) width / latexDrawable.getIntrinsicWidth()) - (float) 0.2;
-                int newWidth = (int) (latexDrawable.getIntrinsicWidth() * scale);
-                int newHeight = (int) (latexDrawable.getIntrinsicHeight() * scale);
-                latexDrawable.setBounds(0, 0, newWidth, newHeight);
-            }
-
-            imageSpanLatex = new ImageSpanLatex(latexDrawable);
-            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-            //** Detects image touches/clicks
-            ClickableSpan imageClickableSpan = new ClickableSpan() {
-                @Override
-                public void onClick(@NonNull View widget) {
-                    // Starting fragment to view enlarged zoomable image
-                    ((MainView) SQLReader.this.context).openImageView(latexString);
-                }
-            };
-            formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
-            //**
-        } catch (Exception e) {
-            // Displays a toast message and appends broken latex image span to display in node content
-            imageSpanLatex = (ImageSpanLatex) this.makeBrokenImageSpan(1);
-            formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.displayToast(context.getString(R.string.toast_error_failed_to_compile_latex));
-        }
-        //*
-        if (justification.equals("right")) {
-            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else if (justification.equals("center")) {
-            formattedLatexImage.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, formattedLatexImage.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        imageSpanLatex.setLatexCode(new String(imageBlob));
-        return formattedLatexImage;
-    }
-
-    /**
-     * This function scans provided Cursor to collect all the nodes from it to be displayed as subnodes in drawer menu
-     * Most of the time it is used to collect information about subnodes of the node that is being opened
-     * However, it can be used to create information Main menu items
-     * In that case isSubnode should passed as false
-     * If true this value will make node look indented
-     * @param cursor SQL Cursor object that contains nodes from which to make a node list
-     * @param isSubnode true - means that node is a subnode and should not be displayed indented in the drawer menu. false - apposite of that
-     * @return ArrayList of node's subnodes.
-     */
-    private ArrayList<ScNode> returnSubnodeArrayList(Cursor cursor, boolean isSubnode) {
-        ArrayList<ScNode> nodes = new ArrayList<>();
-        while (cursor.moveToNext()) {
-            String nodeUniqueID = cursor.getString(1);
-            String nameValue = cursor.getString(0);
-            boolean hasSubnodes = hasSubnodes(nodeUniqueID);
-            boolean isRichText = cursor.getString(3).equals("custom-colors");
-            boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
-            String foregroundColor = "";
-            if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
-                foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
-            }
-            int iconId = cursor.getInt(4) >> 1;
-            boolean isReadOnly = (cursor.getInt(4) & 0x01) == 1;
-            // There is only one parent Node and its added manually in getSubNodes()
-            nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly));
-        }
-        return nodes;
-    }
-
-    /**
-     * Creates an ArrayList of ScNode objects that can be used to display nodes during drawer menu search/filter function
-     * ArrayList is created based on node.level value (to exclude node/subnodes from search)
-     * @param cursor SQL Cursor object that contains nodes from which to make a node list
-     * @return ArrayList that contains all the nodes of the provided cursor object
-     */
-    private ArrayList<ScNode> returnSubnodeSearchArrayList(Cursor cursor) {
-        ArrayList<ScNode> nodes = new ArrayList<>();
-        while (cursor.moveToNext()) {
-            if (cursor.getInt(3) == 0) {
-                // If node and subnodes are not selected to be excluded from search
-                String nodeUniqueID = cursor.getString(1);
-                String nameValue = cursor.getString(0);
-                boolean hasSubnodes = hasSubnodes(nodeUniqueID);
-                boolean isRichText = cursor.getString(2).equals("custom-colors");
-                boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
-                String foregroundColor = "";
-                if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
-                    foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
-                }
-                int iconId = cursor.getInt(5) >> 1;
-                boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
-                // There are no "parent" nodes in search. All nodes displayed without indentation
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
-                if (hasSubnodes) {
-                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.level, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
-                    nodes.addAll(returnSubnodeSearchArrayList(subCursor));
-                    subCursor.close();
-                }
-            } else if (cursor.getInt(3) == 1) {
-                // If only node is selected to be excluded from search
-                String nodeUniqueID = cursor.getString(1);
-                boolean hasSubnodes = hasSubnodes(nodeUniqueID);
-                if (hasSubnodes) {
-                    Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.level, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
-                    nodes.addAll(returnSubnodeSearchArrayList(subCursor));
-                    subCursor.close();
-                }
-            } else if (cursor.getInt(3) == 2) {
-                // if only subnodes are selected to be excluded from search
-                String nodeUniqueID = cursor.getString(1);
-                String nameValue = cursor.getString(0);
-                boolean hasSubnodes = hasSubnodes(nodeUniqueID);
-                boolean isRichText = cursor.getString(2).equals("custom-colors");
-                boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
-                String foregroundColor = "";
-                if (((cursor.getInt(2) >> 2) & 0x01) == 1) {
-                    foregroundColor = String.format("#%06x", ((cursor.getInt(2) >> 3) & 0xffffff));
-                }
-                int iconId = cursor.getInt(5) >> 1;
-                boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
-                // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
-            }
-        }
-        return nodes;
     }
 
     /**
@@ -2481,6 +2433,52 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         }
         cursor.close();
         return searchResult;
+    }
+
+    @Override
+    public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
+        Cursor cursor = this.sqlite.query("node", new String[]{"txt", "is_richtxt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        cursor.moveToFirst();
+        boolean isRichText = cursor.getInt(1) == 1;
+        this.sqlite.beginTransaction();
+        try {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("name", name);
+            if (isRichText && !progLang.equals("custom-colors")) {
+                // If user chose to convert rich text type node to plain text or automatic system highlighting type
+                contentValues.put("txt", this.convertRichTextNodeContentToPlainText(cursor.getString(0), nodeUniqueID).toString());
+                this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
+                this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+                this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
+                contentValues.put("has_codebox", 0);
+                contentValues.put("has_table", 0);
+                contentValues.put("has_image", 0);
+            } else if (!isRichText && progLang.equals("custom-colors")) {
+                // If user chose to convert plain text or automatic system highlighting type node to rich text type
+                StringWriter writer = new StringWriter();
+                Document doc = this.documentBuilder.newDocument();
+                Node node = doc.createElement("node");
+                Element element = doc.createElement("rich_text");
+                element.setTextContent(cursor.getString(0));
+                node.appendChild(element);
+                try {
+                    this.transformer.transform(new DOMSource(node), new StreamResult(writer));
+                } catch (TransformerException e) {
+                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
+                    return;
+                }
+                contentValues.put("txt", writer.toString());
+            }
+            cursor.close();
+            contentValues.put("syntax", progLang);
+            contentValues.put("is_richtxt", progLang.equals("custom-colors") ? 1 : 0);
+            contentValues.put("level", this.convertNoSearchToLevel(noSearchMe, noSearchCh));
+            contentValues.put("ts_lastsave", String.valueOf(System.currentTimeMillis() / 1000));
+            this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
+            this.sqlite.setTransactionSuccessful();
+        } finally {
+            this.sqlite.endTransaction();
+        }
     }
 
     @Override

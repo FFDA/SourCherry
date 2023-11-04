@@ -16,6 +16,27 @@ import android.os.Parcelable;
 import androidx.annotation.NonNull;
 
 public class ScNode implements Comparable<ScNode>, Parcelable {
+    public static final Parcelable.Creator<ScNode> CREATOR = new Parcelable.Creator<ScNode>() {
+        @Override
+        public ScNode createFromParcel(Parcel source) {
+            String uniqueId = source.readString();
+            String name = source.readString();
+            boolean isParent = source.readInt() == 1;
+            boolean hasSubnodes = source.readInt() == 1;
+            boolean isSubnode = source.readInt() == 1;
+            boolean isRichText = source.readInt() == 1;
+            boolean isBold = source.readInt() == 1;
+            String foregroundColor = source.readString();
+            int iconId = source.readInt();
+            boolean isReadOnly = source.readInt() == 1;
+            return new ScNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+        }
+
+        @Override
+        public ScNode[] newArray(int size) {
+            return new ScNode[0];
+        }
+    };
     // Keeping it as String because I need it it this way most of the time. Otherwise I would have to convert ot String quite often
     private final String uniqueId;
     private String name;
@@ -57,65 +78,14 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         this.isReadOnly = isReadOnly;
     }
 
-    public String getUniqueId() {
-        return uniqueId;
+    @Override
+    public int compareTo(ScNode o) {
+        return Integer.parseInt(this.uniqueId) - Integer.parseInt(o.getUniqueId());
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public boolean isParent() {
-        return this.isParent;
-    }
-
-    public void setIsParent(boolean isParent) {
-        this.isParent = isParent;
-    }
-
-    public boolean hasSubnodes() {
-        return this.hasSubnodes;
-    }
-
-    public void setHasSubnodes(boolean hasSubnodes) {
-        this.hasSubnodes = hasSubnodes;
-    }
-
-    public boolean isSubnode() {
-        return this.isSubnode;
-    }
-
-    public void setSubnode(boolean isSubnode) {
-        this.isSubnode = isSubnode;
-    }
-
-    public boolean isRichText() {
-        return this.isRichText;
-    }
-
-    public void setRichText(boolean richText) {
-        this.isRichText = richText;
-    }
-
-    /**
-     * Check property if node name text should be in bold
-     * "Bold" checkbox in CherryTree
-     * @return true - text should be bold, else - false
-     */
-    public boolean isBold() {
-        return isBold;
-    }
-
-    /**
-     * Set property if node name text should be in bold
-     * @param bold true - text should be bold, else - false
-     */
-    public void setBold(boolean bold) {
-        isBold = bold;
+    @Override
+    public int describeContents() {
+        return 0;
     }
 
     /**
@@ -150,6 +120,43 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         this.iconId = iconId;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getUniqueId() {
+        return uniqueId;
+    }
+
+    public boolean hasSubnodes() {
+        return this.hasSubnodes;
+    }
+
+    /**
+     * Check property if node name text should be in bold
+     * "Bold" checkbox in CherryTree
+     * @return true - text should be bold, else - false
+     */
+    public boolean isBold() {
+        return isBold;
+    }
+
+    /**
+     * Set property if node name text should be in bold
+     * @param bold true - text should be bold, else - false
+     */
+    public void setBold(boolean bold) {
+        isBold = bold;
+    }
+
+    public boolean isParent() {
+        return this.isParent;
+    }
+
     /**
      * Check if node is read only
      * @return true - node is read only, else - false
@@ -166,14 +173,28 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         isReadOnly = readOnly;
     }
 
-    @Override
-    public int compareTo(ScNode o) {
-        return Integer.parseInt(this.uniqueId) - Integer.parseInt(o.getUniqueId());
+    public boolean isRichText() {
+        return this.isRichText;
     }
 
-    @Override
-    public int describeContents() {
-        return 0;
+    public void setRichText(boolean richText) {
+        this.isRichText = richText;
+    }
+
+    public boolean isSubnode() {
+        return this.isSubnode;
+    }
+
+    public void setSubnode(boolean isSubnode) {
+        this.isSubnode = isSubnode;
+    }
+
+    public void setHasSubnodes(boolean hasSubnodes) {
+        this.hasSubnodes = hasSubnodes;
+    }
+
+    public void setIsParent(boolean isParent) {
+        this.isParent = isParent;
     }
 
     @Override
@@ -189,26 +210,4 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         dest.writeInt(this.iconId);
         dest.writeInt(this.isReadOnly ? 1 : 0);
     }
-
-    public static final Parcelable.Creator<ScNode> CREATOR = new Parcelable.Creator<ScNode>() {
-        @Override
-        public ScNode createFromParcel(Parcel source) {
-            String uniqueId = source.readString();
-            String name = source.readString();
-            boolean isParent = source.readInt() == 1;
-            boolean hasSubnodes = source.readInt() == 1;
-            boolean isSubnode = source.readInt() == 1;
-            boolean isRichText = source.readInt() == 1;
-            boolean isBold = source.readInt() == 1;
-            String foregroundColor = source.readString();
-            int iconId = source.readInt();
-            boolean isReadOnly = source.readInt() == 1;
-            return new ScNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-        }
-
-        @Override
-        public ScNode[] newArray(int size) {
-            return new ScNode[0];
-        }
-    };
 }

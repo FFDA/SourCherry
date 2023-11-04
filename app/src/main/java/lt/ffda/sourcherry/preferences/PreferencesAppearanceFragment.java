@@ -38,6 +38,16 @@ import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.utils.DpPxConverter;
 
 public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
+    /**
+     * Handles back button and back arrow presses for the fragment
+     */
+    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
+        @Override
+        public void handleOnBackPressed() {
+            ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
+            getParentFragmentManager().popBackStack();
+        }
+    };
     SharedPreferences sharedPreferences;
 
     @Override
@@ -106,6 +116,11 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_appearance));
@@ -132,20 +147,4 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
         requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
     }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-    }
-
-    /**
-     * Handles back button and back arrow presses for the fragment
-     */
-    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
-        @Override
-        public void handleOnBackPressed() {
-            ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
-            getParentFragmentManager().popBackStack();
-        }
-    };
 }

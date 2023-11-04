@@ -50,97 +50,23 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
     private SharedPreferences sharedPreferences;
     private SwitchPreferenceCompat mirrorDatabaseSwitch;
     private Preference mirrorDatabaseFolder;
+    /**
+     * Launches a file picker where user has to choose Mirror Database Folder
+     * Saves Mirror Database Folder uri to preferences
+     */
+    ActivityResultLauncher<Uri> getMirrorDatabaseFolder = registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), result -> {
+        if (result != null) {
+            getActivity().getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            //// Saving selected file to preferences
+            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+            sharedPreferencesEditor.putString("mirrorDatabaseFolderUri", result.toString());
+            sharedPreferencesEditor.commit();
+            ////
+            this.mirrorDatabaseFolder.setSummary(result.toString());
+        }
+    });
     private Preference mirrorDatabaseFile;
     private Preference mirrorDatabaseFileLastModified;
-
-    @Override
-    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
-        this.setPreferencesFromResource(R.xml.preferences_database, rootKey);
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-
-        this.mirrorDatabaseSwitch = findPreference("mirror_database_switch");
-        this.mirrorDatabaseFolder = findPreference("mirror_database_folder_preference");
-        this.mirrorDatabaseFile = findPreference("mirror_database_file_preference");
-        this.mirrorDatabaseFileLastModified = findPreference("mirror_database_last_modified_preference");
-
-        String databaseStorageType = this.sharedPreferences.getString("databaseStorageType", "");
-        String databaseExtension = this.sharedPreferences.getString("databaseFileExtension", "ctd");
-        if (databaseStorageType.equals("internal")) {
-            this.initMirrorDatabasePreferences();
-        }
-        if (databaseExtension.equals("ctb") || databaseExtension.equals("ctx")) {
-            this.initSqlDatabasePreferences();
-        }
-        if (databaseExtension.equals("multi")) {
-            this.initMultifileDatabasePreferences();
-        }
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        MenuHost menuHost = requireActivity();
-        menuHost.addMenuProvider(new MenuProvider() {
-            @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-
-            }
-
-            @Override
-            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                if (menuItem.getItemId() == android.R.id.home) {
-                    getActivity().onBackPressed();
-                    return true;
-                }
-                return false;
-            }
-        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_database));
-    }
-
-    /**
-     * Shows alert dialog to user with two options
-     * Select a mirror database or leave. Leaving will disabled Mirror database preference
-     */
-    private void createConfirmationDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle(R.string.preferences_mirror_database_mirror_database_file_summary);
-        builder.setMessage(R.string.alert_dialog_warning_no_mirror_database_selected_message);
-        builder.setPositiveButton(R.string.button_leave, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                PreferencesDatabaseFragment.this.mirrorDatabaseSwitch.setChecked(false);
-                ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
-                getParentFragmentManager().popBackStack();
-            }
-        });
-        builder.setNegativeButton(R.string.button_select, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                getMirrorDatabaseFile.launch(new String[]{"*/*",});
-            }
-        });
-        builder.show();
-    }
-
-    /**
-     * Removes saved Mirror Database preferences
-     * Used when user toggles the Mirror Database switch
-     */
-    private void removeSavedMirrorDatabasePreferences() {
-        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-        sharedPreferencesEditor.remove("mirrorDatabaseFilename");
-        sharedPreferencesEditor.remove("mirrorDatabaseLastModified");
-        sharedPreferencesEditor.commit();
-        this.mirrorDatabaseFile.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
-    }
-
     /**
      * Launches a file picker where user has to choose Mirror Database File
      * Saves Mirror Database File filename and last modified long to preferences
@@ -173,23 +99,6 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
             }
         }
     });
-
-    /**
-     * Launches a file picker where user has to choose Mirror Database Folder
-     * Saves Mirror Database Folder uri to preferences
-     */
-    ActivityResultLauncher<Uri> getMirrorDatabaseFolder = registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), result -> {
-        if (result != null) {
-            getActivity().getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            //// Saving selected file to preferences
-            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-            sharedPreferencesEditor.putString("mirrorDatabaseFolderUri", result.toString());
-            sharedPreferencesEditor.commit();
-            ////
-            this.mirrorDatabaseFolder.setSummary(result.toString());
-        }
-    });
-
     /**
      * Handles back button and back arrow presses for the fragment
      */
@@ -204,6 +113,31 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
             }
         }
     };
+
+    /**
+     * Shows alert dialog to user with two options
+     * Select a mirror database or leave. Leaving will disabled Mirror database preference
+     */
+    private void createConfirmationDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setTitle(R.string.preferences_mirror_database_mirror_database_file_summary);
+        builder.setMessage(R.string.alert_dialog_warning_no_mirror_database_selected_message);
+        builder.setPositiveButton(R.string.button_leave, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                PreferencesDatabaseFragment.this.mirrorDatabaseSwitch.setChecked(false);
+                ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
+                getParentFragmentManager().popBackStack();
+            }
+        });
+        builder.setNegativeButton(R.string.button_select, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                getMirrorDatabaseFile.launch(new String[]{"*/*",});
+            }
+        });
+        builder.show();
+    }
 
     /**
      * Makes all elements associated with MirrorDatabase visible. Adds listeners where needed.
@@ -265,6 +199,18 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
     }
 
     /**
+     * Makes preferences associated with Multifile databases visible.
+     */
+    private void initMultifileDatabasePreferences() {
+        SwitchPreference multifileDatabaseAutoSync = findPreference("preference_multifile_auto_sync");
+        if (multifileDatabaseAutoSync == null) {
+            Toast.makeText(getContext(), R.string.toast_error_failed_to_show_a_preference, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        multifileDatabaseAutoSync.setVisible(true);
+    }
+
+    /**
      * Makes preferences for SQL database visible. Adds listeners where needed.
      */
     private void initSqlDatabasePreferences() {
@@ -288,15 +234,66 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
         });
     }
 
-    /**
-     * Makes preferences associated with Multifile databases visible.
-     */
-    private void initMultifileDatabasePreferences() {
-        SwitchPreference multifileDatabaseAutoSync = findPreference("preference_multifile_auto_sync");
-        if (multifileDatabaseAutoSync == null) {
-            Toast.makeText(getContext(), R.string.toast_error_failed_to_show_a_preference, Toast.LENGTH_SHORT).show();
-            return;
+    @Override
+    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
+        this.setPreferencesFromResource(R.xml.preferences_database, rootKey);
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+
+        this.mirrorDatabaseSwitch = findPreference("mirror_database_switch");
+        this.mirrorDatabaseFolder = findPreference("mirror_database_folder_preference");
+        this.mirrorDatabaseFile = findPreference("mirror_database_file_preference");
+        this.mirrorDatabaseFileLastModified = findPreference("mirror_database_last_modified_preference");
+
+        String databaseStorageType = this.sharedPreferences.getString("databaseStorageType", "");
+        String databaseExtension = this.sharedPreferences.getString("databaseFileExtension", "ctd");
+        if (databaseStorageType.equals("internal")) {
+            this.initMirrorDatabasePreferences();
         }
-        multifileDatabaseAutoSync.setVisible(true);
+        if (databaseExtension.equals("ctb") || databaseExtension.equals("ctx")) {
+            this.initSqlDatabasePreferences();
+        }
+        if (databaseExtension.equals("multi")) {
+            this.initMultifileDatabasePreferences();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_database));
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        MenuHost menuHost = requireActivity();
+        menuHost.addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (menuItem.getItemId() == android.R.id.home) {
+                    getActivity().onBackPressed();
+                    return true;
+                }
+                return false;
+            }
+        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
+    }
+
+    /**
+     * Removes saved Mirror Database preferences
+     * Used when user toggles the Mirror Database switch
+     */
+    private void removeSavedMirrorDatabasePreferences() {
+        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        sharedPreferencesEditor.remove("mirrorDatabaseFilename");
+        sharedPreferencesEditor.remove("mirrorDatabaseLastModified");
+        sharedPreferencesEditor.commit();
+        this.mirrorDatabaseFile.setSummary(R.string.preferences_mirror_database_mirror_database_file_summary);
     }
 }

@@ -62,10 +62,6 @@ import lt.ffda.sourcherry.model.ScNodeContentText;
 
 public class NodeContentFragment extends Fragment {
     private boolean backToExit;
-    private LinearLayout contentFragmentLinearLayout;
-    private Handler handler;
-    private MainViewModel mainViewModel;
-    private SharedPreferences sharedPreferences;
     /**
      * Deals with back button presses.
      * If there are any fragment in the BackStack - removes one
@@ -97,6 +93,10 @@ public class NodeContentFragment extends Fragment {
             }, 2000);
         }
     };
+    private LinearLayout contentFragmentLinearLayout;
+    private Handler handler;
+    private MainViewModel mainViewModel;
+    private SharedPreferences sharedPreferences;
 
     public void loadContent() {
         if (this.mainViewModel.getNodeContent().getValue() == null) {
@@ -240,6 +240,20 @@ public class NodeContentFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        // Top and bottom paddings are always the same: 14px (5dp)
+        this.contentFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        ScrollView scrollView = getView().findViewById(R.id.content_fragment_scrollview);
+        outState.putInt("scrollY", scrollView.getScrollY());
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         MenuHost menuHost = requireActivity();
@@ -278,20 +292,6 @@ public class NodeContentFragment extends Fragment {
                 }
             }, 150);
         }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        // Top and bottom paddings are always the same: 14px (5dp)
-        this.contentFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        ScrollView scrollView = getView().findViewById(R.id.content_fragment_scrollview);
-        outState.putInt("scrollY", scrollView.getScrollY());
     }
 
     /**

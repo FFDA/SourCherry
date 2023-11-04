@@ -28,6 +28,22 @@ public class ImageSpanImage extends ImageSpan {
     }
 
     /**
+     * Get justification of the element
+     * @return justification of the elements
+     */
+    public String getJustification() {
+        return this.justification;
+    }
+
+    /**
+     * Set justification of the element
+     * @param justification element's justification ("left", "right", "center", "fill")
+     */
+    public void setJustification(String justification) {
+        this.justification = justification;
+    }
+
+    /**
      * Get new offset of the element. It shows location where the element has to be inserted back
      * into the node content when it is being recreated.
      * @return element's offset
@@ -44,23 +60,6 @@ public class ImageSpanImage extends ImageSpan {
     public void setNewOffset(int newOffset) {
         this.newOffset = newOffset;
     }
-
-    /**
-     * Get justification of the element
-     * @return justification of the elements
-     */
-    public String getJustification() {
-        return this.justification;
-    }
-
-    /**
-     * Set justification of the element
-     * @param justification element's justification ("left", "right", "center", "fill")
-     */
-    public void setJustification(String justification) {
-        this.justification = justification;
-    }
-
 
     /**
      * Get sha256sum value of the file. It is only used in Multifile databases as a filename in filesystem

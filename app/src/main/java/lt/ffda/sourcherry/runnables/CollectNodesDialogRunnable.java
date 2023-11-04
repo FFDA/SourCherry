@@ -89,16 +89,6 @@ public class CollectNodesDialogRunnable implements Runnable {
         this.counter = 0;
     }
 
-    @Override
-    public void run() {
-        try {
-            this.saveDrawerMenuToStorage(this.getDrawerMenuTree());
-            this.callback.onNodesCollected(0);
-        } catch (IOException | TransformerException | SAXException e) {
-            this.callback.onNodesCollected(1);
-        }
-    }
-
     /**
      * Initiates the recursive scan of all the folders under the Multifile databases root directory
      * @return Document object with all the nodes of the database in tree structure
@@ -132,6 +122,84 @@ public class CollectNodesDialogRunnable implements Runnable {
         }
         doc.appendChild(sourCherry);
         return doc;
+    }
+
+    /**
+     * Returns cursor with children of the root folder of the Multifile database
+     * @return SAF cursor. Cursor should be closed after use manually. Cursor has 3 fields: 0 - document_id, 1 - mime_type, 2 - _display_name
+     */
+    private Cursor getMainNodesCursor() {
+        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
+        return this.context.getContentResolver().query(
+                childrenUri,
+                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
+                null,
+                null,
+                null
+        );
+    }
+
+    /**
+     * Creates cursor with children of the document using SAF documentId. DocumentId has to be of a
+     * children of this.mainFolderUri.
+     * @param documentId documentId of the document to create children of
+     * @return cursor with children documents. Has to be closed after use.
+     */
+    private Cursor getNodeChildrenCursor(String documentId) {
+        Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, documentId);
+        return this.context.getContentResolver().query(
+                uri,
+                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
+                null,
+                null,
+                null
+        );
+    }
+
+    /**
+     * Returns list of nodeUniqueIDs from subnodes.lst file that uri points to. This file is used to
+     * display nodes in the order that user sorted them
+     * @param uri uri of the subnodes.lst file
+     * @return list that contains nodeUniqueIDs
+     * @throws IOException Signals that an I/O exception of some sort has occurred.
+     */
+    private List<String> getSubnodesList(Uri uri) throws IOException {
+        List<String> subnodes = null;
+        try (InputStream is = this.context.getContentResolver().openInputStream(uri)) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line = br.readLine();
+            if (line != null) {
+                subnodes = new LinkedList<>(Arrays.asList(line.split(",")));
+            }
+        }
+        return subnodes;
+    }
+
+    @Override
+    public void run() {
+        try {
+            this.saveDrawerMenuToStorage(this.getDrawerMenuTree());
+            this.callback.onNodesCollected(0);
+        } catch (IOException | TransformerException | SAXException e) {
+            this.callback.onNodesCollected(1);
+        }
+    }
+
+    /**
+     * Writes Document object global variable to file.
+     * @param doc Document object to save to file
+     * @throws TransformerException This class specifies an exceptional condition that occurred during the transformation process.
+     * @throws IOException Signals that an I/O exception of some sort has occurred.
+     */
+    private void saveDrawerMenuToStorage(Document doc) throws TransformerException, IOException {
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer;
+        transformer = transformerFactory.newTransformer();
+        DOMSource dSource = new DOMSource(doc);
+        OutputStream fileOutputStream = new FileOutputStream(this.file);
+        StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
+        transformer.transform(dSource, result);
+        fileOutputStream.close();
     }
 
     /**
@@ -219,73 +287,5 @@ public class CollectNodesDialogRunnable implements Runnable {
             }
         });
         return node;
-    }
-
-    /**
-     * Writes Document object global variable to file.
-     * @param doc Document object to save to file
-     * @throws TransformerException This class specifies an exceptional condition that occurred during the transformation process.
-     * @throws IOException Signals that an I/O exception of some sort has occurred.
-     */
-    private void saveDrawerMenuToStorage(Document doc) throws TransformerException, IOException {
-        TransformerFactory transformerFactory = TransformerFactory.newInstance();
-        Transformer transformer;
-        transformer = transformerFactory.newTransformer();
-        DOMSource dSource = new DOMSource(doc);
-        OutputStream fileOutputStream = new FileOutputStream(this.file);
-        StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
-        transformer.transform(dSource, result);
-        fileOutputStream.close();
-    }
-
-    /**
-     * Returns cursor with children of the root folder of the Multifile database
-     * @return SAF cursor. Cursor should be closed after use manually. Cursor has 3 fields: 0 - document_id, 1 - mime_type, 2 - _display_name
-     */
-    private Cursor getMainNodesCursor() {
-        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
-        return this.context.getContentResolver().query(
-                childrenUri,
-                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                null,
-                null,
-                null
-        );
-    }
-
-    /**
-     * Creates cursor with children of the document using SAF documentId. DocumentId has to be of a
-     * children of this.mainFolderUri.
-     * @param documentId documentId of the document to create children of
-     * @return cursor with children documents. Has to be closed after use.
-     */
-    private Cursor getNodeChildrenCursor(String documentId) {
-        Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, documentId);
-        return this.context.getContentResolver().query(
-                uri,
-                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
-                null,
-                null,
-                null
-        );
-    }
-
-    /**
-     * Returns list of nodeUniqueIDs from subnodes.lst file that uri points to. This file is used to
-     * display nodes in the order that user sorted them
-     * @param uri uri of the subnodes.lst file
-     * @return list that contains nodeUniqueIDs
-     * @throws IOException Signals that an I/O exception of some sort has occurred.
-     */
-    private List<String> getSubnodesList(Uri uri) throws IOException {
-        List<String> subnodes = null;
-        try (InputStream is = this.context.getContentResolver().openInputStream(uri)) {
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            String line = br.readLine();
-            if (line != null) {
-                subnodes = new LinkedList<>(Arrays.asList(line.split(",")));
-            }
-        }
-        return subnodes;
     }
 }

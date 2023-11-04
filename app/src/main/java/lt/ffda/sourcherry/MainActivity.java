@@ -58,7 +58,6 @@ import lt.ffda.sourcherry.dialogs.OpenDatabaseProgressDialogFragment;
 import lt.ffda.sourcherry.utils.Filenames;
 
 public class MainActivity extends AppCompatActivity {
-    private SharedPreferences sharedPreferences;
     /**
      * Launches file chooser to select location
      * where to export database. If user chooses a file - launches a
@@ -73,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
             exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
         }
     });
-
+    private SharedPreferences sharedPreferences;
     /**
      * Register activity for user to select a multi-file database folder
      * Gets permanent read and write permissions for selected folder
@@ -406,18 +405,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        this.setMessageWithDatabaseName();
-        this.listImportedDatabases(); // Displaying databases on this step because this is the step that app returns to from other Activity
-    }
-
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.options_menu_main_activity, menu);
         menu.findItem(R.id.options_menu_external_storage).setChecked(sharedPreferences.getBoolean("preferences_external_storage", false));
         return true;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        this.deleteTempFiles();
     }
 
     @Override
@@ -438,9 +436,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
-        this.deleteTempFiles();
+    protected void onResume() {
+        super.onResume();
+        this.setMessageWithDatabaseName();
+        this.listImportedDatabases(); // Displaying databases on this step because this is the step that app returns to from other Activity
     }
 
     /**

@@ -16,6 +16,30 @@ import android.os.Parcelable;
 import androidx.annotation.NonNull;
 
 public class ScSearchNode extends ScNode {
+    public static final Parcelable.Creator<ScSearchNode> CREATOR = new Parcelable.Creator<ScSearchNode>() {
+        @Override
+        public ScSearchNode createFromParcel(Parcel source) {
+            String uniqueId = source.readString();
+            String name = source.readString();
+            boolean isParent = source.readInt() == 1;
+            boolean hasSubnodes = source.readInt() == 1;
+            boolean isSubnode = source.readInt() == 1;
+            boolean isRichText = source.readInt() == 1;
+            boolean isBold = source.readInt() == 1;
+            String foregroundColor = source.readString();
+            int iconId = source.readInt();
+            boolean isReadOnly = source.readInt() == 1;
+            String query = source.readString();
+            int resultCount = source.readInt();
+            String resultSamples = source.readString();
+            return new ScSearchNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, resultSamples);
+        }
+
+        @Override
+        public ScSearchNode[] newArray(int size) {
+            return new ScSearchNode[0];
+        }
+    };
     private String query;
     private int resultCount;
     private String resultSamples;
@@ -80,29 +104,4 @@ public class ScSearchNode extends ScNode {
         dest.writeInt(this.resultCount);
         dest.writeString(this.resultSamples);
     }
-
-    public static final Parcelable.Creator<ScSearchNode> CREATOR = new Parcelable.Creator<ScSearchNode>() {
-        @Override
-        public ScSearchNode createFromParcel(Parcel source) {
-            String uniqueId = source.readString();
-            String name = source.readString();
-            boolean isParent = source.readInt() == 1;
-            boolean hasSubnodes = source.readInt() == 1;
-            boolean isSubnode = source.readInt() == 1;
-            boolean isRichText = source.readInt() == 1;
-            boolean isBold = source.readInt() == 1;
-            String foregroundColor = source.readString();
-            int iconId = source.readInt();
-            boolean isReadOnly = source.readInt() == 1;
-            String query = source.readString();
-            int resultCount = source.readInt();
-            String resultSamples = source.readString();
-            return new ScSearchNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, resultSamples);
-        }
-
-        @Override
-        public ScSearchNode[] newArray(int size) {
-            return new ScSearchNode[0];
-        }
-    };
 }

@@ -12,12 +12,12 @@ package lt.ffda.sourcherry.runnables;
 
 public interface FindInNodeRunnableCallback {
     /**
-     * Callback method that will be executed before running search for findInNode function
-     */
-    void searchStarted();
-
-    /**
      * Callback method that will be executed after running search for findInNode function
      */
     void searchFinished();
+
+    /**
+     * Callback method that will be executed before running search for findInNode function
+     */
+    void searchStarted();
 }

@@ -37,17 +37,13 @@ public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFr
         this.nodeList = nodeList;
     }
 
-    public void markItemSelected(int selectedPosition) {
-        this.selectedPosition = selectedPosition;
+    @Override
+    public int getItemCount() {
+        return nodeList.size();
     }
 
-    @NonNull
-    @Override
-    public MoveNodeFragmentItemAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        View view = inflater.inflate(R.layout.item_move_node_fragment, parent, false);
-        this.context = parent.getContext();
-        return new ViewHolder(view);
+    public void markItemSelected(int selectedPosition) {
+        this.selectedPosition = selectedPosition;
     }
 
     @Override
@@ -89,9 +85,13 @@ public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFr
         menuItemText.setText(nodeName);
     }
 
+    @NonNull
     @Override
-    public int getItemCount() {
-        return nodeList.size();
+    public MoveNodeFragmentItemAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        View view = inflater.inflate(R.layout.item_move_node_fragment, parent, false);
+        this.context = parent.getContext();
+        return new ViewHolder(view);
     }
 
     public void setOnItemClickListener(MoveNodeFragmentItemAdapter.OnItemClickListener listener) {
@@ -100,6 +100,14 @@ public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFr
 
     public void setOnLongClickListener(MoveNodeFragmentItemAdapter.OnLongClickListener longClickListener) {
         this.onLongClickListener = longClickListener;
+    }
+
+    public interface OnItemClickListener {
+        void onItemClick(View itemView, int position);
+    }
+
+    public interface OnLongClickListener {
+        void onLongClick(View itemView, int position);
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
@@ -137,13 +145,5 @@ public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFr
                 }
             });
         }
-    }
-
-    public interface OnItemClickListener {
-        void onItemClick(View itemView, int position);
-    }
-
-    public interface OnLongClickListener {
-        void onLongClick(View itemView, int position);
     }
 }

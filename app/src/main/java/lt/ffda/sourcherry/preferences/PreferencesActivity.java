@@ -27,6 +27,16 @@ public class PreferencesActivity extends AppCompatActivity implements
         PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
     private ActionBar toolbar;
 
+    /**
+     * Changes title
+     * @param title title of the activity
+     */
+    public void changeTitle(String title) {
+        if (this.toolbar != null) {
+            this.toolbar.setTitle(title);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,12 +53,6 @@ public class PreferencesActivity extends AppCompatActivity implements
                     .commit();
             this.changeTitle(getString(R.string.options_menu_item_settings));
         }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        this.changeTitle(getString(R.string.options_menu_item_settings));
     }
 
     @Override
@@ -80,13 +84,9 @@ public class PreferencesActivity extends AppCompatActivity implements
         return true;
     }
 
-    /**
-     * Changes title
-     * @param title title of the activity
-     */
-    public void changeTitle(String title) {
-        if (this.toolbar != null) {
-            this.toolbar.setTitle(title);
-        }
+    @Override
+    public void onResume() {
+        super.onResume();
+        this.changeTitle(getString(R.string.options_menu_item_settings));
     }
 }

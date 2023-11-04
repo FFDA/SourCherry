@@ -47,11 +47,6 @@ import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScSearchNode;
 
 public class SearchFragment extends Fragment {
-    private ScheduledThreadPoolExecutor executor;
-    private Handler handler;
-    private TextView resultCount;
-    private ProgressBar searchProgressBar;
-    private LinearLayout searchResultLinearLayout;
     private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
         @Override
         public void handleOnBackPressed() {
@@ -59,6 +54,11 @@ public class SearchFragment extends Fragment {
             ((MainView) getActivity()).returnFromFragmentWithHomeButtonAndRestoreTitle();
         }
     };
+    private ScheduledThreadPoolExecutor executor;
+    private Handler handler;
+    private TextView resultCount;
+    private ProgressBar searchProgressBar;
+    private LinearLayout searchResultLinearLayout;
 
     /**
      * Changes background of the parts of the string
@@ -131,6 +131,11 @@ public class SearchFragment extends Fragment {
         searchView.requestFocus();
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+
+            @Override
             public boolean onQueryTextSubmit(String query) {
                 // submits a search request to searcher only when user presses the button
                 // gets current value of checkbox as boolean to pass it to searcher
@@ -142,11 +147,6 @@ public class SearchFragment extends Fragment {
                     }
                 });
                 return true;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                return false;
             }
         });
     }

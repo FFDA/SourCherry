@@ -30,14 +30,14 @@ import lt.ffda.sourcherry.model.ScNode;
 
 public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHolder> {
 
-    private OnItemClickListener listener;
-    private OnLongClickListener longClickListener;
-    private OnActionIconClickListener onActionIconClickListener;
-    private int selectedPos = RecyclerView.NO_POSITION;
     private final Context context;
     // nodeList has values in this order: {name, unique_id, has_subnodes, is_parent, is_subnode}
     private final ArrayList<ScNode> nodeList;
     private final int textColorSecondary;
+    private OnItemClickListener listener;
+    private OnLongClickListener longClickListener;
+    private OnActionIconClickListener onActionIconClickListener;
+    private int selectedPos = RecyclerView.NO_POSITION;
     public MenuItemAdapter(ArrayList<ScNode> nodeList, Context context) {
         this.nodeList = nodeList;
         this.context = context;
@@ -46,16 +46,13 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         textColorSecondary = ContextCompat.getColor(this.context, typedValue.resourceId);
     }
 
-    public void markItemSelected(int selectedPos) {
-        this.selectedPos = selectedPos;
+    @Override
+    public int getItemCount() {
+        return nodeList.size();
     }
 
-    @NonNull
-    @Override
-    public MenuItemAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(this.context);
-        View menuView = inflater.inflate(R.layout.item_drawer_menu, parent, false);
-        return new ViewHolder(menuView);
+    public void markItemSelected(int selectedPos) {
+        this.selectedPos = selectedPos;
     }
 
     @Override
@@ -103,9 +100,12 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         menuItemText.setText(nodeName);
     }
 
+    @NonNull
     @Override
-    public int getItemCount() {
-        return nodeList.size();
+    public MenuItemAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(this.context);
+        View menuView = inflater.inflate(R.layout.item_drawer_menu, parent, false);
+        return new ViewHolder(menuView);
     }
 
     public void setOnItemActionMenuClickListener(OnActionIconClickListener listener) {
@@ -118,6 +118,18 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
 
     public void setOnLongClickListener(OnLongClickListener longClickListener) {
         this.longClickListener = longClickListener;
+    }
+
+    public interface OnActionIconClickListener {
+        void onActionIconClick(View itemView, int position);
+    }
+
+    public interface OnItemClickListener {
+        void onItemClick(View itemView, int position);
+    }
+
+    public interface OnLongClickListener {
+        void onLongClick(View itemView, int position);
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
@@ -180,17 +192,5 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         public void onClick(View itemView) {
 
         }
-    }
-
-    public interface OnActionIconClickListener {
-        void onActionIconClick(View itemView, int position);
-    }
-
-    public interface OnItemClickListener {
-        void onItemClick(View itemView, int position);
-    }
-
-    public interface OnLongClickListener {
-        void onLongClick(View itemView, int position);
     }
 }

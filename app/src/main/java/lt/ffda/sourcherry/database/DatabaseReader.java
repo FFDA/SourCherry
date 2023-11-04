@@ -61,6 +61,39 @@ import lt.ffda.sourcherry.spans.URLSpanWebs;
 public abstract class DatabaseReader {
 
     /**
+     * Creates String with spanns that can be inserted into no content and it will have formatting
+     * for attached file. This span when saving will make the reader to save attached file in to the
+     * database file.
+     * @param context context of the app to get resources
+     * @param filename filename of the file user chose to attach to the node
+     * @param nodeUniqueID unique ID of the node to which the file has to be attached
+     * @param fileUri file Uri that user wants to attach to the node
+     * @return formatted String to look like attached file in the node content
+     */
+    public static SpannableStringBuilder createAttachFileSpan(Context context, String filename, String nodeUniqueID, String fileUri) {
+        SpannableStringBuilder attachedFile = new SpannableStringBuilder();
+        attachedFile.append(" "); // Needed to insert an image
+        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
+        drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
+        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        attachedFileIcon.setNodeUniqueId(nodeUniqueID);
+        attachedFileIcon.setFilename(filename);
+        attachedFileIcon.setFileUri(fileUri);
+        attachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        attachedFile.append(filename);
+        ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
+            @Override
+            public void onClick(@NonNull View widget) {
+                // There is no need to implelent it here, because this function is called only from
+                // nodeContentEditor and clicks are not detected in that fragment. It is only needed
+                // for text formatting.
+            }
+        };
+        attachedFile.setSpan(imageClickableSpan, 0, attachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return attachedFile;
+    }
+
+    /**
      * Adds node to the bookmarks
      * @param nodeUniqueID node unique ID that has to be added to the bookmarks
      */
@@ -134,17 +167,6 @@ public abstract class DatabaseReader {
     public abstract ArrayList<ScNode> getBookmarkedNodes();
 
     /**
-     * Returns an image span that is used to display a placeholder image
-     * Used when cursor window is to small to get an image blob
-     * This function should not be called directly from any other class
-     * It is used in getNodeContent function
-     * It will be used during the creation of the node content as needed
-     * @param type pass 0 to get broken image span, pass 1 to get a broken latex span
-     * @return ImageSpan with broken image image
-     */
-    public abstract ImageSpan makeBrokenImageSpan(int type);
-
-    /**
      * Returns byte array (stream) of the embedded file in the database to be written to file or opened
      * @param nodeUniqueID unique ID of the node to which file was attached to
      * @param filename filename of the file attached to the node
@@ -176,13 +198,6 @@ public abstract class DatabaseReader {
      * @return ArrayList of node's subnodes.
      */
     public abstract ArrayList<ScNode> getMenu(String nodeUniqueID);
-
-    /**
-     * Saves node content data to MainViewModel. MainViewModel has an observer that will load the
-     * data on change.
-     * @param nodeUniqueID unique ID of the node that content has to be retrieved
-     */
-    public abstract void loadNodeContent(String nodeUniqueID);
 
     /**
      * Returns biggest node unique ID of the database
@@ -272,6 +287,13 @@ public abstract class DatabaseReader {
     public abstract boolean isNodeBookmarked(String nodeUniqueID);
 
     /**
+     * Saves node content data to MainViewModel. MainViewModel has an observer that will load the
+     * data on change.
+     * @param nodeUniqueID unique ID of the node that content has to be retrieved
+     */
+    public abstract void loadNodeContent(String nodeUniqueID);
+
+    /**
      * Returns an image of anchor in SpannableStringBuilder object.
      * Used to display anchors (links from other nodes) in the node
      * It does not respond to touches in any way
@@ -292,6 +314,17 @@ public abstract class DatabaseReader {
      * @return ClickableSpan that touched by user will load the other node
      */
     public abstract ClickableSpan makeAnchorLinkSpan(String nodeUniqueID, String linkAnchorName);
+
+    /**
+     * Returns an image span that is used to display a placeholder image
+     * Used when cursor window is to small to get an image blob
+     * This function should not be called directly from any other class
+     * It is used in getNodeContent function
+     * It will be used during the creation of the node content as needed
+     * @param type pass 0 to get broken image span, pass 1 to get a broken latex span
+     * @return ImageSpan with broken image image
+     */
+    public abstract ImageSpan makeBrokenImageSpan(int type);
 
     /**
      * Creates and returns a span for a link to external file or folder
@@ -482,37 +515,4 @@ public abstract class DatabaseReader {
      * @param noSearchCh 1 - to exclude subnodes of the node from searches, 0 - keep subnodes of the node in searches
      */
     public abstract void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh);
-
-    /**
-     * Creates String with spanns that can be inserted into no content and it will have formatting
-     * for attached file. This span when saving will make the reader to save attached file in to the
-     * database file.
-     * @param context context of the app to get resources
-     * @param filename filename of the file user chose to attach to the node
-     * @param nodeUniqueID unique ID of the node to which the file has to be attached
-     * @param fileUri file Uri that user wants to attach to the node
-     * @return formatted String to look like attached file in the node content
-     */
-    public static SpannableStringBuilder createAttachFileSpan(Context context, String filename, String nodeUniqueID, String fileUri) {
-        SpannableStringBuilder attachedFile = new SpannableStringBuilder();
-        attachedFile.append(" "); // Needed to insert an image
-        Drawable drawableAttachedFileIcon = AppCompatResources.getDrawable(context, R.drawable.ic_outline_attachment_24);
-        drawableAttachedFileIcon.setBounds(0,0, drawableAttachedFileIcon.getIntrinsicWidth(), drawableAttachedFileIcon.getIntrinsicHeight());
-        ImageSpanFile attachedFileIcon = new ImageSpanFile(drawableAttachedFileIcon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        attachedFileIcon.setNodeUniqueId(nodeUniqueID);
-        attachedFileIcon.setFilename(filename);
-        attachedFileIcon.setFileUri(fileUri);
-        attachedFile.setSpan(attachedFileIcon,0,1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        attachedFile.append(filename);
-        ClickableSpanFile imageClickableSpan = new ClickableSpanFile() {
-            @Override
-            public void onClick(@NonNull View widget) {
-                // There is no need to implelent it here, because this function is called only from
-                // nodeContentEditor and clicks are not detected in that fragment. It is only needed
-                // for text formatting.
-            }
-        };
-        attachedFile.setSpan(imageClickableSpan, 0, attachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        return attachedFile;
-    }
 }

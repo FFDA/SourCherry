@@ -12,14 +12,14 @@ package lt.ffda.sourcherry.model;
 
 public interface ScNodeContent {
     /**
-     * Set node content type
-     * @param type 0 - text to set into TextView, 1 - table content
-     */
-    void setContentType(byte type);
-
-    /**
      * Get ScNodeContent type
      * @return 0 - text to set into TextView, 1 - table content
      */
     byte getContentType();
+
+    /**
+     * Set node content type
+     * @param type 0 - text to set into TextView, 1 - table content
+     */
+    void setContentType(byte type);
 }

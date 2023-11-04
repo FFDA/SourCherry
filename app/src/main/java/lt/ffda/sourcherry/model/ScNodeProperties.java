@@ -33,14 +33,6 @@ public class ScNodeProperties {
         this.noSearchCh = noSearchCh;
     }
 
-    public String getUniqueId() {
-        return uniqueId;
-    }
-
-    public void setUniqueId(String uniqueId) {
-        this.uniqueId = uniqueId;
-    }
-
     public String getName() {
         return name;
     }
@@ -49,12 +41,12 @@ public class ScNodeProperties {
         this.name = name;
     }
 
-    public String getProgLang() {
-        return progLang;
+    public byte getNoSearchCh() {
+        return noSearchCh;
     }
 
-    public void setProgLang(String progLang) {
-        this.progLang = progLang;
+    public void setNoSearchCh(byte noSearchCh) {
+        this.noSearchCh = noSearchCh;
     }
 
     public byte getNoSearchMe() {
@@ -65,11 +57,19 @@ public class ScNodeProperties {
         this.noSearchMe = noSearchMe;
     }
 
-    public byte getNoSearchCh() {
-        return noSearchCh;
+    public String getProgLang() {
+        return progLang;
     }
 
-    public void setNoSearchCh(byte noSearchCh) {
-        this.noSearchCh = noSearchCh;
+    public void setProgLang(String progLang) {
+        this.progLang = progLang;
+    }
+
+    public String getUniqueId() {
+        return uniqueId;
+    }
+
+    public void setUniqueId(String uniqueId) {
+        this.uniqueId = uniqueId;
     }
 }

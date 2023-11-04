@@ -28,9 +28,26 @@ import lt.ffda.sourcherry.R;
 
 public class PreferencesGeneralFragment extends PreferenceFragmentCompat {
 
+    /**
+     * Handles back button and back arrow presses for the fragment
+     */
+    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
+        @Override
+        public void handleOnBackPressed() {
+            ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
+            getParentFragmentManager().popBackStack();
+        }
+    };
+
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.preferences_general, rootKey);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_general));
     }
 
     @Override
@@ -54,21 +71,4 @@ public class PreferencesGeneralFragment extends PreferenceFragmentCompat {
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
         requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
     }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_general));
-    }
-
-    /**
-     * Handles back button and back arrow presses for the fragment
-     */
-    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
-        @Override
-        public void handleOnBackPressed() {
-            ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
-            getParentFragmentManager().popBackStack();
-        }
-    };
 }

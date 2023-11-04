@@ -27,16 +27,6 @@ public class ScNodeContentText implements ScNodeContent {
         this.content = content;
     }
 
-    @Override
-    public void setContentType(byte type) {
-        this.type = type;
-    }
-
-    @Override
-    public byte getContentType() {
-        return this.type;
-    }
-
     /**
      * Get node text content
      * @return node text content
@@ -51,5 +41,15 @@ public class ScNodeContentText implements ScNodeContent {
      */
     public void setContent(SpannableStringBuilder content) {
         this.content = content;
+    }
+
+    @Override
+    public byte getContentType() {
+        return this.type;
+    }
+
+    @Override
+    public void setContentType(byte type) {
+        this.type = type;
     }
 }
