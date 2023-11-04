@@ -311,13 +311,7 @@ public class XMLReader extends DatabaseReader {
             // User chose to create the node in main menu
             node = this.doc.getElementsByTagName("cherrytree").item(0);
         } else {
-            NodeList nodeList = this.doc.getElementsByTagName("node");
-            for (int i = 0; i < nodeList.getLength(); i++) {
-                node = nodeList.item(i);
-                if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                    break;
-                }
-            }
+            node = this.findNode(nodeUniqueID);
         }
         String newNodeUniqueID = String.valueOf(getNodeMaxID() + 1);
         String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
@@ -382,15 +376,8 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public void deleteNode(String nodeUniqueID) {
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        Node nodeToDelete = null;
+        Node nodeToDelete = this.findNode(nodeUniqueID);
         List<String> uniqueIDList = new ArrayList<>(); // Collecting all nodeUniqueIDs to remove them from the bookmarks
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            if (nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                nodeToDelete = nodeList.item(i);
-                break;
-            }
-        }
         uniqueIDList.add(nodeToDelete.getAttributes().getNamedItem("unique_id").getNodeValue());
         NodeList deletedNodeChildren = nodeToDelete.getChildNodes();
         for (int i = 0; i < deletedNodeChildren.getLength(); i++) {
@@ -435,14 +422,7 @@ public class XMLReader extends DatabaseReader {
         if (nodeUniqueID == null) {
             return false;
         }
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                return true;
-            }
-        }
-        return false;
+        return this.findNode(nodeUniqueID) != null;
     }
 
     /**
@@ -628,8 +608,7 @@ public class XMLReader extends DatabaseReader {
             }
             return nodes;
         } else {
-            NodeList nodeList = this.doc.getElementsByTagName("node");
-            return returnSubnodeArrayList(nodeList, false);
+            return returnSubnodeArrayList(this.doc.getElementsByTagName("node"), false);
         }
     }
 
@@ -700,20 +679,18 @@ public class XMLReader extends DatabaseReader {
     @Override
     public InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control) {
         // Returns byte array (stream) to be written to file or opened
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
-                NodeList encodedpngNodeList = ((Element) node).getElementsByTagName("encoded_png"); // Gets all nodes with tag <encoded_png> (images and files)
-                for (int x = 0; x < encodedpngNodeList.getLength(); x++) {
-                    Node currentNode = encodedpngNodeList.item(x);
-                    if (currentNode.getAttributes().getNamedItem("filename") != null) { // Checks if node has the attribute, otherwise it's an image
-                        if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals(filename)) { // If filename matches the one provided
-                            if (currentNode.getAttributes().getNamedItem("time").getNodeValue().equals(time) && currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(control)) { // Checks if timestamp and offset matches the file
-                                // Will crash the app if file is big enough (11MB on my phone). No way to catch it as exception.
-                                return new ByteArrayInputStream(Base64.decode(currentNode.getTextContent(), Base64.DEFAULT));
-                            }
-                        }
+        Node node = this.findNode(nodeUniqueID);
+        if (node == null) {
+            return null;
+        }
+        NodeList encodedpngNodeList = ((Element) node).getElementsByTagName("encoded_png"); // Gets all nodes with tag <encoded_png> (images and files)
+        for (int x = 0; x < encodedpngNodeList.getLength(); x++) {
+            Node currentNode = encodedpngNodeList.item(x);
+            if (currentNode.getAttributes().getNamedItem("filename") != null) { // Checks if node has the attribute, otherwise it's an image
+                if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals(filename)) { // If filename matches the one provided
+                    if (currentNode.getAttributes().getNamedItem("time").getNodeValue().equals(time) && currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(control)) { // Checks if timestamp and offset matches the file
+                        // Will crash the app if file is big enough (11MB on my phone). No way to catch it as exception.
+                        return new ByteArrayInputStream(Base64.decode(currentNode.getTextContent(), Base64.DEFAULT));
                     }
                 }
             }
@@ -724,18 +701,16 @@ public class XMLReader extends DatabaseReader {
     @Override
     public InputStream getImageInputStream(String nodeUniqueID, String control) {
         // Returns image byte array to be displayed in ImageViewFragment because some of the images are too big to pass in a bundle
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
-                NodeList encodedpngNodeList = ((Element) node).getElementsByTagName("encoded_png"); // Gets all nodes with tag <encoded_png> (images and files)
-                for (int x = 0; x < encodedpngNodeList.getLength(); x++) {
-                    Node currentNode = encodedpngNodeList.item(x);
-                    if (currentNode.getAttributes().getNamedItem("filename") == null) { // Checks if node has the attribute "filename". If it does - it's a file
-                        if (currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(control)) { // If control matches the one provided
-                            return new ByteArrayInputStream(Base64.decode(currentNode.getTextContent(), Base64.DEFAULT));
-                        }
-                    }
+        Node node = this.findNode(nodeUniqueID);
+        if (node == null) {
+            return null;
+        }
+        NodeList encodedpngNodeList = ((Element) node).getElementsByTagName("encoded_png"); // Gets all nodes with tag <encoded_png> (images and files)
+        for (int x = 0; x < encodedpngNodeList.getLength(); x++) {
+            Node currentNode = encodedpngNodeList.item(x);
+            if (currentNode.getAttributes().getNamedItem("filename") == null) { // Checks if node has the attribute "filename". If it does - it's a file
+                if (currentNode.getAttributes().getNamedItem("char_offset").getNodeValue().equals(control)) { // If control matches the one provided
+                    return new ByteArrayInputStream(Base64.decode(currentNode.getTextContent(), Base64.DEFAULT));
                 }
             }
         }
@@ -754,19 +729,12 @@ public class XMLReader extends DatabaseReader {
     @Override
     public ArrayList<ScNode> getMenu(String nodeUniqueID) {
         // Returns Subnodes of the node which nodeUniqueID is provided
-        ArrayList<ScNode> nodes = new ArrayList<>();
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i=0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                // When it finds a match - creates a NodeList and uses other function to get the MenuItems
-                NodeList childNodeList = node.getChildNodes();
-                nodes = returnSubnodeArrayList(childNodeList, true);
-                ScNode parentNode = createParentNode(node);
-                nodes.add(0, parentNode);
-                return nodes;
-            }
-        }
+        ArrayList<ScNode> nodes;
+        Node node = this.findNode(nodeUniqueID);
+        NodeList childNodeList = node.getChildNodes();
+        nodes = returnSubnodeArrayList(childNodeList, true);
+        ScNode parentNode = createParentNode(node);
+        nodes.add(0, parentNode);
         return nodes;
     }
 
@@ -786,21 +754,29 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public ScNodeProperties getNodeProperties(String nodeUniqueID) {
-        ScNodeProperties nodeProperties = null;
+        Node node = this.findNode(nodeUniqueID);
+        NamedNodeMap properties = node.getAttributes();
+        String name = properties.getNamedItem("name").getNodeValue();
+        String progLang = properties.getNamedItem("prog_lang").getNodeValue();
+        byte noSearchMe = Byte.parseByte(properties.getNamedItem("nosearch_me").getNodeValue());
+        byte noSearchCh = Byte.parseByte(properties.getNamedItem("nosearch_ch").getNodeValue());
+        return new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
+    }
+
+    /**
+     * Searches through database for the node with unique ID
+     * @param nodeUniqueID node unique ID to search for
+     * @return found Node object or null
+     */
+    private Node findNode(String nodeUniqueID) {
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                NamedNodeMap properties = node.getAttributes();
-                String name = properties.getNamedItem("name").getNodeValue();
-                String progLang = properties.getNamedItem("prog_lang").getNodeValue();
-                byte noSearchMe = Byte.parseByte(properties.getNamedItem("nosearch_me").getNodeValue());
-                byte noSearchCh = Byte.parseByte(properties.getNamedItem("nosearch_ch").getNodeValue());
-                nodeProperties = new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
-                break;
+                return node;
             }
         }
-        return nodeProperties;
+        return null;
     }
 
     @Override
@@ -808,20 +784,18 @@ public class XMLReader extends DatabaseReader {
         // Checks if it is possible to go up in document's node tree from given nodeUniqueID
         // Returns array with appropriate nodes
         ArrayList<ScNode> nodes = null;
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                Node parentNode = node.getParentNode();
-                if (parentNode == null) {
-                    return nodes;
-                } else if (parentNode.getNodeName().equals("cherrytree")) {
-                    nodes = this.getMainNodes();
-                } else {
-                    nodes = this.returnSubnodeArrayList(parentNode.getChildNodes(), true);
-                    nodes.add(0, this.createParentNode(parentNode));
-                }
-            }
+        Node node = this.findNode(nodeUniqueID);
+        if (node == null) {
+            return nodes;
+        }
+        Node parentNode = node.getParentNode();
+        if (parentNode == null) {
+            return nodes;
+        } else if (parentNode.getNodeName().equals("cherrytree")) {
+            nodes = this.getMainNodes();
+        } else {
+            nodes = this.returnSubnodeArrayList(parentNode.getChildNodes(), true);
+            nodes.add(0, this.createParentNode(parentNode));
         }
         return nodes;
     }
@@ -829,30 +803,24 @@ public class XMLReader extends DatabaseReader {
     @Override
     public ScNode getSingleMenuItem(String nodeUniqueID) {
         // Returns single menu item to be used when opening anchor links
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                if (node.getNodeName().equals("node")) {
-                    // Node name and unique_id always the same for the node
-                    String menuItemsNodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                    String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                    boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-                    boolean isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-                    String foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-                    int iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-                    boolean isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
-                    if (hasSubnodes(node)) {
-                        // if node has subnodes, then it has to be opened as a parent node and displayed as such
-                        return new ScNode(menuItemsNodeUniqueID, nameValue, true, true, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-                    } else {
-                        // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-                        return new ScNode(menuItemsNodeUniqueID, nameValue, false, false, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-                    }
-                }
-            }
+        Node node = this.findNode(nodeUniqueID);
+        if (node == null) {
+            return null;
         }
-        return null; // null if no node was found
+        String menuItemsNodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+        String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+        boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
+        boolean isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
+        String foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
+        int iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
+        boolean isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
+        if (hasSubnodes(node)) {
+            // if node has subnodes, then it has to be opened as a parent node and displayed as such
+            return new ScNode(menuItemsNodeUniqueID, nameValue, true, true, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+        } else {
+            // If node doesn't have subnodes, then it has to be opened as subnode of some other node
+            return new ScNode(menuItemsNodeUniqueID, nameValue, false, false, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+        }
     }
 
     /**
@@ -897,96 +865,89 @@ public class XMLReader extends DatabaseReader {
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary for text, codebox, image formatting
         ArrayList<ScNodeContentTable> nodeTables = new ArrayList<>(); // Temporary for table storage
         ArrayList<Integer> nodeTableCharOffsets = new ArrayList<>();
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-
         //// This needed to calculate where to place span in to builder
         // Because after every insertion in the middle it displaces the next insertion
         // by the length of the inserted span.
         // During the loop lengths of the string elements (not images or tables) are added to this
         int totalCharOffset = 0;
         ////
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) { // Finds node that user chose
-                // prog_lang attribute is the same as syntax in SQL database
-                // it is used to set formatting for the node and separate between node types
-                // The same attribute is used for codeboxes
-                String nodeProgLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
-                if (nodeProgLang.equals("custom-colors") || nodeProgLang.equals("plain-text")) {
-                    // This is formatting for Rich Text and Plain Text nodes
-                    NodeList nodeContentNodeList = node.getChildNodes(); // Gets all the subnodes/childnodes of selected node
-                    for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
-                        // Loops through nodes of selected node
-                        Node currentNode = nodeContentNodeList.item(x);
-                        String currentNodeType = currentNode.getNodeName();
-                        switch (currentNodeType) {
-                            case "rich_text":
-                                if (currentNode.hasAttributes()) {
-                                    nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
-                                } else {
-                                    nodeContentStringBuilder.append(currentNode.getTextContent());
-                                }
-                                break;
-                            case "codebox": {
-                                int charOffset = this.getCharOffset(currentNode);
-                                SpannableStringBuilder codeboxText = this.makeFormattedCodeboxSpan(currentNode);
-                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
-                                totalCharOffset += codeboxText.length() - 1;
-                                break;
-                            }
-                            case "encoded_png": {
-                                // "encoded_png" might actually be image, attached files or anchors (just images that mark the position)
-                                int charOffset = getCharOffset(currentNode);
-                                if (currentNode.getAttributes().getNamedItem("filename") != null) {
-                                    if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
-                                        // For latex boxes
-                                        SpannableStringBuilder latexImageSpan = this.makeLatexImageSpan(currentNode);
-                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
-                                    } else {
-                                        // For actual attached files
-                                        SpannableStringBuilder attachedFileSpan = this.makeAttachedFileSpan(currentNode, nodeUniqueID);
-                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
-                                        totalCharOffset += attachedFileSpan.length() - 1;
-                                    }
-                                } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
-                                    SpannableStringBuilder anchorImageSpan = this.makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
-                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
-                                } else {
-                                    // Images
-                                    SpannableStringBuilder imageSpan = this.makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
-                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
-                                }
-                                break;
-                            }
-                            case "table": {
-                                int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
-                                nodeTableCharOffsets.add(charOffset);
-                                int[] cellMinMax = this.getTableMinMax(currentNode);
-                                ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
-                                byte lightInterface = 0;
-                                if (!((Element) currentNode).getAttribute("is_light").equals("")) {
-                                    lightInterface = Byte.parseByte(((Element) currentNode).getAttribute("is_light"));
-                                }
-                                NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
-                                currentTableContent.add(this.getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
-                                for (int row = 0; row < tableRowsNodes.getLength() - 1; row++) {
-                                    currentTableContent.add(this.getTableRow(tableRowsNodes.item(row)));
-                                }
-                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], lightInterface, ((Element) currentNode).getAttribute("justification"), ((Element) currentNode).getAttribute("col_widths"));
-                                nodeTables.add(scNodeContentTable);
-                                // Instead of adding space for formatting reason
-                                // it might be better to take one of totalCharOffset
-                                totalCharOffset -= 1;
-                                break;
-                            }
+        // prog_lang attribute is the same as syntax in SQL database
+        // it is used to set formatting for the node and separate between node types
+        // The same attribute is used for codeboxes
+        Node node = this.findNode(nodeUniqueID);
+        String nodeProgLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
+        if (nodeProgLang.equals("custom-colors") || nodeProgLang.equals("plain-text")) {
+            // This is formatting for Rich Text and Plain Text nodes
+            NodeList nodeContentNodeList = node.getChildNodes(); // Gets all the subnodes/childnodes of selected node
+            for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
+                // Loops through nodes of selected node
+                Node currentNode = nodeContentNodeList.item(x);
+                String currentNodeType = currentNode.getNodeName();
+                switch (currentNodeType) {
+                    case "rich_text":
+                        if (currentNode.hasAttributes()) {
+                            nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
+                        } else {
+                            nodeContentStringBuilder.append(currentNode.getTextContent());
                         }
+                        break;
+                    case "codebox": {
+                        int charOffset = this.getCharOffset(currentNode);
+                        SpannableStringBuilder codeboxText = this.makeFormattedCodeboxSpan(currentNode);
+                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
+                        totalCharOffset += codeboxText.length() - 1;
+                        break;
                     }
-                } else {
-                    // Node is Code Node. It's just a big CodeBox with no dimensions
-                    nodeContentStringBuilder.append(makeFormattedCodeNodeSpan(node));
+                    case "encoded_png": {
+                        // "encoded_png" might actually be image, attached files or anchors (just images that mark the position)
+                        int charOffset = getCharOffset(currentNode);
+                        if (currentNode.getAttributes().getNamedItem("filename") != null) {
+                            if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
+                                // For latex boxes
+                                SpannableStringBuilder latexImageSpan = this.makeLatexImageSpan(currentNode);
+                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
+                            } else {
+                                // For actual attached files
+                                SpannableStringBuilder attachedFileSpan = this.makeAttachedFileSpan(currentNode, nodeUniqueID);
+                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                totalCharOffset += attachedFileSpan.length() - 1;
+                            }
+                        } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
+                            SpannableStringBuilder anchorImageSpan = this.makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
+                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
+                        } else {
+                            // Images
+                            SpannableStringBuilder imageSpan = this.makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
+                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
+                        }
+                        break;
+                    }
+                    case "table": {
+                        int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
+                        nodeTableCharOffsets.add(charOffset);
+                        int[] cellMinMax = this.getTableMinMax(currentNode);
+                        ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
+                        byte lightInterface = 0;
+                        if (!((Element) currentNode).getAttribute("is_light").equals("")) {
+                            lightInterface = Byte.parseByte(((Element) currentNode).getAttribute("is_light"));
+                        }
+                        NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
+                        currentTableContent.add(this.getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
+                        for (int row = 0; row < tableRowsNodes.getLength() - 1; row++) {
+                            currentTableContent.add(this.getTableRow(tableRowsNodes.item(row)));
+                        }
+                        ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], lightInterface, ((Element) currentNode).getAttribute("justification"), ((Element) currentNode).getAttribute("col_widths"));
+                        nodeTables.add(scNodeContentTable);
+                        // Instead of adding space for formatting reason
+                        // it might be better to take one of totalCharOffset
+                        totalCharOffset -= 1;
+                        break;
+                    }
                 }
-                break;
             }
+        } else {
+            // Node is Code Node. It's just a big CodeBox with no dimensions
+            nodeContentStringBuilder.append(makeFormattedCodeNodeSpan(node));
         }
 
         int subStringStart = 0; // Holds start from where SpannableStringBuilder has to be split from
@@ -1591,14 +1552,7 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public void saveNodeContent(String nodeUniqueID) {
-        Node node = null;
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                break;
-            }
-        }
+        Node node = this.findNode(nodeUniqueID);
         if (node == null) {
             this.displayToast(this.context.getString(R.string.toast_error_while_saving_node_content_not_found));
             return;
@@ -1997,26 +1951,20 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                NamedNodeMap properties = node.getAttributes();
-                properties.getNamedItem("name").setNodeValue(name);
-                if (properties.getNamedItem("prog_lang").getNodeValue().equals("custom-colors") && !progLang.equals("custom-colors")) {
-                    StringBuilder nodeContent = this.convertRichTextNodeContentToPlainText(node);
-                    this.deleteNodeContent(node);
-                    Element newContentNode = this.doc.createElement("rich_text");
-                    newContentNode.setTextContent(nodeContent.toString());
-                    node.appendChild(newContentNode);
-                }
-                properties.getNamedItem("prog_lang").setNodeValue(progLang);
-                properties.getNamedItem("nosearch_me").setNodeValue(noSearchMe);
-                properties.getNamedItem("nosearch_ch").setNodeValue(noSearchCh);
-                properties.getNamedItem("ts_lastsave").setNodeValue(String.valueOf(System.currentTimeMillis() / 1000));
-                break;
-            }
+        Node node = this.findNode(nodeUniqueID);
+        NamedNodeMap properties = node.getAttributes();
+        properties.getNamedItem("name").setNodeValue(name);
+        if (properties.getNamedItem("prog_lang").getNodeValue().equals("custom-colors") && !progLang.equals("custom-colors")) {
+            StringBuilder nodeContent = this.convertRichTextNodeContentToPlainText(node);
+            this.deleteNodeContent(node);
+            Element newContentNode = this.doc.createElement("rich_text");
+            newContentNode.setTextContent(nodeContent.toString());
+            node.appendChild(newContentNode);
         }
+        properties.getNamedItem("prog_lang").setNodeValue(progLang);
+        properties.getNamedItem("nosearch_me").setNodeValue(noSearchMe);
+        properties.getNamedItem("nosearch_ch").setNodeValue(noSearchCh);
+        properties.getNamedItem("ts_lastsave").setNodeValue(String.valueOf(System.currentTimeMillis() / 1000));
         this.writeIntoDatabase();
     }
 
