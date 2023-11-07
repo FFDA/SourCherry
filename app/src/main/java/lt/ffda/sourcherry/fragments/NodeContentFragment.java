@@ -169,6 +169,7 @@ public class NodeContentFragment extends Fragment {
                 TableRow tableHeaderRow = new TableRow(getActivity());
                 for (CharSequence cell: tableHeaderCells) {
                     TextView headerTextView = new TextView(getActivity());
+                    headerTextView.setTextIsSelectable(true);
                     headerTextView.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
                     headerTextView.setMinWidth(colMin);
                     headerTextView.setMaxWidth(colMax);
@@ -190,6 +191,7 @@ public class NodeContentFragment extends Fragment {
                     CharSequence[] tableRowCells = scNodeContentTable.getContent().get(row);
                     for (CharSequence cell: tableRowCells) {
                         TextView cellTextView = new TextView(getActivity());
+                        cellTextView.setTextIsSelectable(true);
                         cellTextView.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
                         cellTextView.setMinWidth(colMin);
                         cellTextView.setMaxWidth(colMax);
