@@ -288,6 +288,29 @@ public class MultiReader extends DatabaseReader {
     }
 
     /**
+     * Calcultates and returns file's sha256sum
+     * @param uri Uri of the file to calculate sha256sum for
+     * @return sha256sum of the file
+     */
+    private String calculateFileSha256Sum(Uri uri) {
+        String sha256sum = null;
+        try (InputStream inputStream = this.context.getContentResolver().openInputStream(uri)) {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] buf = new byte[4 * 1024];
+            int length;
+            while ((length = inputStream.read(buf)) != -1) {
+                byteArrayOutputStream.write(buf);
+            }
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(byteArrayOutputStream.toByteArray());
+            sha256sum = new BigInteger(1, hash).toString(16);
+            byteArrayOutputStream.close();
+        } catch (IOException | NoSuchAlgorithmException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+        }
+        return sha256sum;
+    }
+
+    /**
      * Recursively scans through all the nodes in NodeList to collect the uniqueNodeIDs. Adds them
      * to provided String list
      * @param uniqueIDList String list to add the found nodeUniqueIDs
@@ -414,6 +437,37 @@ public class MultiReader extends DatabaseReader {
         }
         tableContent.insert(0, "\n");
         return tableContent;
+    }
+
+    /**
+     * Copies file to the currently opened node's folder in the MultiFile database
+     * @param uri Uri of the file that has to be copied
+     * @param filename filename of the file inside MultiFile database
+     */
+    private void copyFileToNodeFolder(Uri uri, String filename) {
+        OutputStream outputStream = null;
+        try (InputStream inputStream = this.context.getContentResolver().openInputStream(uri)) {
+            Uri multiFileStorageFileUri = DocumentsContract.createDocument(
+                    this.context.getContentResolver(),
+                    this.getNodeUri(this.findSingleNode(this.mainViewModel.getCurrentNode().getUniqueId())),
+                    "*/*",
+                    filename
+            );
+            outputStream = this.context.getContentResolver().openOutputStream(multiFileStorageFileUri);
+            int length;
+            byte[] buf = new byte[4 * 1024];
+            while ((length = inputStream.read(buf, 0, buf.length)) != -1) {
+                outputStream.write(buf, 0, length);
+            }
+        } catch (IOException e) {
+            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+        } finally {
+            try {
+                outputStream.close();
+            } catch (IOException e) {
+                this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            }
+        }
     }
 
     @Override
@@ -1894,39 +1948,13 @@ public class MultiReader extends DatabaseReader {
             element.setAttribute("sha256sum", imageSpanFile.getSha256sum());
             fileImageSha256Sums.add(imageSpanFile.getSha256sum());
         } else {
-            try {
-                Uri userAttachedFileUri = Uri.parse(imageSpanFile.getFileUri());
-                InputStream inputStream = this.context.getContentResolver().openInputStream(userAttachedFileUri);
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                byte[] buf = new byte[4 * 1024];
-                int length;
-                while ((length = inputStream.read(buf)) != -1) {
-                    byteArrayOutputStream.write(buf);
-                }
-                byte[] hash = MessageDigest.getInstance("SHA-256").digest(byteArrayOutputStream.toByteArray());
-                String sha256sum = new BigInteger(1, hash).toString(16);
-                byteArrayOutputStream.close();
-                inputStream.close();
-                String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
-                Uri multiFileStorageFileUri = DocumentsContract.createDocument(
-                        this.context.getContentResolver(),
-                        this.getNodeUri(this.findSingleNode(this.mainViewModel.getCurrentNode().getUniqueId())),
-                        "*/*",
-                        extension != null ? sha256sum + "." + extension : sha256sum
-                );
-                inputStream = this.context.getContentResolver().openInputStream(userAttachedFileUri);
-                OutputStream outputStream = this.context.getContentResolver().openOutputStream(multiFileStorageFileUri);
-                while ((length = inputStream.read(buf)) != -1) {
-                    outputStream.write(buf);
-                }
-                inputStream.close();
-                outputStream.close();
-                element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
-                element.setAttribute("sha256sum", sha256sum);
-                fileImageSha256Sums.add(sha256sum);
-            } catch (IOException | NoSuchAlgorithmException e) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
-            }
+            Uri userAttachedFileUri = Uri.parse(imageSpanFile.getFileUri());
+            String sha256sum = this.calculateFileSha256Sum(userAttachedFileUri);
+            String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
+            this.copyFileToNodeFolder(userAttachedFileUri, extension != null ? sha256sum + "." + extension : sha256sum);
+            element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
+            element.setAttribute("sha256sum", sha256sum);
+            fileImageSha256Sums.add(sha256sum);
         }
         return element;
     }
@@ -1942,16 +1970,18 @@ public class MultiReader extends DatabaseReader {
      */
     private Element saveImageSpanImage(Document doc, List<String> fileImageSha256Sums, ImageSpanImage imageSpanImage, String offset, String lastFoundJustification) {
         Element element = doc.createElement("encoded_png");
-        Drawable drawable = imageSpanImage.getDrawable();
-        // Hopefully it's always a Bitmap drawable, because I get it from the same source
-        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
         element.setAttribute("char_offset", offset);
         element.setAttribute("justification", lastFoundJustification);
         element.setAttribute("link", "");
-        if (imageSpanImage.getSha256sum() != null) {
-            // If this value isn't null that means that it was loaded from database
+        if (imageSpanImage.getSha256sum().startsWith("content://")) {
+            // Means it's not sha256sum, but an URI in string form
+            Uri userAttachedFileUri = Uri.parse(imageSpanImage.getSha256sum());
+            String sha256sum = this.calculateFileSha256Sum(userAttachedFileUri);
+            this.copyFileToNodeFolder(userAttachedFileUri, sha256sum + ".png");
+            element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
+            element.setAttribute("sha256sum", sha256sum);
+            fileImageSha256Sums.add(sha256sum);
+        } else {
             element.setAttribute("sha256sum", imageSpanImage.getSha256sum());
             fileImageSha256Sums.add(imageSpanImage.getSha256sum());
         }

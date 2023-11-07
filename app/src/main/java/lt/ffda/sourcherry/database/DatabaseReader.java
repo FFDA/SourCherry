@@ -13,6 +13,7 @@ package lt.ffda.sourcherry.database;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -47,6 +48,7 @@ import lt.ffda.sourcherry.model.ScSearchNode;
 import lt.ffda.sourcherry.spans.BackgroundColorSpanCustom;
 import lt.ffda.sourcherry.spans.ClickableSpanFile;
 import lt.ffda.sourcherry.spans.ImageSpanFile;
+import lt.ffda.sourcherry.spans.ImageSpanImage;
 import lt.ffda.sourcherry.spans.StyleSpanBold;
 import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
@@ -61,7 +63,7 @@ import lt.ffda.sourcherry.spans.URLSpanWebs;
 public abstract class DatabaseReader {
 
     /**
-     * Creates String with spanns that can be inserted into no content and it will have formatting
+     * Creates String with spans that can be inserted into node content and it will have formatting
      * for attached file. This span when saving will make the reader to save attached file in to the
      * database file.
      * @param context context of the app to get resources
@@ -91,6 +93,20 @@ public abstract class DatabaseReader {
         };
         attachedFile.setSpan(imageClickableSpan, 0, attachedFile.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return attachedFile;
+    }
+
+    /**
+     * Creates a String with image span. This String can be inserted into the node to display the image.
+     * @param context context of the app to get resources
+     * @param uri uri of the image file on the filesystem
+     * @return formatted String with image span
+     */
+    public static SpannableStringBuilder createImageSpan(Context context, Uri uri) {
+        SpannableStringBuilder formattedImage = new SpannableStringBuilder(" ");
+        ImageSpanImage imageSpanImage = new ImageSpanImage(context, uri);
+        imageSpanImage.setSha256sum(uri.toString());
+        formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return formattedImage;
     }
 
     /**

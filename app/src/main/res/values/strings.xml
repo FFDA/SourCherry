@@ -71,6 +71,8 @@
     <string name="toast_message_updated_drawer_menu">Updated drawer menu</string>
     <string name="toast_message_attach_file_place_cursor">Place the cursor where the file should be inserted</string>
     <string name="toast_message_attach_file_insert_into_table">File can\'t be inserted into the table</string>
+    <string name="toast_message_insert_image_place_cursor">Place the cursor where the image should be inserted</string>
+    <string name="toast_message_insert_image_insert_into_table">Image can\'t be inserted into the table</string>
     <string name="open_database_fragment_copying_database_message">Copying database to app-specific storage</string>
     <string name="open_database_fragment_extracting_database_message">Extracting database</string>
     <string name="toast_error_failed_to_save_file">Failed to save the file</string>
@@ -191,7 +193,8 @@
     <string name="edit_node_fragment_button_row_italic">ITALIC. Toggle Italic font in selected text on and off.</string>
     <string name="edit_node_fragment_button_row_underline">UNDERLINE. Toggle Underline font in selected text on and off.</string>
     <string name="edit_node_fragment_button_row_strikethrough">STRIKETHROUGH. Toggle Strikethrough font in selected text on and off.</string>
-    <string name="edit_node_fragment_button_row_attach_file">ATTACH FILE. Inserts user selected file into node.</string>
+    <string name="edit_node_fragment_button_row_attach_file">ATTACH FILE. Inserts user selected file into the node.</string>
+    <string name="edit_node_fragment_button_row_insert_image">INSERT IMAGE. Inserts user selected image into the node.</string>
     <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
     <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>
     <string name="menu_item_action_content_description">Drawer menu item preferences. Displays settings icon. When clicked opens contextual menu.</string>

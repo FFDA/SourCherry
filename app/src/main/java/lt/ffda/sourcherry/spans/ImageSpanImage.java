@@ -10,7 +10,9 @@
 
 package lt.ffda.sourcherry.spans;
 
+import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.text.style.ImageSpan;
 
 import androidx.annotation.NonNull;
@@ -25,6 +27,10 @@ public class ImageSpanImage extends ImageSpan {
 
     public ImageSpanImage(@NonNull Drawable drawable) {
         super(drawable);
+    }
+
+    public ImageSpanImage(@NonNull Context context, @NonNull Uri uri) {
+        super(context, uri);
     }
 
     /**

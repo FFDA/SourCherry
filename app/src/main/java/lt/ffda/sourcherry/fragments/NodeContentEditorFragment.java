@@ -31,7 +31,6 @@ import android.text.style.SubscriptSpan;
 import android.text.style.SuperscriptSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Base64;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -53,6 +52,7 @@ import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -69,7 +69,6 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.MainView;
@@ -97,10 +96,19 @@ import me.jfenn.colorpickerdialog.interfaces.OnColorPickedListener;
 public class NodeContentEditorFragment extends Fragment {
     private boolean changesSaved = false;
     private int color;
-    private ScheduledThreadPoolExecutor executor;
     private Handler handler;
     private MainViewModel mainViewModel;
     private LinearLayout nodeEditorFragmentLinearLayout;
+    /**
+     * Promts user to select an image they want to attach to the node. If user selects an image
+     * inserts an image representing string at the possition of the cursor
+     */
+    private final ActivityResultLauncher<PickVisualMediaRequest> pickImage = registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
+        if (uri != null) {
+            EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createImageSpan(getContext(), uri));
+        }
+    });
     /**
      * Promts user to select a file they want to attach to the node. If user selects a file inserts
      * file representing string at the possition of the cursor
@@ -621,7 +629,6 @@ public class NodeContentEditorFragment extends Fragment {
         this.nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
         this.handler = appContainer.handler;
-        this.executor = appContainer.executor;
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         this.color = this.sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
         return view;
@@ -810,6 +817,24 @@ public class NodeContentEditorFragment extends Fragment {
                         return;
                     }
                     NodeContentEditorFragment.this.attachFile.launch(new String[]{"*/*"});
+                }
+            });
+            ImageButton insertImageButton = view.findViewById(R.id.edit_node_fragment_button_row_insert_image);
+            insertImageButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    View view = NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getFocusedChild();
+                    if (view == null) {
+                        Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (view instanceof HorizontalScrollView) {
+                        Toast.makeText(getContext(), R.string.toast_message_insert_image_insert_into_table, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    NodeContentEditorFragment.this.pickImage.launch(new PickVisualMediaRequest.Builder()
+                            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                            .build());
                 }
             });
         } else {
