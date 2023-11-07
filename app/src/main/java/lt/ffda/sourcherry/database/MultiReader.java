@@ -296,10 +296,10 @@ public class MultiReader extends DatabaseReader {
         String sha256sum = null;
         try (InputStream inputStream = this.context.getContentResolver().openInputStream(uri)) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buf = new byte[4 * 1024];
             int length;
-            while ((length = inputStream.read(buf)) != -1) {
-                byteArrayOutputStream.write(buf);
+            byte[] buf = new byte[4 * 1024];
+            while ((length = inputStream.read(buf, 0, buf.length)) != -1) {
+                byteArrayOutputStream.write(buf, 0, length);
             }
             byte[] hash = MessageDigest.getInstance("SHA-256").digest(byteArrayOutputStream.toByteArray());
             sha256sum = new BigInteger(1, hash).toString(16);
@@ -308,6 +308,23 @@ public class MultiReader extends DatabaseReader {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
         }
         return sha256sum;
+    }
+
+    /**
+     * Checks if file already saved in node's folder.
+     * @param nodeUniqueID unique ID of the node to check the children for the same file
+     * @param filename filename to search for
+     * @return true - file exists, false - opposite of that
+     */
+    private boolean isFileInNode(String nodeUniqueID, String filename) {
+        try (Cursor cursor = this.getNodeChildrenCursor(nodeUniqueID)) {
+            while (cursor.moveToNext()) {
+                if (cursor.getString(2).equals(filename)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -440,12 +457,17 @@ public class MultiReader extends DatabaseReader {
     }
 
     /**
-     * Copies file to the currently opened node's folder in the MultiFile database
+     * Copies file to the currently opened node's folder in the MultiFile database if the file with
+     * the same filename does not already exists
      * @param uri Uri of the file that has to be copied
      * @param filename filename of the file inside MultiFile database
      */
     private void copyFileToNodeFolder(Uri uri, String filename) {
         OutputStream outputStream = null;
+        if (this.isFileInNode(this.mainViewModel.getCurrentNode().getUniqueId(), filename)) {
+            // If file already exists with the same filename (hash256sum) there is no need to create a new one
+            return;
+        }
         try (InputStream inputStream = this.context.getContentResolver().openInputStream(uri)) {
             Uri multiFileStorageFileUri = DocumentsContract.createDocument(
                     this.context.getContentResolver(),
@@ -1946,15 +1968,16 @@ public class MultiReader extends DatabaseReader {
         if (imageSpanFile.isFromDatabase()) {
             element.setAttribute("time", imageSpanFile.getTimestamp());
             element.setAttribute("sha256sum", imageSpanFile.getSha256sum());
-            fileImageSha256Sums.add(imageSpanFile.getSha256sum());
+            fileImageSha256Sums.add(imageSpanFile.getSha256sum() + "."  + Filenames.getFileExtension(imageSpanFile.getFilename()));
         } else {
             Uri userAttachedFileUri = Uri.parse(imageSpanFile.getFileUri());
             String sha256sum = this.calculateFileSha256Sum(userAttachedFileUri);
             String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
-            this.copyFileToNodeFolder(userAttachedFileUri, extension != null ? sha256sum + "." + extension : sha256sum);
+            String filename = extension != null ? sha256sum + "." + extension : sha256sum;
+            this.copyFileToNodeFolder(userAttachedFileUri, filename);
             element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
             element.setAttribute("sha256sum", sha256sum);
-            fileImageSha256Sums.add(sha256sum);
+            fileImageSha256Sums.add(filename);
         }
         return element;
     }
@@ -1980,10 +2003,10 @@ public class MultiReader extends DatabaseReader {
             this.copyFileToNodeFolder(userAttachedFileUri, sha256sum + ".png");
             element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
             element.setAttribute("sha256sum", sha256sum);
-            fileImageSha256Sums.add(sha256sum);
+            fileImageSha256Sums.add(sha256sum + ".png");
         } else {
             element.setAttribute("sha256sum", imageSpanImage.getSha256sum());
-            fileImageSha256Sums.add(imageSpanImage.getSha256sum());
+            fileImageSha256Sums.add(imageSpanImage.getSha256sum() + ".png");
         }
         return element;
     }
@@ -2243,7 +2266,6 @@ public class MultiReader extends DatabaseReader {
                 if (!cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
                     String filename = cursor.getString(2);
                     if (!filename.equals("subnodes.lst") && !filename.equals("node.xml")) {
-                        filename = filename.substring(0, filename.lastIndexOf("."));
                         if (!fileImageSha256Sums.contains(filename)) {
                             try {
                                 DocumentsContract.deleteDocument(
