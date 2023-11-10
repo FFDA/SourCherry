@@ -12,6 +12,8 @@ This project is for Android/Java/Git learning purposes and is not official Cherr
 
 [![](https://raw.githubusercontent.com/FFDA/ffda.github.storage/main/images/google-play-badge.png)](https://play.google.com/store/apps/details?id=lt.ffda.sourcherry)
 
+Google introduced [new requirements](https://support.google.com/googleplay/android-developer/answer/10788890?hl=en) for publishing applications on the Play Store. New requirements include displaying name, address and phone number on the store. I do not plan to provide these, so most likley at some point in the future SourCherry will be removed from the Play store by Google.
+
 Anyone can compile this app by cloning this repository or download an apk compiled by me from [releases](https://github.com/FFDA/SourCherry/releases/).
 
 ## Limitations
