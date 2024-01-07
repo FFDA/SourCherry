@@ -1,0 +1,10 @@
+v1.1.0
+- Partial LatexBox support;
+- Export to PDF;
+- Settings: option to increase SQL cursor window for Android 9 devices;
+- Icon update;
+- Placeholders for images/latex boxes that fail to load;
+- Fixed: App crashing when saving a file with not recognizable MIME type;
+- Fixed: Bookmarked nodes not sorted in the same order as in CherryTree when using XML database;
+- Fixed: crash when opening database that does no longer exits;
+- Disabled opening encrypted databases for Android 7 and lower;

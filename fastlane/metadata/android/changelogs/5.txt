@@ -1,0 +1,10 @@
+v1.0.0
+- Small UI changes and under the hood improvements;
+- Find in node;
+- Fixed: images wider than a screen not loading/displaying;
+- Fixed: Crash when opening node with too large image;
+- Fixed: SQLSearcher not finding all instances of the query;
+- Fixed: Crash when trying to open an image in ImageViewActivity;
+- Settings: Default action for embedded files;
+- Settings: Node content text size;
+- Fixed: node content not loading when selecting an item after goNodeUp();

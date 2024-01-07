@@ -1,0 +1,7 @@
+v1.5.0
+- Support for Multifile database;
+- Fixed the crash when trying to enlarge an image after the orientation change;
+- Added the ability to change the font of the node content;
+- FindInNode now marks all results at once;
+- Fixed FindInNode on Android 7 devices;
+- Some other small bug fixes and stability improvements;
