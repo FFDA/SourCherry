@@ -1,9 +1,0 @@
-v1.3.0
-- Function to add/remove node to/from bookmarks;
-- Function to add/move/detete node;
-- Function to change some properties of the node;
-- Function to edit plain text and automatic syntax highlighting nodes;
-- Function to export databases.
-- Changed dependency for extracting password protected database to “com.github.omicronapps:7-Zip-Jbinding-4Android”;
-- Support for password protected databases for Android 7 (API 24 & 25);
-- Updated target SDK to 33;

@@ -1,6 +1,0 @@
-v1.2.0
-- Updated some dependencies;
-- Fixed: crash during search;
-- Changed: extracted database filenames had random(?) integers inserted into them;
-- Mirror Database;
-- Fixed: codeboxes encapsulating more text than they should;

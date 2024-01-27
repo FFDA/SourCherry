@@ -1,1 +1,0 @@
-App to open CherryTree databases
