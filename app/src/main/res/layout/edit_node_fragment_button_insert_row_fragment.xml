@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ This file is part of SourCherry.
+  ~
+  ~ SourCherry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ SourCherry is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/cherry_red_500">
+    <LinearLayout
+        android:id="@+id/edit_node_fragment_insert_button_row"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+        <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_back"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_back"
+            android:src="@drawable/baseline_arrow_back_ios_24" />
+        <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_attach_file"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_attach_file"
+            android:src="@drawable/baseline_attachment_button_24" />
+        <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_insert_image"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_insert_image"
+            android:src="@drawable/outline_image_24" />
+    </LinearLayout>
+
+</HorizontalScrollView>

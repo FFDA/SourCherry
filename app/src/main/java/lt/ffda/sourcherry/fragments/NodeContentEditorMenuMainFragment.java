@@ -115,26 +115,22 @@ public class NodeContentEditorMenuMainFragment extends Fragment {
                 }
             }
         });
-        ImageButton attachFileButton = view.findViewById(R.id.edit_node_fragment_button_row_attach_file);
-        attachFileButton.setOnClickListener(new View.OnClickListener() {
+        ImageButton showInsertRowButton = view.findViewById(R.id.edit_node_fragment_button_row_insert_row);
+        showInsertRowButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (nodeContentEditorMenuActions != null) {
-                    nodeContentEditorMenuActions.attachFile();
-                }
-            }
-        });
-        ImageButton insertImageButton = view.findViewById(R.id.edit_node_fragment_button_row_insert_image);
-        insertImageButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (nodeContentEditorMenuActions != null) {
-                    nodeContentEditorMenuActions.inserImage();
+                    nodeContentEditorMenuActions.showInsertRow();
                 }
             }
         });
     }
 
+    /**
+     * Set an instance of the parent fragment that implements NodeContentEditorMenuActions to be
+     * able to manipulate it's content
+     * @param nodeContentEditorMenuActions instance of fragment that implelents NodeContentEditorMenuActions
+     */
     public void setNodeContentEditorMenuActions(NodeContentEditorMenuActions nodeContentEditorMenuActions) {
         this.nodeContentEditorMenuActions = nodeContentEditorMenuActions;
     }

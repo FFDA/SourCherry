@@ -65,4 +65,9 @@ public interface NodeContentEditorMenuActions {
      * Otherwise it will remove underlined property of the text in selected part of the text.
      */
     void toggleFontUnderline();
+
+    /**
+     * Shows fragment with insert/attach actions menu in nodeEditContent button row
+     */
+    void showInsertRow();
 }

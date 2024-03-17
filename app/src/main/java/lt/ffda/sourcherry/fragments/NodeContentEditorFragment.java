@@ -892,6 +892,16 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         this.color = color;
     }
 
+    @Override
+    public void showInsertRow() {
+        NodeContentEditorMenuInsertFragment fragment = new NodeContentEditorMenuInsertFragment();
+        fragment.setNodeContentEditorMenuActions(this);
+        getChildFragmentManager().beginTransaction()
+                .add(R.id.edit_node_fragment_button_row_fragment, fragment, null)
+                .addToBackStack("inserMenu")
+                .commit();
+    }
+
     public void toggleFontBold() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
