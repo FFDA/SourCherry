@@ -42,8 +42,8 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TableRow;
@@ -90,10 +90,8 @@ import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 import lt.ffda.sourcherry.utils.ColorPickerPresets;
-import me.jfenn.colorpickerdialog.dialogs.ColorPickerDialog;
-import me.jfenn.colorpickerdialog.interfaces.OnColorPickedListener;
 
-public class NodeContentEditorFragment extends Fragment {
+public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMenuActions {
     private boolean changesSaved = false;
     private int color;
     private Handler handler;
@@ -186,10 +184,21 @@ public class NodeContentEditorFragment extends Fragment {
         });
     }
 
-    /**
-     * Changes selected text background color
-     */
-    private void changeBackgroundColor() {
+    @Override
+    public void attachFile() {
+        View view = NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        if (view == null) {
+            Toast.makeText(getContext(), R.string.toast_message_attach_file_place_cursor, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (view instanceof HorizontalScrollView) {
+            Toast.makeText(getContext(), R.string.toast_message_attach_file_insert_into_table, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        NodeContentEditorFragment.this.attachFile.launch(new String[]{"*/*"});
+    }
+
+    public void changeBackgroundColor() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
@@ -217,10 +226,7 @@ public class NodeContentEditorFragment extends Fragment {
         }
     }
 
-    /**
-     * Changes selected text foreground color
-     */
-    private void changeForegroundColor() {
+    public void changeForegroundColor() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
@@ -265,10 +271,7 @@ public class NodeContentEditorFragment extends Fragment {
         return codeboxExists;
     }
 
-    /**
-     * Clears some formatting of selected text
-     */
-    private void clearFormatting() {
+    public void clearFormatting() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
             int startOfSelection = editText.getSelectionStart();
@@ -467,6 +470,22 @@ public class NodeContentEditorFragment extends Fragment {
             }
         });
         builder.show();
+    }
+
+    @Override
+    public void inserImage() {
+        View view = NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        if (view == null) {
+            Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (view instanceof HorizontalScrollView) {
+            Toast.makeText(getContext(), R.string.toast_message_insert_image_insert_into_table, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        NodeContentEditorFragment.this.pickImage.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
     }
 
     /**
@@ -723,123 +742,14 @@ public class NodeContentEditorFragment extends Fragment {
         }
 
         if (this.mainViewModel.getCurrentNode().isRichText()) {
-            ImageButton clearFormattingButton = view.findViewById(R.id.edit_node_fragment_button_row_clear_formatting);
-            clearFormattingButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    NodeContentEditorFragment.this.clearFormatting();
-                }
-            });
-            ImageButton colorPicker = view.findViewById(R.id.edit_node_fragment_button_row_color_picker);
-            colorPicker.setColorFilter(this.color);
-            colorPicker.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    new ColorPickerDialog()
-                            .withColor(NodeContentEditorFragment.this.color)
-                            .withPresets(
-                                    ColorPickerPresets.BLUE.getColor(),
-                                    ColorPickerPresets.GREEN.getColor(),
-                                    ColorPickerPresets.YELLOW.getColor(),
-                                    ColorPickerPresets.ORANGE.getColor(),
-                                    ColorPickerPresets.RED.getColor(),
-                                    ColorPickerPresets.VIOLET.getColor(),
-                                    ColorPickerPresets.BROWN.getColor(),
-                                    ColorPickerPresets.WHITE.getColor(),
-                                    ColorPickerPresets.BLACK.getColor()
-                            )
-                            .withListener(new OnColorPickedListener<ColorPickerDialog>() {
-                                @Override
-                                public void onColorPicked(@Nullable ColorPickerDialog pickerView, int color) {
-                                    NodeContentEditorFragment.this.color = color;
-                                    SharedPreferences.Editor editor = NodeContentEditorFragment.this.sharedPreferences.edit();
-                                    colorPicker.setColorFilter(color);
-                                    editor.putInt("colorPickerColor", color);
-                                    editor.apply();
-                                }
-                            })
-                            .show(getParentFragmentManager(), "colorPicker");
-                }
-            });
-            ImageButton foregroundColorButton = view.findViewById(R.id.edit_node_fragment_button_row_foreground_color);
-            foregroundColorButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    NodeContentEditorFragment.this.changeForegroundColor();
-                }
-            });
-            ImageButton backgroundColorButton = view.findViewById(R.id.edit_node_fragment_button_row_background_color);
-            backgroundColorButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    NodeContentEditorFragment.this.changeBackgroundColor();
-                }
-            });
-            ImageButton boldButton = view.findViewById(R.id.edit_node_fragment_button_row_bold);
-            boldButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    NodeContentEditorFragment.this.toggleFontBold();
-                }
-            });
-            ImageButton italicButton = view.findViewById(R.id.edit_node_fragment_button_row_italic);
-            italicButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    NodeContentEditorFragment.this.toggleFontItalic();
-                }
-            });
-            ImageButton underlineButton = view.findViewById(R.id.edit_node_fragment_button_row_underline);
-            underlineButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    NodeContentEditorFragment.this.toggleFontUnderline();
-                }
-            });
-            ImageButton strikethoughButton = view.findViewById(R.id.edit_node_fragment_button_row_strikethrough);
-            strikethoughButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    NodeContentEditorFragment.this.toggleFontStrikethrough();
-                }
-            });
-            ImageButton attachFileButton = view.findViewById(R.id.edit_node_fragment_button_row_attach_file);
-            attachFileButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    View view = NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getFocusedChild();
-                    if (view == null) {
-                        Toast.makeText(getContext(), R.string.toast_message_attach_file_place_cursor, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (view instanceof HorizontalScrollView) {
-                        Toast.makeText(getContext(), R.string.toast_message_attach_file_insert_into_table, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    NodeContentEditorFragment.this.attachFile.launch(new String[]{"*/*"});
-                }
-            });
-            ImageButton insertImageButton = view.findViewById(R.id.edit_node_fragment_button_row_insert_image);
-            insertImageButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    View view = NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getFocusedChild();
-                    if (view == null) {
-                        Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (view instanceof HorizontalScrollView) {
-                        Toast.makeText(getContext(), R.string.toast_message_insert_image_insert_into_table, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    NodeContentEditorFragment.this.pickImage.launch(new PickVisualMediaRequest.Builder()
-                            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
-                            .build());
-                }
-            });
+            NodeContentEditorMenuMainFragment fragment = new NodeContentEditorMenuMainFragment();
+            fragment.setNodeContentEditorMenuActions(this);
+            getChildFragmentManager().beginTransaction()
+                    .add(R.id.edit_node_fragment_button_row_fragment, fragment, null)
+                    .commit();
         } else {
-            HorizontalScrollView buttonRowLinearLayout = getView().findViewById(R.id.edit_node_fragment_button_row_scrollview);
-            buttonRowLinearLayout.setVisibility(View.GONE);
+            FrameLayout buttonRowFragmentContainer = getView().findViewById(R.id.edit_node_fragment_button_row_fragment);
+            buttonRowFragmentContainer.setVisibility(View.GONE);
         }
         this.loadContent();
     }
@@ -977,11 +887,12 @@ public class NodeContentEditorFragment extends Fragment {
         editor.apply();
     }
 
-    /**
-     * Makes selected font bold if there isn't any bold text in selection.
-     * Otherwise it will remove bold text  property of the in selected part of the text.
-     */
-    private void toggleFontBold() {
+    @Override
+    public void setColor(int color) {
+        this.color = color;
+    }
+
+    public void toggleFontBold() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
@@ -1010,11 +921,7 @@ public class NodeContentEditorFragment extends Fragment {
         }
     }
 
-    /**
-     * Makes selected font italic if there isn't any italic text in selection.
-     * Otherwise it will remove italic property of the text in selected part of the text.
-     */
-    private void toggleFontItalic() {
+    public void toggleFontItalic() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
@@ -1043,11 +950,7 @@ public class NodeContentEditorFragment extends Fragment {
         }
     }
 
-    /**
-     * Makes selected text strikethrough if there isn't any struckthrough text in selection.
-     * Otherwise it will remove strikethrough property of the text in selected part of the text.
-     */
-    private void toggleFontStrikethrough() {
+    public void toggleFontStrikethrough() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
@@ -1076,11 +979,7 @@ public class NodeContentEditorFragment extends Fragment {
         }
     }
 
-    /**
-     * Makes selected text underlined if there isn't any underlined text in selection.
-     * Otherwise it will remove underlined property of the text in selected part of the text.
-     */
-    private void toggleFontUnderline() {
+    public void toggleFontUnderline() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
