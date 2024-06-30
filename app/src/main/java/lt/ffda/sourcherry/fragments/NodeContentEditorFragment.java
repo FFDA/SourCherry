@@ -456,7 +456,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
-     * Creates TextView that is ready to be inserted into table as a cell. Only not header cell will
+     * Creates EditText that is ready to be inserted into table as a cell. Only not header cell will
      * have maxWdith applied to them. So header cell will expand with the text typed into them while
      * normal cell will be only as wide as header cell of the column.
      * @param header true - cell will be used in the header, false - normal table cell
@@ -471,18 +471,17 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         EditText cell = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
         if (header) {
             cell.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
+            cell.setTypeface(typeface, Typeface.BOLD);
         } else {
             cell.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
             cell.setMaxWidth(colWidth);
+            cell.setTypeface(typeface);
         }
         cell.setPadding(10,10,10,10);
         cell.setLayoutParams(params);
         cell.setText(content);
         cell.setMinWidth(100);
         cell.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
-        if (typeface != null) {
-            cell.setTypeface(typeface);
-        }
         cell.addTextChangedListener(textWatcher);
         return cell;
     }

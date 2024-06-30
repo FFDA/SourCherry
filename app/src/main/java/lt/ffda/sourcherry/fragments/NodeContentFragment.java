@@ -122,6 +122,7 @@ public class NodeContentFragment extends Fragment {
             case "Caladea":
                 typeface = ResourcesCompat.getFont(getContext(), R.font.caladea_regular);
         }
+        int textSize = this.sharedPreferences.getInt("preferences_text_size", 15);
         for (ScNodeContent part: this.mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
@@ -130,7 +131,7 @@ public class NodeContentFragment extends Fragment {
                 tv.setTextIsSelectable(true);
                 tv.setMovementMethod(LinkMovementMethod.getInstance()); // Needed to detect click/open links
                 tv.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
-                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+                tv.setTextSize(textSize);
                 if (typeface != null) {
                     tv.setTypeface(typeface);
                 }
@@ -168,19 +169,7 @@ public class NodeContentFragment extends Fragment {
                 CharSequence[] tableHeaderCells = scNodeContentTable.getContent().get(0);
                 TableRow tableHeaderRow = new TableRow(getActivity());
                 for (CharSequence cell: tableHeaderCells) {
-                    TextView headerTextView = new TextView(getActivity());
-                    headerTextView.setTextIsSelectable(true);
-                    headerTextView.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
-                    headerTextView.setMinWidth(colMin);
-                    headerTextView.setMaxWidth(colMax);
-                    headerTextView.setPadding(10,10,10,10);
-                    headerTextView.setLayoutParams(params);
-                    headerTextView.setText(cell);
-                    headerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-                    if (typeface != null) {
-                        headerTextView.setTypeface(typeface);
-                    }
-                    tableHeaderRow.addView(headerTextView);
+                    tableHeaderRow.addView(createTableCell(true, params, typeface, textSize, colMin, cell));
                 }
                 table.addView(tableHeaderRow);
                 ////
@@ -190,19 +179,7 @@ public class NodeContentFragment extends Fragment {
                     TableRow tableRow = new TableRow(getActivity());
                     CharSequence[] tableRowCells = scNodeContentTable.getContent().get(row);
                     for (CharSequence cell: tableRowCells) {
-                        TextView cellTextView = new TextView(getActivity());
-                        cellTextView.setTextIsSelectable(true);
-                        cellTextView.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
-                        cellTextView.setMinWidth(colMin);
-                        cellTextView.setMaxWidth(colMax);
-                        cellTextView.setPadding(10,10,10,10);
-                        cellTextView.setLayoutParams(params);
-                        cellTextView.setText(cell);
-                        cellTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-                        if (typeface != null) {
-                            cellTextView.setTypeface(typeface);
-                        }
-                        tableRow.addView(cellTextView);
+                        tableRow.addView(createTableCell(false, params, typeface, textSize, colMin, cell));
                     }
                     table.addView(tableRow);
                 }
@@ -402,5 +379,34 @@ public class NodeContentFragment extends Fragment {
                 }
             }
         }
+    }
+
+    /**
+     * Creates TextView that is ready to be inserted into table as a cell.
+     * @param header true - cell will be used in the header, false - normal table cell
+     * @param params parameters of the EditText (width, height) otherwise it will net be displayed
+     * @param typeface font be set on the text in the cell. Null will use default android font
+     * @param textSize textSize to be set on the text in the cell
+     * @param colWidth width of the cell. Will not be appliead to header cell.
+     * @param content content of the cell.
+     * @return TextView ready to be inserted in the table as a cell
+     */
+    private TextView createTableCell(boolean header, ViewGroup.LayoutParams params, Typeface typeface, int textSize, int colWidth, CharSequence content) {
+        TextView cell = new TextView(getActivity());
+        if (header) {
+            cell.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
+            cell.setTypeface(typeface, Typeface.BOLD);
+        } else {
+            cell.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
+            cell.setMaxWidth(colWidth);
+            cell.setTypeface(typeface);
+        }
+        cell.setTextIsSelectable(true);
+        cell.setPadding(10,10,10,10);
+        cell.setLayoutParams(params);
+        cell.setText(content);
+        cell.setMinWidth(100);
+        cell.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
+        return cell;
     }
 }
