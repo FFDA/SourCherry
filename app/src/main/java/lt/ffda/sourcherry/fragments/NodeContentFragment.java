@@ -191,7 +191,6 @@ public class NodeContentFragment extends Fragment {
                 // Multiplying by arbitrary number to make table cells look better.
                 // For some reason table that looks good in PC version looks worse on android
                 int colMin = (int) (scNodeContentTable.getColMin() * 1.3);
-                int colMax = (int) (scNodeContentTable.getColMax() * 1.3);
                 // Wraps content in cell correctly
                 TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
                 //// Creates and formats header for the table
