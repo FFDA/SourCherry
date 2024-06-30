@@ -98,6 +98,35 @@ public class NodeContentFragment extends Fragment {
     private MainViewModel mainViewModel;
     private SharedPreferences sharedPreferences;
 
+    /**
+     * Creates TextView that is ready to be inserted into table as a cell.
+     * @param header true - cell will be used in the header, false - normal table cell
+     * @param params parameters of the EditText (width, height) otherwise it will net be displayed
+     * @param typeface font be set on the text in the cell. Null will use default android font
+     * @param textSize textSize to be set on the text in the cell
+     * @param colWidth width of the cell. Will not be appliead to header cell.
+     * @param content content of the cell.
+     * @return TextView ready to be inserted in the table as a cell
+     */
+    private TextView createTableCell(boolean header, ViewGroup.LayoutParams params, Typeface typeface, int textSize, int colWidth, CharSequence content) {
+        TextView cell = new TextView(getActivity());
+        if (header) {
+            cell.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
+            cell.setTypeface(typeface, Typeface.BOLD);
+        } else {
+            cell.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
+            cell.setMaxWidth(colWidth);
+            cell.setTypeface(typeface);
+        }
+        cell.setTextIsSelectable(true);
+        cell.setPadding(10,10,10,10);
+        cell.setLayoutParams(params);
+        cell.setText(content);
+        cell.setMinWidth(100);
+        cell.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
+        return cell;
+    }
+
     public void loadContent() {
         if (this.mainViewModel.getNodeContent().getValue() == null) {
             return;
@@ -379,34 +408,5 @@ public class NodeContentFragment extends Fragment {
                 }
             }
         }
-    }
-
-    /**
-     * Creates TextView that is ready to be inserted into table as a cell.
-     * @param header true - cell will be used in the header, false - normal table cell
-     * @param params parameters of the EditText (width, height) otherwise it will net be displayed
-     * @param typeface font be set on the text in the cell. Null will use default android font
-     * @param textSize textSize to be set on the text in the cell
-     * @param colWidth width of the cell. Will not be appliead to header cell.
-     * @param content content of the cell.
-     * @return TextView ready to be inserted in the table as a cell
-     */
-    private TextView createTableCell(boolean header, ViewGroup.LayoutParams params, Typeface typeface, int textSize, int colWidth, CharSequence content) {
-        TextView cell = new TextView(getActivity());
-        if (header) {
-            cell.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
-            cell.setTypeface(typeface, Typeface.BOLD);
-        } else {
-            cell.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
-            cell.setMaxWidth(colWidth);
-            cell.setTypeface(typeface);
-        }
-        cell.setTextIsSelectable(true);
-        cell.setPadding(10,10,10,10);
-        cell.setLayoutParams(params);
-        cell.setText(content);
-        cell.setMinWidth(100);
-        cell.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
-        return cell;
     }
 }
