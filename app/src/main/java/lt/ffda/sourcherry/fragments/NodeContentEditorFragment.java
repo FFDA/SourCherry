@@ -64,6 +64,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
@@ -75,6 +76,7 @@ import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.MainViewModel;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.ScApplication;
+import lt.ffda.sourcherry.customUiElements.CustomTextEdit;
 import lt.ffda.sourcherry.customUiElements.ScTableLayout;
 import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
@@ -92,6 +94,7 @@ import lt.ffda.sourcherry.spans.URLSpanWebs;
 import lt.ffda.sourcherry.utils.ColorPickerPresets;
 
 public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMenuActions {
+    private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
     private boolean changesSaved = false;
     private int color;
     private Handler handler;
@@ -157,6 +160,37 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
         }
     };
+
+    /**
+     * Creates focus change listiner for CustomeEditText. It changes editor menu depending on where
+     * the user puts cursor. When cursor in table it should have different editor menu items.
+     * @return OnFocusChangeListener for CustomeEditText
+     */
+    private View.OnFocusChangeListener createOnCustomTextEditFocusChangeListener() {
+        if (this.mainViewModel.getCurrentNode().isRichText()) {
+            return new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View view, boolean hasFocus) {
+                    if (hasFocus) {
+                        FragmentManager fragmentManager = getChildFragmentManager();
+                        Fragment tableMenuFragment = fragmentManager.findFragmentByTag("tableMenuFragment");
+                        CustomTextEdit customTextEdit = (CustomTextEdit) view;
+                        if (customTextEdit.isTableCell() && tableMenuFragment == null) {
+                            tableMenuFragment = new NodeContentEditorMenuTableFragment();
+                            fragmentManager.beginTransaction()
+                                    .add(R.id.edit_node_fragment_button_row_fragment, tableMenuFragment, "tableMenuFragment")
+                                    .setReorderingAllowed(true)
+                                    .addToBackStack(null)
+                                    .commit();
+                        } else if (!customTextEdit.isTableCell() && tableMenuFragment != null) {
+                            fragmentManager.popBackStack();
+                        }
+                    }
+                }
+            };
+        }
+        return null;
+    }
 
     /**
      * Adds textChangedListeners for all EditText views
@@ -382,20 +416,19 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
-     * Edit text that can be insertet into fragments view
+     * Edit text that can be inserted into fragments view
      * @param typeface font be set on the text in the EditText. Null will use default android font
      * @param textSize textSize to be set on the text in the EditText
      * @param content content of the EditText
      * @return EditText ready to be inserted in to view/layout
      */
     private EditText createEditText(Typeface typeface, int textSize, CharSequence content) {
-        EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+        CustomTextEdit editText = (CustomTextEdit) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
         editText.setText(content, TextView.BufferType.EDITABLE);
         editText.addTextChangedListener(textWatcher);
         editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
-        if (typeface != null) {
-            editText.setTypeface(typeface);
-        }
+        editText.setTypeface(typeface);
+        editText.setOnFocusChangeListener(onCustomTextEditFocusChangeListener);
         return editText;
     }
 
@@ -468,7 +501,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @return EditText ready to be inserted in the table as a cell
      */
     private EditText createTableCell(boolean header, ViewGroup.LayoutParams params, Typeface typeface, int textSize, int colWidth, CharSequence content) {
-        EditText cell = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+        CustomTextEdit cell = (CustomTextEdit) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+        cell.setTableCell(true);
         if (header) {
             cell.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
             cell.setTypeface(typeface, Typeface.BOLD);
@@ -483,6 +517,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         cell.setMinWidth(100);
         cell.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
         cell.addTextChangedListener(textWatcher);
+        cell.setOnFocusChangeListener(onCustomTextEditFocusChangeListener);
         return cell;
     }
 
@@ -628,11 +663,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
                 SpannableStringBuilder nodeContentSSB = scNodeContentText.getContent();
                 EditText editText = createEditText(typeface, textSize, nodeContentSSB);
-                editText.addTextChangedListener(textWatcher);
-                editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-                if (typeface != null) {
-                    editText.setTypeface(typeface);
-                }
                 this.handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -702,9 +732,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         // If last NodeContent elements is a table it won't be possible to add text after it
         // Adding an extra EditText to allow user to continue typing after last table element
         if (this.mainViewModel.getNodeContent().getValue().get(this.mainViewModel.getNodeContent().getValue().size() - 1).getContentType() == 1) {
-            EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
-            editText.addTextChangedListener(textWatcher);
-            editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
+            EditText editText = createEditText(typeface, textSize, "");
             this.handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -733,6 +761,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_node_editor, container, false);
         this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        this.onCustomTextEditFocusChangeListener = createOnCustomTextEditFocusChangeListener();
         this.nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
         this.handler = appContainer.handler;
