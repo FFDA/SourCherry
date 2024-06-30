@@ -1,0 +1,21 @@
+<!--
+  ~ This file is part of SourCherry.
+  ~
+  ~ SourCherry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ SourCherry is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#000000">
+  <path
+      android:pathData="M19.415,2.04L4.585,2.04c-1.359,0 -2.472,1.121 -2.472,2.49L2.114,19.47c0,1.37 1.112,2.49 2.472,2.49L19.415,21.96c1.359,0 2.472,-1.121 2.472,-2.49L21.886,4.53c0,-1.37 -1.112,-2.49 -2.472,-2.49zM10.764,19.47L4.585,19.47L4.585,13.245h6.179zM19.415,19.47L13.236,19.47L13.236,13.245h6.179zM19.415,10.755L4.585,10.755L4.585,4.53L19.415,4.53Z"
+      android:strokeWidth="1.2404"
+      android:fillColor="@android:color/white"/>
+</vector>

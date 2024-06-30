@@ -382,6 +382,24 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
+     * Edit text that can be insertet into fragments view
+     * @param typeface font be set on the text in the EditText. Null will use default android font
+     * @param textSize textSize to be set on the text in the EditText
+     * @param content content of the EditText
+     * @return EditText ready to be inserted in to view/layout
+     */
+    private EditText createEditText(Typeface typeface, int textSize, CharSequence content) {
+        EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+        editText.setText(content, TextView.BufferType.EDITABLE);
+        editText.addTextChangedListener(textWatcher);
+        editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
+        if (typeface != null) {
+            editText.setTypeface(typeface);
+        }
+        return editText;
+    }
+
+    /**
      * Creates new ClickableSpanLink span object based on passed ClickableSpanLink object as an argument
      * @param clickableSpanLink ClickableSpanLink object to base new ClickableSpanLink span on
      * @return new ClickableSpanLink object
@@ -438,6 +456,67 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
+     * Creates TextView that is ready to be inserted into table as a cell. Only not header cell will
+     * have maxWdith applied to them. So header cell will expand with the text typed into them while
+     * normal cell will be only as wide as header cell of the column.
+     * @param header true - cell will be used in the header, false - normal table cell
+     * @param params parameters of the EditText (width, height) otherwise it will net be displayed
+     * @param typeface font be set on the text in the cell. Null will use default android font
+     * @param textSize textSize to be set on the text in the cell
+     * @param colWidth width of the cell. Will not be appliead to header cell.
+     * @param content content of the cell.
+     * @return EditText ready to be inserted in the table as a cell
+     */
+    private EditText createTableCell(boolean header, ViewGroup.LayoutParams params, Typeface typeface, int textSize, int colWidth, CharSequence content) {
+        EditText cell = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+        if (header) {
+            cell.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
+        } else {
+            cell.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
+            cell.setMaxWidth(colWidth);
+        }
+        cell.setPadding(10,10,10,10);
+        cell.setLayoutParams(params);
+        cell.setText(content);
+        cell.setMinWidth(100);
+        cell.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
+        if (typeface != null) {
+            cell.setTypeface(typeface);
+        }
+        cell.addTextChangedListener(textWatcher);
+        return cell;
+    }
+
+    /**
+     * Creates new empty table ready to be inserted in to fragments view
+     * @param typeface font be set on the text in the table. Null will use default android font.
+     * @param textSize textSize to be set on the text in the table.
+     * @return HorizontalScrollView that holds TableView
+     */
+    private HorizontalScrollView createTableView(Typeface typeface, int textSize) {
+        HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
+        LinearLayout.LayoutParams tableScrollViewParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
+        tableScrollView.setLayoutParams(tableScrollViewParams);
+        ScTableLayout table = new ScTableLayout(getActivity());
+        table.setLightInterface((byte) 0);
+        table.setColWidths("50,50");
+        TableRow.LayoutParams rowParams = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.MATCH_PARENT);
+        ViewGroup.LayoutParams cellParams = new TableRow.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        TableRow tableHeaderRow = new TableRow(getActivity());
+        tableHeaderRow.setLayoutParams(rowParams);
+        tableHeaderRow.addView(createTableCell(true, cellParams, typeface, textSize, 100, null));
+        tableHeaderRow.addView(createTableCell(true, cellParams, typeface, textSize, 100, null));
+        TableRow tableRow = new TableRow(getActivity());
+        tableRow.setLayoutParams(rowParams);
+        tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null));
+        tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null));
+        table.addView(tableHeaderRow);
+        table.addView(tableRow);
+        tableScrollView.addView(table);
+        return tableScrollView;
+    }
+
+    /**
      * Creates dialog to ask user if changes in the editor has to be saved
      * User can check the checkbox to save the choice to the database
      */
@@ -472,8 +551,27 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         builder.show();
     }
 
+    /**
+     * Get typeface that user set to be used in preferences
+     * @return Typeface that can be used to change Views font
+     */
+    private Typeface getTypeface() {
+        Typeface typeface = null;
+        switch (this.sharedPreferences.getString("preference_font_type", "Default")) {
+            case "Comfortaa":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.comfortaa_regular);
+                break;
+            case "Merriweather":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.merriweather_regular);
+                break;
+            case "Caladea":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.caladea_regular);
+        }
+        return typeface;
+    }
+
     @Override
-    public void inserImage() {
+    public void insertImage() {
         View view = NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getFocusedChild();
         if (view == null) {
             Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
@@ -486,6 +584,28 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         NodeContentEditorFragment.this.pickImage.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
                 .build());
+    }
+
+    @Override
+    public void insertTable() {
+        View view = this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        if (view == null) {
+            Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // To insert a table EditText has to be split in two at the possition on the cursor
+        int indexOfChild = this.nodeEditorFragmentLinearLayout.indexOfChild(view);
+        EditText editText = ((EditText) view);
+        int startOfSelection = editText.getSelectionStart();
+        Typeface typeface = getTypeface();
+        int textSize = this.sharedPreferences.getInt("preferences_text_size", 15);
+        EditText firstPart = createEditText(typeface, textSize, editText.getText().subSequence(0, startOfSelection));
+        EditText secondPart = createEditText(typeface, textSize, editText.getText().subSequence(startOfSelection, editText.getText().length()));
+        this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfChild);
+        this.nodeEditorFragmentLinearLayout.addView(firstPart, indexOfChild);
+        this.nodeEditorFragmentLinearLayout.addView(createTableView(typeface, textSize), ++indexOfChild);
+        this.nodeEditorFragmentLinearLayout.addView(secondPart, ++indexOfChild);
+        this.textChanged = true;
     }
 
     /**
@@ -501,24 +621,14 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 }
             });
         }
-        Typeface typeface = null;
-        switch (this.sharedPreferences.getString("preference_font_type", "Default")) {
-            case "Comfortaa":
-                typeface = ResourcesCompat.getFont(getContext(), R.font.comfortaa_regular);
-                break;
-            case "Merriweather":
-                typeface = ResourcesCompat.getFont(getContext(), R.font.merriweather_regular);
-                break;
-            case "Caladea":
-                typeface = ResourcesCompat.getFont(getContext(), R.font.caladea_regular);
-        }
+        int textSize = this.sharedPreferences.getInt("preferences_text_size", 15);
+        Typeface typeface = getTypeface();
         for (ScNodeContent part : this.mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 // This adds not only text, but images, codeboxes
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
                 SpannableStringBuilder nodeContentSSB = scNodeContentText.getContent();
-                EditText editText = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
-                editText.setText(nodeContentSSB, TextView.BufferType.EDITABLE);
+                EditText editText = createEditText(typeface, textSize, nodeContentSSB);
                 editText.addTextChangedListener(textWatcher);
                 editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
                 if (typeface != null) {
@@ -553,26 +663,15 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 // Multiplying by arbitrary number to make table cells look better.
                 // For some reason table that looks good in PC version looks worse on android
                 int colMin = (int) (scNodeContentTable.getColMin() * 1.3);
-                int colMax = (int) (scNodeContentTable.getColMax() * 1.3);
                 // Wraps content in cell correctly
-                TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+                TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.MATCH_PARENT);
 
                 //// Creates and formats header for the table
                 CharSequence[] tableHeaderCells = scNodeContentTable.getContent().get(0);
                 TableRow tableHeaderRow = new TableRow(getActivity());
                 for (CharSequence cell: tableHeaderCells) {
-                    EditText headerTextView = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
-                    headerTextView.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
+                    EditText headerTextView = createTableCell(true, params, typeface, textSize, colMin, cell);
                     headerTextView.setMinWidth(colMin);
-                    headerTextView.setMaxWidth(colMax);
-                    headerTextView.setPadding(10,10,10,10);
-                    headerTextView.setLayoutParams(params);
-                    headerTextView.setText(cell);
-                    headerTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-                    if (typeface != null) {
-                        headerTextView.setTypeface(typeface);
-                    }
-                    headerTextView.addTextChangedListener(textWatcher);
                     tableHeaderRow.addView(headerTextView);
                 }
                 table.addView(tableHeaderRow);
@@ -583,18 +682,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     TableRow tableRow = new TableRow(getActivity());
                     CharSequence[] tableRowCells = scNodeContentTable.getContent().get(row);
                     for (CharSequence cell: tableRowCells) {
-                        EditText cellTextView = (EditText) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
-                        cellTextView.setBackground(getActivity().getDrawable(R.drawable.table_data_cell));
+                        EditText cellTextView = createTableCell(false, params, typeface, textSize, colMin, cell);
                         cellTextView.setMinWidth(colMin);
-                        cellTextView.setMaxWidth(colMax);
-                        cellTextView.setPadding(10,10,10,10);
-                        cellTextView.setLayoutParams(params);
-                        cellTextView.setText(cell);
-                        cellTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, this.sharedPreferences.getInt("preferences_text_size", 15));
-                        if (typeface != null) {
-                            cellTextView.setTypeface(typeface);
-                        }
-                        cellTextView.addTextChangedListener(textWatcher);
                         tableRow.addView(cellTextView);
                     }
                     table.addView(tableRow);
@@ -838,7 +927,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 ArrayList<CharSequence[]> tableContent = new ArrayList<>();
                 // Getting table header
                 int colMin = 0;
-                int colMax = 0;
                 TableRow tableHeader = (TableRow) tableLayout.getChildAt(0);
                 CharSequence[] headerCells = new CharSequence[tableHeader.getChildCount()];
                 for (int cell = 0; cell < tableHeader.getChildCount(); cell++) {
@@ -846,10 +934,9 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     currentCell.clearComposingText();
                     headerCells[cell] = currentCell.getText();
                     if (cell == 0) {
-                        // Getting colMin & colMan. Dividing by the same arbitrary
+                        // Getting colMin. Dividing by the same arbitrary
                         // value it was multiplied when the table was created
                         colMin = (int) (currentCell.getMinWidth() / 1.3);
-                        colMax = (int) (currentCell.getMaxWidth() / 1.3);
                     }
                 }
                 tableContent.add(headerCells);
@@ -864,7 +951,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     }
                     tableContent.add(rowCells);
                 }
-                nodeContent.add(new ScNodeContentTable((byte) 1, tableContent, colMin, colMax, tableLayout.getLightInterface(), justification, tableLayout.getColWidths()));
+                // colMax and colMin is always the same?
+                nodeContent.add(new ScNodeContentTable((byte) 1, tableContent, colMin, colMin, tableLayout.getLightInterface(), justification, tableLayout.getColWidths()));
             } else {
                 EditText editText = (EditText) view;
                 editText.clearComposingText();
@@ -902,6 +990,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 .commit();
     }
 
+    @Override
     public void toggleFontBold() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
@@ -931,6 +1020,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         }
     }
 
+    @Override
     public void toggleFontItalic() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
@@ -960,6 +1050,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         }
     }
 
+    @Override
     public void toggleFontStrikethrough() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {
@@ -989,6 +1080,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         }
     }
 
+    @Override
     public void toggleFontUnderline() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
             if (this.checkSelectionForCodebox()) {

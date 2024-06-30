@@ -35,12 +35,22 @@ public interface NodeContentEditorMenuActions {
     /**
      * Inserts image into the node
      */
-    void inserImage();
+    void insertImage();
+
+    /**
+     * Insert table at the location of the cursor
+     */
+    void insertTable();
 
     /**
      * Set color that will be used to set background/foreground color of a text
      */
     void setColor(int color);
+
+    /**
+     * Shows fragment with insert/attach actions menu in nodeEditContent button row
+     */
+    void showInsertRow();
 
     /**
      * Makes selected font bold if there isn't any bold text in selection.
@@ -65,9 +75,4 @@ public interface NodeContentEditorMenuActions {
      * Otherwise it will remove underlined property of the text in selected part of the text.
      */
     void toggleFontUnderline();
-
-    /**
-     * Shows fragment with insert/attach actions menu in nodeEditContent button row
-     */
-    void showInsertRow();
 }

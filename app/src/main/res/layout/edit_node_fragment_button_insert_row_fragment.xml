@@ -44,6 +44,15 @@
             android:focusable="true"
             android:contentDescription="@string/edit_node_fragment_button_row_insert_image"
             android:src="@drawable/outline_image_24" />
+        <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_insert_table"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_insert_table"
+            android:src="@drawable/baseline_table_24" />
     </LinearLayout>
 
 </HorizontalScrollView>

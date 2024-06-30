@@ -56,7 +56,16 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if (nodeContentEditorMenuActions != null) {
-                    nodeContentEditorMenuActions.inserImage();
+                    nodeContentEditorMenuActions.insertImage();
+                }
+            }
+        });
+        ImageButton insertTableButton = view.findViewById(R.id.edit_node_fragment_button_row_insert_table);
+        insertTableButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (nodeContentEditorMenuActions != null) {
+                    nodeContentEditorMenuActions.insertTable();
                 }
             }
         });

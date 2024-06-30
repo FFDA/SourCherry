@@ -46,6 +46,7 @@ public class ScNodeContentTable implements ScNodeContent {
 
     /**
      * Get table column max width
+     * Not in use. Value most likely always the same as colMin.
      * @return table column max width
      */
     public int getColMax() {
@@ -54,6 +55,7 @@ public class ScNodeContentTable implements ScNodeContent {
 
     /**
      * Set table column max width
+     * Not in use. Value most likely always the same as colMin.
      * @param colMax table column max width
      */
     public void setColMax(int colMax) {
