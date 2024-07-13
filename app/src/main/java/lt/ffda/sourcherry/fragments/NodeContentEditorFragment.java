@@ -183,7 +183,9 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                                     .addToBackStack(null)
                                     .commit();
                         } else if (!customTextEdit.isTableCell() && tableMenuFragment != null) {
-                            fragmentManager.popBackStack();
+                            if (!fragmentManager.isStateSaved()) {
+                                fragmentManager.popBackStack();
+                            }
                         }
                     }
                 }
