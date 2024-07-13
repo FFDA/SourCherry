@@ -13,6 +13,7 @@ package lt.ffda.sourcherry.fragments;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -861,11 +862,15 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         }
 
         if (this.mainViewModel.getCurrentNode().isRichText()) {
-            NodeContentEditorMenuMainFragment fragment = new NodeContentEditorMenuMainFragment();
-            fragment.setNodeContentEditorMenuActions(this);
-            getChildFragmentManager().beginTransaction()
-                    .add(R.id.edit_node_fragment_button_row_fragment, fragment, null)
-                    .commit();
+            FragmentManager fragmentManager = getChildFragmentManager();
+            Fragment tableMenuFragment = fragmentManager.findFragmentByTag("tableMenuFragment");
+            if (tableMenuFragment == null) {
+                NodeContentEditorMenuMainFragment fragment = new NodeContentEditorMenuMainFragment();
+                fragment.setNodeContentEditorMenuActions(this);
+                fragmentManager.beginTransaction()
+                        .add(R.id.edit_node_fragment_button_row_fragment, fragment, null)
+                        .commit();
+            }
         } else {
             FrameLayout buttonRowFragmentContainer = getView().findViewById(R.id.edit_node_fragment_button_row_fragment);
             buttonRowFragmentContainer.setVisibility(View.GONE);
