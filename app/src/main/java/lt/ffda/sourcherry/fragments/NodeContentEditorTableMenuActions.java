@@ -22,6 +22,11 @@ public interface NodeContentEditorTableMenuActions {
     void deleteRow();
 
     /**
+     * Deletes focused table
+     */
+    void deleteTable();
+
+    /**
      * Inserts column to the right of the focused column
      */
     void insertColumn();

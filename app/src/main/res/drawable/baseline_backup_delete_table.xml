@@ -1,0 +1,29 @@
+<!--
+  ~ This file is part of SourCherry.
+  ~
+  ~ SourCherry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ SourCherry is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#000000">
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M18,4L6,4c-1.1,0 -2,0.9 -2,2L4,18c0,1.1 0.9,2 2,2h12c1.1,0 2,-0.9 2,-2L20,6c0,-1.1 -0.9,-2 -2,-2zM11,18L6,18v-5h5zM18,18h-5v-5h5zM18,11L6,11L6,6h12z"
+      android:strokeWidth="0.999999"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M3.023,1.919L22.081,20.977c0.128,0.128 0.128,0.335 0,0.463L21.44,22.081c-0.128,0.128 -0.335,0.128 -0.463,-0L1.919,3.023c-0.128,-0.128 -0.128,-0.335 -0,-0.463L2.56,1.919C2.688,1.791 2.894,1.791 3.023,1.919Z"
+      android:strokeWidth="1.34708"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M22.081,3.023L3.023,22.081c-0.128,0.128 -0.335,0.128 -0.463,0L1.919,21.44c-0.128,-0.128 -0.128,-0.335 0,-0.463L20.977,1.919c0.128,-0.128 0.335,-0.128 0.463,-0L22.081,2.56C22.209,2.688 22.209,2.894 22.081,3.023Z"
+      android:strokeWidth="1.34708"/>
+</vector>

@@ -122,12 +122,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         }
     });
     private SharedPreferences sharedPreferences;
-    private boolean textChanged = false;
+    private boolean unsavedChanges = false;
     private TextWatcher textWatcher;
     private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
         @Override
         public void handleOnBackPressed() {
-            if (NodeContentEditorFragment.this.textChanged) {
+            if (NodeContentEditorFragment.this.unsavedChanges) {
                 String unsavedChangesDefaultPreference = NodeContentEditorFragment.this.sharedPreferences.getString("preferences_unsaved_changes", null);
                 if (unsavedChangesDefaultPreference == null || unsavedChangesDefaultPreference.equals("ask")) {
                     NodeContentEditorFragment.this.createUnsavedChangesAlertDialog();
@@ -225,7 +225,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
             BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(this.color);
             editText.getText().setSpan(bcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.textChanged = true;
+            this.unsavedChanges = true;
         }
     }
 
@@ -253,7 +253,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
             ForegroundColorSpan fcs = new ForegroundColorSpan(this.color);
             editText.getText().setSpan(fcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.textChanged = true;
+            this.unsavedChanges = true;
         }
     }
 
@@ -297,32 +297,32 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     editText.getText().removeSpan(span);
                     int foregroundColor = ((ForegroundColorSpan) span).getForegroundColor();
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof BackgroundColorSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof StrikethroughSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof StyleSpanBold) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanBold(), new StyleSpanBold());
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof StyleSpanItalic) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanItalic(), new StyleSpanItalic());
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof RelativeSizeSpan) {
                     RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
                     float size = relativeSizeSpan.getSizeChange();
@@ -330,55 +330,55 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new RelativeSizeSpan(size), new RelativeSizeSpan(size));
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof SubscriptSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SubscriptSpan(), new SubscriptSpan());
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof SuperscriptSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SuperscriptSpan(), new SuperscriptSpan());
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof TypefaceSpanFamily) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new TypefaceSpanFamily("monospace"), new TypefaceSpanFamily("monospace"));
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof UnderlineSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new UnderlineSpan(), new UnderlineSpan());
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof URLSpanWebs) {
                     URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new URLSpanWebs(urlSpanWebs.getURL()), new URLSpanWebs(urlSpanWebs.getURL()));
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof ClickableSpanNode) {
                     ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, this.createNodeLink(clickableSpanNode), this.createNodeLink(clickableSpanNode));
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof ClickableSpanLink) {
                     ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, this.createFileFolderLink(clickableSpanLink), this.createFileFolderLink(clickableSpanLink));
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 } else if (span instanceof LeadingMarginSpan.Standard) {
                     editText.getText().removeSpan(span);
-                    this.textChanged = true;
+                    this.unsavedChanges = true;
                 }
             }
         }
@@ -568,7 +568,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         builder.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                NodeContentEditorFragment.this.textChanged = false;
+                NodeContentEditorFragment.this.unsavedChanges = false;
                 if (checkBox.isChecked()) {
                     NodeContentEditorFragment.this.saveUnsavedChangesDialogChoice("exit");
                 }
@@ -605,7 +605,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             TableRow tableRow = (TableRow) table.getChildAt(i);
             tableRow.removeViewAt(focusedColumnIndex);
         }
-        textChanged = true;
+        this.unsavedChanges = true;
     }
 
     @Override
@@ -621,7 +621,26 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
         }
         table.removeViewAt(focusedRowIndex);
-        textChanged = true;
+        this.unsavedChanges = true;
+    }
+
+    @Override
+    public void deleteTable() {
+        View focusedTable = this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        int indexOfTable = this.nodeEditorFragmentLinearLayout.indexOfChild(focusedTable);
+        if (indexOfTable > 0) {
+            // If table surrounded by by normal content they have to be merged again
+            if (this.nodeEditorFragmentLinearLayout.getChildAt(indexOfTable - 1) instanceof EditText && this.nodeEditorFragmentLinearLayout.getChildAt(indexOfTable + 1) instanceof EditText) {
+                ((EditText) this.nodeEditorFragmentLinearLayout.getChildAt(indexOfTable - 1)).getText().append(((EditText) this.nodeEditorFragmentLinearLayout.getChildAt(indexOfTable + 1)).getText());
+                this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
+                this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
+            } else {
+                this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
+            }
+        } else {
+            this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
+        }
+        this.unsavedChanges = true;
     }
 
     /**
@@ -667,7 +686,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null), newColumnIndex);
             }
         }
-        textChanged = true;
+        this.unsavedChanges = true;
     }
 
     @Override
@@ -709,7 +728,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null));
         }
         table.addView(tableRow, newRowIndex);
-        textChanged = true;
+        this.unsavedChanges = true;
     }
 
     @Override
@@ -725,13 +744,18 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         int startOfSelection = editText.getSelectionStart();
         Typeface typeface = getTypeface();
         int textSize = this.sharedPreferences.getInt("preferences_text_size", 15);
-        EditText firstPart = createEditText(typeface, textSize, editText.getText().subSequence(0, startOfSelection));
-        EditText secondPart = createEditText(typeface, textSize, editText.getText().subSequence(startOfSelection, editText.getText().length()));
-        this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfChild);
-        this.nodeEditorFragmentLinearLayout.addView(firstPart, indexOfChild);
-        this.nodeEditorFragmentLinearLayout.addView(createTableView(typeface, textSize), ++indexOfChild);
-        this.nodeEditorFragmentLinearLayout.addView(secondPart, ++indexOfChild);
-        this.textChanged = true;
+        if (startOfSelection == 0 && this.nodeEditorFragmentLinearLayout.getChildAt(indexOfChild - 1) instanceof HorizontalScrollView) {
+            // Table will be inserted before another table
+            this.nodeEditorFragmentLinearLayout.addView(createTableView(typeface, textSize), indexOfChild);
+        } else {
+            EditText firstPart = createEditText(typeface, textSize, editText.getText().subSequence(0, startOfSelection));
+            EditText secondPart = createEditText(typeface, textSize, editText.getText().subSequence(startOfSelection, editText.getText().length()));
+            this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfChild);
+            this.nodeEditorFragmentLinearLayout.addView(firstPart, indexOfChild);
+            this.nodeEditorFragmentLinearLayout.addView(createTableView(typeface, textSize), ++indexOfChild);
+            this.nodeEditorFragmentLinearLayout.addView(secondPart, ++indexOfChild);
+        }
+        this.unsavedChanges = true;
     }
 
     /**
@@ -884,7 +908,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         this.textWatcher = new TextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
-                NodeContentEditorFragment.this.textChanged = true;
+                NodeContentEditorFragment.this.unsavedChanges = true;
                 NodeContentEditorFragment.this.removeTextChangedListeners();
             }
 
@@ -1024,7 +1048,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      */
     private void saveNodeContent() {
         this.changesSaved = true;
-        this.textChanged = false;
+        this.unsavedChanges = false;
         ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
         for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
             View view = this.nodeEditorFragmentLinearLayout.getChildAt(i);
@@ -1140,7 +1164,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             } else {
                 editText.getText().setSpan(new StyleSpanBold(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            this.textChanged = true;
+            this.unsavedChanges = true;
         }
     }
 
@@ -1170,7 +1194,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             } else {
                 editText.getText().setSpan(new StyleSpanItalic(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            this.textChanged = true;
+            this.unsavedChanges = true;
         }
     }
 
@@ -1200,7 +1224,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             } else {
                 editText.getText().setSpan(new StrikethroughSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            this.textChanged = true;
+            this.unsavedChanges = true;
         }
     }
 
@@ -1230,7 +1254,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             } else {
                 editText.getText().setSpan(new UnderlineSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            this.textChanged = true;
+            this.unsavedChanges = true;
         }
     }
 }

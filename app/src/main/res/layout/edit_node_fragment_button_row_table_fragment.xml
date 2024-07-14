@@ -53,5 +53,14 @@
             android:focusable="true"
             android:contentDescription="@string/edit_node_fragment_table_button_row_delete_row"
             android:src="@drawable/outline_table_edit_delete_row" />
+        <ImageButton
+            android:id="@+id/edit_node_fragment_table_button_row_delete_table"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_table_button_row_delete_row"
+            android:src="@drawable/baseline_backup_delete_table" />
     </LinearLayout>
 </HorizontalScrollView>
