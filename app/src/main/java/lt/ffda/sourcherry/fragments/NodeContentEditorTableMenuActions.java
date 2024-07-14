@@ -12,7 +12,12 @@ package lt.ffda.sourcherry.fragments;
 
 public interface NodeContentEditorTableMenuActions {
     /**
-     * Inserts column to the right of the selected column
+     * Inserts column to the right of the focused column
      */
     void insertColumn();
+
+    /**
+     * Inserts row bellow the focused row
+     */
+    void insertRow();
 }

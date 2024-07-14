@@ -38,7 +38,7 @@ public class NodeContentEditorMenuMainFragment extends Fragment {
         super.onCreateView(inflater, container, savedInstanceState);
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         this.color = this.sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
-        return inflater.inflate(R.layout.edit_node_fragment_button_main_row_fragment, container, false);
+        return inflater.inflate(R.layout.edit_node_fragment_button_row_main_fragment, container, false);
     }
 
     @Override

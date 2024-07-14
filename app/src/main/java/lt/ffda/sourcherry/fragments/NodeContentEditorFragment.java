@@ -612,11 +612,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
         ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
         TableRow focusedTableRow = (TableRow) table.getFocusedChild();
-        int selectedColumnIndex = -1;
+        int focusedColumnIndex = -1;
         for (int i = 0; i < focusedTableRow.getChildCount(); i++) {
             View cell = focusedTableRow.getChildAt(i);
             if (cell.hasFocus()) {
-                selectedColumnIndex = i + 1;
+                focusedColumnIndex = i + 1; // Adding +1 to get the index where new cell will have to be inserted
                 break;
             }
         }
@@ -626,9 +626,9 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         for (int i = 0; i < table.getChildCount(); i++) {
             TableRow tableRow = (TableRow) table.getChildAt(i);
             if (i == 0) {
-                tableRow.addView(createTableCell(true, cellParams, typeface, textSize, 100, null), selectedColumnIndex);
+                tableRow.addView(createTableCell(true, cellParams, typeface, textSize, 100, null), focusedColumnIndex);
             } else {
-                tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null), selectedColumnIndex);
+                tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null), focusedColumnIndex);
             }
         }
         textChanged = true;
@@ -648,6 +648,32 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         this.pickImage.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
                 .build());
+    }
+
+    @Override
+    public void insertRow() {
+        HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
+        TableRow focusedTableRow = (TableRow) table.getFocusedChild();
+        int focusedRowIndex = -1;
+        for (int i = 0; i < table.getChildCount(); i++) {
+            TableRow row = (TableRow) table.getChildAt(i);
+            if (row.hasFocus()) {
+                focusedRowIndex = i + 1; // Adding +1 to get the index where new row will have to be inserted
+                break;
+            }
+        }
+        TableRow.LayoutParams rowParams = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.MATCH_PARENT);
+        TableRow tableRow = new TableRow(getContext());
+        tableRow.setLayoutParams(rowParams);
+        ViewGroup.LayoutParams cellParams = new TableRow.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        Typeface typeface = getTypeface();
+        int textSize = sharedPreferences.getInt("preferences_text_size", 15);
+        for (int i = 0; i < focusedTableRow.getChildCount(); i++) {
+            tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null));
+        }
+        table.addView(tableRow, focusedRowIndex);
+        textChanged = true;
     }
 
     @Override

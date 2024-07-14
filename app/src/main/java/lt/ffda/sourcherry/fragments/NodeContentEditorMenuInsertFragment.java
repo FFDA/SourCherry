@@ -29,7 +29,7 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        return inflater.inflate(R.layout.edit_node_fragment_button_insert_row_fragment, container, false);
+        return inflater.inflate(R.layout.edit_node_fragment_button_row_insert_fragment, container, false);
     }
 
     @Override

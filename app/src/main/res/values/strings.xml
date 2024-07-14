@@ -198,6 +198,7 @@
     <string name="edit_node_fragment_button_row_insert_table">INSERT TABLE. Insert table at the cursor position.</string>
     <string name="edit_node_fragment_button_row_insert_menu">INSERT MENU. Opens menu with insert/attach options.</string>
     <string name="edit_node_fragment_table_button_row_insert_col">INSERT COLUMN. Insert column to the right of the current column.</string>
+    <string name="edit_node_fragment_table_button_row_insert_row">INSERT ROW. Insert row bellow current row.</string>
     <string name="edit_node_fragment_button_row_back">BACK. Returns to previous menu row.</string>
     <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
     <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>

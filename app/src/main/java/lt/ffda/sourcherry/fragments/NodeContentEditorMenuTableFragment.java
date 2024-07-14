@@ -29,7 +29,7 @@ public class NodeContentEditorMenuTableFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        return inflater.inflate(R.layout.edit_node_fragment_button_table_row_fragment, container, false);
+        return inflater.inflate(R.layout.edit_node_fragment_button_row_table_fragment, container, false);
     }
 
     @Override
@@ -40,6 +40,13 @@ public class NodeContentEditorMenuTableFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 nodeContentEditorTableMenuActions.insertColumn();
+            }
+        });
+        ImageButton insertRow = view.findViewById(R.id.edit_node_fragment_table_button_row_insert_row);
+        insertRow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                nodeContentEditorTableMenuActions.insertRow();
             }
         });
     }
