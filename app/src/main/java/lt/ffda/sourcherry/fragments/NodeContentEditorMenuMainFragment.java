@@ -30,7 +30,7 @@ import me.jfenn.colorpickerdialog.interfaces.OnColorPickedListener;
 public class NodeContentEditorMenuMainFragment extends Fragment {
     private int color;
     private SharedPreferences sharedPreferences;
-    private NodeContentEditorMenuActions nodeContentEditorMenuActions;
+    private NodeContentEditorMainMenuActions nodeContentEditorMenuActions;
 
     @Nullable
     @Override
@@ -131,7 +131,7 @@ public class NodeContentEditorMenuMainFragment extends Fragment {
      * able to manipulate it's content
      * @param nodeContentEditorMenuActions instance of fragment that implelents NodeContentEditorMenuActions
      */
-    public void setNodeContentEditorMenuActions(NodeContentEditorMenuActions nodeContentEditorMenuActions) {
+    public void setNodeContentEditorMenuActions(NodeContentEditorMainMenuActions nodeContentEditorMenuActions) {
         this.nodeContentEditorMenuActions = nodeContentEditorMenuActions;
     }
 

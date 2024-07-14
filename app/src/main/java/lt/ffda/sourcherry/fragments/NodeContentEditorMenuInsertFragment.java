@@ -23,7 +23,7 @@ import androidx.fragment.app.Fragment;
 import lt.ffda.sourcherry.R;
 
 public class NodeContentEditorMenuInsertFragment extends Fragment {
-    private NodeContentEditorMenuActions nodeContentEditorMenuActions;
+    private NodeContentEditorInsertMenuActions nodeContentEditorInsertMenuActions;
 
     @Nullable
     @Override
@@ -46,8 +46,8 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
         attachFileButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (nodeContentEditorMenuActions != null) {
-                    nodeContentEditorMenuActions.attachFile();
+                if (nodeContentEditorInsertMenuActions != null) {
+                    nodeContentEditorInsertMenuActions.attachFile();
                 }
             }
         });
@@ -55,8 +55,8 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
         insertImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (nodeContentEditorMenuActions != null) {
-                    nodeContentEditorMenuActions.insertImage();
+                if (nodeContentEditorInsertMenuActions != null) {
+                    nodeContentEditorInsertMenuActions.insertImage();
                 }
             }
         });
@@ -64,8 +64,8 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
         insertTableButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (nodeContentEditorMenuActions != null) {
-                    nodeContentEditorMenuActions.insertTable();
+                if (nodeContentEditorInsertMenuActions != null) {
+                    nodeContentEditorInsertMenuActions.insertTable();
                 }
             }
         });
@@ -76,7 +76,7 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
      * able to manipulate it's content
      * @param nodeContentEditorMenuActions instance of fragment that implelents NodeContentEditorMenuActions
      */
-    public void setNodeContentEditorMenuActions(NodeContentEditorMenuActions nodeContentEditorMenuActions) {
-        this.nodeContentEditorMenuActions = nodeContentEditorMenuActions;
+    public void setNodeContentEditorMenuActions(NodeContentEditorInsertMenuActions nodeContentEditorInsertMenuActions) {
+        this.nodeContentEditorInsertMenuActions = nodeContentEditorInsertMenuActions;
     }
 }

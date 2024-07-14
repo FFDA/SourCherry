@@ -13,7 +13,6 @@ package lt.ffda.sourcherry.fragments;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -94,7 +93,7 @@ import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 import lt.ffda.sourcherry.utils.ColorPickerPresets;
 
-public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMenuActions {
+public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions, NodeContentEditorInsertMenuActions {
     private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
     private boolean changesSaved = false;
     private int color;

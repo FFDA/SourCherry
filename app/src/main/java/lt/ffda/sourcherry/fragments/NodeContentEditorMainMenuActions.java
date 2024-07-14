@@ -10,12 +10,7 @@
 
 package lt.ffda.sourcherry.fragments;
 
-public interface NodeContentEditorMenuActions {
-
-    /**
-     * Attaches file to the node
-     */
-    void attachFile();
+public interface NodeContentEditorMainMenuActions {
 
     /**
      * Changes selected text background color
@@ -31,16 +26,6 @@ public interface NodeContentEditorMenuActions {
      * Clears some formatting of selected text
      */
     void clearFormatting();
-
-    /**
-     * Inserts image into the node
-     */
-    void insertImage();
-
-    /**
-     * Insert table at the location of the cursor
-     */
-    void insertTable();
 
     /**
      * Set color that will be used to set background/foreground color of a text
