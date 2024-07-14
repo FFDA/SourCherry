@@ -40,7 +40,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview-selection:1.1.0'
     implementation 'androidx.activity:activity:1.9.0'
     implementation 'androidx.fragment:fragment:1.8.1'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.2'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.3'
     implementation 'androidx.preference:preference:1.2.1'
     implementation 'ru.noties:jlatexmath-android:0.2.0'
     testImplementation 'junit:junit:4.13.2'
