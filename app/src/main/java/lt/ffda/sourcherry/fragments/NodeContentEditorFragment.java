@@ -588,6 +588,26 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         builder.show();
     }
 
+    @Override
+    public void deleteColumn() {
+        HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
+        TableRow focusedTableRow = (TableRow) table.getFocusedChild();
+        int focusedColumnIndex = -1;
+        for (int i = 0; i < focusedTableRow.getChildCount(); i++) {
+            View cell = focusedTableRow.getChildAt(i);
+            if (cell.hasFocus()) {
+                focusedColumnIndex = i;
+                break;
+            }
+        }
+        for (int i = 0; i < table.getChildCount(); i++) {
+            TableRow tableRow = (TableRow) table.getChildAt(i);
+            tableRow.removeViewAt(focusedColumnIndex);
+        }
+        textChanged = true;
+    }
+
     /**
      * Get typeface that user set to be used in preferences
      * @return Typeface that can be used to change Views font
@@ -612,11 +632,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
         ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
         TableRow focusedTableRow = (TableRow) table.getFocusedChild();
-        int focusedColumnIndex = -1;
+        int newColumnIndex = -1;
         for (int i = 0; i < focusedTableRow.getChildCount(); i++) {
             View cell = focusedTableRow.getChildAt(i);
             if (cell.hasFocus()) {
-                focusedColumnIndex = i + 1; // Adding +1 to get the index where new cell will have to be inserted
+                newColumnIndex = i + 1;
                 break;
             }
         }
@@ -626,9 +646,9 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         for (int i = 0; i < table.getChildCount(); i++) {
             TableRow tableRow = (TableRow) table.getChildAt(i);
             if (i == 0) {
-                tableRow.addView(createTableCell(true, cellParams, typeface, textSize, 100, null), focusedColumnIndex);
+                tableRow.addView(createTableCell(true, cellParams, typeface, textSize, 100, null), newColumnIndex);
             } else {
-                tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null), focusedColumnIndex);
+                tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null), newColumnIndex);
             }
         }
         textChanged = true;
@@ -655,11 +675,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
         ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
         TableRow focusedTableRow = (TableRow) table.getFocusedChild();
-        int focusedRowIndex = -1;
+        int newRowIndex = -1;
         for (int i = 0; i < table.getChildCount(); i++) {
             TableRow row = (TableRow) table.getChildAt(i);
             if (row.hasFocus()) {
-                focusedRowIndex = i + 1; // Adding +1 to get the index where new row will have to be inserted
+                newRowIndex = i + 1;
                 break;
             }
         }
@@ -672,7 +692,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         for (int i = 0; i < focusedTableRow.getChildCount(); i++) {
             tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null));
         }
-        table.addView(tableRow, focusedRowIndex);
+        table.addView(tableRow, newRowIndex);
         textChanged = true;
     }
 
