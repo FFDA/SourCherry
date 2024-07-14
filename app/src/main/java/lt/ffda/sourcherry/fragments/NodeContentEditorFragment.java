@@ -93,7 +93,7 @@ import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 import lt.ffda.sourcherry.utils.ColorPickerPresets;
 
-public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions, NodeContentEditorInsertMenuActions {
+public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions, NodeContentEditorInsertMenuActions, NodeContentEditorTableMenuActions {
     private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
     private boolean changesSaved = false;
     private int color;
@@ -160,39 +160,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
         }
     };
-
-    /**
-     * Creates focus change listiner for CustomeEditText. It changes editor menu depending on where
-     * the user puts cursor. When cursor in table it should have different editor menu items.
-     * @return OnFocusChangeListener for CustomeEditText
-     */
-    private View.OnFocusChangeListener createOnCustomTextEditFocusChangeListener() {
-        if (this.mainViewModel.getCurrentNode().isRichText()) {
-            return new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View view, boolean hasFocus) {
-                    if (hasFocus) {
-                        FragmentManager fragmentManager = getChildFragmentManager();
-                        Fragment tableMenuFragment = fragmentManager.findFragmentByTag("tableMenuFragment");
-                        CustomTextEdit customTextEdit = (CustomTextEdit) view;
-                        if (customTextEdit.isTableCell() && tableMenuFragment == null) {
-                            tableMenuFragment = new NodeContentEditorMenuTableFragment();
-                            fragmentManager.beginTransaction()
-                                    .add(R.id.edit_node_fragment_button_row_fragment, tableMenuFragment, "tableMenuFragment")
-                                    .setReorderingAllowed(true)
-                                    .addToBackStack(null)
-                                    .commit();
-                        } else if (!customTextEdit.isTableCell() && tableMenuFragment != null) {
-                            if (!fragmentManager.isStateSaved()) {
-                                fragmentManager.popBackStack();
-                            }
-                        }
-                    }
-                }
-            };
-        }
-        return null;
-    }
 
     /**
      * Adds textChangedListeners for all EditText views
@@ -491,6 +458,40 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
+     * Creates focus change listiner for CustomEditText. It changes editor menu depending on where
+     * the user puts cursor. When cursor in table it should have different editor menu items.
+     * @return OnFocusChangeListener for CustomeEditText
+     */
+    private View.OnFocusChangeListener createOnCustomTextEditFocusChangeListener() {
+        if (this.mainViewModel.getCurrentNode().isRichText()) {
+            return new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View view, boolean hasFocus) {
+                    if (hasFocus) {
+                        FragmentManager fragmentManager = getChildFragmentManager();
+                        Fragment tableMenuFragment = fragmentManager.findFragmentByTag("tableMenuFragment");
+                        CustomTextEdit customTextEdit = (CustomTextEdit) view;
+                        if (customTextEdit.isTableCell() && tableMenuFragment == null) {
+                            tableMenuFragment = new NodeContentEditorMenuTableFragment();
+                            ((NodeContentEditorMenuTableFragment) tableMenuFragment).setNodeContentEditorTableMenuActions(NodeContentEditorFragment.this);
+                            fragmentManager.beginTransaction()
+                                    .add(R.id.edit_node_fragment_button_row_fragment, tableMenuFragment, "tableMenuFragment")
+                                    .setReorderingAllowed(true)
+                                    .addToBackStack(null)
+                                    .commit();
+                        } else if (!customTextEdit.isTableCell() && tableMenuFragment != null) {
+                            if (!fragmentManager.isStateSaved()) {
+                                fragmentManager.popBackStack();
+                            }
+                        }
+                    }
+                }
+            };
+        }
+        return null;
+    }
+
+    /**
      * Creates EditText that is ready to be inserted into table as a cell. Only not header cell will
      * have maxWdith applied to them. So header cell will expand with the text typed into them while
      * normal cell will be only as wide as header cell of the column.
@@ -607,8 +608,35 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     @Override
+    public void insertColumn() {
+        HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
+        TableRow focusedTableRow = (TableRow) table.getFocusedChild();
+        int selectedColumnIndex = -1;
+        for (int i = 0; i < focusedTableRow.getChildCount(); i++) {
+            View cell = focusedTableRow.getChildAt(i);
+            if (cell.hasFocus()) {
+                selectedColumnIndex = i + 1;
+                break;
+            }
+        }
+        ViewGroup.LayoutParams cellParams = new TableRow.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        Typeface typeface = getTypeface();
+        int textSize = sharedPreferences.getInt("preferences_text_size", 15);
+        for (int i = 0; i < table.getChildCount(); i++) {
+            TableRow tableRow = (TableRow) table.getChildAt(i);
+            if (i == 0) {
+                tableRow.addView(createTableCell(true, cellParams, typeface, textSize, 100, null), selectedColumnIndex);
+            } else {
+                tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null), selectedColumnIndex);
+            }
+        }
+        textChanged = true;
+    }
+
+    @Override
     public void insertImage() {
-        View view = NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        View view = this.nodeEditorFragmentLinearLayout.getFocusedChild();
         if (view == null) {
             Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
             return;
@@ -617,7 +645,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             Toast.makeText(getContext(), R.string.toast_message_insert_image_insert_into_table, Toast.LENGTH_SHORT).show();
             return;
         }
-        NodeContentEditorFragment.this.pickImage.launch(new PickVisualMediaRequest.Builder()
+        this.pickImage.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
                 .build());
     }
@@ -859,17 +887,17 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
             ((MainView) getContext()).disableDrawerMenu();
         }
-
+        FragmentManager fragmentManager = getChildFragmentManager();
+        Fragment tableMenuFragment = fragmentManager.findFragmentByTag("tableMenuFragment");
+        if (tableMenuFragment != null) {
+            fragmentManager.popBackStack();
+        }
         if (this.mainViewModel.getCurrentNode().isRichText()) {
-            FragmentManager fragmentManager = getChildFragmentManager();
-            Fragment tableMenuFragment = fragmentManager.findFragmentByTag("tableMenuFragment");
-            if (tableMenuFragment == null) {
-                NodeContentEditorMenuMainFragment fragment = new NodeContentEditorMenuMainFragment();
-                fragment.setNodeContentEditorMenuActions(this);
-                fragmentManager.beginTransaction()
-                        .add(R.id.edit_node_fragment_button_row_fragment, fragment, null)
-                        .commit();
-            }
+            NodeContentEditorMenuMainFragment fragment = new NodeContentEditorMenuMainFragment();
+            fragment.setNodeContentEditorMenuActions(this);
+            fragmentManager.beginTransaction()
+                    .add(R.id.edit_node_fragment_button_row_fragment, fragment, null)
+                    .commit();
         } else {
             FrameLayout buttonRowFragmentContainer = getView().findViewById(R.id.edit_node_fragment_button_row_fragment);
             buttonRowFragmentContainer.setVisibility(View.GONE);

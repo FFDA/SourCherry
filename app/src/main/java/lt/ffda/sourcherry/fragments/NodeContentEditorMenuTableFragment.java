@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,10 +23,33 @@ import androidx.fragment.app.Fragment;
 import lt.ffda.sourcherry.R;
 
 public class NodeContentEditorMenuTableFragment extends Fragment {
+    private NodeContentEditorTableMenuActions nodeContentEditorTableMenuActions;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         return inflater.inflate(R.layout.edit_node_fragment_button_table_row_fragment, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        ImageButton insertCol = view.findViewById(R.id.edit_node_fragment_table_button_row_insert_col);
+        insertCol.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                nodeContentEditorTableMenuActions.insertColumn();
+            }
+        });
+    }
+
+    /**
+     * Set the instance of the parent fragment that implements NodeContentEditorTableMenuActions
+     * to allow editing of tables
+     * @param nodeContentEditorTableMenuActions instance of NodeContentEditorTableMenuActions
+     */
+    public void setNodeContentEditorTableMenuActions(NodeContentEditorTableMenuActions nodeContentEditorTableMenuActions) {
+        this.nodeContentEditorTableMenuActions = nodeContentEditorTableMenuActions;
     }
 }

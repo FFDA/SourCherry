@@ -72,9 +72,9 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
     }
 
     /**
-     * Set an instance of the parent fragment that implements NodeContentEditorMenuActions to be
-     * able to manipulate it's content
-     * @param nodeContentEditorMenuActions instance of fragment that implelents NodeContentEditorMenuActions
+     * Set an instance of the parent fragment that implements NodeContentEditorInsertMenuActions to
+     * be able to manipulate it's content
+     * @param nodeContentEditorMenuActions instance of fragment that implelents NodeContentEditorInsertMenuActions
      */
     public void setNodeContentEditorMenuActions(NodeContentEditorInsertMenuActions nodeContentEditorInsertMenuActions) {
         this.nodeContentEditorInsertMenuActions = nodeContentEditorInsertMenuActions;
