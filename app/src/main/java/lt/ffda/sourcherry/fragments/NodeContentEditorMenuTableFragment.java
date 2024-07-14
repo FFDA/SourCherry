@@ -56,6 +56,13 @@ public class NodeContentEditorMenuTableFragment extends Fragment {
                 nodeContentEditorTableMenuActions.deleteColumn();
             }
         });
+        ImageButton deleteRow = view.findViewById(R.id.edit_node_fragment_table_button_row_delete_row);
+        deleteRow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                nodeContentEditorTableMenuActions.deleteRow();
+            }
+        });
     }
 
     /**

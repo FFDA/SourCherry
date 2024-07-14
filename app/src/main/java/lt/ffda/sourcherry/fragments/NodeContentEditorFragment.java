@@ -608,6 +608,22 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         textChanged = true;
     }
 
+    @Override
+    public void deleteRow() {
+        HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
+        int focusedRowIndex = -1;
+        for (int i = 0; i < table.getChildCount(); i++) {
+            TableRow row = (TableRow) table.getChildAt(i);
+            if (row.hasFocus()) {
+                focusedRowIndex = i;
+                break;
+            }
+        }
+        table.removeViewAt(focusedRowIndex);
+        textChanged = true;
+    }
+
     /**
      * Get typeface that user set to be used in preferences
      * @return Typeface that can be used to change Views font

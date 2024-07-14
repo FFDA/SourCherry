@@ -12,9 +12,14 @@ package lt.ffda.sourcherry.fragments;
 
 public interface NodeContentEditorTableMenuActions {
     /**
-     * Deletes focused row
+     * Deletes focused column
      */
     void deleteColumn();
+
+    /**
+     * Deletes focused row
+     */
+    void deleteRow();
 
     /**
      * Inserts column to the right of the focused column
