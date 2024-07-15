@@ -1920,27 +1920,7 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
-     * Function used when closing NodeEditorFragment depending on passed boolean variable displayed
-     * node content will be reloaded or not. Node content is not read from database but read from
-     * MainViewModel, because at avery save it is stored there before saving it into database.
-     * Changes home button to hamburger button in toolbar
-     * @param reloadContent true - reload node content
-     */
-    public void returnFromFragmentWithHomeButton(boolean reloadContent) {
-        if (reloadContent) {
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-            // Sends ArrayList to fragment to be added added to view
-            this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
-            this.loadNodeContent();
-        }
-        actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
-        onBackPressed();
-    }
-
-    /**
-     * Function used when closing Fragment
-     * that only has home button in toolbar
+     * Function to remove fragment from main view. Restore drawer indicator.
      */
     public void returnFromFragmentWithHomeButton() {
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);

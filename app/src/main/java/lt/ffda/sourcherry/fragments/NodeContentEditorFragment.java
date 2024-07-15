@@ -95,7 +95,6 @@ import lt.ffda.sourcherry.utils.ColorPickerPresets;
 
 public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions, NodeContentEditorInsertMenuActions, NodeContentEditorTableMenuActions {
     private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
-    private boolean changesSaved = false;
     private int color;
     private Handler handler;
     private MainViewModel mainViewModel;
@@ -139,7 +138,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                     }
                     remove(); // Otherwise there will be onBackPressed infinite loop
-                    ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
+                    ((MainView) getActivity()).returnFromFragmentWithHomeButton();
                 } else {
                     View view = getActivity().getCurrentFocus();
                     if (view != null) {
@@ -147,7 +146,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                     }
                     remove(); // Otherwise there will be onBackPressed infinite loop
-                    ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
+                    ((MainView) getActivity()).returnFromFragmentWithHomeButton();
                 }
             } else {
                 View view = getActivity().getCurrentFocus();
@@ -156,7 +155,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                 }
                 remove(); // Otherwise there will be onBackPressed infinite loop
-                ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
+                ((MainView) getActivity()).returnFromFragmentWithHomeButton();
             }
         }
     };
@@ -1047,7 +1046,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * the database
      */
     private void saveNodeContent() {
-        this.changesSaved = true;
         this.unsavedChanges = false;
         ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
         for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
