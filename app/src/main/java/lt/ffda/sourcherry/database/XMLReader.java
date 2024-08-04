@@ -362,24 +362,6 @@ public class XMLReader extends DatabaseReader {
         return new ScNode(newNodeUniqueID, name,false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
     }
 
-    /**
-     * Parent node (top) in the drawer menu
-     * Used when creating a drawer menu
-     * @param node Node object of the parent node from which parent (top) node information has to be collected
-     * @return ScNode object with properties of a parent node
-     */
-    private ScNode createParentNode(Node node) {
-        String parentNodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-        String parentNodeName = node.getAttributes().getNamedItem("name").getNodeValue();
-        boolean parentNodeHasSubnode = hasSubnodes(node);
-        boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-        boolean isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-        String foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-        int iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-        boolean isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
-        return new ScNode(parentNodeUniqueID, parentNodeName, true, parentNodeHasSubnode, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-    }
-
     @Override
     public void deleteNode(String nodeUniqueID) {
         Node nodeToDelete = this.findNode(nodeUniqueID);
@@ -628,16 +610,10 @@ public class XMLReader extends DatabaseReader {
         for (int i=0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (nodeUniqueIDArray.contains(node.getAttributes().getNamedItem("unique_id").getNodeValue())) {
-                String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                boolean hasSubnode = hasSubnodes(node);
-                boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-                boolean isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-                String foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-                int iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-                boolean isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
-                // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
+                ScNode scNode = convertNodeToScNode(node);
+                // None of them have to be indented
+                scNode.setSubnode(false);
+                nodes.add(scNode);
             }
         }
         if (nodes.size() == 0) {
@@ -739,7 +715,7 @@ public class XMLReader extends DatabaseReader {
         Node node = this.findNode(nodeUniqueID);
         NodeList childNodeList = node.getChildNodes();
         nodes = returnSubnodeArrayList(childNodeList, true);
-        ScNode parentNode = createParentNode(node);
+        ScNode parentNode = convertNodeToScNode(node);
         nodes.add(0, parentNode);
         return nodes;
     }
@@ -798,10 +774,10 @@ public class XMLReader extends DatabaseReader {
         if (parentNode == null) {
             return nodes;
         } else if (parentNode.getNodeName().equals("cherrytree")) {
-            nodes = this.getMainNodes();
+            nodes = getMainNodes();
         } else {
-            nodes = this.returnSubnodeArrayList(parentNode.getChildNodes(), true);
-            nodes.add(0, this.createParentNode(parentNode));
+            nodes = returnSubnodeArrayList(parentNode.getChildNodes(), true);
+            nodes.add(0, convertNodeToScNode(parentNode));
         }
         return nodes;
     }
@@ -809,23 +785,33 @@ public class XMLReader extends DatabaseReader {
     @Override
     public ScNode getSingleMenuItem(String nodeUniqueID) {
         // Returns single menu item to be used when opening anchor links
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
         if (node == null) {
             return null;
         }
-        String menuItemsNodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+        return convertNodeToScNode(node);
+    }
+
+    /**
+     * Converts node from XML node object to ScNode object
+     * @param node node to converte
+     * @return converted node that can be used in SourCherry menu
+     */
+    private ScNode convertNodeToScNode(Node node) {
+        String nodeUniqueId = node.getAttributes().getNamedItem("unique_id").getNodeValue();
         String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
+        boolean hasSubnodes = hasSubnodes(node);
         boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
         boolean isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
         String foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
         int iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
         boolean isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
-        if (hasSubnodes(node)) {
+        if (hasSubnodes) {
             // if node has subnodes, then it has to be opened as a parent node and displayed as such
-            return new ScNode(menuItemsNodeUniqueID, nameValue, true, true, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+            return new ScNode(nodeUniqueId, nameValue, true, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
         } else {
             // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-            return new ScNode(menuItemsNodeUniqueID, nameValue, false, false, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+            return new ScNode(nodeUniqueId, nameValue, false, hasSubnodes, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
         }
     }
 
@@ -1401,15 +1387,10 @@ public class XMLReader extends DatabaseReader {
      * @return ScNode object for filter nodes function
      */
     private ScNode returnSearchMenuItem(Node node) {
-        String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-        String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-        boolean hasSubnode = hasSubnodes(node);
-        boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-        boolean isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-        String foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-        int iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-        boolean isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
-        return new ScNode(nodeUniqueID, nameValue, false, hasSubnode, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+        ScNode scNode = convertNodeToScNode(node);
+        scNode.setParent(false);
+        scNode.setSubnode(false);
+        return scNode;
     }
 
     /**
@@ -1427,16 +1408,11 @@ public class XMLReader extends DatabaseReader {
         for (int i=0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (node.getNodeName().equals("node")) {
-                String nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-                boolean hasSubnode = hasSubnodes(node);
-                boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-                boolean isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-                String foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-                int iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-                boolean isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
+                ScNode scNode = convertNodeToScNode(node);
                 // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnode, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly));
+                scNode.setParent(false);
+                scNode.setSubnode(isSubnode);
+                nodes.add(scNode);
             }
         }
         return nodes;
