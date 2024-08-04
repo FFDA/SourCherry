@@ -22,7 +22,7 @@ public interface NodeContentEditorInsertMenuActions {
     void insertImage();
 
     /**
-     * Insert table at the location of the cursor
+     * Shows fragment with options to customize the table before creation
      */
-    void insertTable();
+    void startInsertTable();
 }

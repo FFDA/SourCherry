@@ -65,6 +65,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
@@ -84,8 +85,10 @@ import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
 import lt.ffda.sourcherry.spans.BackgroundColorSpanCustom;
+import lt.ffda.sourcherry.spans.ClickableSpanFile;
 import lt.ffda.sourcherry.spans.ClickableSpanLink;
 import lt.ffda.sourcherry.spans.ClickableSpanNode;
+import lt.ffda.sourcherry.spans.ImageSpanFile;
 import lt.ffda.sourcherry.spans.StyleSpanBold;
 import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
@@ -524,30 +527,48 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
+     * Creates row of the table with provided cell count and properties
+     * @param header if row should be created with cell with header properties
+     * @param cols count of the cells in the row
+     * @param rowParams view parametres of the row
+     * @param cellParams view paramteres of the cell
+     * @param typeface typeface font be set on the text in the table. Null will use default android font.
+     * @param textSize textSize textSize to be set on the text in the table.
+     * @param colWidth default width of the cell. The cell will not expand more then set width. Does not apply to header cell.
+     * @return view with the row of the table ready to be added to one
+     */
+    private TableRow createTableRow(boolean header, int cols, TableRow.LayoutParams rowParams, ViewGroup.LayoutParams cellParams, Typeface typeface, int textSize, int colWidth) {
+        TableRow tableRow = new TableRow(getActivity());
+        tableRow.setLayoutParams(rowParams);
+        for (int i = 0; i < cols; i++) {
+            tableRow.addView(createTableCell(header, cellParams, typeface, textSize, colWidth, null));
+        }
+        return tableRow;
+    }
+
+    /**
      * Creates new empty table ready to be inserted in to fragments view
-     * @param typeface font be set on the text in the table. Null will use default android font.
-     * @param textSize textSize to be set on the text in the table.
+     * @param rows count of rows in the table
+     * @param cols count of columns in the table
+     * @param defaultWidth default width of the cell. The cell will not expand more then set width. Does not apply to header cell.
+     * @param lightInterface set tables interface to be lightweight. 0 - normal interface, 1 - lightweight. Has no effect in mobile version
+     * @param typeface typeface font be set on the text in the table. Null will use default android font.
+     * @param textSize textSize textSize to be set on the text in the table.
      * @return HorizontalScrollView that holds TableView
      */
-    private HorizontalScrollView createTableView(Typeface typeface, int textSize) {
+    private HorizontalScrollView createTableView(int rows, int cols, int defaultWidth, byte lightInterface, Typeface typeface, int textSize) {
         HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
         LinearLayout.LayoutParams tableScrollViewParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
         tableScrollView.setLayoutParams(tableScrollViewParams);
         ScTableLayout table = new ScTableLayout(getActivity());
-        table.setLightInterface((byte) 0);
+        table.setLightInterface(lightInterface);
         table.setColWidths("50,50");
         TableRow.LayoutParams rowParams = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.MATCH_PARENT);
         ViewGroup.LayoutParams cellParams = new TableRow.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        TableRow tableHeaderRow = new TableRow(getActivity());
-        tableHeaderRow.setLayoutParams(rowParams);
-        tableHeaderRow.addView(createTableCell(true, cellParams, typeface, textSize, 100, null));
-        tableHeaderRow.addView(createTableCell(true, cellParams, typeface, textSize, 100, null));
-        TableRow tableRow = new TableRow(getActivity());
-        tableRow.setLayoutParams(rowParams);
-        tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null));
-        tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null));
-        table.addView(tableHeaderRow);
-        table.addView(tableRow);
+        table.addView(createTableRow(true, cols, rowParams, cellParams, typeface, textSize, defaultWidth));
+        for (int i = 0; i < rows - 1; i++) {
+            table.addView(createTableRow(false, cols, rowParams, cellParams, typeface, textSize, defaultWidth));
+        }
         tableScrollView.addView(table);
         return tableScrollView;
     }
@@ -564,7 +585,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         builder.setView(checkboxView);
         builder.setTitle(R.string.alert_dialog_unsaved_changes_title);
         builder.setMessage(R.string.alert_dialog_unsaved_changes_message);
-        builder.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(R.string.button_exit, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 NodeContentEditorFragment.this.unsavedChanges = false;
@@ -574,7 +595,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 NodeContentEditorFragment.this.getActivity().onBackPressed();
             }
         });
-        builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (checkBox.isChecked()) {
@@ -730,31 +751,68 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         this.unsavedChanges = true;
     }
 
-    @Override
-    public void insertTable() {
-        View view = this.nodeEditorFragmentLinearLayout.getFocusedChild();
-        if (view == null) {
-            Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        // To insert a table EditText has to be split in two at the possition on the cursor
-        int indexOfChild = this.nodeEditorFragmentLinearLayout.indexOfChild(view);
-        EditText editText = ((EditText) view);
-        int startOfSelection = editText.getSelectionStart();
+    /**
+     * Insert the table at the position of the cursor with provided properties
+     * @param indexOfChild index of focused edit text
+     * @param startOfSelection position where to insert the table in the focused edit text
+     * @param rows count of rows in the table
+     * @param cols count of columns in the table
+     * @param defaultWidth default width of the cell. The cell will not expand more then set width. Does not apply to header cell.
+     * @param lightInterface set tables interface to be lightweight. 0 - normal interface, 1 - lightweight. Has no effect in mobile version
+     */
+    private void insertTable(int indexOfChild, int startOfSelection, int rows, int cols, int defaultWidth, byte lightInterface) {
+        EditText editText = (EditText) this.nodeEditorFragmentLinearLayout.getChildAt(indexOfChild);
         Typeface typeface = getTypeface();
         int textSize = this.sharedPreferences.getInt("preferences_text_size", 15);
         if (startOfSelection == 0 && this.nodeEditorFragmentLinearLayout.getChildAt(indexOfChild - 1) instanceof HorizontalScrollView) {
             // Table will be inserted before another table
-            this.nodeEditorFragmentLinearLayout.addView(createTableView(typeface, textSize), indexOfChild);
+            this.nodeEditorFragmentLinearLayout.addView(createTableView(rows, cols, defaultWidth, lightInterface, typeface, textSize), indexOfChild);
         } else {
             EditText firstPart = createEditText(typeface, textSize, editText.getText().subSequence(0, startOfSelection));
             EditText secondPart = createEditText(typeface, textSize, editText.getText().subSequence(startOfSelection, editText.getText().length()));
             this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfChild);
             this.nodeEditorFragmentLinearLayout.addView(firstPart, indexOfChild);
-            this.nodeEditorFragmentLinearLayout.addView(createTableView(typeface, textSize), ++indexOfChild);
+            this.nodeEditorFragmentLinearLayout.addView(createTableView(rows, cols, defaultWidth, lightInterface, typeface, textSize), ++indexOfChild);
             this.nodeEditorFragmentLinearLayout.addView(secondPart, ++indexOfChild);
         }
         this.unsavedChanges = true;
+        getParentFragmentManager().clearFragmentResultListener("tablePropertiesListener");
+    }
+
+    /**
+     * Checks if table can be inserted at the cursor location
+     * @return true - if table can be inserted at the cursor location, false - otherwise
+     */
+    private boolean isTableInsertionAllowed() {
+        boolean allowed = true;
+        EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+        if (editText == null) {
+            Toast.makeText(getContext(), R.string.toast_message_insert_table_place_cursor, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        Object[] spans = editText.getText().getSpans(editText.getSelectionStart(), editText.getSelectionEnd(), Object.class);
+        for (Object span: spans) {
+            if (span instanceof TypefaceSpanCodebox) {
+                allowed = false;
+                break;
+            }
+            if (span instanceof ClickableSpanFile) {
+                allowed = false;
+                break;
+            }
+            if (span instanceof ImageSpanFile) {
+                allowed = false;
+                break;
+            }
+            if (span instanceof URLSpanWebs) {
+                allowed = false;
+                break;
+            }
+        }
+        if (!allowed) {
+            Toast.makeText(getContext(), R.string.toast_message_table_cant_be_inserted_here, Toast.LENGTH_SHORT).show();
+        }
+        return allowed;
     }
 
     /**
@@ -934,6 +992,9 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (getParentFragmentManager().findFragmentByTag("insertTable") != null) {
+                    return false;
+                }
                 if (menuItem.getItemId() == android.R.id.home) {
                     getActivity().onBackPressed();
                     return true;
@@ -1133,6 +1194,39 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         getChildFragmentManager().beginTransaction()
                 .add(R.id.edit_node_fragment_button_row_fragment, fragment, null)
                 .addToBackStack("inserMenu")
+                .commit();
+    }
+
+    @Override
+    public void startInsertTable() {
+        if (!isTableInsertionAllowed()) {
+            return;
+        }
+        View view = this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        if (view == null) {
+            Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // To insert a table EditText has to be split in two at the possition on the cursor
+        int indexOfChild = this.nodeEditorFragmentLinearLayout.indexOfChild(view);
+        EditText editText = ((EditText) view);
+        int startOfSelection = editText.getSelectionStart();
+        FragmentManager fm = getParentFragmentManager();
+        fm.setFragmentResultListener("tablePropertiesListener", this, new FragmentResultListener() {
+                    @Override
+                    public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
+                        int rows = result.getInt("rows");
+                        int cols = result.getInt("cols");
+                        int defaultWidth = result.getInt("defaultWidth");
+                        byte lightInterface = result.getByte("lightInterface");
+                        insertTable(indexOfChild, startOfSelection, rows, cols, defaultWidth, lightInterface);
+                    }
+                });
+        fm.beginTransaction()
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
+                .setReorderingAllowed(true)
+                .add(R.id.main_view_fragment, CreateTableOptionsFragment.class, null, "insertTable")
+                .addToBackStack("insertTable")
                 .commit();
     }
 

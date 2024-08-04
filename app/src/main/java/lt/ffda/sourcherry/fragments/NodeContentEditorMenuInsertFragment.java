@@ -65,7 +65,7 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if (nodeContentEditorInsertMenuActions != null) {
-                    nodeContentEditorInsertMenuActions.insertTable();
+                    nodeContentEditorInsertMenuActions.startInsertTable();
                 }
             }
         });

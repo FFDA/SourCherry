@@ -12,13 +12,16 @@ package lt.ffda.sourcherry;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.MenuProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.documentfile.provider.DocumentFile;
+import androidx.lifecycle.Lifecycle;
 import androidx.preference.PreferenceManager;
 
 import android.content.Context;
@@ -402,37 +405,36 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-    }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.options_menu_main_activity, menu);
-        menu.findItem(R.id.options_menu_external_storage).setChecked(sharedPreferences.getBoolean("preferences_external_storage", false));
-        return true;
+        addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+                menuInflater.inflate(R.menu.options_menu_main_activity, menu);
+                menu.findItem(R.id.options_menu_external_storage).setChecked(sharedPreferences.getBoolean("preferences_external_storage", false));
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (menuItem.getItemId() == R.id.options_menu_about) {
+                    Intent openAboutPage = new Intent(MainActivity.this, AboutActivity.class);
+                    startActivity(openAboutPage);
+                    return true;
+                } else if (menuItem.getItemId() == R.id.options_menu_external_storage) {
+                    menuItem.setChecked(!menuItem.isChecked());
+                    SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
+                    sharedPreferencesEditor.putBoolean("preferences_external_storage", menuItem.isChecked());
+                    sharedPreferencesEditor.apply();
+                    return true;
+                }
+                return false;
+            }
+        }, this, Lifecycle.State.RESUMED);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         this.deleteTempFiles();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.options_menu_about) {
-            Intent openAboutPage = new Intent(this, AboutActivity.class);
-            startActivity(openAboutPage);
-            return true;
-        } else if (item.getItemId() == R.id.options_menu_external_storage) {
-            item.setChecked(!item.isChecked());
-            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-            sharedPreferencesEditor.putBoolean("preferences_external_storage", item.isChecked());
-            sharedPreferencesEditor.apply();
-            return true;
-        } else {
-            return super.onOptionsItemSelected(item);
-        }
     }
 
     @Override

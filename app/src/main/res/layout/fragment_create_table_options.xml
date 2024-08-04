@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ This file is part of SourCherry.
+  ~
+  ~ SourCherry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ SourCherry is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/windowBackground">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/create_table_table_size_lable"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="48dp"
+            android:layout_marginTop="100dp"
+            android:text="@string/create_table_table_size_lable"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/create_table_table_size_rows_lable"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="64dp"
+            android:layout_marginTop="32dp"
+            android:labelFor="@+id/create_table_table_size_rows_input"
+            android:text="@string/create_table_table_size_rows_lable"
+            android:textColor="?android:attr/textColorPrimary"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_table_size_lable" />
+
+        <EditText
+            android:id="@+id/create_table_table_size_rows_input"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="64dp"
+            android:layout_marginTop="8dp"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:minHeight="48dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_table_size_rows_lable" />
+
+        <TextView
+            android:id="@+id/create_table_table_size_cols_lable"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="128dp"
+            android:layout_marginTop="32dp"
+            android:labelFor="@+id/create_table_table_size_cols_input"
+            android:text="@string/create_table_table_size_cols_lable"
+            android:textColor="?android:attr/textColorPrimary"
+            app:layout_constraintStart_toEndOf="@+id/create_table_table_size_rows_lable"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_table_size_lable" />
+
+        <EditText
+            android:id="@+id/create_table_table_size_cols_input"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="62dp"
+            android:layout_marginTop="8dp"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:minHeight="48dp"
+            app:layout_constraintStart_toEndOf="@+id/create_table_table_size_rows_input"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_table_size_cols_lable" />
+
+        <TextView
+            android:id="@+id/create_table_table_col_properties_lable"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="48dp"
+            android:layout_marginTop="64dp"
+            android:text="@string/create_table_table_col_properties_lable"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_table_size_rows_input" />
+
+        <TextView
+            android:id="@+id/create_table_col_properties_default_width_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="64dp"
+            android:layout_marginTop="32dp"
+            android:labelFor="@+id/create_table_col_properties_default_width_input"
+            android:text="@string/create_table_col_properties_default_width_label"
+            android:textColor="?android:attr/textColorPrimary"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_table_col_properties_lable" />
+
+        <EditText
+            android:id="@+id/create_table_col_properties_default_width_input"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:layout_marginTop="20dp"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:minHeight="48dp"
+            app:layout_constraintStart_toEndOf="@+id/create_table_col_properties_default_width_label"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_table_col_properties_lable" />
+
+        <CheckBox
+            android:id="@+id/create_table_col_properties_lightwreight_interface"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="64dp"
+            android:layout_marginTop="48dp"
+            android:layout_marginEnd="240dp"
+            android:text="@string/create_table_col_properties_lightwreight_interface"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.15"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_col_properties_default_width_label" />
+
+        <Button
+            android:id="@+id/create_table_button_insert"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:layout_marginEnd="64dp"
+            android:layout_marginBottom="64dp"
+            android:text="@string/button_insert"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_col_properties_lightwreight_interface" />
+
+        <Button
+            android:id="@+id/create_table_button_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="64dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="64dp"
+            android:text="@string/button_cancel"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/create_table_col_properties_lightwreight_interface" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
