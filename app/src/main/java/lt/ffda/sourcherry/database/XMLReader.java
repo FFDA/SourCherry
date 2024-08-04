@@ -131,9 +131,15 @@ public class XMLReader extends DatabaseReader {
     public void addNodeToBookmarks(String nodeUniqueID) {
         NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
         Node bookmarksNode = bookmarkTag.item(0);
-        List<Integer> bmkrs = Arrays.stream(bookmarksNode.getAttributes().getNamedItem("list").getNodeValue().split(","))
-                .map(Integer::parseInt)
-                .collect(Collectors.toList());
+        List<Integer> bmkrs;
+        Node bookmarkList = bookmarksNode.getAttributes().getNamedItem("list");
+        if (bookmarkList.getNodeValue().isEmpty()) {
+            bmkrs = new ArrayList<>();
+        } else {
+            bmkrs = Arrays.stream(bookmarksNode.getAttributes().getNamedItem("list").getNodeValue().split(","))
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
+        }
         bmkrs.add(Integer.parseInt(nodeUniqueID));
         Collections.sort(bmkrs);
         bookmarksNode.getAttributes().getNamedItem("list").setTextContent(bmkrs.stream().map(String::valueOf).collect(Collectors.joining(",")));
