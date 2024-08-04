@@ -120,18 +120,35 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         this.iconId = iconId;
     }
 
+    /**
+     * Get name of the ScNode.
+     * @return name of the ScNode
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Set name of the node.
+     * @param name node name
+     */
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * Get uniqueId if the node. Has to match the unique id of the node in the CherryTree database
+     * @return String value of the unique id of the node. It is actually an Integer
+     */
     public String getUniqueId() {
         return uniqueId;
     }
 
+    /**
+     * Check if ScNode has subnodes. Nodes that have subnodes are mark with arrows pointing to the
+     * left or down in the drawerMenu.
+     * @return true - ScNode has subnodes, false - otherwise
+     */
     public boolean hasSubnodes() {
         return this.hasSubnodes;
     }
@@ -158,6 +175,14 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
     }
 
     /**
+     * Check if ScNode is a parent node. Parent node are not indent in the drawer menu.
+     * @param isParent true - ScNode is a parent node, false - otherwise
+     */
+    public void setParent(boolean isParent) {
+        this.isParent = isParent;
+    }
+
+    /**
      * Check if node is read only
      * @return true - node is read only, else - false
      */
@@ -173,28 +198,49 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         isReadOnly = readOnly;
     }
 
+    /**
+     * Check is ScNode is a rich-text node. Rich-text nodes support a lot more editing functions.
+     * Including, but not limited to, inserting images, table, highlighting text. Meanwhile, non
+     * rich-text nodes only suports writing of plain text.
+     * @return true - node is rich text, false - otherwise
+     */
     public boolean isRichText() {
         return this.isRichText;
     }
 
+    /**
+     * Mark ScNode as rich-text. Rich-text nodes support a lot more editing functions. Including,
+     * but not limited to, inserting images, table, highlighting text. Meanwhile, non rich-text
+     * nodes only suports writing of plain text.
+     * @param richText true - node is rich text, false - otherwise
+     */
     public void setRichText(boolean richText) {
         this.isRichText = richText;
     }
 
+    /**
+     * Check if node is a subnode. Subnodes are indented in the drawerMenu.
+     * @return true - ScNode is a subnode, false - otherwise
+     */
     public boolean isSubnode() {
         return this.isSubnode;
     }
 
+    /**
+     * To mark/unmark ScNode as a subnode. Subnodes are indented in the drawerMenu.
+     * @param isSubnode true - ScNode is a subnode, false - otherwise
+     */
     public void setSubnode(boolean isSubnode) {
         this.isSubnode = isSubnode;
     }
 
+    /**
+     * Check if ScNode has subnodes. Nodes that have subnodes are mark with arrows pointing to the
+     * left or down in the drawerMenu.
+     * @param hasSubnodes true - has subnode, false - otherwise
+     */
     public void setHasSubnodes(boolean hasSubnodes) {
         this.hasSubnodes = hasSubnodes;
-    }
-
-    public void setIsParent(boolean isParent) {
-        this.isParent = isParent;
     }
 
     @Override
