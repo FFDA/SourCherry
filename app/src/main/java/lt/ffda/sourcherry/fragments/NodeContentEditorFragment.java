@@ -1107,10 +1107,10 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * the database
      */
     private void saveNodeContent() {
-        this.unsavedChanges = false;
+        unsavedChanges = false;
         ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
         for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
-            View view = this.nodeEditorFragmentLinearLayout.getChildAt(i);
+            View view = nodeEditorFragmentLinearLayout.getChildAt(i);
             // if it a table
             if (view instanceof HorizontalScrollView) {
                 ScTableLayout tableLayout = (ScTableLayout) ((HorizontalScrollView) view).getChildAt(0);
@@ -1167,9 +1167,13 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
         }
         // Setting new node content
-        this.mainViewModel.getNodeContent().setValue(nodeContent);
-        DatabaseReaderFactory.getReader().saveNodeContent(getArguments().getString("nodeUniqueID"));
-        this.addTextChangedListeners();
+        mainViewModel.getNodeContent().setValue(nodeContent);
+        if (mainViewModel.getCurrentNode().getMasterId().equals("0")) {
+            DatabaseReaderFactory.getReader().saveNodeContent(getArguments().getString("nodeUniqueID"));
+        } else {
+            DatabaseReaderFactory.getReader().saveNodeContent(mainViewModel.getCurrentNode().getMasterId());
+        }
+        addTextChangedListeners();
     }
 
     /**
