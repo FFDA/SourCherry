@@ -381,7 +381,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         boolean isSubnode = true;
         contentValues.put("node_id", newNodeUniqueID);
         if (relation == 0) {
-            int parentNodeUniqueID = this.getParentNodeUniqueID(nodeUniqueID);
+            int parentNodeUniqueID = this.getParentNodeUniqueIDInt(nodeUniqueID);
             contentValues.put("father_id", parentNodeUniqueID);
             // Searching for position for new node in parent node children sequence
             int newNodeSequenceNumber = -1;
@@ -413,7 +413,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             displayToast(this.context.getString(R.string.toast_error_failed_to_create_entry_into_children_table));
             return null;
         }
-        return new ScNode(String.valueOf(newNodeUniqueID), name, false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
+        return new ScNode(String.valueOf(newNodeUniqueID), "0", name, false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
     }
 
     /**
@@ -440,7 +440,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         }
         int iconId = cursor.getInt(3) >> 1;
         boolean isReadOnly = (cursor.getInt(3) & 0x01) == 1;
-        ScNode node = new ScNode(nodeUniqueID, parentNodeName, true, parentNodeHasSubnodes, false, isRichText, isBold, foregoundColor, iconId, isReadOnly);
+        ScNode node = new ScNode(nodeUniqueID, "0", parentNodeName, true, parentNodeHasSubnodes, false, isRichText, isBold, foregoundColor, iconId, isReadOnly);
         cursor.close();
         return node;
     }
@@ -738,7 +738,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             }
             int iconId = cursor.getInt(5) >> 1;
             boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
-            return new ScSearchNode(cursor.getString(0), cursor.getString(1), isParent, hasSubnodes, isSubnode, cursor.getString(3).equals("custom-colors"), isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
+            // TODO: select corrrent masterId value from the cursor
+            return new ScSearchNode(cursor.getString(0), "0", cursor.getString(1), isParent, hasSubnodes, isSubnode, cursor.getString(3).equals("custom-colors"), isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
         } else {
             return null;
         }
@@ -820,6 +821,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, false);
         cursor.close();
         return nodes;
+    }
+
+    @Override
+    public int getChildrenNodeCount(String nodeUniqueID) {
+        // Placeholder while working on other databases
+        return 0;
     }
 
     /**
@@ -954,12 +961,18 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         return nodeProperties;
     }
 
+    @Override
+    public String getParentNodeUniqueID(String nodeUniqueID) {
+        // Placeholder while working on other databases
+        return null;
+    }
+
     /**
      * Get unique id of parent node of provided node
      * @param nodeUniqueID unique ID of the node which parent unique ID to find
      * @return unique id of the node
      */
-    private int getParentNodeUniqueID(String nodeUniqueID) {
+    private int getParentNodeUniqueIDInt(String nodeUniqueID) {
         Cursor cursor = this.sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {nodeUniqueID});
         cursor.moveToFirst();
         int parentNodeUniqueID = cursor.getInt(0);
@@ -1007,10 +1020,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             boolean isReadOnly = (cursor.getInt(3) & 0x01) == 1;
             if (hasSubnodes(nodeUniqueID)) {
                 // if node has subnodes, then it has to be opened as a parent node and displayed as such
-                currentScNode = new ScNode(nodeUniqueID, nameValue, true, true, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+                currentScNode = new ScNode(nodeUniqueID, "0", nameValue, true, true, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
             } else {
                 // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-                currentScNode = new ScNode(nodeUniqueID, nameValue, false, false, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+                currentScNode = new ScNode(nodeUniqueID, "0", nameValue, false, false, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
             }
         }
         cursor.close();
@@ -1676,7 +1689,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             int iconId = cursor.getInt(4) >> 1;
             boolean isReadOnly = (cursor.getInt(4) & 0x01) == 1;
             // There is only one parent Node and its added manually in getSubNodes()
-            nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly));
+            nodes.add(new ScNode(nodeUniqueID, "0", nameValue, false, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly));
         }
         return nodes;
     }
@@ -1704,7 +1717,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 int iconId = cursor.getInt(5) >> 1;
                 boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
                 // There are no "parent" nodes in search. All nodes displayed without indentation
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
+                nodes.add(new ScNode(nodeUniqueID, "0", nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
                 if (hasSubnodes) {
                     Cursor subCursor = this.sqlite.rawQuery("SELECT node.name, node.node_id, node.is_richtxt, node.level, node.syntax, node.is_ro FROM node INNER JOIN children ON node.node_id=children.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
                     nodes.addAll(returnSubnodeSearchArrayList(subCursor));
@@ -1733,7 +1746,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 int iconId = cursor.getInt(5) >> 1;
                 boolean isReadOnly = (cursor.getInt(5) & 0x01) == 1;
                 // There is only one parent Node and its added manually in getSubNodes()
-                nodes.add(new ScNode(nodeUniqueID, nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
+                nodes.add(new ScNode(nodeUniqueID, "0", nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
             }
         }
         return nodes;

@@ -311,23 +311,6 @@ public class MultiReader extends DatabaseReader {
     }
 
     /**
-     * Checks if file already saved in node's folder.
-     * @param nodeUniqueID unique ID of the node to check the children for the same file
-     * @param filename filename to search for
-     * @return true - file exists, false - opposite of that
-     */
-    private boolean isFileInNode(String nodeUniqueID, String filename) {
-        try (Cursor cursor = this.getNodeChildrenCursor(nodeUniqueID)) {
-            while (cursor.moveToNext()) {
-                if (cursor.getString(2).equals(filename)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
      * Recursively scans through all the nodes in NodeList to collect the uniqueNodeIDs. Adds them
      * to provided String list
      * @param uniqueIDList String list to add the found nodeUniqueIDs
@@ -600,7 +583,7 @@ public class MultiReader extends DatabaseReader {
                 node.appendChild(newDrawerMenuItem);
             }
             this.saveDrawerMenuToStorage();
-            scNode = new ScNode(newNodeUniqueID, name,false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
+            scNode = new ScNode(newNodeUniqueID, "0",name,false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
         } catch (IOException e) {
             this.displayToast(this.context.getString(R.string.toast_error_failed_to_create_node));
         }
@@ -627,6 +610,7 @@ public class MultiReader extends DatabaseReader {
         NamedNodeMap nodeAttribute = node.getAttributes();
         return new ScNode(
                 nodeAttribute.getNamedItem("unique_id").getNodeValue(),
+                "0",
                 nodeAttribute.getNamedItem("name").getNodeValue(),
                 isParent,
                 nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"),
@@ -648,6 +632,7 @@ public class MultiReader extends DatabaseReader {
         NamedNodeMap nodeAttribute = node.getAttributes();
         return new ScNode(
                 nodeAttribute.getNamedItem("unique_id").getNodeValue(),
+                "0",
                 nodeAttribute.getNamedItem("name").getNodeValue(),
                 nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"), // If node, has subnodes - it means it can be marked as parent
                 nodeAttribute.getNamedItem("has_subnodes").getNodeValue().equals("1"),
@@ -830,6 +815,7 @@ public class MultiReader extends DatabaseReader {
         int index = 0;
         String nodeName = null; // To display in results
         String nodeUniqueID = null; // That it could be returned to MainView to load selected node
+        String nodeMasterID = null;
         boolean isRichText = false;
         boolean isBold = false;
         String foregroundColor = "";
@@ -845,13 +831,15 @@ public class MultiReader extends DatabaseReader {
                 if (resultCount < 1) {
                     // If it's first match
                     // Settings node name and unique_id values that they could be returned with result
-                    nodeName = node.getAttributes().getNamedItem("name").getNodeValue();
-                    nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                    isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-                    isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-                    foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-                    iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-                    isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
+                    NamedNodeMap attr = node.getAttributes();
+                    nodeName = attr.getNamedItem("name").getNodeValue();
+                    nodeUniqueID = attr.getNamedItem("unique_id").getNodeValue();
+                    nodeMasterID = attr.getNamedItem("master_id").getNodeValue();
+                    isRichText = attr.getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
+                    isBold = attr.getNamedItem("is_bold").getNodeValue().equals("0");
+                    foregroundColor = attr.getNamedItem("foreground").getNodeValue();
+                    iconId = Integer.parseInt(attr.getNamedItem("custom_icon_id").getNodeValue());
+                    isReadOnly = attr.getNamedItem("readonly").getNodeValue().equals("0");
                 }
                 if (resultCount < 3 ) {
                     // Results display only first three found instances of search query
@@ -887,7 +875,7 @@ public class MultiReader extends DatabaseReader {
         }
         if (nodeName != null) {
             // if node name isn't null that means match for a query was found
-            return new ScSearchNode(nodeUniqueID, nodeName, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
+            return new ScSearchNode(nodeUniqueID, nodeMasterID, nodeName, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
         } else {
             return null;
         }
@@ -970,6 +958,12 @@ public class MultiReader extends DatabaseReader {
     private int getCharOffset(Node node) {
         Element element = (Element) node;
         return Integer.parseInt(element.getAttribute("char_offset"));
+    }
+
+    @Override
+    public int getChildrenNodeCount(String nodeUniqueID) {
+        // Placeholder while working on other databases
+        return 0;
     }
 
     @Override
@@ -1141,6 +1135,12 @@ public class MultiReader extends DatabaseReader {
     }
 
     @Override
+    public String getParentNodeUniqueID(String nodeUniqueID) {
+        // Placeholder while working on other databases
+        return null;
+    }
+
+    @Override
     public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
         ArrayList<ScNode> nodes = null;
         NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
@@ -1185,6 +1185,23 @@ public class MultiReader extends DatabaseReader {
         int colMin = Integer.parseInt(el.getAttribute("col_min"));
         int colMax = Integer.parseInt(el.getAttribute("col_max"));
         return new int[] {colMin, colMax};
+    }
+
+    /**
+     * Checks if file already saved in node's folder.
+     * @param nodeUniqueID unique ID of the node to check the children for the same file
+     * @param filename filename to search for
+     * @return true - file exists, false - opposite of that
+     */
+    private boolean isFileInNode(String nodeUniqueID, String filename) {
+        try (Cursor cursor = this.getNodeChildrenCursor(nodeUniqueID)) {
+            while (cursor.moveToNext()) {
+                if (cursor.getString(2).equals(filename)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override

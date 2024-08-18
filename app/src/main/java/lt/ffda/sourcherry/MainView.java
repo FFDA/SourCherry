@@ -373,78 +373,78 @@ public class MainView extends AppCompatActivity {
      * or loads another one that's more appropriate,
      * removes nodeContent and resets action bar title if opened node was deleted
      * @param nodeUniqueID unique ID of the node to delete
-     * @param position node's position in drawer menu as reported by adapter
      */
-    private void deleteNode(String nodeUniqueID, int position) {
-        if (this.filterNodeToggle) {
+    private void deleteNode(String nodeUniqueID) {
+        if (filterNodeToggle) {
             // Necessary, otherwise it will show up again in other searches until
             // the search function is turn off and on again
-            this.removeNodeFromTempSearchNodes(nodeUniqueID);
+            removeNodeFromTempSearchNodes(nodeUniqueID);
         }
-        if (this.bookmarksToggle) {
+        if (bookmarksToggle) {
             // In case deleted node was in the drawer menu that user opened bookmarks form
             // If user comes back to that menu (exists bookmarks) without selecting a
             // bookmarked node to open - deleted node would be visible
-            this.removeNodeFromTempNodes(nodeUniqueID);
+            removeNodeFromTempNodes(nodeUniqueID);
         }
-        if (this.mainViewModel.getCurrentNode() != null && nodeUniqueID.equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-            // Currently displayed node was selected for deletion
-            this.mainViewModel.deleteNodeContent();
-            this.setToolbarTitle("SourCherry");
-            this.currentNodePosition = RecyclerView.NO_POSITION;
-            this.adapter.markItemSelected(this.currentNodePosition);
-            ArrayList<ScNode> newMenu = this.reader.getParentWithSubnodes(
-                            this.mainViewModel.getCurrentNode().getUniqueId()).stream()
-                            .filter(n -> !n.getUniqueId().equals(nodeUniqueID))
-                            .collect(Collectors.toCollection(ArrayList::new)
-            );
-            if (newMenu.size() == 1) {
-                newMenu = this.findNextParentWithSubnodes(newMenu.get(0).getUniqueId());
-            }
-            this.mainViewModel.setNodes(newMenu);
-            this.adapter.notifyDataSetChanged();
-            this.mainViewModel.setCurrentNode(null);
-        } else {
-            this.mainViewModel.getNodes().remove(position);
-            if (this.mainViewModel.getNodes().size() < 2) {
-                ArrayList<ScNode> newMenu;
-                if (position == 0) {
-                    newMenu = this.reader.getParentWithSubnodes(nodeUniqueID);
-                } else {
-                    newMenu = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId());
-                }
-                // Deleted node can still be in newMenu list it needs to be removed
-                Iterator<ScNode> iterator = newMenu.iterator();
-                while (iterator.hasNext()) {
-                    ScNode currentNode = iterator.next();
-                    if (currentNode.getUniqueId().equals(nodeUniqueID)) {
-                        iterator.remove();
-                        break;
-                    }
-                }
-                if (mainViewModel.getCurrentNode() != null) {
-                    // If node is opened it has to be selected as such
-                    int newPosition = -1;
-                    for (int i = 0; i < newMenu.size(); i++) {
-                        if (newMenu.get(i).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId())) {
-                            newMenu.get(i).setHasSubnodes(false);
-                        }
-                        if (this.mainViewModel.getCurrentNode() != null) {
-                            if (newMenu.get(i).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-                                newPosition = i;
-                            }
-                        }
-                    }
-                    this.adapter.markItemSelected(newPosition);
-                    this.currentNodePosition = newPosition;
-                }
-                this.mainViewModel.setNodes(newMenu); // Displaying new nodes in DrawerMenu
-                this.adapter.notifyDataSetChanged();
+        if (mainViewModel.getCurrentNode() != null && nodeUniqueID.equals(mainViewModel.getCurrentNode().getUniqueId())) {
+            // Currently opened node was selected for deletion
+            String parentNodeUniqueID = reader.getParentNodeUniqueID(nodeUniqueID);
+            reader.deleteNode(nodeUniqueID);
+            mainViewModel.deleteNodeContent();
+            setToolbarTitle("SourCherry");
+            currentNodePosition = RecyclerView.NO_POSITION;
+            adapter.markItemSelected(currentNodePosition);
+            mainViewModel.setCurrentNode(null);
+            if (parentNodeUniqueID == null) {
+                mainViewModel.setNodes(reader.getMainNodes());
             } else {
-                this.adapter.notifyItemRemoved(position);
+                if (reader.getChildrenNodeCount(parentNodeUniqueID) > 0) {
+                    mainViewModel.setNodes(reader.getMenu(parentNodeUniqueID));
+                } else {
+                    mainViewModel.setNodes(reader.getParentWithSubnodes(parentNodeUniqueID));
+                }
+            }
+            adapter.notifyDataSetChanged();
+        } else if (mainViewModel.getCurrentNode() != null){
+            reader.deleteNode(nodeUniqueID);
+            ArrayList<ScNode> newMenu;
+            if (mainViewModel.getNodes().size() < 2) {
+                newMenu = reader.getMenu(mainViewModel.getCurrentNode().getUniqueId());
+            } else {
+                newMenu = reader.getParentWithSubnodes(mainViewModel.getCurrentNode().getUniqueId());
+            }
+            if (mainViewModel.getCurrentNode() != null) {
+                // If node is opened it has to be selected as such
+                int newPosition = -1;
+                for (int i = 0; i < newMenu.size(); i++) {
+                    if (newMenu.get(i).getUniqueId().equals(mainViewModel.getNodes().get(0).getUniqueId())) {
+                        newMenu.get(i).setHasSubnodes(false);
+                    }
+                    if (mainViewModel.getCurrentNode() != null) {
+                        if (newMenu.get(i).getUniqueId().equals(mainViewModel.getCurrentNode().getUniqueId())) {
+                            newPosition = i;
+                        }
+                    }
+                }
+                adapter.markItemSelected(newPosition);
+                currentNodePosition = newPosition;
+            }
+            mainViewModel.setNodes(newMenu);
+            adapter.notifyDataSetChanged();
+        } else {
+            reader.deleteNode(nodeUniqueID);
+            int i = 0;
+            Iterator<ScNode> iterator = getMainViewModel().getNodes().iterator();
+            while (iterator.hasNext()) {
+                ScNode node = iterator.next();
+                if (node.getUniqueId().equals(nodeUniqueID)) {
+                    iterator.remove();
+                    adapter.notifyItemRemoved(i);
+                    break;
+                }
+                i++;
             }
         }
-        this.reader.deleteNode(nodeUniqueID);
     }
 
     /**
@@ -1201,7 +1201,11 @@ public class MainView extends AppCompatActivity {
         this.executor.execute(new Runnable() {
             @Override
             public void run() {
-                MainView.this.reader.loadNodeContent(MainView.this.mainViewModel.getCurrentNode().getUniqueId());
+                if (mainViewModel.getCurrentNode().getMasterId().equals("0")) {
+                    reader.loadNodeContent(mainViewModel.getCurrentNode().getUniqueId());
+                } else {
+                    reader.loadNodeContent(mainViewModel.getCurrentNode().getMasterId());
+                }
             }
         });
     }
@@ -1781,10 +1785,10 @@ public class MainView extends AppCompatActivity {
                             MainView.this.launchMoveNodeFragment(node);
                             break;
                         case DELETE_NODE:
-                            MainView.this.deleteNode(node.getUniqueId(), result.getInt("position"));
+                            deleteNode(node.getUniqueId());
                             break;
                         case PROPERTIES:
-                            MainView.this.openNodeProperties(node.getUniqueId(), result.getInt("position"));
+                            openNodeProperties(node.getMasterId() != null && !"0".equals(node.getMasterId()) ? node.getMasterId() : node.getUniqueId(), result.getInt("position"));
                             break;
                     }
                 } else {
@@ -2199,9 +2203,15 @@ public class MainView extends AppCompatActivity {
         this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
         DatabaseReaderFactory.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
-        this.mainViewModel.getNodes().get(position).setRichText(progLang.equals("custom-colors"));
-        this.mainViewModel.getNodes().get(position).setName(name);
-        this.adapter.notifyItemChanged(position);
+        // updates drawerMenu items properties for shared nodes
+        for (int i = 0; i < mainViewModel.getNodes().size(); i++) {
+            ScNode scNode = mainViewModel.getNodes().get(i);
+            if (scNode.getMasterId().equals(nodeUniqueID) || scNode.getUniqueId().equals(nodeUniqueID)) {
+                scNode.setRichText(progLang.equals("custom-colors"));
+                scNode.setName(name);
+                adapter.notifyItemChanged(i);
+            }
+        }
         if (this.mainViewModel.getCurrentNode() != null && this.mainViewModel.getNodes().get(position).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
             // If opened node was changed - reloads node name in toolbar
             // and reloads node content if reloadNodeContent is true

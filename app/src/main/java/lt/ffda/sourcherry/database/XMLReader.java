@@ -61,6 +61,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -182,16 +183,51 @@ public class XMLReader extends DatabaseReader {
     }
 
     /**
+     * Copies node content (but no children nodes) and all attributes from one CherryTree XML
+     * document Node to another. Skips unique_id attribute and sets master_id attribute to 0.
+     * @param source source node
+     * @param destination destination node
+     */
+    private void cloneNodeAndAttributes(Node source, Node destination) {
+        NamedNodeMap sourceAttributes = source.getAttributes();
+        NamedNodeMap destAttributes = destination.getAttributes();
+        for (int i = 0; i < sourceAttributes.getLength(); i++) {
+            Node att = sourceAttributes.item(i);
+            if (att.getNodeName().equals("unique_id")) {
+                continue;
+            } else if (att.getNodeName().equals("master_id")) {
+                Node attribute = att.cloneNode(false);
+                attribute.setNodeValue("0");
+                destAttributes.setNamedItem(attribute);
+            } else {
+                destAttributes.setNamedItem(att.cloneNode(false));
+            }
+        }
+        Node inserBefore = destination.getFirstChild();
+        NodeList sourceNodeList = source.getChildNodes();
+        for (int i = sourceNodeList.getLength() - 1; i >= 0; i--) {
+            Node currentNode = sourceNodeList.item(i);
+            String nodeName = currentNode.getNodeName();
+            if (!nodeName.equals("node") && !nodeName.equals("#text")) {
+                currentNode = currentNode.cloneNode(true);
+                destination.insertBefore(currentNode, inserBefore);
+                inserBefore = currentNode;
+            }
+        }
+    }
+
+    /**
      * Recursively scans through all the nodes in NodeList to collect the uniqueNodeIDs. Adds them
      * to provided String list
-     * @param uniqueIDList String list to add the found nodeUniqueIDs
+     * @param uniqueIdList String list to add the found nodeUniqueIDs
      * @param nodeList NodeList to scan recursively
      */
-    private void collectUniqueID(List<String> uniqueIDList, NodeList nodeList) {
+    private void collectIDs(List<String> uniqueIdList, NodeList nodeList) {
         for (int i = 0; i < nodeList.getLength(); i++) {
             if (nodeList.item(i).getNodeName().equals("node")) {
-                uniqueIDList.add(nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
-                this.collectUniqueID(uniqueIDList, nodeList.item(i).getChildNodes());
+                NamedNodeMap attr = nodeList.item(i).getAttributes();
+                uniqueIdList.add(attr.getNamedItem("unique_id").getNodeValue());
+                collectIDs(uniqueIdList, nodeList.item(i).getChildNodes());
             }
         }
     }
@@ -230,6 +266,40 @@ public class XMLReader extends DatabaseReader {
         latexContent.append(getSeparator());
         latexContent.append("\n");
         return latexContent;
+    }
+
+    /**
+     * Converts node from XML node object to ScNode object
+     * @param node node to converte
+     * @return converted node that can be used in SourCherry menu
+     */
+    private ScNode convertNodeToScNode(Node node) {
+        boolean hasSubnodes = hasSubnodes(node);
+        String nodeUniqueId = node.getAttributes().getNamedItem("unique_id").getNodeValue();
+        String masterId;
+        Node masterIdNode = node.getAttributes().getNamedItem("master_id");
+        if (masterIdNode == null) {
+            masterId = "0";
+        } else {
+            masterId = masterIdNode.getNodeValue();
+        }
+        if (!"0".equals(masterId)) {
+            node = findNode(masterId);
+        }
+        NamedNodeMap attr = node.getAttributes();
+        String nameValue = attr.getNamedItem("name").getNodeValue();
+        boolean isRichText = attr.getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
+        boolean isBold = attr.getNamedItem("is_bold").getNodeValue().equals("0");
+        String foregroundColor = attr.getNamedItem("foreground").getNodeValue();
+        int iconId = Integer.parseInt(attr.getNamedItem("custom_icon_id").getNodeValue());
+        boolean isReadOnly = attr.getNamedItem("readonly").getNodeValue().equals("0");
+        if (hasSubnodes) {
+            // if node has subnodes, then it has to be opened as a parent node and displayed as such
+            return new ScNode(nodeUniqueId, masterId, nameValue, true, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+        } else {
+            // If node doesn't have subnodes, then it has to be opened as subnode of some other node
+            return new ScNode(nodeUniqueId, masterId, nameValue, false, hasSubnodes, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+        }
     }
 
     /**
@@ -326,6 +396,7 @@ public class XMLReader extends DatabaseReader {
         Element newNode = this.doc.createElement("node");
         newNode.setAttribute("name", name);
         newNode.setAttribute("unique_id", newNodeUniqueID);
+        newNode.setAttribute("master_id", "0");
         newNode.setAttribute("prog_lang", progLang);
         newNode.setAttribute("tags", "");
         newNode.setAttribute("readonly", "0");
@@ -359,24 +430,54 @@ public class XMLReader extends DatabaseReader {
             node.appendChild(newNode);
         }
         this.writeIntoDatabase();
-        return new ScNode(newNodeUniqueID, name,false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
+        return new ScNode(newNodeUniqueID, "0", name,false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
     }
 
     @Override
     public void deleteNode(String nodeUniqueID) {
-        Node nodeToDelete = this.findNode(nodeUniqueID);
-        List<String> uniqueIDList = new ArrayList<>(); // Collecting all nodeUniqueIDs to remove them from the bookmarks
-        uniqueIDList.add(nodeToDelete.getAttributes().getNamedItem("unique_id").getNodeValue());
+        Node nodeToDelete = findNode(nodeUniqueID);
+        // Collecting all nodeUniqueIDs that will be removed
+        List<String> uniqueIdList = new ArrayList<>();
+        uniqueIdList.add(nodeToDelete.getAttributes().getNamedItem("unique_id").getNodeValue());
+        if (nodeToDelete.getAttributes().getNamedItem("master_id") != null
+                && !nodeToDelete.getAttributes().getNamedItem("master_id").getNodeValue().equals("0")) {
+        }
         NodeList deletedNodeChildren = nodeToDelete.getChildNodes();
         for (int i = 0; i < deletedNodeChildren.getLength(); i++) {
             if (deletedNodeChildren.item(i).getNodeName().equals("node")) {
-                uniqueIDList.add(deletedNodeChildren.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
-                this.collectUniqueID(uniqueIDList, deletedNodeChildren.item(i).getChildNodes());
+                NamedNodeMap attr = deletedNodeChildren.item(i).getAttributes();
+                uniqueIdList.add(attr.getNamedItem("unique_id").getNodeValue());
+                collectIDs(uniqueIdList, deletedNodeChildren.item(i).getChildNodes());
             }
         }
-        this.removeNodesFromBookmarks(uniqueIDList);
+        // Checking if master node will be deleted with childrend of deleted node
+        for (String uniqueId: uniqueIdList) {
+            List<String> sharedNodesIds = getSharedNodesIds(uniqueId);
+            if (!sharedNodesIds.isEmpty()) {
+                // masterNode will be deleted
+                for (String sharedId: sharedNodesIds) {
+                    // Looking for first sharedNode that will not be deleted with the rest of the nodes
+                    if (!uniqueIdList.contains(sharedId)) {
+                        // Copying content to the new masterNode
+                        Node oldMasterNode = findNode(uniqueId);
+                        Node newMasterNode = findNode(sharedId);
+                        cloneNodeAndAttributes(oldMasterNode, newMasterNode);
+                        for (int i = 1; i < sharedNodesIds.size(); i++) {
+                            if (!uniqueIdList.contains(sharedNodesIds.get(i))) {
+                                // Changes master_id to the to the newMasterNode id if node will
+                                // not be deleted
+                                Element node = (Element) findNode(sharedNodesIds.get(i));
+                                node.setAttribute("master_id", sharedId);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        removeNodesFromBookmarks(uniqueIdList);
         nodeToDelete.getParentNode().removeChild(nodeToDelete);
-        this.writeIntoDatabase();
+        writeIntoDatabase();
     }
 
     /**
@@ -504,6 +605,7 @@ public class XMLReader extends DatabaseReader {
         int index = 0;
         String nodeName = null; // To display in results
         String nodeUniqueID = null; // That it could be returned to MainView to load selected node
+        String nodeMasterID = null;
         boolean isRichText = false;
         boolean isBold = false;
         String foregroundColor = "";
@@ -521,13 +623,15 @@ public class XMLReader extends DatabaseReader {
                 if (resultCount < 1) {
                     // If it's first match
                     // Settings node name and unique_id values that they could be returned with result
-                    nodeName = node.getAttributes().getNamedItem("name").getNodeValue();
-                    nodeUniqueID = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-                    isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-                    isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-                    foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-                    iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-                    isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
+                    NamedNodeMap attr = node.getAttributes();
+                    nodeName = attr.getNamedItem("name").getNodeValue();
+                    nodeUniqueID = attr.getNamedItem("unique_id").getNodeValue();
+                    nodeMasterID = attr.getNamedItem("master_id") != null ? attr.getNamedItem("master_id").getNodeValue() : "0";
+                    isRichText = attr.getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
+                    isBold = attr.getNamedItem("is_bold").getNodeValue().equals("0");
+                    foregroundColor = attr.getNamedItem("foreground").getNodeValue();
+                    iconId = Integer.parseInt(attr.getNamedItem("custom_icon_id").getNodeValue());
+                    isReadOnly = attr.getNamedItem("readonly").getNodeValue().equals("0");
                 }
 
                 if (resultCount < 3 ) {
@@ -567,10 +671,26 @@ public class XMLReader extends DatabaseReader {
 
         if (nodeName != null) {
             // if node name isn't null that means match for a query was found
-            return new ScSearchNode(nodeUniqueID, nodeName, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
+            return new ScSearchNode(nodeUniqueID, nodeMasterID, nodeName, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
         } else {
             return null;
         }
+    }
+
+    /**
+     * Searches through database for the node with unique ID
+     * @param nodeUniqueID node unique ID to search for
+     * @return found Node object or null
+     */
+    private Node findNode(String nodeUniqueID) {
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
+                return node;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -635,6 +755,18 @@ public class XMLReader extends DatabaseReader {
     private int getCharOffset(Node node) {
         Element element = (Element) node;
         return Integer.parseInt(element.getAttribute("char_offset"));
+    }
+
+    @Override
+    public int getChildrenNodeCount(String nodeUniqueID) {
+        NodeList nodeList = findNode(nodeUniqueID).getChildNodes();
+        int count = 0;
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            if (nodeList.item(i).getNodeName().equals("node")) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**
@@ -710,9 +842,8 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public ArrayList<ScNode> getMenu(String nodeUniqueID) {
-        // Returns Subnodes of the node which nodeUniqueID is provided
         ArrayList<ScNode> nodes;
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
         NodeList childNodeList = node.getChildNodes();
         nodes = returnSubnodeArrayList(childNodeList, true);
         ScNode parentNode = convertNodeToScNode(node);
@@ -736,7 +867,11 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public ScNodeProperties getNodeProperties(String nodeUniqueID) {
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
+        String masterId = node.getAttributes().getNamedItem("master_id").getNodeValue();
+        if (masterId != null && !"0".equals(masterId)) {
+            node = findNode(masterId);
+        }
         NamedNodeMap properties = node.getAttributes();
         String name = properties.getNamedItem("name").getNodeValue();
         String progLang = properties.getNamedItem("prog_lang").getNodeValue();
@@ -745,26 +880,22 @@ public class XMLReader extends DatabaseReader {
         return new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
     }
 
-    /**
-     * Searches through database for the node with unique ID
-     * @param nodeUniqueID node unique ID to search for
-     * @return found Node object or null
-     */
-    private Node findNode(String nodeUniqueID) {
-        NodeList nodeList = this.doc.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                return node;
-            }
+    @Override
+    public String getParentNodeUniqueID(String nodeUniqueID) {
+        Node node = this.findNode(nodeUniqueID);
+        if (node == null) {
+            return null;
         }
-        return null;
+        Node parentNode = node.getParentNode();
+        if (parentNode == null || parentNode.getNodeName().equals("cherrytree")) {
+            return null;
+        } else {
+            return parentNode.getAttributes().getNamedItem("unique_id").getNodeValue();
+        }
     }
 
     @Override
     public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
-        // Checks if it is possible to go up in document's node tree from given nodeUniqueID
-        // Returns array with appropriate nodes
         ArrayList<ScNode> nodes = null;
         Node node = this.findNode(nodeUniqueID);
         if (node == null) {
@@ -782,37 +913,42 @@ public class XMLReader extends DatabaseReader {
         return nodes;
     }
 
+    /**
+     * Collects uniqueIds of the master node's shared nodes
+     * @param nodeUniqueID uniqueId of the master node
+     * @return ordered list of uniqueIds
+     */
+    private List<String> getSharedNodesIds(String nodeUniqueID) {
+        List<String> sharedNodes = new ArrayList<>();
+        NodeList nodeList = this.doc.getElementsByTagName("node");
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            NamedNodeMap nodeAttributes = nodeList.item(i).getAttributes();
+            if (nodeAttributes.getNamedItem("master_id") != null &&
+                    nodeAttributes.getNamedItem("master_id").getNodeValue().equals(nodeUniqueID)) {
+                sharedNodes.add(nodeAttributes.getNamedItem("unique_id").getNodeValue());
+            }
+        }
+        if (sharedNodes.size() < 2) {
+            return sharedNodes;
+        }
+        Collections.sort(sharedNodes, new Comparator<String>() {
+            @Override
+            public int compare(String s, String t1) {
+                Integer num1 = Integer.parseInt(s);
+                Integer num2 = Integer.parseInt(t1);
+                return num1.compareTo(num2);
+            }
+        });
+        return sharedNodes;
+    }
+
     @Override
     public ScNode getSingleMenuItem(String nodeUniqueID) {
-        // Returns single menu item to be used when opening anchor links
         Node node = findNode(nodeUniqueID);
         if (node == null) {
             return null;
         }
         return convertNodeToScNode(node);
-    }
-
-    /**
-     * Converts node from XML node object to ScNode object
-     * @param node node to converte
-     * @return converted node that can be used in SourCherry menu
-     */
-    private ScNode convertNodeToScNode(Node node) {
-        String nodeUniqueId = node.getAttributes().getNamedItem("unique_id").getNodeValue();
-        String nameValue = node.getAttributes().getNamedItem("name").getNodeValue();
-        boolean hasSubnodes = hasSubnodes(node);
-        boolean isRichText = node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors");
-        boolean isBold = node.getAttributes().getNamedItem("is_bold").getNodeValue().equals("0");
-        String foregroundColor = node.getAttributes().getNamedItem("foreground").getNodeValue();
-        int iconId = Integer.parseInt(node.getAttributes().getNamedItem("custom_icon_id").getNodeValue());
-        boolean isReadOnly = node.getAttributes().getNamedItem("readonly").getNodeValue().equals("0");
-        if (hasSubnodes) {
-            // if node has subnodes, then it has to be opened as a parent node and displayed as such
-            return new ScNode(nodeUniqueId, nameValue, true, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-        } else {
-            // If node doesn't have subnodes, then it has to be opened as subnode of some other node
-            return new ScNode(nodeUniqueId, nameValue, false, hasSubnodes, true, isRichText, isBold, foregroundColor, iconId, isReadOnly);
-        }
     }
 
     /**
@@ -1742,6 +1878,9 @@ public class XMLReader extends DatabaseReader {
             node.appendChild(element);
         }
         node.getAttributes().getNamedItem("ts_lastsave").setTextContent(String.valueOf(System.currentTimeMillis() / 1000));
+        if (node.getAttributes().getNamedItem("master_id") == null) {
+            node.getAttributes().getNamedItem("master_id").setTextContent("0");
+        }
         this.writeIntoDatabase();
     }
 
@@ -1804,14 +1943,14 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public ArrayList<ScSearchNode> search(Boolean noSearch, String query) {
-        NodeList nodeList = this.doc.getFirstChild().getChildNodes();
+        NodeList nodeList = doc.getFirstChild().getChildNodes();
         ArrayList<ScSearchNode> searchResult = new ArrayList<>();
         if (noSearch) {
             // If user marked that search should skip search "excluded" nodes
             for (int i = 0; i < nodeList.getLength(); i++) {
                 if (nodeList.item(i).getNodeName().equals("node")) {
                     // If node is a "node" and not some other tag
-                    boolean hasSubnodes = this.hasSubnodes(nodeList.item(i));
+                    boolean hasSubnodes = hasSubnodes(nodeList.item(i));
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
                         // if user haven't marked to skip current node - searches through its content
                         boolean isParent = false;
@@ -1820,14 +1959,14 @@ public class XMLReader extends DatabaseReader {
                             isParent = true;
                             isSubnode = false;
                         }
-                        ScSearchNode result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
+                        ScSearchNode result = findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                         if (result != null) {
                             searchResult.add(result);
                         }
                     }
                     if (hasSubnodes && nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
                         // if user haven't selected not to search subnodes of current node
-                        searchResult.addAll(this.searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
+                        searchResult.addAll(searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
                     }
                 }
             }
@@ -1836,20 +1975,24 @@ public class XMLReader extends DatabaseReader {
             for (int i = 0; i < nodeList.getLength(); i++) {
                 boolean hasSubnodes = hasSubnodes(nodeList.item(i));
                 if (nodeList.item(i).getNodeName().equals("node")) {
+                    Node masterIdAttr = nodeList.item(i).getAttributes().getNamedItem("master_id");
+                    if (masterIdAttr != null && !"0".equals(masterIdAttr.getNodeValue())) {
+                        continue;
+                    }
                     boolean isParent  = false;
                     boolean isSubnode  = true;
                     if (hasSubnodes) {
                         isParent = true;
                         isSubnode = false;
                     }
-                    ScSearchNode result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
+                    ScSearchNode result = findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                     if (result != null) {
                         searchResult.add(result);
                     }
                 }
                 if (hasSubnodes) {
                     // If node has subnodes
-                    searchResult.addAll(this.searchAllNodes(query, nodeList.item(i).getChildNodes()));
+                    searchResult.addAll(searchAllNodes(query, nodeList.item(i).getChildNodes()));
                 }
             }
         }
@@ -1870,6 +2013,10 @@ public class XMLReader extends DatabaseReader {
             boolean hasSubnodes = hasSubnodes(nodeList.item(i));
             if (nodeList.item(i).getNodeName().equals("node")) {
                 // If node is a "node" and not some other tag
+                Node masterIdAttr = nodeList.item(i).getAttributes().getNamedItem("master_id");
+                if (masterIdAttr != null && !"0".equals(masterIdAttr.getNodeValue())) {
+                    continue;
+                }
                 boolean isParent;
                 boolean isSubnode;
                 if (hasSubnodes) {
@@ -1879,14 +2026,14 @@ public class XMLReader extends DatabaseReader {
                     isParent = false;
                     isSubnode = true;
                 }
-                ScSearchNode result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
+                ScSearchNode result = findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                 if (result != null) {
                     searchResult.add(result);
                 }
             }
             if (hasSubnodes) {
                 // If node has subnodes
-                searchResult.addAll(this.searchAllNodes(query, nodeList.item(i).getChildNodes()));
+                searchResult.addAll(searchAllNodes(query, nodeList.item(i).getChildNodes()));
             }
         }
         return searchResult;
@@ -1933,7 +2080,11 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
+        String masterId = node.getAttributes().getNamedItem("master_id").getNodeValue();
+        if (masterId != null && !"0".equals(masterId)) {
+            node = findNode(masterId);
+        }
         NamedNodeMap properties = node.getAttributes();
         properties.getNamedItem("name").setNodeValue(name);
         if (properties.getNamedItem("prog_lang").getNodeValue().equals("custom-colors") && !progLang.equals("custom-colors")) {

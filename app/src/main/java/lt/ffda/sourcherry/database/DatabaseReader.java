@@ -183,6 +183,13 @@ public abstract class DatabaseReader {
     public abstract ArrayList<ScNode> getBookmarkedNodes();
 
     /**
+     * Returns count of how many direct subnodes a node have
+     * @param node nodeto count the direct children nodes
+     * @return count of direct children node
+     */
+    public abstract int getChildrenNodeCount(String nodeUniqueID);
+
+    /**
      * Returns byte array (stream) of the embedded file in the database to be written to file or opened
      * @param nodeUniqueID unique ID of the node to which file was attached to
      * @param filename filename of the file attached to the node
@@ -228,6 +235,15 @@ public abstract class DatabaseReader {
      * @return Node properties object
      */
     public abstract ScNodeProperties getNodeProperties(String nodeUniqueID);
+
+    /**
+     * Checks if it is possible to go up in document's node tree from given node
+     * Depending on result it will return nodeUniqueID of the parent node of given nodeUniqueID
+     * or null if node is part of main menu.
+     * @param nodeUniqueID unique ID of the node for wich parent node should be searched for
+     * @return nodeUniqueID of the parent node or null if node is part of main menu
+     */
+    public abstract String getParentNodeUniqueID(String nodeUniqueID);
 
     /**
      * Checks if it is possible to go up in document's node tree from given node

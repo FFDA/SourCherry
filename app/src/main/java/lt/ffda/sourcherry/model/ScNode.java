@@ -20,6 +20,7 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
         @Override
         public ScNode createFromParcel(Parcel source) {
             String uniqueId = source.readString();
+            String masterId = source.readString();
             String name = source.readString();
             boolean isParent = source.readInt() == 1;
             boolean hasSubnodes = source.readInt() == 1;
@@ -29,7 +30,7 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
             String foregroundColor = source.readString();
             int iconId = source.readInt();
             boolean isReadOnly = source.readInt() == 1;
-            return new ScNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+            return new ScNode(uniqueId, masterId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
         }
 
         @Override
@@ -39,6 +40,7 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
     };
     // Keeping it as String because I need it it this way most of the time. Otherwise I would have to convert ot String quite often
     private final String uniqueId;
+    private String masterId;
     private String name;
     // Depending on this value a node will be made look like it's a parent node (will not be indented and have an arrow pointing down)
     private boolean isParent;
@@ -55,6 +57,7 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
     /**
      * Constructor for SourCherry node object. Changes previous method of keeping node's data in String[]{name, unique_id, has_subnodes, is_parent, is_subnode}
      * @param uniqueId unique id of the node
+     * @param masterId unique id of the master node
      * @param name node name
      * @param isParent is node a parent node. Parent node has a arrow indicating that it has subnodes
      * @param hasSubnodes does node has any subnodes. Node with subnodes has an arrow indicating it
@@ -65,8 +68,9 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
      * @param iconId node icon id
      * @param isReadOnly is node read only
      */
-    public ScNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText, boolean isBold, String foregroundColor, int iconId, boolean isReadOnly) {
+    public ScNode(String uniqueId, String masterId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText, boolean isBold, String foregroundColor, int iconId, boolean isReadOnly) {
         this.uniqueId = uniqueId;
+        this.masterId = masterId;
         this.name = name;
         this.isParent = isParent;
         this.hasSubnodes = hasSubnodes;
@@ -118,6 +122,23 @@ public class ScNode implements Comparable<ScNode>, Parcelable {
      */
     public void setIconId(int iconId) {
         this.iconId = iconId;
+    }
+
+    /**
+     * Get uniqueId of the master ScNode.
+     * @return "0" - if node does not have master node, String with positive integer - otherwise
+     */
+    public String getMasterId() {
+        return masterId;
+    }
+
+    /**
+     * Set uniqueId of the master ScNode. It has to mathch uniqueId of another node or be "0" if
+     * node is not a shared node. Master nodes also have "0" as a masterId.
+     * @param masterId "0" if node does not have master node, positive integer otherwise
+     */
+    public void setMasterId(String masterId) {
+        this.masterId = masterId;
     }
 
     /**

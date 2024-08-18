@@ -20,6 +20,7 @@ public class ScSearchNode extends ScNode {
         @Override
         public ScSearchNode createFromParcel(Parcel source) {
             String uniqueId = source.readString();
+            String masterId = source.readString();
             String name = source.readString();
             boolean isParent = source.readInt() == 1;
             boolean hasSubnodes = source.readInt() == 1;
@@ -32,7 +33,7 @@ public class ScSearchNode extends ScNode {
             String query = source.readString();
             int resultCount = source.readInt();
             String resultSamples = source.readString();
-            return new ScSearchNode(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, resultSamples);
+            return new ScSearchNode(uniqueId, masterId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly, query, resultCount, resultSamples);
         }
 
         @Override
@@ -48,6 +49,7 @@ public class ScSearchNode extends ScNode {
      * Constructor for SourCherry search result node object. Changes the previous method of transferring
      * data of search results in String[]{nodeName, nodeUniqueID, query, countOfResults, samplesOfResult, hasSubnodes, isParent, isSubnode}
      * @param uniqueId unique id of the node
+     * @param masterId master id of the node
      * @param name node name
      * @param isParent is node a parent node. Parent node has a arrow indicating that it has subnodes
      * @param hasSubnodes does node has any subnodes. Node with subnodes has an arrow indicating it
@@ -61,8 +63,8 @@ public class ScSearchNode extends ScNode {
      * @param resultCount count of results in the node
      * @param resultSamples sample lines in the node with the query
      */
-    public ScSearchNode(String uniqueId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText, boolean isBold, String foregroundColor, int iconId, boolean isReadOnly, String query, int resultCount, String resultSamples) {
-        super(uniqueId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+    public ScSearchNode(String uniqueId, String masterId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText, boolean isBold, String foregroundColor, int iconId, boolean isReadOnly, String query, int resultCount, String resultSamples) {
+        super(uniqueId, "0", name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
         this.query = query;
         this.resultCount = resultCount;
         this.resultSamples = resultSamples;
@@ -95,6 +97,7 @@ public class ScSearchNode extends ScNode {
     @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeString(this.getUniqueId());
+        dest.writeString(this.getMasterId());
         dest.writeString(this.getName());
         dest.writeInt(this.isParent() ? 1 : 0);
         dest.writeInt(this.hasSubnodes() ? 1 : 0);
