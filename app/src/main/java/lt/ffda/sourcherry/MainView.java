@@ -335,19 +335,19 @@ public class MainView extends AppCompatActivity {
      * @param noSearchCh 0 - marks that subnodes of the node should be searched, 1 - marks that subnodes should be excluded from the search
      */
     public void createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
-        ScNode newNodeMenuItem = this.reader.createNewNode(nodeUniqueID, relation, name, progLang, noSearchMe, noSearchCh);
+        ScNode newNodeMenuItem = reader.createNewNode(nodeUniqueID, relation, name, progLang, noSearchMe, noSearchCh);
         getSupportFragmentManager().popBackStack();
-        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
         if (newNodeMenuItem != null) {
             // If new node was added - load it
-            if (this.bookmarksToggle) {
-                this.bookmarksToggle = false;
-                this.navigationNormalMode(true);
+            if (bookmarksToggle) {
+                bookmarksToggle = false;
+                navigationNormalMode(true);
             }
-            this.mainViewModel.setCurrentNode(newNodeMenuItem);
-            this.loadNodeContent();
-            this.setClickedItemInSubmenu();
+            mainViewModel.setCurrentNode(newNodeMenuItem);
+            loadNodeContent();
+            setClickedItemInSubmenu();
         }
     }
 
@@ -433,17 +433,8 @@ public class MainView extends AppCompatActivity {
             adapter.notifyDataSetChanged();
         } else {
             reader.deleteNode(nodeUniqueID);
-            int i = 0;
-            Iterator<ScNode> iterator = getMainViewModel().getNodes().iterator();
-            while (iterator.hasNext()) {
-                ScNode node = iterator.next();
-                if (node.getUniqueId().equals(nodeUniqueID)) {
-                    iterator.remove();
-                    adapter.notifyItemRemoved(i);
-                    break;
-                }
-                i++;
-            }
+            mainViewModel.setNodes(reader.getMainNodes());
+            adapter.notifyDataSetChanged();
         }
     }
 
@@ -1988,14 +1979,14 @@ public class MainView extends AppCompatActivity {
      * and marks currently opened node as such.
      */
     private void setClickedItemInSubmenu() {
-        this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
-        for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
-            if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-                int previousNodePosition = this.currentNodePosition;
-                this.currentNodePosition = index;
-                this.adapter.markItemSelected(this.currentNodePosition);
-                this.adapter.notifyItemChanged(previousNodePosition);
-                this.adapter.notifyItemChanged(currentNodePosition);
+        mainViewModel.setNodes(reader.getParentWithSubnodes(mainViewModel.getCurrentNode().getUniqueId()));
+        for (int index = 0; index < mainViewModel.getNodes().size(); index++) {
+            if (mainViewModel.getNodes().get(index).getUniqueId().equals(mainViewModel.getCurrentNode().getUniqueId())) {
+                int previousNodePosition = currentNodePosition;
+                currentNodePosition = index;
+                adapter.markItemSelected(currentNodePosition);
+                adapter.notifyItemChanged(previousNodePosition);
+                adapter.notifyItemChanged(currentNodePosition);
                 break;
             }
         }

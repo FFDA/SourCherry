@@ -40,6 +40,7 @@ import org.w3c.dom.NodeList;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.model.ScNode;
@@ -263,6 +264,13 @@ public abstract class DatabaseReader {
     public String getSeparator() {
         return "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
     }
+
+    /**
+     * Collects uniqueIds of the master node's shared nodes
+     * @param nodeUniqueID uniqueId of the master node
+     * @return ordered list of uniqueIds
+     */
+    public abstract List<String> getSharedNodesIds(String nodeUniqueID);
 
     /**
      * Returns single menu item with current information

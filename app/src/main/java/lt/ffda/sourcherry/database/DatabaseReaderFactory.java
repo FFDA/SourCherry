@@ -12,6 +12,7 @@ package lt.ffda.sourcherry.database;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Handler;
@@ -83,6 +84,13 @@ public class DatabaseReaderFactory {
                 // If file is sql (password protected or not)
                 SQLiteDatabase sqlite = SQLiteDatabase.openDatabase(databaseString, null, SQLiteDatabase.OPEN_READWRITE);
                 databaseReader = new SQLReader(sqlite, context, handler, mainViewModel);
+                // Adds master_id column to children table if table is missing it
+                try (Cursor cursor = sqlite.rawQuery("SELECT * FROM children LIMIT 0", null)) {
+                    if (cursor.getColumnIndex("master_id") == -1) {
+                        sqlite.execSQL("ALTER TABLE children ADD COLUMN master_id INTEGER");
+                        sqlite.execSQL("UPDATE children SET master_id = 0");
+                    }
+                }
             }
         }
         return databaseReader;

@@ -913,12 +913,8 @@ public class XMLReader extends DatabaseReader {
         return nodes;
     }
 
-    /**
-     * Collects uniqueIds of the master node's shared nodes
-     * @param nodeUniqueID uniqueId of the master node
-     * @return ordered list of uniqueIds
-     */
-    private List<String> getSharedNodesIds(String nodeUniqueID) {
+    @Override
+    public List<String> getSharedNodesIds(String nodeUniqueID) {
         List<String> sharedNodes = new ArrayList<>();
         NodeList nodeList = this.doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {

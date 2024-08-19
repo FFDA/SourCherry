@@ -69,6 +69,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -962,7 +963,7 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public int getChildrenNodeCount(String nodeUniqueID) {
-        // Placeholder while working on other databases
+        // TODO: Placeholder while working on other databases
         return 0;
     }
 
@@ -1136,7 +1137,7 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public String getParentNodeUniqueID(String nodeUniqueID) {
-        // Placeholder while working on other databases
+        // TODO: Placeholder while working on other databases
         return null;
     }
 
@@ -1159,6 +1160,12 @@ public class MultiReader extends DatabaseReader {
             }
         }
         return nodes;
+    }
+
+    @Override
+    public List<String> getSharedNodesIds(String nodeUniqueID) {
+        // TODO: Placeholder while working on other databases
+        return Collections.emptyList();
     }
 
     @Override
