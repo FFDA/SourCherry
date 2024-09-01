@@ -1875,7 +1875,8 @@ public class XMLReader extends DatabaseReader {
         }
         node.getAttributes().getNamedItem("ts_lastsave").setTextContent(String.valueOf(System.currentTimeMillis() / 1000));
         if (node.getAttributes().getNamedItem("master_id") == null) {
-            node.getAttributes().getNamedItem("master_id").setTextContent("0");
+            Element element = (Element) node;
+            element.setAttribute("master_id", "0");
         }
         this.writeIntoDatabase();
     }
