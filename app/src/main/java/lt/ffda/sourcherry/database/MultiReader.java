@@ -2480,6 +2480,9 @@ public class MultiReader extends DatabaseReader {
             element.setTextContent(nodeContent.toString());
             node.appendChild(element);
         }
+        if (node.getAttributes().getNamedItem("master_id") == null) {
+            ((Element) node).setAttribute("master_id", "0");
+        }
         Element cherrytreeElement = doc.createElement("cherrytree");
         cherrytreeElement.appendChild(node);
         try (OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, documentId))) {
