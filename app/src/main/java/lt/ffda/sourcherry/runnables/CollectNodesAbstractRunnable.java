@@ -143,7 +143,6 @@ public abstract class CollectNodesAbstractRunnable {
         String progLang = null;
         String noSearchMe = null;
         String noSearchCh = null;
-        String isRichText = null;
         String isBold = null;
         String foregroundColor = null;
         String iconId = null;
@@ -166,7 +165,6 @@ public abstract class CollectNodesAbstractRunnable {
                             progLang = element.getAttributes().getNamedItem("prog_lang").getNodeValue();
                             noSearchMe = element.getAttributes().getNamedItem("nosearch_me").getNodeValue();
                             noSearchCh = element.getAttributes().getNamedItem("nosearch_ch").getNodeValue();
-                            isRichText = element.getAttributes().getNamedItem("prog_lang").getNodeValue();
                             isBold = element.getAttributes().getNamedItem("is_bold").getNodeValue();
                             foregroundColor = element.getAttributes().getNamedItem("foreground").getNodeValue();
                             iconId = element.getAttributes().getNamedItem("custom_icon_id").getNodeValue();
@@ -201,7 +199,6 @@ public abstract class CollectNodesAbstractRunnable {
             node.setAttribute("prog_lang", progLang);
             node.setAttribute("nosearch_me", noSearchMe);
             node.setAttribute("nosearch_ch", noSearchCh);
-            node.setAttribute("is_rich_text", isRichText);
             node.setAttribute("is_bold", isBold);
             node.setAttribute("foreground_color", foregroundColor);
             node.setAttribute("icon_id", iconId);

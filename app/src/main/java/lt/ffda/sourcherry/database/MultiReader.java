@@ -454,7 +454,7 @@ public class MultiReader extends DatabaseReader {
         destElemenent.setAttribute("prog_lang", attribute.getNamedItem("prog_lang").getNodeValue());
         destElemenent.setAttribute("nosearch_me", attribute.getNamedItem("nosearch_me").getNodeValue());
         destElemenent.setAttribute("nosearch_ch", attribute.getNamedItem("nosearch_ch").getNodeValue());
-        destElemenent.setAttribute("is_rich_text", attribute.getNamedItem("is_rich_text").getNodeValue());
+        destElemenent.setAttribute("custom-colors", attribute.getNamedItem("custom-colors").getNodeValue());
         destElemenent.setAttribute("is_bold", attribute.getNamedItem("is_bold").getNodeValue());
         destElemenent.setAttribute("foreground_color", attribute.getNamedItem("foreground_color").getNodeValue());
         destElemenent.setAttribute("icon_id", attribute.getNamedItem("icon_id").getNodeValue());
@@ -582,7 +582,7 @@ public class MultiReader extends DatabaseReader {
             newDrawerMenuItem.setAttribute("prog_lang", progLang);
             newDrawerMenuItem.setAttribute("nosearch_me", noSearchMe);
             newDrawerMenuItem.setAttribute("nosearch_ch", noSearchCh);
-            newDrawerMenuItem.setAttribute("is_rich_text", progLang.equals("custom-colors") ? "1" : "0");
+            newDrawerMenuItem.setAttribute("prog_lang", progLang.equals("custom-colors") ? "1" : "0");
             newDrawerMenuItem.setAttribute("is_bold", "0");
             newDrawerMenuItem.setAttribute("foreground_color", "");
             newDrawerMenuItem.setAttribute("icon_id", "0");
@@ -639,7 +639,7 @@ public class MultiReader extends DatabaseReader {
                 isParent,
                 hasSubnodes,
                 isSubnode,
-                nodeAttribute.getNamedItem("is_rich_text").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("prog_lang").getNodeValue().equals("custom-colors"),
                 nodeAttribute.getNamedItem("is_bold").getNodeValue().equals("1"),
                 nodeAttribute.getNamedItem("foreground_color").getNodeValue(),
                 Integer.parseInt(nodeAttribute.getNamedItem("icon_id").getNodeValue()),
@@ -668,7 +668,7 @@ public class MultiReader extends DatabaseReader {
                 hasSubnodes, // If node, has subnodes - it means it can be marked as parent
                 hasSubnodes,
                 !hasSubnodes, // If node, has subnodes - it means it can't be marked as subnode,
-                nodeAttribute.getNamedItem("is_rich_text").getNodeValue().equals("1"),
+                nodeAttribute.getNamedItem("custom-colors").getNodeValue().equals("custom-colors"),
                 nodeAttribute.getNamedItem("is_bold").getNodeValue().equals("1"),
                 nodeAttribute.getNamedItem("foreground_color").getNodeValue(),
                 Integer.parseInt(nodeAttribute.getNamedItem("icon_id").getNodeValue()),
@@ -973,9 +973,9 @@ public class MultiReader extends DatabaseReader {
     @Override
     public ArrayList<ScNode> getAllNodes(boolean noSearch) {
         if (noSearch) {
-            return this.returnSubnodeSearchArrayList(this.drawerMenu.getElementsByTagName("sourcherry").item(0).getChildNodes());
+            return this.returnSubnodeSearchArrayList(drawerMenu.getElementsByTagName("sourcherry").item(0).getChildNodes());
         } else {
-            return this.returnSubnodeArrayList(this.drawerMenu.getElementsByTagName("node"), false);
+            return returnSubnodeArrayList(drawerMenu.getElementsByTagName("node"), false);
         }
     }
 
@@ -2221,9 +2221,9 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public void saveNodeContent(String nodeUniqueID) {
-        Cursor cursor = this.getNodeChildrenCursor(this.findSingleNode(nodeUniqueID));
+        Cursor cursor = getNodeChildrenCursor(findSingleNode(nodeUniqueID));
         if (cursor == null) {
-            this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
+            displayToast(context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
             return;
         }
         String documentId = null;
@@ -2233,22 +2233,22 @@ public class MultiReader extends DatabaseReader {
             }
         }
         if (documentId == null) {
-            this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
+            displayToast(context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
             return;
         }
         Document doc = null;
         Node node = null;
-        try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, documentId))) {
-            doc = this.documentBuilder.parse(is);
+        try (InputStream is = context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, documentId))) {
+            doc = documentBuilder.parse(is);
             node = doc.getElementsByTagName("node").item(0);
         } catch (IOException | SAXException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_while_searching));
+            displayToast(context.getString(R.string.toast_error_while_searching));
         }
         if (doc == null || node == null) {
-            this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
+            displayToast(context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
             return;
         }
-        if (this.mainViewModel.getCurrentNode().isRichText()) {
+        if (mainViewModel.getCurrentNode().isRichText()) {
             int next; // The end of the current span and the start of the next one
             int totalContentLength = 0; // Needed to calculate offset for the tag
             int currentPartContentLength = 0; // Needed to calculate offset for the tag
@@ -2259,7 +2259,7 @@ public class MultiReader extends DatabaseReader {
             String lastFoundJustification = "left";
             // Collecting all sha256 sums that were saved in to database. Rest will have to be deleted from internal storage
             List<String> fileImageSha256Sums = new ArrayList<>();
-            for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent().getValue()) {
+            for (ScNodeContent scNodeContent : mainViewModel.getNodeContent().getValue()) {
                 if (scNodeContent.getContentType() == 0) {
                     // To not add content of the the span that is being processed
                     // set addContent to false. Needed because not all elements of the node
@@ -2391,14 +2391,14 @@ public class MultiReader extends DatabaseReader {
                     totalContentLength += currentPartContentLength;
                     currentPartContentLength = 0;
                 } else {
-                    offsetNodes.add(this.saveScNodeContentTable(
+                    offsetNodes.add(saveScNodeContentTable(
                             doc,
                             (ScNodeContentTable) scNodeContent,
                             String.valueOf(currentPartContentLength + totalContentLength)
                     ));
                 }
             }
-            this.deleteNodeContent(node);
+            deleteNodeContent(node);
             for (Element element : normalNodes) {
                 node.appendChild(element);
             }
@@ -2460,11 +2460,11 @@ public class MultiReader extends DatabaseReader {
                         if (!fileImageSha256Sums.contains(filename)) {
                             try {
                                 DocumentsContract.deleteDocument(
-                                        this.context.getContentResolver(),
-                                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0))
+                                        context.getContentResolver(),
+                                        DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, cursor.getString(0))
                                 );
                             } catch (FileNotFoundException e) {
-                                this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_failed_to_delete));
+                                displayToast(context.getString(R.string.toast_error_error_while_saving_node_content_failed_to_delete));
                             }
                         }
                     }
@@ -2473,19 +2473,19 @@ public class MultiReader extends DatabaseReader {
             }
             cursor.close();
         } else {
-            ScNodeContentText scNodeContentText = (ScNodeContentText) this.mainViewModel.getNodeContent().getValue().get(0);
+            ScNodeContentText scNodeContentText = (ScNodeContentText) mainViewModel.getNodeContent().getValue().get(0);
             SpannableStringBuilder nodeContent = scNodeContentText.getContent();
             Element element = doc.createElement("rich_text");
-            this.deleteNodeContent(node);
+            deleteNodeContent(node);
             element.setTextContent(nodeContent.toString());
             node.appendChild(element);
         }
         Element cherrytreeElement = doc.createElement("cherrytree");
         cherrytreeElement.appendChild(node);
-        try (OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, documentId))) {
-            this.saveChanges(cherrytreeElement, os);
+        try (OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, documentId))) {
+            saveChanges(cherrytreeElement, os);
         } catch (IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
+            displayToast(context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
         }
     }
 
