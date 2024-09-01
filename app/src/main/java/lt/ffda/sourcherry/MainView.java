@@ -709,31 +709,6 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
-     * Goes up the node tree looking for a parent node with subnodes until it reaches main menu
-     * Used when deleting node that is currently opened
-     * @param nodeUniqueID unique ID of the node that should be a parent
-     * @return ScNode object list that can be added to DrawerMenu
-     */
-    private ArrayList<ScNode> findNextParentWithSubnodes(String nodeUniqueID) {
-        ArrayList<ScNode> mainMenu = this.reader.getMainNodes();
-        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(nodeUniqueID);
-        if (mainMenu == null) {
-            return null; // TODO: what will happen in this situation
-        }
-        while (mainMenu.get(0).getUniqueId().equals(nodes.get(0).getUniqueId())) {
-            if (nodes.size() > 1) {
-                break;
-            }
-            nodes = this.reader.getParentWithSubnodes(nodes.get(0).getUniqueId());
-        }
-        nodes.stream()
-                .filter(node -> node.getUniqueId().equals(nodeUniqueID))
-                .findFirst()
-                .ifPresent(node -> node.setHasSubnodes(false));
-        return nodes;
-    }
-
-    /**
      * Returns MainViewModel used to store all information of the app (DrawerMenu nodes, NodeContent)
      * @return MainViewModel
      */
