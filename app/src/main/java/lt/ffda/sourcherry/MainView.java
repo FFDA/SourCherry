@@ -1400,23 +1400,23 @@ public class MainView extends AppCompatActivity {
             // Options menu items
             int itemID = item.getItemId();
             if (itemID == R.id.toolbar_button_edit_node) {
-                if (this.mainViewModel.getCurrentNode() != null) {
+                if (mainViewModel.getCurrentNode() != null) {
                     this.openNodeEditor();
                 } else {
                     Toast.makeText(this, R.string.toast_message_please_open_a_node, Toast.LENGTH_SHORT).show();
                 }
                 return true;
             } else if (itemID == R.id.options_menu_export_to_pdf) {
-                this.exportPdfSetup();
+                exportPdfSetup();
                 return true;
             } else if (itemID == R.id.options_menu_export_database) {
-                this.exportDatabaseSetup();
+                exportDatabaseSetup();
                 return true;
             } else if (itemID == R.id.options_menu_find_in_node) {
                 if (!findInNodeToggle) {
                     // Opens findInNode (sets the variables) only if it hasn't been opened yet
-                    if (this.mainViewModel.getCurrentNode() != null) {
-                        this.openFindInNode();
+                    if (mainViewModel.getCurrentNode() != null) {
+                        openFindInNode();
                     } else {
                         Toast.makeText(this, R.string.toast_error_please_select_node, Toast.LENGTH_SHORT).show();
                     }
@@ -1426,9 +1426,9 @@ public class MainView extends AppCompatActivity {
                 if (findInNodeToggle) {
                     // Closes findInNode if it was opened when SearchFragment was selected to be opened
                     // Otherwise it won't let to display node content selected from search
-                    this.closeFindInNode();
+                    closeFindInNode();
                 }
-                this.openSearch();
+                openSearch();
                 return true;
             } else if (itemID == R.id.options_menu_settings) {
                 Intent openSettingsActivity = new Intent(this, PreferencesActivity.class);
@@ -1647,7 +1647,7 @@ public class MainView extends AppCompatActivity {
         Bundle bundle = new Bundle();
         bundle.putParcelable("node", node);
         bundle.putInt("position", position);
-        bundle.putBoolean("bookmarked", this.reader.isNodeBookmarked(node.getUniqueId()));
+        bundle.putBoolean("bookmarked", reader.isNodeBookmarked(node.getUniqueId()));
         menuItemActionDialogFragment.setArguments(bundle);
         menuItemActionDialogFragment.setStyle(DialogFragment.STYLE_NORMAL, R.style.CustomDialogFragment);
         menuItemActionDialogFragment.show(getSupportFragmentManager(), "menuItemActionDialogFragment");
@@ -1761,19 +1761,19 @@ public class MainView extends AppCompatActivity {
                     ScNode node = result.getParcelable("node");
                     switch (menuItemAction) {
                         case ADD_SIBLING_NODE:
-                            MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 0);
+                            launchCreateNewNodeFragment(node.getUniqueId(), 0);
                             break;
                         case ADD_SUBNODE:
-                            MainView.this.launchCreateNewNodeFragment(node.getUniqueId(), 1);
+                            launchCreateNewNodeFragment(node.getUniqueId(), 1);
                             break;
                         case ADD_TO_BOOKMARKS:
-                            MainView.this.addNodeToBookmarks(node.getUniqueId());
+                            addNodeToBookmarks(node.getUniqueId());
                             break;
                         case REMOVE_FROM_BOOKMARKS:
-                            MainView.this.removeNodeFromBookmarks(node.getUniqueId(), result.getInt("position"));
+                            removeNodeFromBookmarks(node.getUniqueId(), result.getInt("position"));
                             break;
                         case MOVE_NODE:
-                            MainView.this.launchMoveNodeFragment(node);
+                            launchMoveNodeFragment(node);
                             break;
                         case DELETE_NODE:
                             deleteNode(node.getUniqueId());

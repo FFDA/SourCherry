@@ -121,6 +121,7 @@
     <string name="toast_error_while_saving_node_content_not_found">Error while saving node content. Couldn\'t find the node.</string>
     <string name="toast_error_while_searching">Error while searching</string>
     <string name="toast_error_error_while_saving_node_content_aborting">Error while saving node content. Aborting.</string>
+    <string name="toast_error_error_while_moving_data_to_new_master_node">Error while moving data to new master node.</string>
     <string name="toast_error_error_while_saving_node_content_failed_to_delete">Error while saving node content. Failed to delete file.</string>
     <string name="toast_error_failed_to_save_table">Failed to save table</string>
     <string name="toast_error_failed_to_save_node">Failed to save node</string>

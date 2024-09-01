@@ -51,8 +51,8 @@ public class CollectNodesDialogFragment extends DialogFragment {
         builder.setView(view);
         setCancelable(false); // Not allowing user to cancel the the dialog fragment
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
-        this.executor = appContainer.executor;
-        this.textView = view.findViewById(R.id.dialog_fragment_collect_nodes_message);
+        executor = appContainer.executor;
+        textView = view.findViewById(R.id.dialog_fragment_collect_nodes_message);
         return builder.create();
     }
 
@@ -61,7 +61,7 @@ public class CollectNodesDialogFragment extends DialogFragment {
         super.onStart();
         Handler handler = new Handler(Looper.getMainLooper());
         try {
-            this.executor.submit(new CollectNodesDialogRunnable(Uri.parse(getArguments().getString("uri")), getContext(), handler, this.textView, new NodesCollectedCallback() {
+            executor.submit(new CollectNodesDialogRunnable(Uri.parse(getArguments().getString("uri")), getContext(), handler, textView, new NodesCollectedCallback() {
                 @Override
                 public void onNodesCollected(int result) {
                     if (result == 0) {

@@ -52,7 +52,7 @@ public class CreateNodeFragment extends Fragment {
      * @return "0" - checkbox not checked, "1" - checkbox checked
      */
     private String getNoSearchChState() {
-        if (this.checkBoxExcludeFromSearchesSubnodes.isChecked()) {
+        if (checkBoxExcludeFromSearchesSubnodes.isChecked()) {
             return "1";
         } else {
             return "0";
@@ -65,7 +65,7 @@ public class CreateNodeFragment extends Fragment {
      * @return 0" - checkbox not checked, "1" - checkbox checked
      */
     private String getNoSearchMeState() {
-        if (this.checkBoxExcludeFromSearchesThisNode.isChecked()) {
+        if (checkBoxExcludeFromSearchesThisNode.isChecked()) {
             return "1";
         } else {
             return "0";
@@ -95,18 +95,16 @@ public class CreateNodeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_add_new_node, container, false);
-
-        this.radioGroupNodeType = view.findViewById(R.id.radio_group_node_type);
-        this.checkBoxExcludeFromSearchesThisNode = view.findViewById(R.id.exclude_from_searches_this_node);
-        this.checkBoxExcludeFromSearchesSubnodes = view.findViewById(R.id.exclude_from_searches_subnodes);
-
+        radioGroupNodeType = view.findViewById(R.id.radio_group_node_type);
+        checkBoxExcludeFromSearchesThisNode = view.findViewById(R.id.exclude_from_searches_this_node);
+        checkBoxExcludeFromSearchesSubnodes = view.findViewById(R.id.exclude_from_searches_subnodes);
         return view;
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        this.radioGroupNodeType.check(R.id.radio_button_rich_text);
+        radioGroupNodeType.check(R.id.radio_button_rich_text);
         String nodeUniqueID = getArguments().getString("nodeUniqueID");
         int relation = getArguments().getInt("relation");
 
@@ -117,7 +115,7 @@ public class CreateNodeFragment extends Fragment {
                 boolean handle = false;
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     handle = true;
-                    CreateNodeFragment.this.createNode(nodeUniqueID, relation, CreateNodeFragment.this.validateNodeName(editTextNodeName.getText().toString()));
+                    createNode(nodeUniqueID, relation, validateNodeName(editTextNodeName.getText().toString()));
                     // Hides keyboard
                     InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(editTextNodeName.getWindowToken(), 0);
