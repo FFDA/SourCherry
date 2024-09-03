@@ -1167,7 +1167,7 @@ public class MainView extends AppCompatActivity {
         this.executor.execute(new Runnable() {
             @Override
             public void run() {
-                if (mainViewModel.getCurrentNode().getMasterId().equals("0")) {
+                if ("0".equals(mainViewModel.getCurrentNode().getMasterId())) {
                     reader.loadNodeContent(mainViewModel.getCurrentNode().getUniqueId());
                 } else {
                     reader.loadNodeContent(mainViewModel.getCurrentNode().getMasterId());

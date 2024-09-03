@@ -219,9 +219,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      */
     private ScNode convertCursorToScNode(Cursor cursor) {
         String nodeUniqueID = cursor.getString(1);
-        String nodeMasterID = cursor.getString(5);
+        String nodeMasterID = cursor.getString(5) == null ? "0" : cursor.getString(5);
         boolean hasSubnodes = hasSubnodes(nodeUniqueID);
-        if (nodeMasterID.equals("0")) {
+        if ("0".equals(nodeMasterID)) {
             String nameValue = cursor.getString(0);
             boolean isRichText = cursor.getString(3).equals("custom-colors");
             boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
@@ -905,7 +905,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      */
     private Document getDocumentFromString(String nodeString) {
         try {
-            return this.documentBuilder.parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8)));
+            return documentBuilder.parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             this.displayToast(context.getString(R.string.toast_error_failed_to_convert_string_to_nodelist));
         }
@@ -917,7 +917,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     public InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control) {
         // Returns byte array (stream) to be written to file or opened
 
-        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=? AND offset=?", new String[]{nodeUniqueID, filename, time, control}, null, null, null);
+        Cursor cursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=? AND offset=?", new String[]{nodeUniqueID, filename, time, control}, null, null, null);
         // Getting user choice how big the cursor window should be
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
@@ -936,7 +936,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             cursor.move(1);
             return new ByteArrayInputStream(cursor.getBlob(0));
         } catch (Exception SQLiteBlobTooBigException) {
-            this.displayToast(context.getString(R.string.toast_error_failed_to_open_file_large, cursorWindow));
+            displayToast(context.getString(R.string.toast_error_failed_to_open_file_large, cursorWindow));
             return null;
         } finally {
             cursor.close();
@@ -946,7 +946,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     @Override
     public InputStream getImageInputStream(String nodeUniqueID, String control) {
         // Returns image byte array to be displayed in ImageViewFragment because some of the images are too big to pass in a bundle
-        Cursor cursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, control}, null, null, null);
+        Cursor cursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, control}, null, null, null);
         // Getting user choice how big the cursor window should be
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
@@ -965,7 +965,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             cursor.move(1);
             return new ByteArrayInputStream(cursor.getBlob(0));
         } catch (Exception SQLiteBlobTooBigException) {
-            this.displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
+            displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
             return null;
         } finally {
             cursor.close();
@@ -1009,7 +1009,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public int getNodeMaxID() {
-        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(node_id) FROM node", null);
+        Cursor cursor = sqlite.rawQuery("SELECT MAX(node_id) FROM node", null);
         cursor.moveToFirst();
         int nodeUniqueID = cursor.getInt(0);
         cursor.close();
@@ -1018,9 +1018,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public ScNodeProperties getNodeProperties(String nodeUniqueID) {
-        Cursor cursor = this.sqlite.query("node", new String[]{"name", "syntax", "level"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        Cursor cursor = sqlite.query("node", new String[]{"name", "syntax", "level"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
         cursor.moveToFirst();
-        byte[] noSearch = this.convertLevelToNoSearch(cursor.getInt(2));
+        byte[] noSearch = convertLevelToNoSearch(cursor.getInt(2));
         ScNodeProperties nodeProperties = new ScNodeProperties(nodeUniqueID, cursor.getString(0), cursor.getString(1), noSearch[0], noSearch[1]);
         cursor.close();
         return nodeProperties;
@@ -1043,7 +1043,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @return unique id of the node
      */
     private int getParentNodeUniqueIDInt(String nodeUniqueID) {
-        Cursor cursor = this.sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {nodeUniqueID});
+        Cursor cursor = sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {nodeUniqueID});
         cursor.moveToFirst();
         int parentNodeUniqueID = cursor.getInt(0);
         cursor.close();
@@ -1119,7 +1119,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public boolean isNodeBookmarked(String nodeUniqueID) {
-        Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null, null);
+        Cursor cursor = sqlite.query("bookmark", new String[]{"node_id"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null, null);
         boolean isNodeBookmarked = cursor.getCount() > 0;
         cursor.close();
         return isNodeBookmarked;
@@ -1140,7 +1140,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         int totalCharOffset = 0;
         ////
 
-        Cursor cursor = this.sqlite.query("node", new String[]{"txt", "syntax", "has_codebox", "has_table", "has_image"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null); // Get node table entry with nodeUniqueID
+        Cursor cursor = sqlite.query("node", new String[]{"txt", "syntax", "has_codebox", "has_table", "has_image"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null); // Get node table entry with nodeUniqueID
         if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
             // syntax is the same as prog_lang attribute in XML database
             // It is used to set formatting for the node and separate between node types (Code Node)
@@ -1207,13 +1207,13 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     // Getting user choice how big the cursor window should be
                     SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
                     long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
-                    Cursor codeboxTableImageCursor = this.sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
+                    Cursor codeboxTableImageCursor = sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
 
                     while (codeboxTableImageCursor.moveToNext()) {
                         int charOffset = codeboxTableImageCursor.getInt(0);
                         if (codeboxTableImageCursor.getInt(1) == 9) {
                             // Get image entry for current node_id and charOffset
-                            Cursor imageCursor = this.sqlite.query("image", new String[]{"anchor", "filename", "time", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
+                            Cursor imageCursor = sqlite.query("image", new String[]{"anchor", "filename", "time", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                             if (imageCursor.moveToFirst()) {
                                 if (!imageCursor.getString(0).isEmpty()) {
                                     // Text in column "anchor" (0) means that this line is for anchor
@@ -1226,7 +1226,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                     // Text in column "filename" (1) means that this line is for file OR LaTeX formula box
                                     if (imageCursor.getString(1).equals("__ct_special.tex")) {
                                         // For latex boxes
-                                        Cursor latexBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
+                                        Cursor latexBlobCursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                                         latexBlobCursor.moveToFirst();
                                         SpannableStringBuilder latexImageSpan = makeLatexImageSpan(latexBlobCursor.getBlob(0), imageCursor.getString(3));
                                         imageCursor.close();
@@ -1245,7 +1245,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                 else {
                                     // Any other line should be an image
                                     imageCursor.close();
-                                    Cursor imageBlobCursor = this.sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
+                                    Cursor imageBlobCursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                                     if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                                         // Expands cursor window for API 28 (Android 9) and greater
                                         // This allows to display bigger images and open/save bigger files
@@ -1278,7 +1278,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         } else if (codeboxTableImageCursor.getInt(1) == 7) {
                             // codebox row
                             // Get codebox entry for current node_id and charOffset
-                            Cursor codeboxCursor = this.sqlite.rawQuery(new String("SELECT * FROM codebox WHERE node_id = ? AND offset = ?"), new String[]{nodeUniqueID, String.valueOf(charOffset)});
+                            Cursor codeboxCursor = sqlite.rawQuery(new String("SELECT * FROM codebox WHERE node_id = ? AND offset = ?"), new String[]{nodeUniqueID, String.valueOf(charOffset)});
                             if (codeboxCursor.moveToFirst()) {
                                 SpannableStringBuilder codeboxText = makeFormattedCodeboxSpan(codeboxCursor.getString(2), codeboxCursor.getString(3), codeboxCursor.getString(4), codeboxCursor.getInt(5), codeboxCursor.getInt(6), codeboxCursor.getInt(7) == 1, codeboxCursor.getInt(8) == 1, codeboxCursor.getInt(9) == 1);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
@@ -1288,7 +1288,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         } else if (codeboxTableImageCursor.getInt(1) == 8) {
                             // table row
                             // Get table row entry for current node_id and charOffset
-                            Cursor tableCursor = this.sqlite.query("grid", new String[]{"txt", "col_min", "col_max", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
+                            Cursor tableCursor = sqlite.query("grid", new String[]{"txt", "col_min", "col_max", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
                             if (tableCursor.moveToFirst()) {
                                 int tableCharOffset = charOffset + totalCharOffset; // Place where SpannableStringBuilder will be split
                                 nodeTableCharOffsets.add(tableCharOffset);
@@ -1303,9 +1303,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                     lightInterface = Byte.parseByte(((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light"));
                                 }
                                 // Tables in database are saved content first and the last row is the header of the table
-                                currentTableContent.add(this.getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
+                                currentTableContent.add(getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
                                 for (int row = 0; row < tableRowsNodes.getLength() - 1; row++) {
-                                    currentTableContent.add(this.getTableRow(tableRowsNodes.item(row)));
+                                    currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
                                 }
                                 ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, lightInterface, tableCursor.getString(3), ((Element) document.getElementsByTagName("table").item(0)).getAttribute("col_widths"));
                                 tableCursor.close();
@@ -1352,7 +1352,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             ScNodeContentText nodeContentText = new ScNodeContentText((byte) 0, nodeContentStringBuilder);
             nodeContent.add(nodeContentText);
         }
-        this.mainViewModel.getNodeContent().postValue(nodeContent);
+        mainViewModel.getNodeContent().postValue(nodeContent);
     }
 
     @Override
@@ -1766,9 +1766,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             if (cursor.getInt(6) == 0) {
                 // If node and subnodes are not selected to be excluded from search
                 String nodeUniqueID = cursor.getString(1);
-                String nodeMasterID = cursor.getString(5);
+                String nodeMasterID = cursor.getString(5) == null ? "0" : cursor.getString(5);
                 boolean hasSubnodes = hasSubnodes(nodeUniqueID);
-                if (nodeMasterID.equals("0")) {
+                if ("0".equals(nodeMasterID)) {
                     String nameValue = cursor.getString(0);
                     boolean isRichText = cursor.getString(2).equals("custom-colors");
                     boolean isBold = ((cursor.getInt(2) >> 1) & 0x01) == 1;
@@ -1797,8 +1797,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 }
             } else if (cursor.getInt(6) == 2) {
                 // if only subnodes are selected to be excluded from search
-                String nodeMasterID = cursor.getString(5);
-                if (nodeMasterID.equals("0")) {
+                String nodeMasterID = cursor.getString(5) == null ? "0" : cursor.getString(5);
+                if ("0".equals(nodeMasterID)) {
                     String nodeUniqueID = cursor.getString(1);
                     String nameValue = cursor.getString(0);
                     boolean hasSubnodes = hasSubnodes(nodeUniqueID);
