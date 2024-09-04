@@ -1243,27 +1243,27 @@ public class MainView extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        this.mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         AppContainer appContainer = ((ScApplication) getApplication()).appContainer;
-        this.executor = appContainer.executor;
-        this.handler = appContainer.handler;
+        executor = appContainer.executor;
+        handler = appContainer.handler;
         // drawer layout instance to toggle the menu icon to open
         // drawer and back button to close drawer
-        this.drawerLayout = findViewById(R.id.drawer_layout);
-        this.actionBarDrawerToggle = new ActionBarDrawerToggle(this, this.drawerLayout, R.string.nav_open, R.string.nav_close);
+        drawerLayout = findViewById(R.id.drawer_layout);
+        actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.nav_open, R.string.nav_close);
         SearchView searchView = findViewById(R.id.navigation_drawer_search);
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         try {
-            this.reader = DatabaseReaderFactory.getReader(this, this.handler, this.sharedPreferences, this.mainViewModel);
+            this.reader = DatabaseReaderFactory.getReader(this, handler, sharedPreferences, mainViewModel);
         } catch (IOException | ParserConfigurationException | TransformerConfigurationException |
                  InterruptedException | SAXException | ExecutionException e) {
             Toast.makeText(this, R.string.toast_error_failed_to_initiate_reader, Toast.LENGTH_SHORT).show();
-            this.finish();
+            finish();
             return;
         }
-        if (this.reader == null) {
+        if (reader == null) {
             Toast.makeText(this, R.string.toast_error_failed_to_initiate_reader, Toast.LENGTH_SHORT).show();
-            this.finish();
+            finish();
             return;
         }
         if (savedInstanceState == null) {
@@ -1272,39 +1272,39 @@ public class MainView extends AppCompatActivity {
                     .add(R.id.main_view_fragment, NodeContentFragment.class, null, "main")
                     .commit();
             getSupportFragmentManager().executePendingTransactions();
-            this.bookmarksToggle = false;
-            this.filterNodeToggle = false;
-            this.findInNodeToggle = false;
-            this.mainViewModel.getMultiDatabaseSync().postValue(null);
-            this.currentFindInNodeMarked = -1;
-            if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.reader.doesNodeExist(this.sharedPreferences.getString("last_node_unique_id", null))) {
+            bookmarksToggle = false;
+            filterNodeToggle = false;
+            findInNodeToggle = false;
+            mainViewModel.getMultiDatabaseSync().postValue(null);
+            currentFindInNodeMarked = -1;
+            if (sharedPreferences.getBoolean("restore_last_node", false) && reader.doesNodeExist(sharedPreferences.getString("last_node_unique_id", null))) {
                 // Restores node on startup if user set this in settings
-                this.mainViewModel.setCurrentNode(this.reader.getSingleMenuItem(this.sharedPreferences.getString("last_node_unique_id", null)));
-                if (this.mainViewModel.getCurrentNode().hasSubnodes()) { // Checks if menu has subnodes and creates appropriate menu
-                    this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
+                mainViewModel.setCurrentNode(reader.getSingleMenuItem(sharedPreferences.getString("last_node_unique_id", null)));
+                if (mainViewModel.getCurrentNode().hasSubnodes()) { // Checks if menu has subnodes and creates appropriate menu
+                    mainViewModel.setNodes(reader.getMenu(mainViewModel.getCurrentNode().getUniqueId()));
                 } else {
-                    this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
+                    mainViewModel.setNodes(reader.getParentWithSubnodes(mainViewModel.getCurrentNode().getUniqueId()));
                 }
-                this.loadNodeContent();
-                this.setCurrentNodePosition();
+                loadNodeContent();
+                setCurrentNodePosition();
             } else {
-                this.currentNodePosition = -1;
-                this.mainViewModel.setCurrentNode(null); // This needs to be placed before restoring the instance if there was one
-                this.mainViewModel.setNodes(this.reader.getMainNodes());
+                currentNodePosition = -1;
+                mainViewModel.setCurrentNode(null); // This needs to be placed before restoring the instance if there was one
+                mainViewModel.setNodes(reader.getMainNodes());
             }
-            if (this.reader instanceof MultiReader && this.sharedPreferences.getBoolean("preference_multifile_auto_sync", false)) {
-                this.updateDrawerMenu();
+            if (reader instanceof MultiReader && sharedPreferences.getBoolean("preference_multifile_auto_sync", false)) {
+                updateDrawerMenu();
             }
         } else {
             // Restoring some variable to make it possible restore content fragment after the screen rotation
-            this.currentNodePosition = savedInstanceState.getInt("currentNodePosition");
-            this.tempCurrentNodePosition = savedInstanceState.getInt("tempCurrentNodePosition");
-            this.bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
-            this.filterNodeToggle = savedInstanceState.getBoolean("filterNodeToggle");
-            this.findInNodeToggle = savedInstanceState.getBoolean("findInNodeToggle");
+            currentNodePosition = savedInstanceState.getInt("currentNodePosition");
+            tempCurrentNodePosition = savedInstanceState.getInt("tempCurrentNodePosition");
+            bookmarksToggle = savedInstanceState.getBoolean("bookmarksToggle");
+            filterNodeToggle = savedInstanceState.getBoolean("filterNodeToggle");
+            findInNodeToggle = savedInstanceState.getBoolean("findInNodeToggle");
         }
-        if (this.reader instanceof MultiReader) {
-            this.mainViewModel.getMultiDatabaseSync().observe(this, new Observer<ScheduledFuture<?>>() {
+        if (reader instanceof MultiReader) {
+            mainViewModel.getMultiDatabaseSync().observe(this, new Observer<ScheduledFuture<?>>() {
                 // Observer has to be used instead of callback, because after screen orientation
                 // current progress bar widget can't be accessed from it.
                 @Override
@@ -1313,13 +1313,13 @@ public class MainView extends AppCompatActivity {
                 }
             });
         }
-        this.registerForOptionsMenuResult();
-        this.initDrawerMenuNavigation(searchView);
-        this.initDrawerMenuFilter(searchView);
-        this.initFindInNode();
+        registerForOptionsMenuResult();
+        initDrawerMenuNavigation(searchView);
+        initDrawerMenuFilter(searchView);
+        initFindInNode();
 
         RecyclerView rvMenu = findViewById(R.id.recyclerView);
-        rvMenu.setAdapter(this.adapter);
+        rvMenu.setAdapter(adapter);
         rvMenu.setLayoutManager(new LinearLayoutManager(this));
 
         // pass the Open and Close toggle for the drawer layout listener
@@ -1341,8 +1341,8 @@ public class MainView extends AppCompatActivity {
                 // Coses FindInNode view
                 // Otherwise when user preses findInNodeNext/findInNodePrevious button in new node
                 // content of the previous node will be loaded
-                if (MainView.this.findInNodeToggle) {
-                    MainView.this.closeFindInNode();
+                if (findInNodeToggle) {
+                    closeFindInNode();
                 }
             }
 

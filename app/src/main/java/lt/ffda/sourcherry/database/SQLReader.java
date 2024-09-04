@@ -1084,20 +1084,20 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     @Override
     public ScNode getSingleMenuItem(String nodeUniqueID) {
         ScNode scNode = null;
-        Cursor cursor = sqlite.query("node", new String[]{"name", "node_id", "is_richtxt", "syntax", "is_ro"}, "node_id=?", new String[]{nodeUniqueID}, null, null,null);
-        if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
-            scNode = convertCursorToScNode(cursor);
-            if (hasSubnodes(nodeUniqueID)) {
-                scNode.setParent(true);
-                scNode.setHasSubnodes(true);
-                scNode.setSubnode(false);
-            } else {
-                scNode.setParent(false);
-                scNode.setHasSubnodes(false);
-                scNode.setSubnode(true);
+        try (Cursor cursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.node_id=?", new String[]{nodeUniqueID})) {
+            if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
+                scNode = convertCursorToScNode(cursor);
+                if (hasSubnodes(nodeUniqueID)) {
+                    scNode.setParent(true);
+                    scNode.setHasSubnodes(true);
+                    scNode.setSubnode(false);
+                } else {
+                    scNode.setParent(false);
+                    scNode.setHasSubnodes(false);
+                    scNode.setSubnode(true);
+                }
             }
         }
-        cursor.close();
         return scNode;
     }
 
