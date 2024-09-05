@@ -1424,7 +1424,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             @Override
             public void onClick(@NonNull View widget) {
             // Launches function in MainView that checks if there is a default action in for attached files
-            ((MainView) SQLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, originalOffset);
+            ((MainView) context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, originalOffset);
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -1954,8 +1954,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public void saveNodeContent(String nodeUniqueID) {
-        if (this.mainViewModel.getCurrentNode().isRichText()) {
-            Document doc = this.documentBuilder.newDocument();
+        if (mainViewModel.getCurrentNode().isRichText()) {
+            Document doc = documentBuilder.newDocument();
             StringWriter writer = new StringWriter();
             int next; // The end of the current span and the start of the next one
             int totalContentLength = 0; // Needed to calculate offset for the tag
@@ -1965,14 +1965,14 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             // Can't get justification for all items that have offset (except tables), so the best next
             // thing I can do is save last detected justification value and used it when creating those nodes
             String lastFoundJustification = "left";
-            this.sqlite.beginTransaction();
+            sqlite.beginTransaction();
             // Deleting data from codebox and grid tables. It can be recreated from the nodeContent
-            this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
-            this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+            sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
+            sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
             // Deleting images, latex code (but not files) from database
-            this.sqlite.delete("image", "node_id = ? AND time = 0", new String[]{nodeUniqueID});
+            sqlite.delete("image", "node_id = ? AND time = 0", new String[]{nodeUniqueID});
             try {
-                for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent().getValue()) {
+                for (ScNodeContent scNodeContent : mainViewModel.getNodeContent().getValue()) {
                     if (scNodeContent.getContentType() == 0) {
                         // To not add content of the the span that is being processed
                         // set addContent to false. Needed because not all elements of the node
@@ -2130,7 +2130,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                 // If offsets are different join write the previous codebox to
                                 // database and set the new one to the variable
                                 hasCodebox = true;
-                                this.saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
+                                saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
                                 extraCharOffset++;
                                 collectedCodebox = typefaceSpanCodebox;
                             }
@@ -2139,13 +2139,13 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
                             hasCodebox = true;
-                            this.saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
+                            saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
                         }
                         hasImage = true;
                         ImageSpanFile imageSpanFile = (ImageSpanFile) offsetObject;
-                        this.saveImageSpanFile(
+                        saveImageSpanFile(
                                 imageSpanFile,
                                 nodeUniqueID,
                                 imageSpanFile.getNewOffset() + extraCharOffset,
@@ -2157,13 +2157,13 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
                             hasCodebox = true;
-                            this.saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
+                            saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
                         }
                         hasImage = true;
                         ImageSpanAnchor imageSpanAnchor = (ImageSpanAnchor) offsetObject;
-                        this.saveImageSpanAnchor(
+                        saveImageSpanAnchor(
                                 imageSpanAnchor,
                                 nodeUniqueID,
                                 imageSpanAnchor.getNewOffset() + extraCharOffset,
@@ -2175,13 +2175,13 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
                             hasCodebox = true;
-                            this.saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
+                            saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
                         }
                         hasTable = true;
                         ScNodeContentTable scNodeContentTable = (ScNodeContentTable) offsetObject;
-                        this.saveScNodeContentTable(
+                        saveScNodeContentTable(
                                 doc,
                                 writer,
                                 scNodeContentTable,
@@ -2193,13 +2193,13 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
                             hasCodebox = true;
-                            this.saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
+                            saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
                         }
                         hasImage = true;
                         ImageSpanLatex imageSpanLatex = (ImageSpanLatex) offsetObject;
-                        this.saveImageSpanLatex(
+                        saveImageSpanLatex(
                                 imageSpanLatex,
                                 nodeUniqueID,
                                 imageSpanLatex.getNewOffset() + extraCharOffset,
@@ -2217,7 +2217,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         }
                         hasImage = true;
                         ImageSpanImage imageSpanImage = (ImageSpanImage) offsetObject;
-                        this.saveImageSpanImage(
+                        saveImageSpanImage(
                                 imageSpanImage,
                                 nodeUniqueID,
                                 imageSpanImage.getNewOffset() + extraCharOffset,
@@ -2234,17 +2234,17 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     collectedCodebox = null;
                 }
                 // Deleting all data from image table, that was removed by user from nodeContent
-                Cursor cursor = this.sqlite.query("image", new String[]{"offset"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null);
-                this.sqlite.beginTransaction();
+                Cursor cursor = sqlite.query("image", new String[]{"offset"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null);
+                sqlite.beginTransaction();
                 try {
                     while (cursor.moveToNext()) {
                         if (!attachedFileOffset.contains(cursor.getInt(0))) {
-                            this.sqlite.delete("image", "node_id = ? AND offset = ?", new String[]{nodeUniqueID, cursor.getString(0)});
+                            sqlite.delete("image", "node_id = ? AND offset = ?", new String[]{nodeUniqueID, cursor.getString(0)});
                         }
                     }
-                    this.sqlite.setTransactionSuccessful();
+                    sqlite.setTransactionSuccessful();
                 } finally {
-                    this.sqlite.endTransaction();
+                    sqlite.endTransaction();
                 }
                 cursor.close();
                 Node node = doc.createElement("node");
@@ -2255,7 +2255,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 try {
                     transformer.transform(new DOMSource(node), new StreamResult(writer));
                 } catch (TransformerException e) {
-                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
+                    displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
                     return;
                 }
                 // Updating nodeContent - text
@@ -2265,18 +2265,18 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 contentValues.put("has_table", hasTable ? 1 : 0);
                 contentValues.put("has_image", hasImage ? 1 : 0);
                 contentValues.put("ts_lastsave", System.currentTimeMillis() / 1000);
-                this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
-                this.sqlite.setTransactionSuccessful();
+                sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
+                sqlite.setTransactionSuccessful();
             } finally {
-                this.sqlite.endTransaction();
+                sqlite.endTransaction();
             }
         } else {
-            ScNodeContentText scNodeContentText = (ScNodeContentText) this.mainViewModel.getNodeContent().getValue().get(0);
+            ScNodeContentText scNodeContentText = (ScNodeContentText) mainViewModel.getNodeContent().getValue().get(0);
             SpannableStringBuilder nodeContent = scNodeContentText.getContent();
             ContentValues contentValues = new ContentValues();
             contentValues.put("txt", nodeContent.toString());
             contentValues.put("ts_lastsave", System.currentTimeMillis() / 1000);
-            this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
+            sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
         }
     }
 

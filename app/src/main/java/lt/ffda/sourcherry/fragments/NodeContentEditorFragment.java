@@ -98,6 +98,7 @@ import lt.ffda.sourcherry.utils.ColorPickerPresets;
 
 public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions, NodeContentEditorInsertMenuActions, NodeContentEditorTableMenuActions {
     private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
+    private boolean changesSaved = false;
     private int color;
     private Handler handler;
     private MainViewModel mainViewModel;
@@ -120,7 +121,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         if (result != null) {
             DocumentFile file = DocumentFile.fromSingleUri(getContext(), result);
             EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFileSpan(getContext(), file.getName(), this.mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
+            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFileSpan(getContext(), file.getName(), mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
         }
     });
     private SharedPreferences sharedPreferences;
@@ -129,19 +130,19 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
         @Override
         public void handleOnBackPressed() {
-            if (NodeContentEditorFragment.this.unsavedChanges) {
-                String unsavedChangesDefaultPreference = NodeContentEditorFragment.this.sharedPreferences.getString("preferences_unsaved_changes", null);
+            if (unsavedChanges) {
+                String unsavedChangesDefaultPreference = sharedPreferences.getString("preferences_unsaved_changes", null);
                 if (unsavedChangesDefaultPreference == null || unsavedChangesDefaultPreference.equals("ask")) {
-                    NodeContentEditorFragment.this.createUnsavedChangesAlertDialog();
+                    createUnsavedChangesAlertDialog();
                 } else if (unsavedChangesDefaultPreference.equals("save")) {
-                    NodeContentEditorFragment.this.saveNodeContent();
+                    saveNodeContent();
                     View view = getActivity().getCurrentFocus();
                     if (view != null) {
                         InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                     }
                     remove(); // Otherwise there will be onBackPressed infinite loop
-                    ((MainView) getActivity()).returnFromFragmentWithHomeButton();
+                    ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
                 } else {
                     View view = getActivity().getCurrentFocus();
                     if (view != null) {
@@ -149,7 +150,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                     }
                     remove(); // Otherwise there will be onBackPressed infinite loop
-                    ((MainView) getActivity()).returnFromFragmentWithHomeButton();
+                    ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
                 }
             } else {
                 View view = getActivity().getCurrentFocus();
@@ -158,7 +159,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                 }
                 remove(); // Otherwise there will be onBackPressed infinite loop
-                ((MainView) getActivity()).returnFromFragmentWithHomeButton();
+                ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
             }
         }
     };
@@ -168,7 +169,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * Does it on the main thread
      */
     private void addTextChangedListeners() {
-        this.handler.post(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
@@ -191,7 +192,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void attachFile() {
-        View view = NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        View view = nodeEditorFragmentLinearLayout.getFocusedChild();
         if (view == null) {
             Toast.makeText(getContext(), R.string.toast_message_attach_file_place_cursor, Toast.LENGTH_SHORT).show();
             return;
@@ -200,7 +201,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             Toast.makeText(getContext(), R.string.toast_message_attach_file_insert_into_table, Toast.LENGTH_SHORT).show();
             return;
         }
-        NodeContentEditorFragment.this.attachFile.launch(new String[]{"*/*"});
+        attachFile.launch(new String[]{"*/*"});
     }
 
     public void changeBackgroundColor() {
@@ -820,26 +821,26 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      */
     public void loadContent() {
         // Clears layout just in case. Most of the time it is needed
-        if (this.nodeEditorFragmentLinearLayout != null) {
+        if (nodeEditorFragmentLinearLayout != null) {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.removeAllViews();
+                    nodeEditorFragmentLinearLayout.removeAllViews();
                 }
             });
         }
-        int textSize = this.sharedPreferences.getInt("preferences_text_size", 15);
+        int textSize = sharedPreferences.getInt("preferences_text_size", 15);
         Typeface typeface = getTypeface();
-        for (ScNodeContent part : this.mainViewModel.getNodeContent().getValue()) {
+        for (ScNodeContent part : mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 // This adds not only text, but images, codeboxes
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
                 SpannableStringBuilder nodeContentSSB = scNodeContentText.getContent();
                 EditText editText = createEditText(typeface, textSize, nodeContentSSB);
-                this.handler.post(new Runnable() {
+                handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
+                        nodeEditorFragmentLinearLayout.addView(editText);
                     }
                 });
             } else {
@@ -897,28 +898,28 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.addView(tableScrollView);
+                        nodeEditorFragmentLinearLayout.addView(tableScrollView);
                     }
                 });
             }
         }
         // If last NodeContent elements is a table it won't be possible to add text after it
         // Adding an extra EditText to allow user to continue typing after last table element
-        if (this.mainViewModel.getNodeContent().getValue().get(this.mainViewModel.getNodeContent().getValue().size() - 1).getContentType() == 1) {
+        if (mainViewModel.getNodeContent().getValue().get(this.mainViewModel.getNodeContent().getValue().size() - 1).getContentType() == 1) {
             EditText editText = createEditText(typeface, textSize, "");
-            this.handler.post(new Runnable() {
+            handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.addView(editText);
+                    nodeEditorFragmentLinearLayout.addView(editText);
                 }
             });
         }
         // Shows keyboard if opened node for editing has less than 2 characters in the EditText
-        this.handler.post(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
                 if (mainViewModel.getNodeContent().getValue().size() == 1) {
-                    EditText editText = (EditText) NodeContentEditorFragment.this.nodeEditorFragmentLinearLayout.getChildAt(0);
+                    EditText editText = (EditText) nodeEditorFragmentLinearLayout.getChildAt(0);
                     if (editText.getText().length() <= 1) {
                         editText.requestFocus();
                         WindowCompat.getInsetsController(getActivity().getWindow(), editText).show(WindowInsetsCompat.Type.ime());
@@ -1107,6 +1108,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * the database
      */
     private void saveNodeContent() {
+        changesSaved = true;
         unsavedChanges = false;
         ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
         for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {

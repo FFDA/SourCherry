@@ -128,20 +128,20 @@ public class NodeContentFragment extends Fragment {
     }
 
     public void loadContent() {
-        if (this.mainViewModel.getNodeContent().getValue() == null) {
+        if (mainViewModel.getNodeContent().getValue() == null) {
             return;
         }
         // Clears layout just in case. Most of the time it is needed
-        if (this.contentFragmentLinearLayout != null) {
+        if (contentFragmentLinearLayout != null) {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    NodeContentFragment.this.contentFragmentLinearLayout.removeAllViews();
+                    contentFragmentLinearLayout.removeAllViews();
                 }
             });
         }
         Typeface typeface = null;
-        switch (this.sharedPreferences.getString("preference_font_type", "Default")) {
+        switch (sharedPreferences.getString("preference_font_type", "Default")) {
             case "Comfortaa":
                 typeface = ResourcesCompat.getFont(getContext(), R.font.comfortaa_regular);
                 break;
@@ -151,8 +151,8 @@ public class NodeContentFragment extends Fragment {
             case "Caladea":
                 typeface = ResourcesCompat.getFont(getContext(), R.font.caladea_regular);
         }
-        int textSize = this.sharedPreferences.getInt("preferences_text_size", 15);
-        for (ScNodeContent part: this.mainViewModel.getNodeContent().getValue()) {
+        int textSize = sharedPreferences.getInt("preferences_text_size", 15);
+        for (ScNodeContent part: mainViewModel.getNodeContent().getValue()) {
             if (part.getContentType() == 0) {
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
                 SpannableStringBuilder nodeContentSSB = scNodeContentText.getContent();
@@ -167,7 +167,7 @@ public class NodeContentFragment extends Fragment {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        NodeContentFragment.this.contentFragmentLinearLayout.addView(tv);
+                        contentFragmentLinearLayout.addView(tv);
                     }
                 });
             } else {
@@ -218,7 +218,7 @@ public class NodeContentFragment extends Fragment {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        NodeContentFragment.this.contentFragmentLinearLayout.addView(tableScrollView);
+                        contentFragmentLinearLayout.addView(tableScrollView);
                     }
                 });
             }
@@ -250,7 +250,7 @@ public class NodeContentFragment extends Fragment {
     public void onResume() {
         super.onResume();
         // Top and bottom paddings are always the same: 14px (5dp)
-        this.contentFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
+        contentFragmentLinearLayout.setPadding(sharedPreferences.getInt("paddingStart", 14), 14, sharedPreferences.getInt("paddingEnd", 14), 14);
     }
 
     @Override
