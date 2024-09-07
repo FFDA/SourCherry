@@ -11,7 +11,11 @@
 package lt.ffda.sourcherry.database;
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.text.Layout;
@@ -37,6 +41,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -102,11 +107,23 @@ public abstract class DatabaseReader {
      * @param uri uri of the image file on the filesystem
      * @return formatted String with image span
      */
-    public static SpannableStringBuilder createImageSpan(Context context, Uri uri) {
+    public static SpannableStringBuilder createImageSpan(Context context, Uri uri) throws FileNotFoundException {
+        InputStream is = context.getContentResolver().openInputStream(uri);
         SpannableStringBuilder formattedImage = new SpannableStringBuilder(" ");
-        ImageSpanImage imageSpanImage = new ImageSpanImage(context, uri);
-        imageSpanImage.setSha256sum(uri.toString());
+        Bitmap bitmap = BitmapFactory.decodeStream(is);
+        Drawable image = new BitmapDrawable(context.getResources(), bitmap);
+        image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
+        ImageSpanImage imageSpanImage = new ImageSpanImage(image);
         formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+        if (image.getIntrinsicWidth() > width) {
+            // If image is wider than screen it is scaled down to fit the screen
+            float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
+            int newWidth = (int) (image.getIntrinsicWidth() * scale);
+            int newHeight = (int) (image.getIntrinsicHeight() * scale);
+            image.setBounds(0, 0, newWidth, newHeight);
+        }
+        imageSpanImage.setSha256sum(uri.toString());
         return formattedImage;
     }
 

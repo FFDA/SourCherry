@@ -70,6 +70,7 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
 import lt.ffda.sourcherry.AppContainer;
@@ -108,9 +109,14 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * inserts an image representing string at the possition of the cursor
      */
     private final ActivityResultLauncher<PickVisualMediaRequest> pickImage = registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
-        if (uri != null) {
-            EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createImageSpan(getContext(), uri));
+        try {
+            if (uri != null) {
+                SpannableStringBuilder imageSpan = DatabaseReader.createImageSpan(getContext(), uri);
+                EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+                editText.getText().insert(editText.getSelectionStart(), imageSpan);
+            }
+        } catch (FileNotFoundException e) {
+            Toast.makeText(getContext(), R.string.toast_error_failed_to_insert_image, Toast.LENGTH_SHORT).show();
         }
     });
     /**
@@ -712,7 +718,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void insertImage() {
-        View view = this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        View view = nodeEditorFragmentLinearLayout.getFocusedChild();
         if (view == null) {
             Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
             return;
@@ -721,7 +727,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             Toast.makeText(getContext(), R.string.toast_message_insert_image_insert_into_table, Toast.LENGTH_SHORT).show();
             return;
         }
-        this.pickImage.launch(new PickVisualMediaRequest.Builder()
+        pickImage.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
                 .build());
     }

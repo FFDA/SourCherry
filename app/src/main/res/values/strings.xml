@@ -90,6 +90,7 @@
     <string name="toast_error_failed_to_open_file_large">File was too big (>%1$dmb)</string>
     <string name="toast_error_failed_to_open_file_large_OOM">File was too big. OutOfMemoryError exception.</string>
     <string name="toast_error_failed_to_load_image">Failed to load an image</string>
+    <string name="toast_error_failed_to_insert_image">Failed to insert the image</string>
     <string name="toast_error_failed_to_load_image_large">Embedded image was too big (>%1$dmb)</string>
     <string name="toast_error_failed_to_compile_latex">Failed to compile latex code</string>
     <string name="toast_error_failed_to_convert_string_to_nodelist">Failed to convert String to Document</string>

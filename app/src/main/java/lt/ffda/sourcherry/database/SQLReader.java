@@ -1585,7 +1585,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         try {
             formattedImage.append(" ");
             Bitmap decodedByte = BitmapFactory.decodeByteArray(imageBlob, 0, imageBlob.length);
-            Drawable image = new BitmapDrawable(context.getResources(),decodedByte);
+            Drawable image = new BitmapDrawable(context.getResources(), decodedByte);
             image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
             imageSpanImage = new ImageSpanImage(image);
             formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
