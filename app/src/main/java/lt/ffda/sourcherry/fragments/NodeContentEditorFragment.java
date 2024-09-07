@@ -589,21 +589,21 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         builder.setNegativeButton(R.string.button_exit, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                NodeContentEditorFragment.this.unsavedChanges = false;
+                unsavedChanges = false;
                 if (checkBox.isChecked()) {
-                    NodeContentEditorFragment.this.saveUnsavedChangesDialogChoice("exit");
+                    saveUnsavedChangesDialogChoice("exit");
                 }
-                NodeContentEditorFragment.this.getActivity().onBackPressed();
+                getActivity().onBackPressed();
             }
         });
         builder.setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (checkBox.isChecked()) {
-                    NodeContentEditorFragment.this.saveUnsavedChangesDialogChoice("save");
+                    saveUnsavedChangesDialogChoice("save");
                 }
-                NodeContentEditorFragment.this.saveNodeContent();
-                NodeContentEditorFragment.this.getActivity().onBackPressed();
+                saveNodeContent();
+                getActivity().onBackPressed();
             }
         });
         builder.show();
