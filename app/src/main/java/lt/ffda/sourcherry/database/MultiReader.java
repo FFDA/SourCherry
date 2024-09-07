@@ -454,7 +454,7 @@ public class MultiReader extends DatabaseReader {
         destElemenent.setAttribute("prog_lang", attribute.getNamedItem("prog_lang").getNodeValue());
         destElemenent.setAttribute("nosearch_me", attribute.getNamedItem("nosearch_me").getNodeValue());
         destElemenent.setAttribute("nosearch_ch", attribute.getNamedItem("nosearch_ch").getNodeValue());
-        destElemenent.setAttribute("custom-colors", attribute.getNamedItem("custom-colors").getNodeValue());
+        destElemenent.setAttribute("prog_lang", attribute.getNamedItem("prog_lang").getNodeValue());
         destElemenent.setAttribute("is_bold", attribute.getNamedItem("is_bold").getNodeValue());
         destElemenent.setAttribute("foreground_color", attribute.getNamedItem("foreground_color").getNodeValue());
         destElemenent.setAttribute("icon_id", attribute.getNamedItem("icon_id").getNodeValue());
@@ -668,7 +668,7 @@ public class MultiReader extends DatabaseReader {
                 hasSubnodes, // If node, has subnodes - it means it can be marked as parent
                 hasSubnodes,
                 !hasSubnodes, // If node, has subnodes - it means it can't be marked as subnode,
-                nodeAttribute.getNamedItem("custom-colors").getNodeValue().equals("custom-colors"),
+                nodeAttribute.getNamedItem("prog_lang").getNodeValue().equals("custom-colors"),
                 nodeAttribute.getNamedItem("is_bold").getNodeValue().equals("1"),
                 nodeAttribute.getNamedItem("foreground_color").getNodeValue(),
                 Integer.parseInt(nodeAttribute.getNamedItem("icon_id").getNodeValue()),
@@ -1331,11 +1331,11 @@ public class MultiReader extends DatabaseReader {
     @Override
     public ScNode getSingleMenuItem(String nodeUniqueID) {
         ScNode node = null;
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        NodeList nodeList = drawerMenu.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node item = nodeList.item(i);
             if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                node = this.createSingleMenuItem(item);
+                node = createSingleMenuItem(item);
             }
         }
         return node;
