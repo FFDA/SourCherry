@@ -1948,6 +1948,14 @@ public class XMLReader extends DatabaseReader {
                 if (nodeList.item(i).getNodeName().equals("node")) {
                     // If node is a "node" and not some other tag
                     boolean hasSubnodes = hasSubnodes(nodeList.item(i));
+                    Node masterIdAttr = nodeList.item(i).getAttributes().getNamedItem("master_id");
+                    if (masterIdAttr != null && !"0".equals(masterIdAttr.getNodeValue()) && hasSubnodes) {
+                        Node masterNode = findNode(masterIdAttr.getNodeValue());
+                        if (masterNode.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
+                            searchResult.addAll(searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
+                        }
+                        continue;
+                    }
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
                         // if user haven't marked to skip current node - searches through its content
                         boolean isParent = false;
@@ -1974,6 +1982,7 @@ public class XMLReader extends DatabaseReader {
                 if (nodeList.item(i).getNodeName().equals("node")) {
                     Node masterIdAttr = nodeList.item(i).getAttributes().getNamedItem("master_id");
                     if (masterIdAttr != null && !"0".equals(masterIdAttr.getNodeValue())) {
+                        searchResult.addAll(searchAllNodes(query, nodeList.item(i).getChildNodes()));
                         continue;
                     }
                     boolean isParent  = false;
@@ -2012,6 +2021,7 @@ public class XMLReader extends DatabaseReader {
                 // If node is a "node" and not some other tag
                 Node masterIdAttr = nodeList.item(i).getAttributes().getNamedItem("master_id");
                 if (masterIdAttr != null && !"0".equals(masterIdAttr.getNodeValue())) {
+                    searchResult.addAll(searchAllNodes(query, nodeList.item(i).getChildNodes()));
                     continue;
                 }
                 boolean isParent;
@@ -2050,6 +2060,15 @@ public class XMLReader extends DatabaseReader {
             if (nodeList.item(i).getNodeName().equals("node")) {
                 // If node is a "node" and not some other tag
                 boolean hasSubnodes = this.hasSubnodes(nodeList.item(i));
+                String noSearchCh = nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue();
+                Node masterIdAttr = nodeList.item(i).getAttributes().getNamedItem("master_id");
+                if (masterIdAttr != null && !"0".equals(masterIdAttr.getNodeValue()) && hasSubnodes && noSearchCh.equals("0")) {
+                    Node masterNode = findNode(masterIdAttr.getNodeValue());
+                    if (masterNode.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
+                        searchResult.addAll(searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
+                    }
+                    continue;
+                }
                 if (nodeList.item(i).getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
                     // If user haven't marked to skip current node - searches through its content
                     boolean isParent;
@@ -2066,7 +2085,7 @@ public class XMLReader extends DatabaseReader {
                         searchResult.add(result);
                     }
                 }
-                if (hasSubnodes && nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
+                if (hasSubnodes && noSearchCh.equals("0")) {
                     // If node has subnodes and user haven't selected not to search subnodes of current node
                     searchResult.addAll(this.searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
                 }
