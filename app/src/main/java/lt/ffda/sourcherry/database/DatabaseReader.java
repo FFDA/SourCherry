@@ -116,7 +116,7 @@ public abstract class DatabaseReader {
         ImageSpanImage imageSpanImage = new ImageSpanImage(image);
         formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         int width = Resources.getSystem().getDisplayMetrics().widthPixels;
-        if (image.getIntrinsicWidth() > width) {
+        if (image.getIntrinsicWidth() > width - 10) {
             // If image is wider than screen it is scaled down to fit the screen
             float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
             int newWidth = (int) (image.getIntrinsicWidth() * scale);

@@ -1773,7 +1773,7 @@ public class MultiReader extends DatabaseReader {
                     Drawable image = new BitmapDrawable(context.getResources(), bitmap);
                     image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
                     int width = Resources.getSystem().getDisplayMetrics().widthPixels;
-                    if (image.getIntrinsicWidth() > width) {
+                    if (image.getIntrinsicWidth() > width - 10) {
                         // If image is wider than screen it is scaled down to fit the screen
                         // otherwise it will not load/be display
                         float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
