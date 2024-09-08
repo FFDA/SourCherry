@@ -2104,9 +2104,9 @@ public class XMLReader extends DatabaseReader {
         NamedNodeMap properties = node.getAttributes();
         properties.getNamedItem("name").setNodeValue(name);
         if (properties.getNamedItem("prog_lang").getNodeValue().equals("custom-colors") && !progLang.equals("custom-colors")) {
-            StringBuilder nodeContent = this.convertRichTextNodeContentToPlainText(node);
+            StringBuilder nodeContent = convertRichTextNodeContentToPlainText(node);
             this.deleteNodeContent(node);
-            Element newContentNode = this.doc.createElement("rich_text");
+            Element newContentNode = doc.createElement("rich_text");
             newContentNode.setTextContent(nodeContent.toString());
             node.appendChild(newContentNode);
         }
@@ -2114,7 +2114,7 @@ public class XMLReader extends DatabaseReader {
         properties.getNamedItem("nosearch_me").setNodeValue(noSearchMe);
         properties.getNamedItem("nosearch_ch").setNodeValue(noSearchCh);
         properties.getNamedItem("ts_lastsave").setNodeValue(String.valueOf(System.currentTimeMillis() / 1000));
-        this.writeIntoDatabase();
+        writeIntoDatabase();
     }
 
     /**
@@ -2126,19 +2126,19 @@ public class XMLReader extends DatabaseReader {
         Transformer transformer;
         try {
             transformer = transformerFactory.newTransformer();
-            DOMSource dSource = new DOMSource(this.doc);
+            DOMSource dSource = new DOMSource(doc);
             OutputStream fileOutputStream;
-            if (this.databaseUri.startsWith("content://")) {
-                fileOutputStream = context.getContentResolver().openOutputStream(Uri.parse(this.databaseUri), "wt");
+            if (databaseUri.startsWith("content://")) {
+                fileOutputStream = context.getContentResolver().openOutputStream(Uri.parse(databaseUri), "wt");
             } else {
-                fileOutputStream = new FileOutputStream(this.databaseUri);
+                fileOutputStream = new FileOutputStream(databaseUri);
             }
             StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
             transformer.transform(dSource, result);
         } catch (TransformerException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
         } catch (FileNotFoundException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_database_does_not_exists));
+            displayToast(this.context.getString(R.string.toast_error_database_does_not_exists));
         }
     }
 }

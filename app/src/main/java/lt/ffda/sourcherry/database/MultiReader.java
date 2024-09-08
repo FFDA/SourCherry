@@ -2102,7 +2102,7 @@ public class MultiReader extends DatabaseReader {
             StreamResult result = new StreamResult(outputStream);
             transformer.transform(dSource, result);
         } catch (TransformerException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
         }
     }
 
@@ -2485,7 +2485,7 @@ public class MultiReader extends DatabaseReader {
         }
         Element cherrytreeElement = doc.createElement("cherrytree");
         cherrytreeElement.appendChild(node);
-        try (OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, documentId))) {
+        try (OutputStream os = context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, documentId), "wt")) {
             saveChanges(cherrytreeElement, os);
         } catch (IOException e) {
             displayToast(context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
