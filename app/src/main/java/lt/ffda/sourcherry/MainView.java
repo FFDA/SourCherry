@@ -1609,7 +1609,7 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
                 .addToBackStack("imageView")
                 .commit();
-        this.disableDrawerMenu();
+        disableDrawerMenu();
     }
 
     /**
@@ -1643,7 +1643,7 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, NodeContentEditorFragment.class, bundle, "editNode")
                 .addToBackStack("editNode")
                 .commit();
-        this.disableDrawerMenu();
+        disableDrawerMenu();
     }
 
     /**
@@ -1661,7 +1661,7 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, NodePropertiesFragment.class, bundle, "moveNode")
                 .addToBackStack("nodeProperties")
                 .commit();
-        this.hideDrawerMenu();
+        hideDrawerMenu();
     }
 
     /**
@@ -1675,8 +1675,8 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, SearchFragment.class, null, "search")
                 .addToBackStack("search")
                 .commit();
-        this.setToolbarTitle("Search");
-        this.disableDrawerMenu();
+        setToolbarTitle("Search");
+        disableDrawerMenu();
     }
 
     /**
@@ -1685,21 +1685,21 @@ public class MainView extends AppCompatActivity {
      * @param selectedNode Node that has to be opened
      */
     public void openSearchResult(ScNode selectedNode) {
-        this.mainViewModel.setCurrentNode(selectedNode);
+        mainViewModel.setCurrentNode(selectedNode);
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
-        onBackPressed();
-        this.resetMenuToCurrentNode();
-        this.loadNodeContent();
+        getOnBackPressedDispatcher().onBackPressed();
+        resetMenuToCurrentNode();
+        loadNodeContent();
     }
 
     /**
      * Clears existing menu and recreate with submenu of the currentNode
      */
     private void openSubmenu() {
-        this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
-        this.currentNodePosition = 0;
-        this.adapter.markItemSelected(this.currentNodePosition);
-        this.adapter.notifyDataSetChanged();
+        mainViewModel.setNodes(reader.getMenu(mainViewModel.getCurrentNode().getUniqueId()));
+        currentNodePosition = 0;
+        adapter.markItemSelected(currentNodePosition);
+        adapter.notifyDataSetChanged();
     }
 
     /**
@@ -1902,7 +1902,7 @@ public class MainView extends AppCompatActivity {
             loadNodeContent();
         }
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
-        onBackPressed();
+        getOnBackPressedDispatcher().onBackPressed();
     }
 
     /**
@@ -1910,7 +1910,7 @@ public class MainView extends AppCompatActivity {
      */
     public void returnFromFragmentWithHomeButton() {
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
-        onBackPressed();
+        getOnBackPressedDispatcher().onBackPressed();
     }
 
     /**
@@ -1922,7 +1922,7 @@ public class MainView extends AppCompatActivity {
             this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
         }
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
-        onBackPressed();
+        getOnBackPressedDispatcher().onBackPressed();
     }
 
     /**

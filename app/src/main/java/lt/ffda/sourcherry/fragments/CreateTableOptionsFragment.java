@@ -56,7 +56,7 @@ public class CreateTableOptionsFragment extends Fragment {
             @Override
             public void handleOnBackPressed() {
                 remove();
-                getActivity().onBackPressed();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
             }
         };
     }
@@ -122,7 +122,7 @@ public class CreateTableOptionsFragment extends Fragment {
                 return false;
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), createOnBackPressedCallback());
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), createOnBackPressedCallback());
     }
 
     /**

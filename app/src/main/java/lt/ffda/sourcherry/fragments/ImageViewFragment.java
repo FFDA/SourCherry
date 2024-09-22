@@ -55,7 +55,7 @@ public class ImageViewFragment extends Fragment {
             InputStream inputStream = DatabaseReaderFactory.getReader().getImageInputStream(getArguments().getString("nodeUniqueID"), getArguments().getString("control"));
             if (inputStream != null) {
                 Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                Drawable image = new BitmapDrawable(this.getResources(),bitmap);
+                Drawable image = new BitmapDrawable(getResources(),bitmap);
                 imageView.setImageDrawable(image);
             } else {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_load_image, Toast.LENGTH_SHORT).show();
@@ -90,11 +90,9 @@ public class ImageViewFragment extends Fragment {
         imageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getActivity().onBackPressed();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
             }
         });
-        // Loading new menu for the fragment
-        // that only have a save button in it
         MenuHost menuHost = requireActivity();
         menuHost.addMenuProvider(new MenuProvider() {
             @Override
@@ -105,13 +103,13 @@ public class ImageViewFragment extends Fragment {
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
                 if (menuItem.getItemId() == android.R.id.home) {
-                    getActivity().onBackPressed();
+                    requireActivity().getOnBackPressedDispatcher().onBackPressed();
                     return true;
                 }
                 return false;
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
-        this.loadImage();
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBackPressedCallback);
+        loadImage();
     }
 }

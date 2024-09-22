@@ -103,9 +103,9 @@ public class NodePropertiesFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_add_new_node, container, false);
-        this.radioGroupNodeType = view.findViewById(R.id.radio_group_node_type);
-        this.checkBoxExcludeFromSearchesThisNode = view.findViewById(R.id.exclude_from_searches_this_node);
-        this.checkBoxExcludeFromSearchesSubnodes = view.findViewById(R.id.exclude_from_searches_subnodes);
+        radioGroupNodeType = view.findViewById(R.id.radio_group_node_type);
+        checkBoxExcludeFromSearchesThisNode = view.findViewById(R.id.exclude_from_searches_this_node);
+        checkBoxExcludeFromSearchesSubnodes = view.findViewById(R.id.exclude_from_searches_subnodes);
         return view;
     }
 
@@ -124,7 +124,7 @@ public class NodePropertiesFragment extends Fragment {
                 boolean handle = false;
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     handle = true;
-                    NodePropertiesFragment.this.updateNode(nodeUniqueID, nodeProperties.getProgLang());
+                    updateNode(nodeUniqueID, nodeProperties.getProgLang());
                     // Hides keyboard
                     InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(editTextNodeName.getWindowToken(), 0);
@@ -144,12 +144,12 @@ public class NodePropertiesFragment extends Fragment {
 
         // Setting up "Exclude from search This node"
         if (nodeProperties.getNoSearchMe() == 1) {
-            this.checkBoxExcludeFromSearchesThisNode.setChecked(true);
+            checkBoxExcludeFromSearchesThisNode.setChecked(true);
         }
 
         // Setting up "Exclude from search The subnodes"
         if (nodeProperties.getNoSearchCh() == 1) {
-            this.checkBoxExcludeFromSearchesSubnodes.setChecked(true);
+            checkBoxExcludeFromSearchesSubnodes.setChecked(true);
         }
 
         // Display a message if user changes from rich-text to another node type
@@ -177,7 +177,7 @@ public class NodePropertiesFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 // Back button press programmatically
-                getActivity().onBackPressed();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
             }
         });
 
@@ -186,7 +186,7 @@ public class NodePropertiesFragment extends Fragment {
         buttonCreate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NodePropertiesFragment.this.updateNode(nodeUniqueID, nodeProperties.getProgLang());
+                updateNode(nodeUniqueID, nodeProperties.getProgLang());
             }
         });
     }

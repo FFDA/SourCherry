@@ -129,7 +129,7 @@ public class CreateNodeFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 // Back button press programmatically
-                getActivity().onBackPressed();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
             }
         });
 
@@ -137,7 +137,7 @@ public class CreateNodeFragment extends Fragment {
         buttonCreate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                CreateNodeFragment.this.createNode(nodeUniqueID, relation, validateNodeName(editTextNodeName.getText().toString()));
+                createNode(nodeUniqueID, relation, validateNodeName(editTextNodeName.getText().toString()));
             }
         });
     }

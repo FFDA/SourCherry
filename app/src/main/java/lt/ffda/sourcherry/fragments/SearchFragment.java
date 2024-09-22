@@ -114,7 +114,7 @@ public class SearchFragment extends Fragment {
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
                 if (menuItem.getItemId() == android.R.id.home) {
-                    getActivity().onBackPressed();
+                    requireActivity().getOnBackPressedDispatcher().onBackPressed();
                     return true;
                 }
                 return false;

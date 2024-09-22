@@ -45,10 +45,10 @@ public class MoveNodeFragment extends Fragment {
     private void goHome() {
         ArrayList<ScNode> tempHomeNodes = DatabaseReaderFactory.getReader().getMainNodes();
         // Compares node sizes, first and last nodeUniqueIDs in both arrays
-        if (tempHomeNodes.size() == this.nodeList.size() && tempHomeNodes.get(0).getUniqueId().equals(this.nodeList.get(0).getUniqueId()) && tempHomeNodes.get(this.nodeList.size() -1).getUniqueId().equals(this.nodeList.get(this.nodeList.size() -1).getUniqueId())) {
+        if (tempHomeNodes.size() == nodeList.size() && tempHomeNodes.get(0).getUniqueId().equals(nodeList.get(0).getUniqueId()) && tempHomeNodes.get(nodeList.size() -1).getUniqueId().equals(nodeList.get(nodeList.size() -1).getUniqueId())) {
             Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
         } else {
-            this.setNodes(tempHomeNodes);
+            setNodes(tempHomeNodes);
         }
     }
 
@@ -59,17 +59,17 @@ public class MoveNodeFragment extends Fragment {
      */
     private void goNodeUp(String nodeUniqueID) {
         ArrayList<ScNode> nodes = DatabaseReaderFactory.getReader().getParentWithSubnodes(nodeUniqueID);
-        if (nodes != null && nodes.size() != this.nodeList.size()) {
+        if (nodes != null && nodes.size() != nodeList.size()) {
             // If retrieved nodes are not null and array size do not match the one displayed
             // it is definitely not the same node so it can go up
-            this.setNodes(nodes);
+            setNodes(nodes);
         } else {
             // If both node arrays matches in size it might be the same node (especially main/top)
             // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
-            if (nodes.get(0).getUniqueId().equals(this.nodeList.get(0).getUniqueId()) && nodes.get(nodes.size() -1).getUniqueId().equals(this.nodeList.get(this.nodeList.size() -1).getUniqueId())) {
+            if (nodes.get(0).getUniqueId().equals(nodeList.get(0).getUniqueId()) && nodes.get(nodes.size() -1).getUniqueId().equals(nodeList.get(nodeList.size() -1).getUniqueId())) {
                 Toast.makeText(getContext(), "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
-                this.setNodes(nodes);
+                setNodes(nodes);
             }
         }
     }
@@ -92,8 +92,8 @@ public class MoveNodeFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        this.nodeList = DatabaseReaderFactory.getReader().getMainNodes();
-        this.adapter = new MoveNodeFragmentItemAdapter(nodeList);
+        nodeList = DatabaseReaderFactory.getReader().getMainNodes();
+        adapter = new MoveNodeFragmentItemAdapter(nodeList);
 
         TextView moveNodeTextviewTitle = view.findViewById(R.id.move_node_textview_title);
         moveNodeTextviewTitle.setText(getString(R.string.move_node_textview_title, ((ScNode) getArguments().getParcelable("node")).getName()));
@@ -106,7 +106,7 @@ public class MoveNodeFragment extends Fragment {
             @Override
             public void onItemClick(View itemView, int position) {
                 if (nodeList.get(position).hasSubnodes()) {
-                    MoveNodeFragment.this.setNodes(DatabaseReaderFactory.getReader().getMenu(nodeList.get(position).getUniqueId()));
+                    setNodes(DatabaseReaderFactory.getReader().getMenu(nodeList.get(position).getUniqueId()));
                 }
             }
         });
@@ -114,10 +114,10 @@ public class MoveNodeFragment extends Fragment {
         adapter.setOnLongClickListener(new MoveNodeFragmentItemAdapter.OnLongClickListener() {
             @Override
             public void onLongClick(View itemView, int position) {
-                MoveNodeFragment.this.adapter.markItemSelected(position);
-                MoveNodeFragment.this.adapter.notifyItemChanged(currentPosition);
-                MoveNodeFragment.this.currentPosition = position;
-                MoveNodeFragment.this.adapter.notifyItemChanged(position);
+                adapter.markItemSelected(position);
+                adapter.notifyItemChanged(currentPosition);
+                currentPosition = position;
+                adapter.notifyItemChanged(position);
             }
         });
 
@@ -125,7 +125,7 @@ public class MoveNodeFragment extends Fragment {
         buttonMoveToMainMenu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MoveNodeFragment.this.moveNode("0");
+                moveNode("0");
             }
         });
 
@@ -133,7 +133,7 @@ public class MoveNodeFragment extends Fragment {
         buttonUp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MoveNodeFragment.this.goNodeUp(MoveNodeFragment.this.nodeList.get(0).getUniqueId());
+                goNodeUp(nodeList.get(0).getUniqueId());
             }
         });
 
@@ -141,7 +141,7 @@ public class MoveNodeFragment extends Fragment {
         buttonHome.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MoveNodeFragment.this.goHome();
+                goHome();
             }
         });
 
@@ -149,7 +149,7 @@ public class MoveNodeFragment extends Fragment {
         buttonCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getActivity().onBackPressed();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
             }
         });
 
@@ -157,8 +157,8 @@ public class MoveNodeFragment extends Fragment {
         buttonMove.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (MoveNodeFragment.this.currentPosition != RecyclerView.NO_POSITION) {
-                    MoveNodeFragment.this.moveNode(nodeList.get(currentPosition).getUniqueId());
+                if (currentPosition != RecyclerView.NO_POSITION) {
+                    moveNode(nodeList.get(currentPosition).getUniqueId());
                 }
             }
         });
@@ -170,10 +170,10 @@ public class MoveNodeFragment extends Fragment {
      * @param nodes node list to load to the navigation menu
      */
     private void setNodes(ArrayList<ScNode> nodes) {
-        this.nodeList.clear();
-        this.nodeList.addAll(nodes);
-        this.currentPosition = RecyclerView.NO_POSITION;
-        this.adapter.markItemSelected(this.currentPosition);
-        this.adapter.notifyDataSetChanged();
+        nodeList.clear();
+        nodeList.addAll(nodes);
+        currentPosition = RecyclerView.NO_POSITION;
+        adapter.markItemSelected(currentPosition);
+        adapter.notifyDataSetChanged();
     }
 }

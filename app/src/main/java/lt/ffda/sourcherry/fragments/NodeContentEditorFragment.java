@@ -599,7 +599,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 if (checkBox.isChecked()) {
                     saveUnsavedChangesDialogChoice("exit");
                 }
-                getActivity().onBackPressed();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
             }
         });
         builder.setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
@@ -609,7 +609,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     saveUnsavedChangesDialogChoice("save");
                 }
                 saveNodeContent();
-                getActivity().onBackPressed();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
             }
         });
         builder.show();
@@ -1003,7 +1003,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     return false;
                 }
                 if (menuItem.getItemId() == android.R.id.home) {
-                    getActivity().onBackPressed();
+                    requireActivity().getOnBackPressedDispatcher().onBackPressed();
                     return true;
                 } else if (menuItem.getItemId() == R.id.toolbar_button_save_node) {
                     NodeContentEditorFragment.this.saveNodeContent();

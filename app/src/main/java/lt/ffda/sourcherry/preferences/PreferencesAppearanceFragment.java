@@ -52,7 +52,7 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         setPreferencesFromResource(R.xml.preferences_appearance, rootKey);
 
         // Listener to detect when user changes theme to apply it
@@ -96,7 +96,7 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
         paddingStartPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
-                SharedPreferences.Editor sharedPrefEditor = PreferencesAppearanceFragment.this.sharedPreferences.edit();
+                SharedPreferences.Editor sharedPrefEditor = sharedPreferences.edit();
                 sharedPrefEditor.putInt("paddingStart", DpPxConverter.dpToPx((int) newValue));
                 sharedPrefEditor.commit();
                 return true;
@@ -107,7 +107,7 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
         paddingEndPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
-                SharedPreferences.Editor sharedPrefEditor = PreferencesAppearanceFragment.this.sharedPreferences.edit();
+                SharedPreferences.Editor sharedPrefEditor = sharedPreferences.edit();
                 sharedPrefEditor.putInt("paddingEnd", DpPxConverter.dpToPx((int) newValue));
                 sharedPrefEditor.commit();
                 return true;
@@ -139,12 +139,12 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
                 if (menuItem.getItemId() == android.R.id.home) {
-                    getActivity().onBackPressed();
+                    requireActivity().getOnBackPressedDispatcher().onBackPressed();
                     return true;
                 }
                 return false;
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBackPressedCallback);
     }
 }
