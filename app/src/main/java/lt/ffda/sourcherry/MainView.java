@@ -1898,9 +1898,6 @@ public class MainView extends AppCompatActivity {
      */
     public void returnFromFragmentWithHomeButton(boolean reloadContent) {
         if (reloadContent) {
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-            // Sends ArrayList to fragment to be added added to view
             setToolbarTitle(mainViewModel.getCurrentNode().getName());
             loadNodeContent();
         }
