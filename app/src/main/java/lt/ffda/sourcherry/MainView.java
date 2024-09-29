@@ -1861,7 +1861,6 @@ public class MainView extends AppCompatActivity {
     private void restoreHighlightedView() {
         LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
         if (this.currentFindInNodeMarked != -1 && contentFragmentLinearLayout != null && this.mainViewModel.getFindInNodeResultStorage().size() > 0) {
-            int viewIndex = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked)[0];
             int counter = 0;
             for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
                 View view = contentFragmentLinearLayout.getChildAt(i);
