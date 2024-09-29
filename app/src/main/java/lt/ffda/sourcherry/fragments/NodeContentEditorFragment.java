@@ -685,6 +685,10 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 break;
             case "Caladea":
                 typeface = ResourcesCompat.getFont(getContext(), R.font.caladea_regular);
+                break;
+            case "Monospace":
+                typeface = Typeface.MONOSPACE;
+                break;
         }
         return typeface;
     }

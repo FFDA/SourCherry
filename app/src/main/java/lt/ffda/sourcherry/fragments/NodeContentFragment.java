@@ -150,6 +150,10 @@ public class NodeContentFragment extends Fragment {
                 break;
             case "Caladea":
                 typeface = ResourcesCompat.getFont(getContext(), R.font.caladea_regular);
+                break;
+            case "Monospace":
+                typeface = Typeface.MONOSPACE;
+                break;
         }
         int textSize = sharedPreferences.getInt("preferences_text_size", 15);
         for (ScNodeContent part: mainViewModel.getNodeContent().getValue()) {
