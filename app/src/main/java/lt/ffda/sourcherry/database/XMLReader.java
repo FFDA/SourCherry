@@ -979,6 +979,9 @@ public class XMLReader extends DatabaseReader {
     @Override
     public boolean isNodeBookmarked(String nodeUniqueID) {
         NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
+        if (bookmarkTag.getLength() < 1) {
+            return false;
+        }
         List<String> bookmarks = Arrays.asList(bookmarkTag.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
         return bookmarks.contains(nodeUniqueID);
     }
