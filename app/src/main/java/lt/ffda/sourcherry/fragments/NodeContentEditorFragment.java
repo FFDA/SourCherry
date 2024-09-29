@@ -90,6 +90,7 @@ import lt.ffda.sourcherry.spans.ClickableSpanFile;
 import lt.ffda.sourcherry.spans.ClickableSpanLink;
 import lt.ffda.sourcherry.spans.ClickableSpanNode;
 import lt.ffda.sourcherry.spans.ImageSpanFile;
+import lt.ffda.sourcherry.spans.MonospaceBackgroundColorSpan;
 import lt.ffda.sourcherry.spans.StyleSpanBold;
 import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
@@ -258,11 +259,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 int endOfSpan = editText.getText().getSpanEnd(span);
                 editText.getText().removeSpan(span);
                 int foregroundColor = span.getForegroundColor();
-                this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
+                reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
             }
             ForegroundColorSpan fcs = new ForegroundColorSpan(this.color);
             editText.getText().setSpan(fcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.unsavedChanges = true;
+            unsavedChanges = true;
         }
     }
 
@@ -293,7 +294,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 return;
             }
             Object[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, Object.class);
-            if (this.checkSelectionForCodebox()) {
+            if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be cleared using clear formatting
                 // It only should be deleted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
@@ -305,89 +306,90 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     int foregroundColor = ((ForegroundColorSpan) span).getForegroundColor();
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
+                    unsavedChanges = true;
                 } else if (span instanceof BackgroundColorSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
                     int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
+                    unsavedChanges = true;
                 } else if (span instanceof StrikethroughSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
+                    unsavedChanges = true;
                 } else if (span instanceof StyleSpanBold) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanBold(), new StyleSpanBold());
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanBold(), new StyleSpanBold());
+                    unsavedChanges = true;
                 } else if (span instanceof StyleSpanItalic) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanItalic(), new StyleSpanItalic());
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanItalic(), new StyleSpanItalic());
+                    unsavedChanges = true;
                 } else if (span instanceof RelativeSizeSpan) {
                     RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
                     float size = relativeSizeSpan.getSizeChange();
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new RelativeSizeSpan(size), new RelativeSizeSpan(size));
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new RelativeSizeSpan(size), new RelativeSizeSpan(size));
+                    unsavedChanges = true;
                 } else if (span instanceof SubscriptSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SubscriptSpan(), new SubscriptSpan());
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SubscriptSpan(), new SubscriptSpan());
+                    unsavedChanges = true;
                 } else if (span instanceof SuperscriptSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SuperscriptSpan(), new SuperscriptSpan());
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SuperscriptSpan(), new SuperscriptSpan());
+                    unsavedChanges = true;
                 } else if (span instanceof TypefaceSpanFamily) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new TypefaceSpanFamily("monospace"), new TypefaceSpanFamily("monospace"));
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new TypefaceSpanFamily("monospace"), new TypefaceSpanFamily("monospace"));
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new MonospaceBackgroundColorSpan(getContext().getColor(R.color.monospace_background)), new MonospaceBackgroundColorSpan(getContext().getColor(R.color.monospace_background)));
+                    unsavedChanges = true;
                 } else if (span instanceof UnderlineSpan) {
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new UnderlineSpan(), new UnderlineSpan());
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new UnderlineSpan(), new UnderlineSpan());
+                    unsavedChanges = true;
                 } else if (span instanceof URLSpanWebs) {
                     URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new URLSpanWebs(urlSpanWebs.getURL()), new URLSpanWebs(urlSpanWebs.getURL()));
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new URLSpanWebs(urlSpanWebs.getURL()), new URLSpanWebs(urlSpanWebs.getURL()));
+                    unsavedChanges = true;
                 } else if (span instanceof ClickableSpanNode) {
                     ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, this.createNodeLink(clickableSpanNode), this.createNodeLink(clickableSpanNode));
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, createNodeLink(clickableSpanNode), createNodeLink(clickableSpanNode));
+                    unsavedChanges = true;
                 } else if (span instanceof ClickableSpanLink) {
                     ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, this.createFileFolderLink(clickableSpanLink), this.createFileFolderLink(clickableSpanLink));
-                    this.unsavedChanges = true;
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, createFileFolderLink(clickableSpanLink), createFileFolderLink(clickableSpanLink));
+                    unsavedChanges = true;
                 } else if (span instanceof LeadingMarginSpan.Standard) {
                     editText.getText().removeSpan(span);
-                    this.unsavedChanges = true;
+                    unsavedChanges = true;
                 }
             }
         }
@@ -1307,9 +1309,47 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     @Override
+    public void toggleFontMonospace() {
+        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+            if (checkSelectionForCodebox()) {
+                // As in CherryTree codebox can't be formatted
+                Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
+            int startOfSelection = editText.getSelectionStart();
+            int endOfSelection = editText.getSelectionEnd();
+            if (endOfSelection - startOfSelection == 0) {
+                // No text selected
+                return;
+            }
+            TypefaceSpanFamily[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, TypefaceSpanFamily.class);
+            MonospaceBackgroundColorSpan[] backgroundSpans = editText.getText().getSpans(startOfSelection, endOfSelection, MonospaceBackgroundColorSpan.class);
+            if (spans.length > 0) {
+                for (TypefaceSpanFamily span: spans) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new TypefaceSpanFamily("monospace"), new TypefaceSpanFamily("monospace"));
+                }
+                for (MonospaceBackgroundColorSpan span: backgroundSpans) {
+                    int startOfSpan = editText.getText().getSpanStart(span);
+                    int endOfSpan = editText.getText().getSpanEnd(span);
+                    editText.getText().removeSpan(span);
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new MonospaceBackgroundColorSpan(R.color.monospace_background), new MonospaceBackgroundColorSpan(R.color.monospace_background));
+                }
+            } else {
+                editText.getText().setSpan(new TypefaceSpanFamily("monospace"), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                editText.getText().setSpan(new MonospaceBackgroundColorSpan(R.color.monospace_background), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            unsavedChanges = true;
+        }
+    }
+
+    @Override
     public void toggleFontStrikethrough() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
-            if (this.checkSelectionForCodebox()) {
+            if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
@@ -1332,7 +1372,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             } else {
                 editText.getText().setSpan(new StrikethroughSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            this.unsavedChanges = true;
+            unsavedChanges = true;
         }
     }
 

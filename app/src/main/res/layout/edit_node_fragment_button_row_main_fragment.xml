@@ -90,6 +90,15 @@
             android:contentDescription="@string/edit_node_fragment_button_row_strikethrough"
             android:src="@drawable/baseline_strikethrough_s_24" />
         <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_monospace"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@/string/edit_node_fragment_button_row_monospace"
+            android:src="@drawable/monospace" />
+        <ImageButton
             android:id="@+id/edit_node_fragment_button_row_insert_row"
             android:layout_width="40dp"
             android:layout_height="match_parent"

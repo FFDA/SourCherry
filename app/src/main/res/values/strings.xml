@@ -201,10 +201,11 @@
     <string name="edit_node_fragment_button_row_color_picker">COLOR PICKER. Opens another dialog to choose a color that foreground/background should be changed to when suing appropriate function.</string>
     <string name="edit_node_fragment_button_row_foreground_color">FOREGROUND COLOR. Changes foreground color of selected text in Rich-Text node.</string>
     <string name="edit_node_fragment_button_row_background_color">BACKGROUND COLOR. Changes background color of selected text in Rich-Text node.</string>
-    <string name="edit_node_fragment_button_row_bold">BOLD. Toggle Bold font in selected text on and off.</string>
-    <string name="edit_node_fragment_button_row_italic">ITALIC. Toggle Italic font in selected text on and off.</string>
-    <string name="edit_node_fragment_button_row_underline">UNDERLINE. Toggle Underline font in selected text on and off.</string>
-    <string name="edit_node_fragment_button_row_strikethrough">STRIKETHROUGH. Toggle Strikethrough font in selected text on and off.</string>
+    <string name="edit_node_fragment_button_row_bold">BOLD. Toggle Bold font for selected text on and off.</string>
+    <string name="edit_node_fragment_button_row_italic">ITALIC. Toggle Italic font for selected text on and off.</string>
+    <string name="edit_node_fragment_button_row_underline">UNDERLINE. Toggle Underline font for selected text on and off.</string>
+    <string name="edit_node_fragment_button_row_strikethrough">STRIKETHROUGH. Toggle Strikethrough font for selected text on and off.</string>
+    <string name="edit_node_fragment_button_row_monospace">MONOSPACE. Toggle monospace font for selected text on and off.</string>
     <string name="edit_node_fragment_button_row_attach_file">ATTACH FILE. Inserts user selected file into the node.</string>
     <string name="edit_node_fragment_button_row_insert_image">INSERT IMAGE. Inserts user selected image into the node.</string>
     <string name="edit_node_fragment_button_row_insert_table">INSERT TABLE. Insert table at the cursor position.</string>

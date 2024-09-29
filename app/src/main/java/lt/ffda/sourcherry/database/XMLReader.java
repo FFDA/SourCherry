@@ -1669,12 +1669,12 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public void saveNodeContent(String nodeUniqueID) {
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
         if (node == null) {
-            this.displayToast(this.context.getString(R.string.toast_error_while_saving_node_content_not_found));
+            displayToast(this.context.getString(R.string.toast_error_while_saving_node_content_not_found));
             return;
         }
-        if (this.mainViewModel.getCurrentNode().isRichText()) {
+        if (mainViewModel.getCurrentNode().isRichText()) {
             int next; // The end of the current span and the start of the next one
             int totalContentLength = 0; // Needed to calculate offset for the tag
             int currentPartContentLength = 0; // Needed to calculate offset for the tag
@@ -1683,7 +1683,7 @@ public class XMLReader extends DatabaseReader {
             // Can't get justification for all items that have offset (except tables), so the best next
             // thing I can do is save last detected justification value and used it when creating those nodes
             String lastFoundJustification = "left";
-            for (ScNodeContent scNodeContent : this.mainViewModel.getNodeContent().getValue()) {
+            for (ScNodeContent scNodeContent : mainViewModel.getNodeContent().getValue()) {
                 if (scNodeContent.getContentType() == 0) {
                     // To not add content of the the span that is being processed
                     // set addContent to false. Needed because not all elements of the node
@@ -1700,7 +1700,7 @@ public class XMLReader extends DatabaseReader {
                         addContent = true;
                         next = nodeContent.nextSpanTransition(i, nodeContent.length(), Object.class);
                         Object[] spans = nodeContent.getSpans(i, next, Object.class);
-                        Element element = this.doc.createElement("rich_text");
+                        Element element = doc.createElement("rich_text");
                         for (Object span : spans) {
                             if (span instanceof AlignmentSpan) {
                                 AlignmentSpan alignmentSpan = (AlignmentSpan) span;
@@ -1731,7 +1731,7 @@ public class XMLReader extends DatabaseReader {
                             } else if (span instanceof ImageSpanFile) {
                                 // Attached file
                                 addContent = false;
-                                offsetNodes.add(this.saveImageSpanFile(
+                                offsetNodes.add(saveImageSpanFile(
                                         (ImageSpanFile) span,
                                         String.valueOf(currentPartContentLength + totalContentLength),
                                         lastFoundJustification,
@@ -1746,21 +1746,21 @@ public class XMLReader extends DatabaseReader {
                                 element.setAttribute("foreground", backgroundColor);
                             } else if (span instanceof ImageSpanAnchor) {
                                 addContent = false;
-                                offsetNodes.add(this.saveImageSpanAnchor(
+                                offsetNodes.add(saveImageSpanAnchor(
                                         (ImageSpanAnchor) span,
                                         String.valueOf(currentPartContentLength + totalContentLength),
                                         lastFoundJustification
                                 ));
                             } else if (span instanceof ImageSpanImage) {
                                 addContent = false;
-                                offsetNodes.add(this.saveImageSpanImage(
+                                offsetNodes.add(saveImageSpanImage(
                                         (ImageSpanImage) span,
                                         String.valueOf(currentPartContentLength + totalContentLength),
                                         lastFoundJustification
                                 ));
                             } else if (span instanceof ImageSpanLatex) {
                                 addContent = false;
-                                offsetNodes.add(this.saveImageSpanLatex(
+                                offsetNodes.add(saveImageSpanLatex(
                                         (ImageSpanLatex) span,
                                         String.valueOf(currentPartContentLength + totalContentLength),
                                         lastFoundJustification
@@ -1771,14 +1771,14 @@ public class XMLReader extends DatabaseReader {
                                 element.setAttribute("indent", String.valueOf(indent));
                             } else if (span instanceof TypefaceSpanCodebox) {
                                 addContent = false;
-                                offsetNodes.add(this.saveTypefaceSpanCodebox(
+                                offsetNodes.add(saveTypefaceSpanCodebox(
                                         (TypefaceSpanCodebox) span,
                                         String.valueOf(currentPartContentLength + totalContentLength),
                                         lastFoundJustification,
                                         nodeContent.subSequence(i, next).toString()
                                 ));
                             } else if (span instanceof RelativeSizeSpan) {
-                                element.setAttribute("scale", this.saveRelativeSizeSpan((RelativeSizeSpan) span));
+                                element.setAttribute("scale", saveRelativeSizeSpan((RelativeSizeSpan) span));
                             } else if (span instanceof StrikethroughSpan) {
                                 element.setAttribute("strikethrough", "true");
                             } else if (span instanceof StyleSpanBold) {

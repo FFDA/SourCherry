@@ -13,11 +13,11 @@ package lt.ffda.sourcherry.spans;
 import android.text.style.BackgroundColorSpan;
 
 /**
- * Span to mark background color. Needed to separate between CodeBox, Background and Monospace font
- * background spans.
+ * Span to mark background color of the monospace font spans. Needed to separate between CodeBox,
+ * Background and Monospace font background spans.
  */
-public class BackgroundColorSpanCustom extends BackgroundColorSpan {
-    public BackgroundColorSpanCustom(int color) {
+public class MonospaceBackgroundColorSpan extends BackgroundColorSpan {
+    public MonospaceBackgroundColorSpan(int color) {
         super(color);
     }
 }

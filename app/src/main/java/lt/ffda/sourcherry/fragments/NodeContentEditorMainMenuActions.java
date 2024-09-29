@@ -50,6 +50,12 @@ public interface NodeContentEditorMainMenuActions {
     void toggleFontItalic();
 
     /**
+     * Changes selected font to monospace if selected text does not have any monospaced font in it.
+     * Otherwise it will remove monospace font property of the selected part of the text.
+     */
+    void toggleFontMonospace();
+
+    /**
      * Makes selected text strikethrough if there isn't any struckthrough text in selection.
      * Otherwise it will remove strikethrough property of the text in selected part of the text.
      */

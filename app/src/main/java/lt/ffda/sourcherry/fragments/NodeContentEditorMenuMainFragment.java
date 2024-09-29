@@ -115,6 +115,15 @@ public class NodeContentEditorMenuMainFragment extends Fragment {
                 }
             }
         });
+        ImageButton monospaceButton = view.findViewById(R.id.edit_node_fragment_button_row_monospace);
+        monospaceButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (nodeContentEditorMenuActions != null) {
+                    nodeContentEditorMenuActions.toggleFontMonospace();
+                }
+            }
+        });
         ImageButton showInsertRowButton = view.findViewById(R.id.edit_node_fragment_button_row_insert_row);
         showInsertRowButton.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -55,6 +55,7 @@ import lt.ffda.sourcherry.spans.BackgroundColorSpanCustom;
 import lt.ffda.sourcherry.spans.ClickableSpanFile;
 import lt.ffda.sourcherry.spans.ImageSpanFile;
 import lt.ffda.sourcherry.spans.ImageSpanImage;
+import lt.ffda.sourcherry.spans.MonospaceBackgroundColorSpan;
 import lt.ffda.sourcherry.spans.StyleSpanBold;
 import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
@@ -472,9 +473,8 @@ public abstract class DatabaseReader {
                     }
                     break;
                 case "family":
-                    TypefaceSpanFamily tf = new TypefaceSpanFamily("monospace");
-                    formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    formattedNodeText.setSpan(new BackgroundColorSpanCustom(R.color.monospace_background), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(new TypefaceSpanFamily("monospace"), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(new MonospaceBackgroundColorSpan(R.color.monospace_background), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "link":
                     String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
