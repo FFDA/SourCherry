@@ -2,6 +2,7 @@
 <resources>
     <color name="ic_launcher_cherry_fill_color">#CA2A2A</color>
     <color name="codebox_background">#636363</color>
+    <color name="monospace_background">#7f7f7f</color>
     <color name="link_anchor">#2FC848</color>
     <color name="link_file">#D3AD56</color>
     <color name="link_folder">#C3C3D6</color>

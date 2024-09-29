@@ -474,6 +474,7 @@ public abstract class DatabaseReader {
                 case "family":
                     TypefaceSpanFamily tf = new TypefaceSpanFamily("monospace");
                     formattedNodeText.setSpan(tf, 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    formattedNodeText.setSpan(new BackgroundColorSpanCustom(R.color.monospace_background), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 case "link":
                     String[] attributeValue = nodeAttributes.item(i).getNodeValue().split(" ");
