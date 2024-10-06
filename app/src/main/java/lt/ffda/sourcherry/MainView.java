@@ -347,7 +347,7 @@ public class MainView extends AppCompatActivity {
             }
             mainViewModel.setCurrentNode(newNodeMenuItem);
             loadNodeContent();
-            setClickedItemInSubmenu();
+            resetMenuToCurrentNode();
         }
     }
 
@@ -357,13 +357,13 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked by the user
      */
     public void createNode(View view) {
-        if (this.mainViewModel.getNodes().size() == 0 || !this.mainViewModel.getNodes().get(0).isParent()) {
-            this.launchCreateNewNodeFragment("0", 1);
+        if (mainViewModel.getNodes().size() == 0 || !mainViewModel.getNodes().get(0).isParent()) {
+            launchCreateNewNodeFragment("0", 1);
         } else {
-            if (this.mainViewModel.getNodes().get(0).isParent()) {
-                this.launchCreateNewNodeFragment(this.mainViewModel.getNodes().get(0).getUniqueId(), 1);
+            if (mainViewModel.getNodes().get(0).isParent()) {
+                launchCreateNewNodeFragment(mainViewModel.getNodes().get(0).getUniqueId(), 1);
             } else {
-                this.launchCreateNewNodeFragment(this.mainViewModel.getNodes().get(0).getUniqueId(), 1);
+                launchCreateNewNodeFragment(mainViewModel.getNodes().get(0).getUniqueId(), 1);
             }
         }
     }
@@ -1835,22 +1835,22 @@ public class MainView extends AppCompatActivity {
      * Restores drawer menu selected item to currently opened node
      */
     private void resetMenuToCurrentNode() {
-        if (this.mainViewModel.getCurrentNode() != null) {
-            if (MainView.this.mainViewModel.getCurrentNode().hasSubnodes()) {
-                this.mainViewModel.setNodes(this.reader.getMenu(this.mainViewModel.getCurrentNode().getUniqueId()));
-                this.currentNodePosition = 0;
-                this.adapter.markItemSelected(this.currentNodePosition);
+        if (mainViewModel.getCurrentNode() != null) {
+            if (mainViewModel.getCurrentNode().hasSubnodes()) {
+                mainViewModel.setNodes(reader.getMenu(mainViewModel.getCurrentNode().getUniqueId()));
+                currentNodePosition = 0;
+                adapter.markItemSelected(currentNodePosition);
             } else {
-                this.mainViewModel.setNodes(this.reader.getParentWithSubnodes(this.mainViewModel.getCurrentNode().getUniqueId()));
-                for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
-                    if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-                        this.currentNodePosition = index;
-                        this.adapter.markItemSelected(this.currentNodePosition);
+                mainViewModel.setNodes(reader.getParentWithSubnodes(mainViewModel.getCurrentNode().getUniqueId()));
+                for (int index = 0; index < mainViewModel.getNodes().size(); index++) {
+                    if (mainViewModel.getNodes().get(index).getUniqueId().equals(mainViewModel.getCurrentNode().getUniqueId())) {
+                        currentNodePosition = index;
+                        adapter.markItemSelected(currentNodePosition);
                         break;
                     }
                 }
             }
-            this.adapter.notifyDataSetChanged();
+            adapter.notifyDataSetChanged();
         }
     }
 
@@ -1860,7 +1860,7 @@ public class MainView extends AppCompatActivity {
      */
     private void restoreHighlightedView() {
         LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
-        if (this.currentFindInNodeMarked != -1 && contentFragmentLinearLayout != null && this.mainViewModel.getFindInNodeResultStorage().size() > 0) {
+        if (currentFindInNodeMarked != -1 && contentFragmentLinearLayout != null && mainViewModel.getFindInNodeResultStorage().size() > 0) {
             int counter = 0;
             for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
                 View view = contentFragmentLinearLayout.getChildAt(i);
@@ -1874,17 +1874,17 @@ public class MainView extends AppCompatActivity {
                         TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
                         for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
                             TextView currentCell = (TextView) tableRow.getChildAt(cell);
-                            SpannableStringBuilder originalText = new SpannableStringBuilder(this.mainViewModel.getTextViewContent(counter));
+                            SpannableStringBuilder originalText = new SpannableStringBuilder(mainViewModel.getTextViewContent(counter));
                             currentCell.setText(originalText);
                             counter++;
                         }
                     }
                 }
             }
-            this.currentFindInNodeMarked = -1;
-            this.updateCounter(0);
-            this.updateMarkedIndex();
-            this.mainViewModel.resetFindInNodeResultStorage();
+            currentFindInNodeMarked = -1;
+            updateCounter(0);
+            updateMarkedIndex();
+            mainViewModel.resetFindInNodeResultStorage();
         }
     }
 
@@ -1975,7 +1975,6 @@ public class MainView extends AppCompatActivity {
                 int previousNodePosition = currentNodePosition;
                 currentNodePosition = index;
                 adapter.markItemSelected(currentNodePosition);
-                adapter.notifyItemChanged(previousNodePosition);
                 adapter.notifyItemChanged(currentNodePosition);
                 break;
             }
@@ -1988,9 +1987,9 @@ public class MainView extends AppCompatActivity {
      * and setting it's index as this.currentNodePosition
      */
     private void setCurrentNodePosition() {
-        for (int index = 0; index < this.mainViewModel.getNodes().size(); index++) {
-            if (this.mainViewModel.getNodes().get(index).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
-                this.currentNodePosition = index;
+        for (int index = 0; index < mainViewModel.getNodes().size(); index++) {
+            if (mainViewModel.getNodes().get(index).getUniqueId().equals(mainViewModel.getCurrentNode().getUniqueId())) {
+                currentNodePosition = index;
             }
         }
     }

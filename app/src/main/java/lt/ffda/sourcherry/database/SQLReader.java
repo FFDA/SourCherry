@@ -444,7 +444,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         contentValues.clear();
         boolean isSubnode = true;
         contentValues.put("node_id", newNodeUniqueID);
-        contentValues.put("master_id", "0");
+        contentValues.put("master_id", 0);
         if (relation == 0) {
             int parentNodeUniqueID = this.getParentNodeUniqueIDInt(nodeUniqueID);
             contentValues.put("father_id", parentNodeUniqueID);
