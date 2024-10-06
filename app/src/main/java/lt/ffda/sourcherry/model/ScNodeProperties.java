@@ -33,42 +33,82 @@ public class ScNodeProperties {
         this.noSearchCh = noSearchCh;
     }
 
+    /**
+     * Get name property of the node that is displayed in node properties
+     * @return node name
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Set node name that will be displayed in node properties
+     * @param name node name
+     */
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * Get nodes no search children property that is displayed in node properties
+     * @return node's no search children property
+     */
     public byte getNoSearchCh() {
         return noSearchCh;
     }
 
+    /**
+     * Set node's no search children property that will be displayed in node properties
+     * @param noSearchCh node's no search children property
+     */
     public void setNoSearchCh(byte noSearchCh) {
         this.noSearchCh = noSearchCh;
     }
 
+    /**
+     * Get node's no search me property that is displayed in node properties
+     * @return node's no search me property
+     */
     public byte getNoSearchMe() {
         return noSearchMe;
     }
 
+    /**
+     * Set node's no search me property that will be displayd in node properties
+     * @param noSearchMe node's no search me property
+     */
     public void setNoSearchMe(byte noSearchMe) {
         this.noSearchMe = noSearchMe;
     }
 
+    /**
+     * Get node's prog lang property that is displayed in node properties
+     * @return node's prog lang property
+     */
     public String getProgLang() {
         return progLang;
     }
 
+    /**
+     * Set node's prog lang property that will be displayed in node properties
+     * @param progLang node's prog lang property
+     */
     public void setProgLang(String progLang) {
         this.progLang = progLang;
     }
 
+    /**
+     * Get unique Id of the node that properties are being displayed for
+     * @return node unique ID
+     */
     public String getUniqueId() {
         return uniqueId;
     }
 
+    /**
+     * Set unique ID of the node that properties will be dispayyed for
+     * @param uniqueId node unique ID
+     */
     public void setUniqueId(String uniqueId) {
         this.uniqueId = uniqueId;
     }
