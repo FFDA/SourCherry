@@ -154,7 +154,7 @@ public class NodePropertiesFragment extends Fragment {
 
         // Display a message if user changes from rich-text to another node type
         // to notify that formatting will be lost
-        this.radioGroupNodeType.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+        radioGroupNodeType.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
                 if (nodeProperties.getProgLang().equals("custom-colors") && checkedId != R.id.radio_button_rich_text) {
@@ -171,6 +171,18 @@ public class NodePropertiesFragment extends Fragment {
                 }
             }
         });
+
+        if (nodeProperties.getUniqueId() != null) {
+            TextView nodeUniqueIdTextView = view.findViewById(R.id.properties_fragment_node_unique_id);
+            nodeUniqueIdTextView.setText(getContext().getString(R.string.properties_fragment_node_unique_id, nodeProperties.getUniqueId()));
+            nodeUniqueIdTextView.setVisibility(View.VISIBLE);
+        }
+
+        if (nodeProperties.getShareNodeGroup() != null) {
+            TextView sharedNodesGroupTextView = view.findViewById(R.id.properties_fragment_shared_nodes_group);
+            sharedNodesGroupTextView.setText(getContext().getString(R.string.properties_fragment_shared_nodes_group, nodeProperties.getShareNodeGroup()));
+            sharedNodesGroupTextView.setVisibility(View.VISIBLE);
+        }
 
         Button buttonCancel = view.findViewById(R.id.add_node_button_cancel);
         buttonCancel.setOnClickListener(new View.OnClickListener() {

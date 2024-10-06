@@ -11,6 +11,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/windowBackground">
@@ -121,23 +122,44 @@
         app:layout_constraintStart_toEndOf="@+id/exclude_from_searches_this_node"
         app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches" />
 
+    <TextView
+        android:id="@+id/properties_fragment_node_unique_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches_this_node" />
+
+    <TextView
+        android:id="@+id/properties_fragment_shared_nodes_group"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/properties_fragment_node_unique_id" />
+
     <Button
         android:id="@+id/add_node_button_create"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        android:layout_marginEnd="56dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="64dp"
         android:text="@string/button_create"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches_subnodes" />
+        app:layout_constraintTop_toBottomOf="@+id/properties_fragment_shared_nodes_group" />
 
     <Button
         android:id="@+id/add_node_button_cancel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="56dp"
-        android:layout_marginTop="40dp"
+        android:layout_marginStart="48dp"
+        android:layout_marginTop="32dp"
         android:text="@string/button_cancel"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches_subnodes" />
+        app:layout_constraintTop_toBottomOf="@+id/properties_fragment_shared_nodes_group" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

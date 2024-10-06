@@ -1208,7 +1208,7 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public ScNodeProperties getNodeProperties(String nodeUniqueID) {
-        Node node = this.findSingleNode(nodeUniqueID);
+        Node node = findSingleNode(nodeUniqueID);
         String name = node.getAttributes().getNamedItem("name").getNodeValue();
         String progLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
         byte noSearchMe = Byte.parseByte(node.getAttributes().getNamedItem("nosearch_me").getNodeValue());
@@ -1216,7 +1216,7 @@ public class MultiReader extends DatabaseReader {
         if (name == null) {
             return null;
         } else {
-            return new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
+            return new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh, getSharedNodesGroup(nodeUniqueID));
         }
     }
 
@@ -1305,6 +1305,30 @@ public class MultiReader extends DatabaseReader {
     }
 
     @Override
+    public String getSharedNodesGroup(String nodeUniqueID) {
+        List<String> sharedNodesGroup;
+        Node node = findSingleNode(nodeUniqueID);
+        Node nodeMasterIdAttr = node.getAttributes().getNamedItem("master_id");
+        if (nodeMasterIdAttr != null && !"0".equals(nodeMasterIdAttr.getNodeValue())) {
+            String nodeMasterId = nodeMasterIdAttr.getNodeValue();
+            sharedNodesGroup = getSharedNodesIds(nodeMasterId);
+            sharedNodesGroup.add(nodeMasterId);
+        } else {
+            sharedNodesGroup = getSharedNodesIds(nodeUniqueID);
+            sharedNodesGroup.add(nodeUniqueID);
+        }
+        if (sharedNodesGroup.size() > 1 ) {
+            return sharedNodesGroup.stream()
+                    .mapToLong(Long::parseLong)
+                    .sorted()
+                    .mapToObj(Long::toString)
+                    .collect(Collectors.joining(", "));
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public List<String> getSharedNodesIds(String nodeUniqueID) {
         List<String> sharedNodes = new ArrayList<>();
         NodeList nodeList = drawerMenu.getElementsByTagName("node");
@@ -1314,17 +1338,6 @@ public class MultiReader extends DatabaseReader {
                 sharedNodes.add(nodeList.item(i).getAttributes().getNamedItem("unique_id").getNodeValue());
             }
         }
-        if (sharedNodes.size() < 2) {
-            return sharedNodes;
-        }
-        Collections.sort(sharedNodes, new Comparator<String>() {
-            @Override
-            public int compare(String s, String t1) {
-                Integer num1 = Integer.parseInt(s);
-                Integer num2 = Integer.parseInt(t1);
-                return num1.compareTo(num2);
-            }
-        });
         return sharedNodes;
     }
 

@@ -248,4 +248,6 @@
     <string name="create_table_col_properties_lightwreight_interface">Lightweight interface\n(no effect in mobile version)</string>
     <string name="create_table_table_col_properties_lable">Column properties</string>
     <string name="create_table_col_properties_default_width_label">Default width</string>
+    <string name="properties_fragment_node_unique_id">Unique Id: %1$s</string>
+    <string name="properties_fragment_shared_nodes_group">Shared nodes group: %1$s</string>
 </resources>

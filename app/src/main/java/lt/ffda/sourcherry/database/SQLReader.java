@@ -68,6 +68,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -983,6 +984,23 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         return nodes;
     }
 
+    /**
+     * Get master node's unique ID if node has one, otherwise returns null
+     * @param nodeUniqueID unique ID of the node to check for master node
+     * @return unique ID of the master node, or null
+     */
+    private String getMasterNodeUniqueId(String nodeUniqueID) {
+        try (Cursor cursor = sqlite.query("children", new String[]{"master_id"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null)) {
+            if (cursor.move(1)) {
+                String masterId = cursor.getString(0);
+                if (masterId != null && !"0".equals(masterId)) {
+                    return masterId;
+                }
+            }
+        }
+        return null;
+    }
+
     @Override
     public ArrayList<ScNode> getMenu(String nodeUniqueID) {
         // Returns Subnodes of the node which nodeUniqueID is provided
@@ -1018,11 +1036,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public ScNodeProperties getNodeProperties(String nodeUniqueID) {
-        Cursor cursor = sqlite.query("node", new String[]{"name", "syntax", "level"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-        cursor.moveToFirst();
-        byte[] noSearch = convertLevelToNoSearch(cursor.getInt(2));
-        ScNodeProperties nodeProperties = new ScNodeProperties(nodeUniqueID, cursor.getString(0), cursor.getString(1), noSearch[0], noSearch[1]);
-        cursor.close();
+        ScNodeProperties nodeProperties;
+        try (Cursor cursor = sqlite.query("node", new String[]{"name", "syntax", "level"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null)) {
+            cursor.moveToFirst();
+            byte[] noSearch = convertLevelToNoSearch(cursor.getInt(2));
+            nodeProperties = new ScNodeProperties(nodeUniqueID, cursor.getString(0), cursor.getString(1), noSearch[0], noSearch[1], getSharedNodesGroup(nodeUniqueID));
+        }
         return nodeProperties;
     }
 
@@ -1071,8 +1090,30 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     }
 
     @Override
+    public String getSharedNodesGroup(String nodeUniqueID) {
+        List<String> sharedNodesGroup;
+        String masterNodeUniqueID = getMasterNodeUniqueId(nodeUniqueID);
+        if (masterNodeUniqueID != null) {
+            sharedNodesGroup = getSharedNodesIds(masterNodeUniqueID);
+            sharedNodesGroup.add(masterNodeUniqueID);
+        } else {
+            sharedNodesGroup = getSharedNodesIds(nodeUniqueID);
+            sharedNodesGroup.add(nodeUniqueID);
+        }
+        if (sharedNodesGroup.size() > 1 ) {
+            return sharedNodesGroup.stream()
+                    .mapToLong(Long::parseLong)
+                    .sorted()
+                    .mapToObj(Long::toString)
+                    .collect(Collectors.joining(", "));
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public List<String> getSharedNodesIds(String nodeUniqueID) {
-        try (Cursor cursor = sqlite.query("children", new String[]{"node_id"}, "master_id = ?", new String[]{nodeUniqueID}, null, null, "node_id ASC", null)) {
+        try (Cursor cursor = sqlite.query("children", new String[]{"node_id"}, "master_id = ?", new String[]{nodeUniqueID}, null, null, null, null)) {
             List<String> sharedNodes = new ArrayList<>(cursor.getCount());
             while (cursor.moveToNext()) {
                 sharedNodes.add(cursor.getString(0));

@@ -284,6 +284,15 @@ public abstract class DatabaseReader {
     }
 
     /**
+     * Returns string with all the node ID's that belonging to the node's shared group. Node have to
+     * have atleast one shared node or have a master node for shared groupt to exist. If shared node
+     * group does not exist returns null.
+     * @param nodeUniqueID unique ID of the node to get shared group for
+     * @return shared groud as a string with all the IDs seperated by comma or null
+     */
+    public abstract String getSharedNodesGroup(String nodeUniqueID);
+
+    /**
      * Collects uniqueIds of the master node's shared nodes
      * @param nodeUniqueID uniqueId of the master node
      * @return ordered list of uniqueIds

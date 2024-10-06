@@ -877,7 +877,7 @@ public class XMLReader extends DatabaseReader {
         String progLang = properties.getNamedItem("prog_lang").getNodeValue();
         byte noSearchMe = Byte.parseByte(properties.getNamedItem("nosearch_me").getNodeValue());
         byte noSearchCh = Byte.parseByte(properties.getNamedItem("nosearch_ch").getNodeValue());
-        return new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
+        return new ScNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh, getSharedNodesGroup(nodeUniqueID));
     }
 
     @Override
@@ -914,6 +914,29 @@ public class XMLReader extends DatabaseReader {
     }
 
     @Override
+    public String getSharedNodesGroup(String nodeUniqueID) {
+        Node node = findNode(nodeUniqueID);
+        String masterId = node.getAttributes().getNamedItem("master_id").getNodeValue();
+        List<String> sharedNodesGroup;
+        if (masterId != null && !"0".equals(masterId)) {
+            sharedNodesGroup = getSharedNodesIds(masterId);
+            sharedNodesGroup.add(masterId);
+        } else {
+            sharedNodesGroup = getSharedNodesIds(nodeUniqueID);
+            sharedNodesGroup.add(nodeUniqueID);
+        }
+        if (sharedNodesGroup.size() > 1 ) {
+            return sharedNodesGroup.stream()
+                    .mapToLong(Long::parseLong)
+                    .sorted()
+                    .mapToObj(Long::toString)
+                    .collect(Collectors.joining(", "));
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public List<String> getSharedNodesIds(String nodeUniqueID) {
         List<String> sharedNodes = new ArrayList<>();
         NodeList nodeList = this.doc.getElementsByTagName("node");
@@ -924,17 +947,6 @@ public class XMLReader extends DatabaseReader {
                 sharedNodes.add(nodeAttributes.getNamedItem("unique_id").getNodeValue());
             }
         }
-        if (sharedNodes.size() < 2) {
-            return sharedNodes;
-        }
-        Collections.sort(sharedNodes, new Comparator<String>() {
-            @Override
-            public int compare(String s, String t1) {
-                Integer num1 = Integer.parseInt(s);
-                Integer num2 = Integer.parseInt(t1);
-                return num1.compareTo(num2);
-            }
-        });
         return sharedNodes;
     }
 

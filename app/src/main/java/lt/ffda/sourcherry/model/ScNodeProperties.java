@@ -16,6 +16,7 @@ public class ScNodeProperties {
     private String progLang;
     private byte noSearchMe;
     private byte noSearchCh;
+    private String sharedNodeGroup;
 
     /**
      * Constructor for SourCherry node object with properties. Changes the previous method of transferring node properties data in String[]{name, prog_lang, nosearch_me, nosearch_ch} that is used to create / update node
@@ -25,12 +26,13 @@ public class ScNodeProperties {
      * @param noSearchMe to exclude node from searches, 0 - keep node searches
      * @param noSearchCh to exclude subnodes of the node from searches, 0 - keep subnodes of the node in searches
      */
-    public ScNodeProperties(String uniqueId, String name, String progLang, byte noSearchMe, byte noSearchCh) {
+    public ScNodeProperties(String uniqueId, String name, String progLang, byte noSearchMe, byte noSearchCh, String sharedNodeGroup) {
         this.uniqueId = uniqueId;
         this.name = name;
         this.progLang = progLang;
         this.noSearchMe = noSearchMe;
         this.noSearchCh = noSearchCh;
+        this.sharedNodeGroup = sharedNodeGroup;
     }
 
     /**
@@ -95,6 +97,22 @@ public class ScNodeProperties {
      */
     public void setProgLang(String progLang) {
         this.progLang = progLang;
+    }
+
+    /**
+     * Get node's shared nodes group that is being displayed in node properties
+     * @return shared nodes group
+     */
+    public String getShareNodeGroup() {
+        return sharedNodeGroup;
+    }
+
+    /**
+     * Set node's shared node group that will be displayed in node properties
+     * @param shareNodeGroup shared nodes group
+     */
+    public void setShareNodeGroup(String shareNodeGroup) {
+        this.sharedNodeGroup = shareNodeGroup;
     }
 
     /**
