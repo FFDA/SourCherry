@@ -970,6 +970,24 @@ public class MultiReader extends DatabaseReader {
         return node;
     }
 
+    /**
+     * Fixes saf_id attributes of moved nodes and it's subnodes
+     * @param targetNode node that was moved
+     * @param parentSafId parent node's saf_id attribute
+     */
+    private void fixSafAfterMove(Node targetNode, String parentSafId) {
+        StringBuilder safIdBuilder = new StringBuilder(parentSafId).append('/');
+        NodeList childNodes = targetNode.getChildNodes();
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node childNode = childNodes.item(i);
+            if (childNode.getNodeName().equals("node")) {
+                safIdBuilder.append(childNode.getAttributes().getNamedItem("unique_id").getNodeValue());
+                ((Element) childNode).setAttribute("saf_id", safIdBuilder.toString());
+                fixSafAfterMove(childNode, safIdBuilder.toString());
+            }
+        }
+    }
+
     @Override
     public ArrayList<ScNode> getAllNodes(boolean noSearch) {
         if (noSearch) {
@@ -1950,7 +1968,10 @@ public class MultiReader extends DatabaseReader {
         // Adding unique node ID to subnodes.lst in destination folder
         addNodeToLst(DocumentsContract.getDocumentId(targetPerentDocumentUri), targetNodeUniqueID);
         // Updating drawer_menu cache
-        ((Element) targetNode).setAttribute("saf_id", DocumentsContract.getTreeDocumentId(result));
+        StringBuilder safIdBuilder = new StringBuilder(destinationNode.getAttributes().getNamedItem("saf_id").getNodeValue())
+                .append("/").append(targetNodeUniqueID);
+        ((Element) targetNode).setAttribute("saf_id", safIdBuilder.toString());
+        fixSafAfterMove(targetNode, safIdBuilder.toString());
         destinationNode.appendChild(targetNode);
         saveDrawerMenuToStorage();
         return true;
