@@ -498,7 +498,7 @@ public abstract class DatabaseReader {
                     } else if (attributeValue[0].equals("file") || attributeValue[0].equals("fold")) {
                         // Making links to the file or folder
                         // It will not try to open the file, but just mark it, and display path to it on original system
-                        formattedNodeText.setSpan(this.makeFileFolderLinkSpan(attributeValue[0], attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        formattedNodeText.setSpan(makeFileFolderLinkSpan(attributeValue[0], attributeValue[1]), 0, formattedNodeText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                     break;
                 case "justification":
