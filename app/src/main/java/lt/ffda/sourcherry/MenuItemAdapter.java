@@ -38,6 +38,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     private OnLongClickListener longClickListener;
     private OnActionIconClickListener onActionIconClickListener;
     private int selectedPos = RecyclerView.NO_POSITION;
+
     public MenuItemAdapter(ArrayList<ScNode> nodeList, Context context) {
         this.nodeList = nodeList;
         this.context = context;
@@ -80,7 +81,6 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         // Adding arrow that make menu item took differently to indicate that this node is a parent (top) node
         if (nodeIsParent) {
             menuItemArrow.setVisibility(View.VISIBLE);
-//            menuItemArrow.setImageDrawable((ContextCompat.getDrawable(holder.itemView.getContext(), R.drawable.ic_baseline_arrow_is_parent_24))); // Leaving this as a reminder
             menuItemArrow.setImageResource(R.drawable.ic_baseline_arrow_is_parent_24);
         }
 
