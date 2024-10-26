@@ -36,8 +36,8 @@ public class NodeContentEditorMenuMainFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-        this.color = this.sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        color = sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
         return inflater.inflate(R.layout.edit_node_fragment_button_row_main_fragment, container, false);
     }
 
@@ -54,7 +54,7 @@ public class NodeContentEditorMenuMainFragment extends Fragment {
             }
         });
         ImageButton colorPicker = view.findViewById(R.id.edit_node_fragment_button_row_color_picker);
-        colorPicker.setColorFilter(this.color);
+        colorPicker.setColorFilter(color);
         colorPicker.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
