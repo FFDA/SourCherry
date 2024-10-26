@@ -48,24 +48,7 @@ public class SaveOpenDialogFragment extends DialogFragment {
     private String offset;
     private CheckBox rememberChoice;
     private String time;
-    ActivityResultLauncher<Intent> saveFile = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-        // Saves attached file to the user selected file
-        if (result.getResultCode() == Activity.RESULT_OK) {
-            try (
-                    InputStream inputStream = DatabaseReaderFactory.getReader().getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
-                    OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w");
-                    ) {
-                byte[] buf = new byte[4 * 1024];
-                int length;
-                while ((length = inputStream.read(buf)) != -1) {
-                    outputStream.write(buf, 0, length);
-                }
-            } catch (Exception e) {
-                Toast.makeText(getContext(), R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
-            }
-        }
-        this.dismiss(); // Closes dialog fragment after writing to file (hopefully)
-    });
+    ActivityResultLauncher<Intent> saveFile = registerSaveFile();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -180,6 +163,32 @@ public class SaveOpenDialogFragment extends DialogFragment {
         } catch (Exception e) {
             Toast.makeText(getContext(), R.string.toast_error_failed_to_open_file, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /**
+     * Registered ActivityResultLauncher launches a file chooser that allows user to select where
+     * to save node's attached file
+     * @return ActivityResultLauncher to select a file's location
+     */
+    private ActivityResultLauncher<Intent> registerSaveFile() {
+        return registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            // Saves attached file to the user selected file
+            if (result.getResultCode() == Activity.RESULT_OK) {
+                try (
+                        InputStream inputStream = DatabaseReaderFactory.getReader().getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
+                        OutputStream outputStream = getContext().getContentResolver().openOutputStream(result.getData().getData(), "w");
+                ) {
+                    byte[] buf = new byte[4 * 1024];
+                    int length;
+                    while ((length = inputStream.read(buf)) != -1) {
+                        outputStream.write(buf, 0, length);
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(getContext(), R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
+                }
+            }
+            this.dismiss(); // Closes dialog fragment after writing to file (hopefully)
+        });
     }
 }
 
