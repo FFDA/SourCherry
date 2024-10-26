@@ -27,6 +27,6 @@ public enum ColorPickerPresets {
     }
 
     public int getColor() {
-        return this.color;
+        return color;
     }
 }
