@@ -114,7 +114,7 @@ public class CollectNodesBackgroundRunnable extends CollectNodesAbstractRunnable
      */
     private List<String> getSubnodesList(Uri uri) throws IOException {
         List<String> subnodes = null;
-        try (InputStream is = this.context.getContentResolver().openInputStream(uri)) {
+        try (InputStream is = context.getContentResolver().openInputStream(uri)) {
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
             String line = br.readLine();
             if (line != null) {
