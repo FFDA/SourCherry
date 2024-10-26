@@ -61,57 +61,11 @@ import lt.ffda.sourcherry.dialogs.OpenDatabaseProgressDialogFragment;
 import lt.ffda.sourcherry.utils.Filenames;
 
 public class MainActivity extends AppCompatActivity {
-    /**
-     * Launches file chooser to select location
-     * where to export database. If user chooses a file - launches a
-     * export dialog fragment
-     */
-    ActivityResultLauncher<String> exportDatabaseToFile = registerForActivityResult(new ActivityResultContracts.CreateDocument("*/*"), result -> {
-        if (result != null) {
-            Bundle bundle = new Bundle();
-            bundle.putString("exportFileUri", result.toString());
-            ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
-            exportDatabaseDialogFragment.setArguments(bundle);
-            exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
-        }
-    });
-    private SharedPreferences sharedPreferences;
-    /**
-     * Register activity for user to select a multi-file database folder
-     * Gets permanent read and write permissions for selected folder
-     * Saves necessary data in the preferences displays name of the folder to user
-     */
-    ActivityResultLauncher<Uri> getDatabaseMulti = registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), result -> {
-        if (result != null) {
-            getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            DocumentFile databaseFolder = DocumentFile.fromTreeUri(this, result);
-            this.saveDatabaseToPrefs("shared", databaseFolder.getName(), "multi", result.toString());
-            this.resetMirrorDatabasePreferences();
-            this.setMessageWithDatabaseName();
-        }
-    });
 
-    /**
-     * Registers activity for user to select a document
-     * Gets permanent read and write permissions for selected document
-     * Saves necessary data in the preferences
-     */
-    ActivityResultLauncher<String[]> getDatabaseSingle = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
-        if (result != null) {
-            DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
-            String databaseFileExtension = Filenames.getFileExtension(databaseDocumentFile.getName());
-            // Saving filename and path to the file in the preferences
-            this.saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, result.toString());
-            //
-            if (Filenames.getFileExtension(databaseDocumentFile.getName()).equals("ctd")) {
-                // Only if user selects ctd (not protected xml database) permanent permission should be requested
-                // When uri is received from intent-filter app will crash
-                getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            }
-            this.resetMirrorDatabasePreferences();
-            this.setMessageWithDatabaseName();
-        }
-    });
+    ActivityResultLauncher<String> exportDatabaseToFile = registerExportDatabaseToFile();
+    private SharedPreferences sharedPreferences;
+    ActivityResultLauncher<Uri> getDatabaseMulti = registerGetDatabaseMulti();
+    ActivityResultLauncher<String[]> getDatabaseSingle = registerGetDatabaseSingle();
 
     /**
      * Checks if user deletes the database that is set to be opened when user presses on Open button
@@ -119,8 +73,8 @@ public class MainActivity extends AppCompatActivity {
      * @param databaseFilename database filename that user wants to delete
      */
     private void checkIfDeleteDatabaseIsBeingUsed(String databaseFilename) {
-        String databaseStorageType = this.sharedPreferences.getString("databaseStorageType", null);
-        String databaseFilenameFromPreference = this.sharedPreferences.getString("databaseFilename", null);
+        String databaseStorageType = sharedPreferences.getString("databaseStorageType", null);
+        String databaseFilenameFromPreference = sharedPreferences.getString("databaseFilename", null);
         if (databaseStorageType != null && databaseFilenameFromPreference != null && databaseStorageType.equals("internal") && databaseFilenameFromPreference.equals(databaseFilename)) {
             saveDatabaseToPrefs(null, null, null, null); // Setting database info as null that correct message for user will be displayed
             resetMirrorDatabasePreferences();
@@ -148,9 +102,9 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
                 // Saves selected database's information to the settings
-                MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, Filenames.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
-                MainActivity.this.resetMirrorDatabasePreferences();
-                MainActivity.this.setMessageWithDatabaseName();
+                saveDatabaseToPrefs("internal", databaseFilename, Filenames.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
+                resetMirrorDatabasePreferences();
+                setMessageWithDatabaseName();
             }
         });
         // If user long presses database filename
@@ -159,11 +113,11 @@ public class MainActivity extends AppCompatActivity {
             public boolean onLongClick(View v) {
                 File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
                 // Saves selected database's information to the settings
-                MainActivity.this.saveDatabaseToPrefs("internal", databaseFilename, Filenames.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
-                MainActivity.this.resetMirrorDatabasePreferences();
-                MainActivity.this.setMessageWithDatabaseName();
+                saveDatabaseToPrefs("internal", databaseFilename, Filenames.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
+                resetMirrorDatabasePreferences();
+                setMessageWithDatabaseName();
                 // Opens database
-                MainActivity.this.openDatabase();
+                openDatabase();
                 return true;
             }
         });
@@ -172,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
         exportDatabaseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MainActivity.this.exportDatabaseToFile.launch(databaseFilename);
+                exportDatabaseToFile.launch(databaseFilename);
             }
         });
 
@@ -241,10 +195,10 @@ public class MainActivity extends AppCompatActivity {
 
         // If there are any databases in app-specific storage
         if (databaseDir.list().length > 0) {
-            layoutInflater = this.getLayoutInflater();
+            layoutInflater = getLayoutInflater();
             for (String databaseFilename: databaseDir.list()) {
                 if (!databaseFilename.endsWith("-journal")) {
-                    importedDatabases.addView(this.createImportedDatabaseListItem(layoutInflater, databaseDir, databaseFilename));
+                    importedDatabases.addView(createImportedDatabaseListItem(layoutInflater, databaseDir, databaseFilename));
                 }
             }
         }
@@ -253,11 +207,11 @@ public class MainActivity extends AppCompatActivity {
         databaseDir = new File(getExternalFilesDir(null), "databases");
         if (databaseDir.list() != null && databaseDir.list().length > 0) {
             if (layoutInflater == null) {
-                layoutInflater = this.getLayoutInflater();
+                layoutInflater = getLayoutInflater();
             }
             for (String databaseFilename: databaseDir.list()) {
                 if (!databaseFilename.endsWith("-journal")) {
-                    importedDatabases.addView(this.createImportedDatabaseListItem(layoutInflater, databaseDir, databaseFilename));
+                    importedDatabases.addView(createImportedDatabaseListItem(layoutInflater, databaseDir, databaseFilename));
                 }
             }
         }
@@ -279,14 +233,14 @@ public class MainActivity extends AppCompatActivity {
         Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
         long mirrorDatabaseDocumentFileLastModified = 0;
         String mirrorDatabaseFileExtension = null;
-        String mirrorDatabaseFolderUriString = this.sharedPreferences.getString("mirrorDatabaseFolderUri", null);
+        String mirrorDatabaseFolderUriString = sharedPreferences.getString("mirrorDatabaseFolderUri", null);
         if (mirrorDatabaseFolderUriString != null) {
             // Reading through files inside Mirror Database Folder
             Uri mirrorDatabaseFolderUri = Uri.parse(mirrorDatabaseFolderUriString);
             Uri mirrorDatabaseFolderChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mirrorDatabaseFolderUri, DocumentsContract.getTreeDocumentId(mirrorDatabaseFolderUri));
-            Cursor cursor = this.getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
+            Cursor cursor = getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
             while (cursor != null && cursor.moveToNext()) {
-                if (cursor.getString(1).equals(this.sharedPreferences.getString("mirrorDatabaseFilename", null))) {
+                if (cursor.getString(1).equals(sharedPreferences.getString("mirrorDatabaseFilename", null))) {
                     // if file with the Mirror Database File filename was wound inside Mirror Database Folder
                     mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
                     mirrorDatabaseFileExtension = Filenames.getFileExtension(cursor.getString(1));
@@ -297,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
             cursor.close();
 
             // If found Mirror Database File's last modified time is bigger than saved from previous database update
-            if (mirrorDatabaseDocumentFileLastModified > this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
+            if (mirrorDatabaseDocumentFileLastModified > sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
                 if (mirrorDatabaseFileExtension.equals("ctz") || mirrorDatabaseFileExtension.equals("ctx") || mirrorDatabaseFileExtension.equals("ctb")) {
                     Bundle bundle = new Bundle();
                     bundle.putLong("mirrorDatabaseLastModified", mirrorDatabaseDocumentFileLastModified);
@@ -308,14 +262,14 @@ public class MainActivity extends AppCompatActivity {
                     mirrorDatabaseProgressDialogFragment.show(getSupportFragmentManager(), "mirrorDatabaseProgressDialog");
                 }
             } else {
-                if (this.sharedPreferences.getBoolean("checkboxAutoOpen", false)) {
-                    this.openDatabase();
+                if (sharedPreferences.getBoolean("checkboxAutoOpen", false)) {
+                    openDatabase();
                 }
             }
         } else {
             // If mirror database folder URI isn't saved in the preferences for some reason
             // Turning off MirrorDatabase preferences without trying to copy the database file
-            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
             sharedPreferencesEditor.putBoolean("mirror_database_switch", false);
             sharedPreferencesEditor.remove("mirrorDatabaseFilename");
             sharedPreferencesEditor.remove("mirrorDatabaseLastModified");
@@ -327,12 +281,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            this.setNightMode();
+            setNightMode();
         }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
         setMessageWithDatabaseName();
 
@@ -343,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
         buttonOpen.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MainActivity.this.openDatabase();
+                openDatabase();
             }
         });
 
@@ -355,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
                 boolean handle = false;
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     handle = true;
-                    MainActivity.this.openDatabase();
+                    openDatabase();
                 }
                 return handle;
             }
@@ -376,11 +330,11 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
                 return;
             }
-            this.saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, intent.getData().toString());
+            saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, intent.getData().toString());
             setMessageWithDatabaseName();
             if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {
                 // If database is not protected it can be opened without any user interaction
-                this.openDatabase();
+                openDatabase();
             }
         } else {
             // If app weren't launched by selecting a database file from external app
@@ -390,17 +344,17 @@ public class MainActivity extends AppCompatActivity {
                     // All these ifs are needed
                     // startMainViewActivity() has to be launched from FragmentDialog
                     // Otherwise it will be interrupted and database won't be copied
-                    if (this.sharedPreferences.getString("databaseUri", null) != null) {
-                        if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
-                            this.mirrorDatabase();
+                    if (sharedPreferences.getString("databaseUri", null) != null) {
+                        if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
+                            mirrorDatabase();
                         } else {
-                            this.openDatabase();
+                            openDatabase();
                         }
                     }
                 } else {
                     // If “Open this database on startup” isn't checked but "Mirror Database" might still be
-                    if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
-                        this.mirrorDatabase();
+                    if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
+                        mirrorDatabase();
                     }
                 }
             }
@@ -434,14 +388,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        this.deleteTempFiles();
+        deleteTempFiles();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        this.setMessageWithDatabaseName();
-        this.listImportedDatabases(); // Displaying databases on this step because this is the step that app returns to from other Activity
+        setMessageWithDatabaseName();
+        listImportedDatabases(); // Displaying databases on this step because this is the step that app returns to from other Activity
     }
 
     /**
@@ -452,20 +406,20 @@ public class MainActivity extends AppCompatActivity {
      * launches MainView with database that is saved in settings
      */
     private void openDatabase() {
-        String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
-        if (this.sharedPreferences.getString("databaseStorageType", null).equals("internal")) {
+        String databaseFileExtension = sharedPreferences.getString("databaseFileExtension", null);
+        if (sharedPreferences.getString("databaseStorageType", null).equals("internal")) {
             // If database is in app-specific storage there is no need for any processing
-            this.startMainViewActivity();
+            startMainViewActivity();
         } else if (databaseFileExtension.equals("multi")) {
             // If it's MultiFile database
             File drawerMenuFile = new File(getFilesDir(), "drawer_menu.xml");
             if (drawerMenuFile.exists()) {
-                this.startMainViewActivity();
+                startMainViewActivity();
             } else {
                 try {
                     if (drawerMenuFile.createNewFile()) {
                         Bundle bundle = new Bundle();
-                        bundle.putString("uri", this.sharedPreferences.getString("databaseUri", null));
+                        bundle.putString("uri", sharedPreferences.getString("databaseUri", null));
                         CollectNodesDialogFragment collectNodesDialogFragment = new CollectNodesDialogFragment();
                         collectNodesDialogFragment.setArguments(bundle);
                         collectNodesDialogFragment.show(getSupportFragmentManager(), "collectNodesDialog");
@@ -477,7 +431,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // A check for external databases that they still exists
             // If the check fails message for user is displayed and MainView activity will not open
-            Uri databaseUri = Uri.parse(this.sharedPreferences.getString("databaseUri", null));
+            Uri databaseUri = Uri.parse(sharedPreferences.getString("databaseUri", null));
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, databaseUri);
             if (!databaseDocumentFile.exists()) {
                 Toast.makeText(this, R.string.toast_error_database_does_not_exists, Toast.LENGTH_SHORT).show();
@@ -499,7 +453,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (databaseFileExtension.equals("ctd")) {
                 // XML database file
                 try {
-                    this.startMainViewActivity();
+                    startMainViewActivity();
                 } catch (Exception e) {
                     Toast.makeText(this, R.string.toast_error_failed_to_open_database, Toast.LENGTH_SHORT).show();
                 }
@@ -519,7 +473,7 @@ public class MainActivity extends AppCompatActivity {
      * @param view button that was clicked
      */
     public void openGetMultiFileDatabase(View view) {
-        this.getDatabaseMulti.launch(null);
+        getDatabaseMulti.launch(null);
     }
 
     /**
@@ -527,7 +481,64 @@ public class MainActivity extends AppCompatActivity {
      * @param view button that was clicked
      */
     public void openGetSingleFileDatabase(View view) {
-        this.getDatabaseSingle.launch(new String[]{"*/*",});
+        getDatabaseSingle.launch(new String[]{"*/*",});
+    }
+
+    /**
+     * Registered ActivityResultLauncher launches a file choose to select location where to export
+     * database. If user chooses a file - launches a export dialog fragment
+     * @return ActivityResultLauncher to select the location for database export
+     */
+    private ActivityResultLauncher<String> registerExportDatabaseToFile() {
+        return registerForActivityResult(new ActivityResultContracts.CreateDocument("*/*"), result -> {
+            if (result != null) {
+                Bundle bundle = new Bundle();
+                bundle.putString("exportFileUri", result.toString());
+                ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+                exportDatabaseDialogFragment.setArguments(bundle);
+                exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+            }
+        });
+    }
+
+    /**
+     * Registered ActivityResultLauncher launches a file choose to select a folder where
+     * MultiFile database is located
+     * @return ActivityResultLauncher to select location of MultiFile database
+     */
+    private ActivityResultLauncher<Uri> registerGetDatabaseMulti() {
+        return registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), result -> {
+            if (result != null) {
+                getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                DocumentFile databaseFolder = DocumentFile.fromTreeUri(this, result);
+                saveDatabaseToPrefs("shared", databaseFolder.getName(), "multi", result.toString());
+                resetMirrorDatabasePreferences();
+                setMessageWithDatabaseName();
+            }
+        });
+    }
+
+    /**
+     * Registered ActivityResultLauncher launches a file choose to select a single file database
+     * @return ActivityResultLauncher to select location of sibngle file database
+     */
+    private ActivityResultLauncher<String[]> registerGetDatabaseSingle() {
+        return registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
+            if (result != null) {
+                DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
+                String databaseFileExtension = Filenames.getFileExtension(databaseDocumentFile.getName());
+                // Saving filename and path to the file in the preferences
+                saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, result.toString());
+                //
+                if (Filenames.getFileExtension(databaseDocumentFile.getName()).equals("ctd")) {
+                    // Only if user selects ctd (not protected xml database) permanent permission should be requested
+                    // When uri is received from intent-filter app will crash
+                    getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                }
+                resetMirrorDatabasePreferences();
+                setMessageWithDatabaseName();
+            }
+        });
     }
 
     /**
@@ -536,8 +547,8 @@ public class MainActivity extends AppCompatActivity {
      * if this function is turned on
      */
     private void resetMirrorDatabasePreferences() {
-        if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
-            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
+            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
 //        sharedPreferencesEditor.remove("mirrorDatabaseFolderUri"); // Not necessary to delete, user most likely will use the same folder in the future
             sharedPreferencesEditor.remove("mirrorDatabaseLastModified");
             sharedPreferencesEditor.remove("mirrorDatabaseFilename");
@@ -553,7 +564,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public void saveAutoOpenCheckboxStatus(View view) {
         CheckBox checkBoxAutoOpen = findViewById(R.id.checkBox_auto_open);
-        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
         sharedPreferencesEditor.putBoolean("checkboxAutoOpen", checkBoxAutoOpen.isChecked());
         sharedPreferencesEditor.apply();
     }
@@ -566,13 +577,13 @@ public class MainActivity extends AppCompatActivity {
      * @param databaseUri uri for shared databases and path for internal databases
      */
     private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
-        this.deleteDrawerMenuCache();
-        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        deleteDrawerMenuCache();
+        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
         sharedPreferencesEditor.putString("databaseStorageType", databaseStorageType);
         sharedPreferencesEditor.putString("databaseFilename", databaseFilename);
         sharedPreferencesEditor.putString("databaseFileExtension", databaseFileExtension);
         sharedPreferencesEditor.putString("databaseUri", databaseUri);
-        if (this.sharedPreferences.getBoolean("restore_last_node", true) && this.sharedPreferences.getString("last_node_name", null) != null) {
+        if (sharedPreferences.getBoolean("restore_last_node", true) && sharedPreferences.getString("last_node_name", null) != null) {
             // If last node from previous database was saved - resets values
             sharedPreferencesEditor.putString("last_node_name", null);
             sharedPreferencesEditor.putString("last_node_unique_id", null);
@@ -596,11 +607,11 @@ public class MainActivity extends AppCompatActivity {
         Button buttonOpen = findViewById(R.id.button_open);
         CheckBox checkboxAutoOpen = findViewById(R.id.checkBox_auto_open);
 
-        checkboxAutoOpen.setChecked(this.sharedPreferences.getBoolean("checkboxAutoOpen", false));
+        checkboxAutoOpen.setChecked(sharedPreferences.getBoolean("checkboxAutoOpen", false));
 
         // Settings message for the user if there isn't a database selected to open
         // Otherwise displaying the name of the file
-        String databaseFilename = this.sharedPreferences.getString("databaseFilename", null);
+        String databaseFilename = sharedPreferences.getString("databaseFilename", null);
 
         if (databaseFilename == null) {
             // No file is selected
@@ -616,7 +627,7 @@ public class MainActivity extends AppCompatActivity {
             // Enabled Open button
             textViewMessage.setText(databaseFilename);
             buttonOpen.setEnabled(true);
-            String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
+            String databaseFileExtension = sharedPreferences.getString("databaseFileExtension", null);
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
                 // Password protected databases
