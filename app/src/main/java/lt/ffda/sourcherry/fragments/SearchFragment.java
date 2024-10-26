@@ -47,18 +47,26 @@ import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScSearchNode;
 
 public class SearchFragment extends Fragment {
-    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
-        @Override
-        public void handleOnBackPressed() {
-            remove(); // Otherwise there will be onBackPressed infinite loop
-            ((MainView) getActivity()).returnFromFragmentWithHomeButtonAndRestoreTitle();
-        }
-    };
+    private final OnBackPressedCallback onBackPressedCallback = createOnBackPressedCallback();
     private ScheduledThreadPoolExecutor executor;
     private Handler handler;
     private TextView resultCount;
     private ProgressBar searchProgressBar;
     private LinearLayout searchResultLinearLayout;
+
+    /**
+     * Creates OnBackPressedCallback used in this fragment.
+     * @return OnBackPressedCallback for the fragment
+     */
+    private OnBackPressedCallback createOnBackPressedCallback() {
+        return new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                remove(); // Otherwise there will be onBackPressed infinite loop
+                ((MainView) getActivity()).returnFromFragmentWithHomeButtonAndRestoreTitle();
+            }
+        };
+    }
 
     /**
      * Changes background of the parts of the string
