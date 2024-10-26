@@ -32,8 +32,8 @@ public class PreferencesActivity extends AppCompatActivity implements
      * @param title title of the activity
      */
     public void changeTitle(String title) {
-        if (this.toolbar != null) {
-            this.toolbar.setTitle(title);
+        if (toolbar != null) {
+            toolbar.setTitle(title);
         }
     }
 
@@ -44,14 +44,14 @@ public class PreferencesActivity extends AppCompatActivity implements
         // Displays toolbar
         Toolbar imageViewActivityToolbar = findViewById(R.id.preferences_activity_toolbar);
         setSupportActionBar(imageViewActivityToolbar);
-        this.toolbar = getSupportActionBar();
+        toolbar = getSupportActionBar();
         toolbar.setDisplayHomeAsUpEnabled(true); // Enables home (arrow back button)
         if (savedInstanceState == null) {
             getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.preferences_activity_view, new PreferencesFragment())
                     .commit();
-            this.changeTitle(getString(R.string.options_menu_item_settings));
+            changeTitle(getString(R.string.options_menu_item_settings));
         }
     }
 
@@ -61,7 +61,7 @@ public class PreferencesActivity extends AppCompatActivity implements
         int id = item.getItemId();
         if (id == android.R.id.home) {
             if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
-                this.finish();
+                finish();
             }
         }
         return super.onOptionsItemSelected(item);
@@ -87,6 +87,6 @@ public class PreferencesActivity extends AppCompatActivity implements
     @Override
     public void onResume() {
         super.onResume();
-        this.changeTitle(getString(R.string.options_menu_item_settings));
+        changeTitle(getString(R.string.options_menu_item_settings));
     }
 }
