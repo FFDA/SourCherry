@@ -157,7 +157,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         ArrayList<String> heredity = new ArrayList<>();
         heredity.add(destinationNodeUniqueID);
         while (true) {
-            Cursor cursor = this.sqlite.query("children", new String[]{"father_id"}, "node_id = ?", new String[]{destinationNodeUniqueID}, null, null, null, null);
+            Cursor cursor = sqlite.query("children", new String[]{"father_id"}, "node_id = ?", new String[]{destinationNodeUniqueID}, null, null, null, null);
             if (cursor.moveToFirst()) {
                 destinationNodeUniqueID = cursor.getString(0);
                 heredity.add(destinationNodeUniqueID);
@@ -331,41 +331,41 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         StringBuilder nodeContent = new StringBuilder();
         int totalCharOffset = 0;
         // Getting text data of the node
-        NodeList nodeList =  this.getDocumentFromString(txt).getElementsByTagName("node").item(0).getChildNodes();
+        NodeList nodeList =  getDocumentFromString(txt).getElementsByTagName("node").item(0).getChildNodes();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             nodeContent.append(node.getTextContent());
         }
         // Getting offset data for all images (latex, images, files), tables and codeboxes
         // Adding 7 - for codebox, 8 - for table and 9 for image as a second column
-        Cursor codeboxTableImageCursor = this.sqlite.rawQuery(new String("SELECT offset, 7 FROM codebox WHERE node_id=? UNION SELECT offset, 8 FROM grid WHERE node_id=? UNION SELECT offset, 9 FROM image WHERE node_id=? ORDER BY offset ASC"), new String[]{nodeUniqueID, nodeUniqueID, nodeUniqueID});
+        Cursor codeboxTableImageCursor = sqlite.rawQuery(new String("SELECT offset, 7 FROM codebox WHERE node_id=? UNION SELECT offset, 8 FROM grid WHERE node_id=? UNION SELECT offset, 9 FROM image WHERE node_id=? ORDER BY offset ASC"), new String[]{nodeUniqueID, nodeUniqueID, nodeUniqueID});
         while (codeboxTableImageCursor.moveToNext()) {
             if (codeboxTableImageCursor.getInt(1) == 7) {
-                Cursor cursorCodeboxes = this.sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
+                Cursor cursorCodeboxes = sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
                 while (cursorCodeboxes.moveToNext()) {
                     int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
-                    StringBuilder codeboxContent = this.convertCodeboxToPlainText(cursorCodeboxes.getString(0));
+                    StringBuilder codeboxContent = convertCodeboxToPlainText(cursorCodeboxes.getString(0));
                     nodeContent.insert(charOffset, codeboxContent);
                     totalCharOffset += codeboxContent.length() - 1;
                 }
                 cursorCodeboxes.close();
             }
             if (codeboxTableImageCursor.getInt(1) == 8) {
-                Cursor cursorTables = this.sqlite.query("grid", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
+                Cursor cursorTables = sqlite.query("grid", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
                 while (cursorTables.moveToNext()) {
                     int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
-                    StringBuilder tableContent = this.convertTableContentToPlainText(cursorTables.getString(0));
+                    StringBuilder tableContent = convertTableContentToPlainText(cursorTables.getString(0));
                     nodeContent.insert(charOffset, tableContent);
                     totalCharOffset += tableContent.length() - 1;
                 }
                 cursorTables.close();
             }
             if (codeboxTableImageCursor.getInt(1) == 9) {
-                Cursor cursorImages = this.sqlite.query("image", new String[]{"anchor", "png", "filename"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
+                Cursor cursorImages = sqlite.query("image", new String[]{"anchor", "png", "filename"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
                 while (cursorImages.moveToNext()) {
                     if (cursorImages.getString(2).equals("__ct_special.tex")) {
                         int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
-                        StringBuilder imageContent = this.convertLatexToPlainText(new String(cursorImages.getBlob(1)));
+                        StringBuilder imageContent = convertLatexToPlainText(new String(cursorImages.getBlob(1)));
                         nodeContent.insert(charOffset, imageContent);
                         totalCharOffset += imageContent.length() - 1;
                     } else {
@@ -390,7 +390,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      */
     private StringBuilder convertTableContentToPlainText(String table) {
         StringBuilder tableContent = new StringBuilder();
-        NodeList nodeList = this.getDocumentFromString(table).getElementsByTagName("table").item(0).getChildNodes();
+        NodeList nodeList = getDocumentFromString(table).getElementsByTagName("table").item(0).getChildNodes();
         int tableRowCount = nodeList.getLength();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
@@ -399,9 +399,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 // When converting to string it has to be added to the beginning
                 // of the string fro the information to make sense
                 if (tableRowCount > 1) {
-                    tableContent.append(this.convertTableRowToPlainText(node));
+                    tableContent.append(convertTableRowToPlainText(node));
                 } else {
-                    tableContent.insert(0, this.convertTableRowToPlainText(node));
+                    tableContent.insert(0, convertTableRowToPlainText(node));
                 }
                 tableRowCount--;
             }
@@ -437,7 +437,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
         long createNewNodeResult = sqlite.insert("node", null, contentValues);
         if (createNewNodeResult == -1) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_create_entry_into_node_table));
+            displayToast(context.getString(R.string.toast_error_failed_to_create_entry_into_node_table));
             return null;
         }
 
@@ -447,7 +447,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         contentValues.put("node_id", newNodeUniqueID);
         contentValues.put("master_id", 0);
         if (relation == 0) {
-            int parentNodeUniqueID = this.getParentNodeUniqueIDInt(nodeUniqueID);
+            int parentNodeUniqueID = getParentNodeUniqueIDInt(nodeUniqueID);
             contentValues.put("father_id", parentNodeUniqueID);
             // Searching for position for new node in parent node children sequence
             int newNodeSequenceNumber = -1;
@@ -476,7 +476,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
         long childrenUpdateResult = sqlite.insert("children", null, contentValues);
         if (childrenUpdateResult == -1) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_create_entry_into_children_table));
+            displayToast(context.getString(R.string.toast_error_failed_to_create_entry_into_children_table));
             return null;
         }
         return new ScNode(String.valueOf(newNodeUniqueID), "0", name, false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
@@ -566,7 +566,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(SQLReader.this.context, message, Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -576,7 +576,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         if (nodeUniqueID == null) {
             return false;
         }
-        Cursor cursor = this.sqlite.rawQuery("SELECT node.name FROM node WHERE node.node_id=?", new String[]{nodeUniqueID});
+        Cursor cursor = sqlite.rawQuery("SELECT node.name FROM node WHERE node.node_id=?", new String[]{nodeUniqueID});
         if (cursor.getCount() == 1) {
             cursor.close();
             return true;
@@ -662,7 +662,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 ///
                 ////
 
-                Cursor codeboxTableImageCursor = this.sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
+                Cursor codeboxTableImageCursor = sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
 
                 while (codeboxTableImageCursor.moveToNext()) {
                     int charOffset = codeboxTableImageCursor.getInt(0);
@@ -697,7 +697,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     } else if (codeboxTableImageCursor.getInt(2) == 8) {
                         StringBuilder tableContent = new StringBuilder();
                         // table row
-                        NodeList tableRows = this.getDocumentFromString(codeboxTableImageCursor.getString(1)).getElementsByTagName("table").item(0).getChildNodes();
+                        NodeList tableRows = getDocumentFromString(codeboxTableImageCursor.getString(1)).getElementsByTagName("table").item(0).getChildNodes();
                         // Adding all rows to arraylist
                         ArrayList<String> tableRowArray = new ArrayList<>();
                         for (int row = 0; row < tableRows.getLength(); row++) {
@@ -814,21 +814,21 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * or removing it from bookmarks
      */
     private void fixBookmarkNodeSequence() {
-        this.sqlite.beginTransaction();
+        sqlite.beginTransaction();
         try {
-            Cursor cursor = this.sqlite.query("bookmark", new String[]{"node_id"}, null, null, null, null, "node_id ASC", null);
+            Cursor cursor = sqlite.query("bookmark", new String[]{"node_id"}, null, null, null, null, "node_id ASC", null);
             int counter = 1;
             ContentValues contentValues = new ContentValues();
             while (cursor.moveToNext()) {
                 contentValues.clear();
                 contentValues.put("sequence", counter);
-                this.sqlite.update("bookmark", contentValues, "node_id = ?", new String[]{cursor.getString(0)});
+                sqlite.update("bookmark", contentValues, "node_id = ?", new String[]{cursor.getString(0)});
                 counter++;
             }
             cursor.close();
-            this.sqlite.setTransactionSuccessful();
+            sqlite.setTransactionSuccessful();
         } finally {
-            this.sqlite.endTransaction();
+            sqlite.endTransaction();
         }
     }
 
@@ -908,7 +908,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         try {
             return documentBuilder.parse(new ByteArrayInputStream(nodeString.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
-            this.displayToast(context.getString(R.string.toast_error_failed_to_convert_string_to_nodelist));
+            displayToast(context.getString(R.string.toast_error_failed_to_convert_string_to_nodelist));
         }
 
         return null;
@@ -1018,7 +1018,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @return next available sequence number
      */
     private int getNewNodeSequenceNumber(String nodeUniqueID) {
-        Cursor cursor = this.sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {nodeUniqueID});
+        Cursor cursor = sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {nodeUniqueID});
         cursor.moveToFirst();
         int sequence = cursor.getInt(0);
         cursor.close();
@@ -1308,9 +1308,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                         // And placeholder image is placed
                                         SpannableStringBuilder brokenImageSpan = new SpannableStringBuilder();
                                         brokenImageSpan.append(" ");
-                                        brokenImageSpan.setSpan(this.makeBrokenImageSpan(0), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                        brokenImageSpan.setSpan(makeBrokenImageSpan(0), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, brokenImageSpan);
-                                        this.displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
+                                        displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
                                     }
                                     imageBlobCursor.close();
                                     continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
@@ -1417,7 +1417,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         ClickableSpanNode clickableSpanNode = new ClickableSpanNode() {
             @Override
             public void onClick(@NonNull View widget) {
-                ((MainView) SQLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
+                ((MainView) context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
             }
 
             @Override
@@ -1487,10 +1487,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         Drawable drawableBrokenImage;
         ImageSpan brokenImage;
         if (type == 0) {
-            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_image_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_image_48);
             brokenImage = new ImageSpanImage(drawableBrokenImage);
         } else {
-            drawableBrokenImage =  AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_latex_48);
+            drawableBrokenImage =  AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_latex_48);
             brokenImage = new ImageSpanLatex(drawableBrokenImage);
         }
         //// Inserting image
@@ -1506,7 +1506,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             @Override
             public void onClick(@NonNull View widget) {
                 // Decoding of Base64 is done here
-                ((MainView) SQLReader.this.context).fileFolderLinkFilepath(new String(Base64.decode(base64Filename, Base64.DEFAULT)));
+                ((MainView) context).fileFolderLinkFilepath(new String(Base64.decode(base64Filename, Base64.DEFAULT)));
             }
 
             @Override
@@ -1543,7 +1543,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
         // Changes background color
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(context.getColor(R.color.codebox_background));
             formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         }
 
@@ -1590,12 +1590,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             // Changes background color
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+                LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(context.getColor(R.color.codebox_background));
                 formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             }
         } else {
             formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
+            BackgroundColorSpan bcs = new BackgroundColorSpan(context.getColor(R.color.codebox_background));
             formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         if (justification.equals("right")) {
@@ -1653,9 +1653,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken image span to display in node content
-            imageSpanImage = (ImageSpanImage) this.makeBrokenImageSpan(0);
+            imageSpanImage = (ImageSpanImage) makeBrokenImageSpan(0);
             formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.displayToast(context.getString(R.string.toast_error_failed_to_load_image));
+            displayToast(context.getString(R.string.toast_error_failed_to_load_image));
         }
         //*
         if (justification.equals("right")) {
@@ -1717,16 +1717,16 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 @Override
                 public void onClick(@NonNull View widget) {
                     // Starting fragment to view enlarged zoomable image
-                    ((MainView) SQLReader.this.context).openImageView(latexString);
+                    ((MainView) context).openImageView(latexString);
                 }
             };
             formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken latex image span to display in node content
-            imageSpanLatex = (ImageSpanLatex) this.makeBrokenImageSpan(1);
+            imageSpanLatex = (ImageSpanLatex) makeBrokenImageSpan(1);
             formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.displayToast(context.getString(R.string.toast_error_failed_to_compile_latex));
+            displayToast(context.getString(R.string.toast_error_failed_to_compile_latex));
         }
         //*
         if (justification.equals("right")) {
@@ -1745,7 +1745,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             return false;
         } else {
             // Getting current parent node's unique ID of the target node
-            Cursor cursorTargetParent = this.sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{targetNodeUniqueID}, null, null, null, null);
+            Cursor cursorTargetParent = sqlite.query("children", new String[]{"father_id"}, "node_id=?", new String[]{targetNodeUniqueID}, null, null, null, null);
             cursorTargetParent.moveToFirst();
             String targetParentUniqueID = cursorTargetParent.getString(0);
             cursorTargetParent.close();
@@ -1755,7 +1755,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 return false;
             }
             // Getting next available children sequence spot of new parent node
-            Cursor cursorMove = this.sqlite.query("children", new String[]{"COUNT(node_id)"}, "father_id=?", new String[]{destinationNodeUniqueID}, null, null, null, null);
+            Cursor cursorMove = sqlite.query("children", new String[]{"COUNT(node_id)"}, "father_id=?", new String[]{destinationNodeUniqueID}, null, null, null, null);
             cursorMove.moveToFirst();
             int newAvailableParentSequencePosition = cursorMove.getInt(0) + 1;
             cursorMove.close();
@@ -1771,8 +1771,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public void removeNodeFromBookmarks(String nodeUniqueID) {
-        this.sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
-        this.fixBookmarkNodeSequence();
+        sqlite.delete("bookmark", "node_id = ?", new String[]{nodeUniqueID});
+        fixBookmarkNodeSequence();
     }
 
     /**
@@ -1867,7 +1867,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param lastFoundJustification justification of the Anchor image
      */
     private void saveImageSpanAnchor(ImageSpanAnchor imageSpanAnchor, String nodeUniqueID, int offset, String lastFoundJustification) {
-        this.sqlite.beginTransaction();
+        sqlite.beginTransaction();
         try {
             ContentValues contentValues = new ContentValues();
             contentValues.put("node_id", nodeUniqueID);
@@ -1877,10 +1877,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             contentValues.put("filename", "");
             contentValues.put("link", "");
             contentValues.put("time", 0);
-            this.sqlite.insert("image", null, contentValues);
-            this.sqlite.setTransactionSuccessful();
+            sqlite.insert("image", null, contentValues);
+            sqlite.setTransactionSuccessful();
         } finally {
-            this.sqlite.endTransaction();
+            sqlite.endTransaction();
         }
     }
 
@@ -1896,18 +1896,18 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         contentValues.put("offset", offset);
         contentValues.put("justification", lastFoundJustification);
         try {
-            this.sqlite.beginTransaction();
+            sqlite.beginTransaction();
             if (imageSpanFile.isFromDatabase()) {
                 // If file was loaded from the database, so only it's offset and justification changed
                 // filename = '' is necessary to make sure that any other type of 'image' does not have
                 // the same offset. Just in case it was written in to database before current file.
                 // The same applies for the check for '__ct_special.tex'
-                this.sqlite.update("image", contentValues, "node_id = ? AND offset = ? AND NOT filename = '' AND NOT filename = '__ct_special.tex'", new String[]{nodeUniqueID, imageSpanFile.getOriginalOffset()});
+                sqlite.update("image", contentValues, "node_id = ? AND offset = ? AND NOT filename = '' AND NOT filename = '__ct_special.tex'", new String[]{nodeUniqueID, imageSpanFile.getOriginalOffset()});
             } else {
                 // Inserting the file in to the image table
                 Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
                 try (
-                        InputStream fileInputSteam = this.context.getContentResolver().openInputStream(fileUri);
+                        InputStream fileInputSteam = context.getContentResolver().openInputStream(fileUri);
                         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()
                 ) {
                     byte[] buf = new byte[4 * 1024];
@@ -1917,22 +1917,22 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     }
                     contentValues.put("png", byteArrayOutputStream.toByteArray());
                 } catch (IOException e) {
-                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+                    displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
                 }
                 contentValues.put("node_id", nodeUniqueID);
                 contentValues.put("anchor", "");
                 contentValues.put("filename", imageSpanFile.getFilename());
                 contentValues.put("link", "");
                 contentValues.put("time", String.valueOf(System.currentTimeMillis() / 1000));
-                this.sqlite.insert("image", null, contentValues);
+                sqlite.insert("image", null, contentValues);
                 // Updating node table to reflect that user inserted a file
                 contentValues.clear();
                 contentValues.put("has_image", 1);
-                this.sqlite.update("node", contentValues, "node_id = ?", new String[]{nodeUniqueID});
+                sqlite.update("node", contentValues, "node_id = ?", new String[]{nodeUniqueID});
             }
-            this.sqlite.setTransactionSuccessful();
+            sqlite.setTransactionSuccessful();
         } finally {
-            this.sqlite.endTransaction();
+            sqlite.endTransaction();
         }
     }
 
@@ -1949,7 +1949,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-        this.sqlite.beginTransaction();
+        sqlite.beginTransaction();
         try {
             ContentValues contentValues = new ContentValues();
             contentValues.put("node_id", nodeUniqueID);
@@ -1960,10 +1960,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             contentValues.put("filename", "");
             contentValues.put("link", "");
             contentValues.put("time", 0);
-            this.sqlite.insert("image", null, contentValues);
-            this.sqlite.setTransactionSuccessful();
+            sqlite.insert("image", null, contentValues);
+            sqlite.setTransactionSuccessful();
         } finally {
-            this.sqlite.endTransaction();
+            sqlite.endTransaction();
         }
     }
 
@@ -1975,7 +1975,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param lastFoundJustification justification of the LaTeX image
      */
     private void saveImageSpanLatex(ImageSpanLatex imageSpanLatex, String nodeUniqueID, int offset, String lastFoundJustification) {
-        this.sqlite.beginTransaction();
+        sqlite.beginTransaction();
         try {
             ContentValues contentValues = new ContentValues();
             contentValues.put("node_id", nodeUniqueID);
@@ -1986,10 +1986,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             contentValues.put("filename", "__ct_special.tex");
             contentValues.put("link", "");
             contentValues.put("time", 0);
-            this.sqlite.insert("image", null, contentValues);
-            this.sqlite.setTransactionSuccessful();
+            sqlite.insert("image", null, contentValues);
+            sqlite.setTransactionSuccessful();
         } finally {
-            this.sqlite.endTransaction();
+            sqlite.endTransaction();
         }
     }
 
@@ -2101,7 +2101,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                                     typefaceSpanCodebox.setJustification(lastFoundJustification);
                                     offsetObjects.add(typefaceSpanCodebox);
                                 } else if (span instanceof RelativeSizeSpan) {
-                                    element.setAttribute("scale", this.saveRelativeSizeSpan((RelativeSizeSpan) span));
+                                    element.setAttribute("scale", saveRelativeSizeSpan((RelativeSizeSpan) span));
                                 } else if (span instanceof StrikethroughSpan) {
                                     element.setAttribute("strikethrough", "true");
                                 } else if (span instanceof StyleSpanBold) {
@@ -2252,7 +2252,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         if (collectedCodebox != null) {
                             // Previous element was a codebox - write to database and set to null
                             hasCodebox = true;
-                            this.saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
+                            saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
                             extraCharOffset++;
                             collectedCodebox = null;
                         }
@@ -2271,7 +2271,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 if (collectedCodebox != null) {
                     // Might be that last element if offsetObject was codebox - writing it to database
                     hasCodebox = true;
-                    this.saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
+                    saveTypefaceSpanCodebox(collectedCodebox, nodeUniqueID, extraCharOffset);
                     collectedCodebox = null;
                 }
                 // Deleting all data from image table, that was removed by user from nodeContent
@@ -2296,7 +2296,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 try {
                     transformer.transform(new DOMSource(node), new StreamResult(writer));
                 } catch (TransformerException e) {
-                    displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
+                    displayToast(context.getString(R.string.toast_error_failed_to_save_node));
                     return;
                 }
                 // Updating nodeContent - text
@@ -2354,12 +2354,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         writer.getBuffer().setLength(0);
         writer.getBuffer().trimToSize();
         try {
-            this.transformer.transform(new DOMSource(tableElement), new StreamResult(writer));
+            transformer.transform(new DOMSource(tableElement), new StreamResult(writer));
         } catch (TransformerException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_table));
+            displayToast(context.getString(R.string.toast_error_failed_to_save_table));
             return;
         }
-        this.sqlite.beginTransaction();
+        sqlite.beginTransaction();
         try {
             ContentValues contentValues = new ContentValues();
             contentValues.put("node_id", nodeUniqueID);
@@ -2368,10 +2368,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             contentValues.put("txt", writer.toString());
             contentValues.put("col_min", scNodeContentTable.getColMin());
             contentValues.put("col_max", scNodeContentTable.getColMax());
-            this.sqlite.insert("grid", null, contentValues);
-            this.sqlite.setTransactionSuccessful();
+            sqlite.insert("grid", null, contentValues);
+            sqlite.setTransactionSuccessful();
         } finally {
-            this.sqlite.endTransaction();
+            sqlite.endTransaction();
         }
     }
 
@@ -2382,7 +2382,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param extraCharOffset codebox offset it has to be inserted into the node content
      */
     private void saveTypefaceSpanCodebox(TypefaceSpanCodebox typefaceSpanCodebox, String nodeUniqueID, int extraCharOffset) {
-        this.sqlite.beginTransaction();
+        sqlite.beginTransaction();
         try {
             ContentValues contentValues = new ContentValues();
             contentValues.put("node_id", nodeUniqueID);
@@ -2395,10 +2395,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             contentValues.put("is_width_pix", typefaceSpanCodebox.isWidthInPixel());
             contentValues.put("do_highl_bra", typefaceSpanCodebox.isHighlightBrackets());
             contentValues.put("do_show_linenum", typefaceSpanCodebox.isShowLineNumbers());
-            this.sqlite.insert("codebox", null, contentValues);
-            this.sqlite.setTransactionSuccessful();
+            sqlite.insert("codebox", null, contentValues);
+            sqlite.setTransactionSuccessful();
         } finally {
-            this.sqlite.endTransaction();
+            sqlite.endTransaction();
         }
     }
 
@@ -2471,7 +2471,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     private ArrayList<ScSearchNode> searchAllNodes(String parentUniqueID, String query) {
         // It actually just filters node and it's subnodes
         // The search of the string is done in findInNode()
-        Cursor cursor = this.sqlite.rawQuery("SELECT * FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{parentUniqueID});
+        Cursor cursor = sqlite.rawQuery("SELECT * FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{parentUniqueID});
         ArrayList<ScSearchNode> searchResult = new ArrayList<>();
         while (cursor.moveToNext()) {
             String nodeUniqueID = String.valueOf(cursor.getInt(0));
@@ -2503,7 +2503,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     private ArrayList<ScSearchNode> searchNodesSkippingExcluded(String parentUniqueID, String query) {
         // If user marked that filter should omit nodes and/or node children from filter results
         ArrayList<ScSearchNode> searchResult = new ArrayList<>();
-        Cursor cursor = this.sqlite.rawQuery("SELECT * FROM children INNER JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{parentUniqueID});
+        Cursor cursor = sqlite.rawQuery("SELECT * FROM children INNER JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{parentUniqueID});
         while (cursor.moveToNext()) {
             if (cursor.getInt(10) == 0) {
                 // If node and subnodes are not selected to be excluded from search
@@ -2551,34 +2551,34 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        Cursor cursor = this.sqlite.query("node", new String[]{"txt", "is_richtxt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
+        Cursor cursor = sqlite.query("node", new String[]{"txt", "is_richtxt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
         cursor.moveToFirst();
         boolean isRichText = cursor.getInt(1) == 1;
-        this.sqlite.beginTransaction();
+        sqlite.beginTransaction();
         try {
             ContentValues contentValues = new ContentValues();
             contentValues.put("name", name);
             if (isRichText && !progLang.equals("custom-colors")) {
                 // If user chose to convert rich text type node to plain text or automatic system highlighting type
-                contentValues.put("txt", this.convertRichTextNodeContentToPlainText(cursor.getString(0), nodeUniqueID).toString());
-                this.sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
-                this.sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
-                this.sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
+                contentValues.put("txt", convertRichTextNodeContentToPlainText(cursor.getString(0), nodeUniqueID).toString());
+                sqlite.delete("codebox", "node_id = ?", new String[]{nodeUniqueID});
+                sqlite.delete("grid", "node_id = ?", new String[]{nodeUniqueID});
+                sqlite.delete("image", "node_id = ?", new String[]{nodeUniqueID});
                 contentValues.put("has_codebox", 0);
                 contentValues.put("has_table", 0);
                 contentValues.put("has_image", 0);
             } else if (!isRichText && progLang.equals("custom-colors")) {
                 // If user chose to convert plain text or automatic system highlighting type node to rich text type
                 StringWriter writer = new StringWriter();
-                Document doc = this.documentBuilder.newDocument();
+                Document doc = documentBuilder.newDocument();
                 Node node = doc.createElement("node");
                 Element element = doc.createElement("rich_text");
                 element.setTextContent(cursor.getString(0));
                 node.appendChild(element);
                 try {
-                    this.transformer.transform(new DOMSource(node), new StreamResult(writer));
+                    transformer.transform(new DOMSource(node), new StreamResult(writer));
                 } catch (TransformerException e) {
-                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_node));
+                    displayToast(context.getString(R.string.toast_error_failed_to_save_node));
                     return;
                 }
                 contentValues.put("txt", writer.toString());
@@ -2586,12 +2586,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             cursor.close();
             contentValues.put("syntax", progLang);
             contentValues.put("is_richtxt", progLang.equals("custom-colors") ? 1 : 0);
-            contentValues.put("level", this.convertNoSearchToLevel(noSearchMe, noSearchCh));
+            contentValues.put("level", convertNoSearchToLevel(noSearchMe, noSearchCh));
             contentValues.put("ts_lastsave", String.valueOf(System.currentTimeMillis() / 1000));
-            this.sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
-            this.sqlite.setTransactionSuccessful();
+            sqlite.update("node", contentValues, "node_id=?", new String[]{nodeUniqueID});
+            sqlite.setTransactionSuccessful();
         } finally {
-            this.sqlite.endTransaction();
+            sqlite.endTransaction();
         }
     }
 
