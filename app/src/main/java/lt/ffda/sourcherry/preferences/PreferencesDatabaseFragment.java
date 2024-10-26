@@ -125,7 +125,7 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
         builder.setPositiveButton(R.string.button_leave, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                PreferencesDatabaseFragment.this.mirrorDatabaseSwitch.setChecked(false);
+                mirrorDatabaseSwitch.setChecked(false);
                 ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
                 getParentFragmentManager().popBackStack();
             }
@@ -181,7 +181,7 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
             }
         });
 
-        this.mirrorDatabaseFolder.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+        mirrorDatabaseFolder.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
             @Override
             public boolean onPreferenceClick(@NonNull Preference preference) {
                 getMirrorDatabaseFolder.launch(null);
@@ -189,7 +189,7 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
             }
         });
 
-        this.mirrorDatabaseFile.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+        mirrorDatabaseFile.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
             @Override
             public boolean onPreferenceClick(@NonNull Preference preference) {
                 getMirrorDatabaseFile.launch(new String[]{"*/*",});
