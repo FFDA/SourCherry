@@ -123,20 +123,7 @@ import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
 
 public class MainView extends AppCompatActivity {
 
-    /**
-     * Launches file chooser to select location
-     * where to export database. If user chooses a file - launches a
-     * export dialog fragment
-     */
-    ActivityResultLauncher<String> exportDatabaseToFile = registerForActivityResult(new ActivityResultContracts.CreateDocument("*/*"), result -> {
-        if (result != null) {
-            Bundle bundle = new Bundle();
-            bundle.putString("exportFileUri", result.toString());
-            ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
-            exportDatabaseDialogFragment.setArguments(bundle);
-            exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
-        }
-    });
+    ActivityResultLauncher<String> exportDatabaseToFile = registerExportDatabaseDialogFragment();
     private ActionBarDrawerToggle actionBarDrawerToggle;
     private MenuItemAdapter adapter;
     private boolean bookmarksToggle; // To save state for bookmarks. True means bookmarks are being displayed
@@ -148,113 +135,9 @@ public class MainView extends AppCompatActivity {
     private boolean findInNodeToggle; // Holds true when FindInNode view is initiated
     private Handler handler;
     private MainViewModel mainViewModel;
-    ActivityResultLauncher<Intent> exportPdf = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-        if (result.getResultCode() == Activity.RESULT_OK) {
-            // If user actually chose a location to save a file
-            try {
-                LinearLayout nodeContent = findViewById(R.id.content_fragment_linearlayout);
-                PdfDocument document = new PdfDocument();
-                int padding = 25; // It's used not only pad the document, but to calculate where title will be placed on the page
-                int top = padding * 4; // This will used to move (translate) cursor where everything has to be drawn on canvas
-                int width = nodeContent.getWidth(); // Width of the PDF page
-
-                for (int i= 0; i < nodeContent.getChildCount(); i++) {
-                    // Going through all the views in node to find if there is a table
-                    // Tables might be wider than screen
-                    View v = nodeContent.getChildAt(i);
-                    if (v instanceof HorizontalScrollView) {
-                        // If table was encountered
-                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) v).getChildAt(0);
-                        if (tableLayout.getWidth() > width) {
-                            // If table is wider than normal view
-                            width = tableLayout.getWidth();
-
-                        }
-                    }
-                }
-
-                //* Creating a title view that will be drawn to PDF
-                //** textPrimaryColor for the theme
-                TypedValue typedValue = new TypedValue();
-                getTheme().resolveAttribute(android.R.attr.textColorPrimary, typedValue, true);
-                int color = ContextCompat.getColor(this, typedValue.resourceId);
-                //**
-                TextPaint paint = new TextPaint();
-                paint.setColor(color);
-                paint.setTextSize(50);
-
-                StaticLayout title = StaticLayout.Builder.obtain(this.mainViewModel.getCurrentNode().getName(), 0, this.mainViewModel.getCurrentNode().getName().length(), paint, nodeContent.getWidth())
-                        .setAlignment(Layout.Alignment.ALIGN_CENTER)
-                        .build();
-                //*
-
-                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(width + (padding * 2), nodeContent.getHeight() + (padding * 4) + title.getHeight(), 1).create();
-                PdfDocument.Page page = document.startPage(pageInfo);
-
-                Canvas canvas = page.getCanvas();
-
-                if ((getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
-                    // Changing background color of the canvas if drawing views from night mode
-                    // Otherwise text wont be visible
-                    canvas.drawColor(getColor(R.color.window_background));
-                }
-
-                //* Drawing title to the canvas
-                canvas.save(); // Saves current coordinates system
-                canvas.translate(padding, padding * 2); // Moves coordinate system
-                title.draw(canvas);
-                top += title.getHeight();
-                canvas.restore();
-                //*
-
-                for (int i= 0; i < nodeContent.getChildCount(); i++) {
-                    View view = nodeContent.getChildAt(i);
-                    canvas.save(); // Saves current coordinates system
-                    canvas.translate(padding, top); // Moves coordinate system
-                    if (view instanceof HorizontalScrollView) {
-                        // If it is a table - TableLayout has to be drawn to canvas and not ScrollView
-                        // Otherwise only visible part of the table will be showed
-                        TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
-                        tableLayout.draw(canvas);
-                    } else {
-                        // TextView
-                        view.draw(canvas);
-                    }
-                    canvas.restore(); // Restores coordinates system to saved state
-                    top += view.getHeight();
-                }
-
-                document.finishPage(page);
-
-                // Saving to file
-                try (OutputStream outputStream = getContentResolver().openOutputStream(result.getData().getData(), "w")) { // Output file
-                    document.writeTo(outputStream);
-                }
-                // Cleaning up
-                document.close();
-            } catch (Exception e) {
-                Toast.makeText(this, R.string.toast_error_failed_to_export_node_to_pdf, Toast.LENGTH_SHORT).show();
-            }
-        }
-    });
+    ActivityResultLauncher<Intent> exportPdf = registerExportPdf();
     private DatabaseReader reader;
-    /**
-     * Launches activity to save the attached file to the device
-     */
-    ActivityResultLauncher<String[]> saveFile = registerForActivityResult(new ReturnSelectedFileUriForSaving(), result -> {
-        if (result != null) {
-            try (InputStream inputStream = this.reader.getFileInputStream(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time"), result.getExtras().getString("offset"));
-                 OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w")) {
-                byte[] buf = new byte[4 * 1024];
-                int length;
-                while ((length = inputStream.read(buf)) != -1) {
-                    outputStream.write(buf, 0, length);
-                }
-            } catch (Exception e) {
-                Toast.makeText(this, R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
-            }
-        }
-    });
+    ActivityResultLauncher<String[]> saveFile = registerSaveFile();
     private SharedPreferences sharedPreferences;
     private int tempCurrentNodePosition; // Needed to save selected node position when user opens bookmarks;
 
@@ -263,28 +146,28 @@ public class MainView extends AppCompatActivity {
      * @param nodeUniqueID unique ID of the node which to add to bookmarks
      */
     private void addNodeToBookmarks(String nodeUniqueID) {
-        this.reader.addNodeToBookmarks(nodeUniqueID);
+        reader.addNodeToBookmarks(nodeUniqueID);
     }
 
     /**
      * Sets variables that were used to display bookmarks to their default values
      */
     private void bookmarkVariablesReset() {
-        this.mainViewModel.resetTempNodes();
-        this.tempCurrentNodePosition = -1;
-        this.bookmarksToggle = false;
+        mainViewModel.resetTempNodes();
+        tempCurrentNodePosition = -1;
+        bookmarksToggle = false;
     }
 
     /**
      * Restoring saved node status
      */
     private void closeBookmarks() {
-        this.mainViewModel.restoreSavedCurrentNodes();
-        this.currentNodePosition = this.tempCurrentNodePosition;
-        this.adapter.markItemSelected(this.currentNodePosition);
-        this.adapter.notifyDataSetChanged();
-        this.navigationNormalMode(true);
-        this.bookmarkVariablesReset();
+        mainViewModel.restoreSavedCurrentNodes();
+        currentNodePosition = tempCurrentNodePosition;
+        adapter.markItemSelected(currentNodePosition);
+        adapter.notifyDataSetChanged();
+        navigationNormalMode(true);
+        bookmarkVariablesReset();
     }
 
     /**
@@ -292,14 +175,13 @@ public class MainView extends AppCompatActivity {
      */
     private void closeFindInNode() {
         // * This prevents crashes when user makes a sudden decision to close findInNode view while last search hasn't finished
-        this.handler.removeCallbacksAndMessages(null);
-        // *
-        this.findInNodeToggle = false;
+        handler.removeCallbacksAndMessages(null);
+        findInNodeToggle = false;
         EditText findInNodeEditText = findViewById(R.id.find_in_node_edit_text);
         findInNodeEditText.setText("");
         findInNodeEditText.clearFocus();
 
-        this.restoreHighlightedView();
+        restoreHighlightedView();
 
         // * Closing keyboard
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -307,7 +189,7 @@ public class MainView extends AppCompatActivity {
             // Shows keyboard on API 30 (Android 11) reliably
             WindowCompat.getInsetsController(getWindow(), findInNodeEditText).hide(WindowInsetsCompat.Type.ime());
         } else {
-            this.handler.postDelayed(new Runnable() {
+            handler.postDelayed(new Runnable() {
                 // Delays to show soft keyboard by few milliseconds
                 // Otherwise keyboard does not show up
                 // It's a bit hacky (should be fixed)
@@ -322,7 +204,7 @@ public class MainView extends AppCompatActivity {
         // Clearing search field (restores content to original state too)
         LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
         findInNodeLinearLayout.setVisibility(View.GONE);
-        this.mainViewModel.findInNodeStorageToggle(false);
+        mainViewModel.findInNodeStorageToggle(false);
     }
 
     /**
@@ -443,8 +325,8 @@ public class MainView extends AppCompatActivity {
      * Shows back (home) arrow instead of hamburger icon
      */
     public void disableDrawerMenu() {
-        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
-        this.actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        actionBarDrawerToggle.setDrawerIndicatorEnabled(false);
     }
 
     /**
@@ -452,7 +334,7 @@ public class MainView extends AppCompatActivity {
      * @param message message to show
      */
     private void displayToastOnMainThread(String message) {
-        this.handler.post(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
                 Toast.makeText(MainView.this, message, Toast.LENGTH_SHORT).show();
@@ -464,7 +346,7 @@ public class MainView extends AppCompatActivity {
      * Unlocks drawer menu and shows it
      */
     public void enableDrawer() {
-        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
     }
 
@@ -474,7 +356,7 @@ public class MainView extends AppCompatActivity {
      */
     public void exitWithError() {
         Toast.makeText(this, R.string.toast_error_cant_read_database, Toast.LENGTH_SHORT).show();
-        this.finish();
+        finish();
     }
 
     /**
@@ -485,23 +367,23 @@ public class MainView extends AppCompatActivity {
      */
     public void exportDatabaseSetup() {
         // XML without password already saved in external file
-        if (this.sharedPreferences.getString("databaseFileExtension", null).equals("ctd") && this.sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
+        if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd") && sharedPreferences.getString("databaseStorageType", null).equals("shared")) {
             Toast.makeText(this, R.string.toast_message_not_password_protected_xml_saves_changes_externally, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (this.sharedPreferences.getBoolean("mirror_database_switch", false)) {
+        if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
             // If user uses MirrorDatabase
             // Variables that will be put into bundle for MirrorDatabaseProgressDialogFragment
             Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
             long mirrorDatabaseDocumentFileLastModified = 0;
 
             // Reading through files inside Mirror Database Folder
-            Uri mirrorDatabaseFolderUri = Uri.parse(this.sharedPreferences.getString("mirrorDatabaseFolderUri", null));
+            Uri mirrorDatabaseFolderUri = Uri.parse(sharedPreferences.getString("mirrorDatabaseFolderUri", null));
             Uri mirrorDatabaseFolderChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mirrorDatabaseFolderUri, DocumentsContract.getTreeDocumentId(mirrorDatabaseFolderUri));
 
-            Cursor cursor = this.getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
+            Cursor cursor = getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
             while (cursor != null && cursor.moveToNext()) {
-                if (cursor.getString(1).equals(this.sharedPreferences.getString("mirrorDatabaseFilename", null))) {
+                if (cursor.getString(1).equals(sharedPreferences.getString("mirrorDatabaseFilename", null))) {
                     // if file with the Mirror Database File filename was wound inside Mirror Database Folder
                     mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
                     mirrorDatabaseDocumentFileLastModified = cursor.getLong(2);
@@ -519,7 +401,7 @@ public class MainView extends AppCompatActivity {
 
             // If found Mirror Database File is older or the same as the last time it was synchronized
             // copying is done immediately
-            if (mirrorDatabaseDocumentFileLastModified <= this.sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
+            if (mirrorDatabaseDocumentFileLastModified <= sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
                     Bundle bundle = new Bundle();
                     bundle.putString("exportFileUri", mirrorDatabaseFileUri.toString());
                     ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
@@ -543,7 +425,7 @@ public class MainView extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // Saving new last modified date to preferences
-                        SharedPreferences.Editor sharedPreferencesEditor = MainView.this.sharedPreferences.edit();
+                        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
                         sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", finalMirrorDatabaseDocumentFileLastModified);
                         sharedPreferencesEditor.apply();
                         // Launching copying dialog
@@ -558,16 +440,16 @@ public class MainView extends AppCompatActivity {
             }
         } else {
             // If MirrorDatabase isn't turned on
-            this.exportDatabaseToFile.launch(this.sharedPreferences.getString("databaseFilename", null));
+            exportDatabaseToFile.launch(sharedPreferences.getString("databaseFilename", null));
         }
     }
 
     private void exportPdfSetup() {
         // Sets the intent for asking user to choose a location where to save a file
-        if (this.mainViewModel.getCurrentNode() != null) {
+        if (mainViewModel.getCurrentNode() != null) {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
             intent.setType("application/pdf");
-            intent.putExtra(Intent.EXTRA_TITLE, this.mainViewModel.getCurrentNode().getName());
+            intent.putExtra(Intent.EXTRA_TITLE, mainViewModel.getCurrentNode().getName());
             exportPdf.launch(intent);
         } else {
             Toast.makeText(this, R.string.toast_error_please_select_node, Toast.LENGTH_SHORT).show();
@@ -598,12 +480,12 @@ public class MainView extends AppCompatActivity {
      * @param query search query
      */
     private void filterNodes(String query) {
-        this.mainViewModel.setNodes(this.mainViewModel.getTempSearchNodes());
-        ArrayList<ScNode> filteredNodes = this.mainViewModel.getNodes().stream()
+        mainViewModel.setNodes(mainViewModel.getTempSearchNodes());
+        ArrayList<ScNode> filteredNodes = mainViewModel.getNodes().stream()
                 .filter(node -> node.getName().toLowerCase().contains(query.toLowerCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
-        this.mainViewModel.setNodes(filteredNodes);
-        this.adapter.notifyDataSetChanged();
+        mainViewModel.setNodes(filteredNodes);
+        adapter.notifyDataSetChanged();
     }
 
     /**
@@ -613,18 +495,18 @@ public class MainView extends AppCompatActivity {
     private void findInNode(String query) {
         if (query.length() > 0) {
             // If new query is longer when one character
-            this.restoreHighlightedView();
-            this.executor.submit(new FindInNodeRunnable(this.mainViewModel, query, new FindInNodeRunnableCallback() {
+            restoreHighlightedView();
+            executor.submit(new FindInNodeRunnable(mainViewModel, query, new FindInNodeRunnableCallback() {
                 @Override
                 public void searchFinished() {
-                    MainView.this.setFindInNodeProgressBar(false);
-                    MainView.this.updateCounter(MainView.this.mainViewModel.getFindInNodeResultCount());
-                    if (MainView.this.mainViewModel.getFindInNodeResultCount() == 0) {
+                    setFindInNodeProgressBar(false);
+                    updateCounter(mainViewModel.getFindInNodeResultCount());
+                    if (mainViewModel.getFindInNodeResultCount() == 0) {
                         // If user types until there are no matches left
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                MainView.this.restoreHighlightedView();
+                                restoreHighlightedView();
                             }
                         });
                     } else {
@@ -633,8 +515,8 @@ public class MainView extends AppCompatActivity {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                MainView.this.currentFindInNodeMarked = 0;
-                                MainView.this.highlightFindInNodeResult();
+                                currentFindInNodeMarked = 0;
+                                highlightFindInNodeResult();
                             }
                         });
                     }
@@ -642,12 +524,12 @@ public class MainView extends AppCompatActivity {
 
                 @Override
                 public void searchStarted() {
-                    MainView.this.setFindInNodeProgressBar(true);
+                    setFindInNodeProgressBar(true);
                 }
             }));
         } else {
             // If new query is 0 characters long, that means that user deleted everything and view should be reset to original
-            MainView.this.restoreHighlightedView();
+            restoreHighlightedView();
         }
     }
 
@@ -655,27 +537,27 @@ public class MainView extends AppCompatActivity {
      * Calculates next result that has to be highlighted and initiates switchFindInNodeHighlight
      */
     private void findInNodeNext() {
-        this.currentFindInNodeMarked++;
-        this.updateMarkedIndex();
-        if (this.currentFindInNodeMarked <= this.mainViewModel.getFindInNodeResultCount() - 1) {
+        currentFindInNodeMarked++;
+        updateMarkedIndex();
+        if (currentFindInNodeMarked <= mainViewModel.getFindInNodeResultCount() - 1) {
             int previouslyHighlightedFindInNode;
-            if (this.currentFindInNodeMarked == 0) {
+            if (currentFindInNodeMarked == 0) {
                 // Current marked node is first in the array, so previous marked should be the last from array
-                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.mainViewModel.getFindInNodeResultCount() - 1)[0];
+                previouslyHighlightedFindInNode = mainViewModel.getFindInNodeResult(mainViewModel.getFindInNodeResultCount() - 1)[0];
             } else {
                 // Otherwise it should be previous one in array. However, it can be that it is out off array if array is made of one item.
-                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked - 1)[0];
+                previouslyHighlightedFindInNode = mainViewModel.getFindInNodeResult(currentFindInNodeMarked - 1)[0];
             }
             // Gets instance of the fragment
             FragmentManager fragmentManager = getSupportFragmentManager();
             NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, this.currentFindInNodeMarked);
+            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, currentFindInNodeMarked);
         } else {
             // Reached the last index of the result array
             // currentFindInNodeMarked has to be reset to the first index if the result array and this function restarted
             // If you want to though the result in a loop
-            this.currentFindInNodeMarked = -1;
-            this.findInNodeNext();
+            currentFindInNodeMarked = -1;
+            findInNodeNext();
         }
     }
 
@@ -684,27 +566,27 @@ public class MainView extends AppCompatActivity {
      * and initiates switchFindInNodeHighlight
      */
     private void findInNodePrevious() {
-        this.currentFindInNodeMarked--;
-        this.updateMarkedIndex();
-        if (this.currentFindInNodeMarked >= 0) {
+        currentFindInNodeMarked--;
+        updateMarkedIndex();
+        if (currentFindInNodeMarked >= 0) {
             int previouslyHighlightedFindInNode;
-            if (this.currentFindInNodeMarked == this.mainViewModel.getFindInNodeResultCount() - 1) {
+            if (currentFindInNodeMarked == mainViewModel.getFindInNodeResultCount() - 1) {
                 // Current marked node is last, so previous marked node should be the first in result ArrayList
-                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(0)[0];
+                previouslyHighlightedFindInNode = mainViewModel.getFindInNodeResult(0)[0];
             } else {
                 // Otherwise it should next one in array (index+1). However, it can be that it is out off array if array is made of one item
-                previouslyHighlightedFindInNode = this.mainViewModel.getFindInNodeResult(this.currentFindInNodeMarked + 1)[0]; // Saved index for the view
+                previouslyHighlightedFindInNode = mainViewModel.getFindInNodeResult(currentFindInNodeMarked + 1)[0]; // Saved index for the view
             }
             // Gets instance of the fragment
             FragmentManager fragmentManager = getSupportFragmentManager();
             NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, this.currentFindInNodeMarked);
+            nodeContentFragment.switchFindInNodeHighlight(previouslyHighlightedFindInNode, currentFindInNodeMarked);
         } else {
             // Reached the first index of the result array
             // currentFindInNodeMarked has to be reset to last index of the result array and this function restarted
             // If you want to though the result in a loop
-            this.currentFindInNodeMarked =  this.mainViewModel.getFindInNodeResultCount();
-            this.findInNodePrevious();
+            currentFindInNodeMarked =  mainViewModel.getFindInNodeResultCount();
+            findInNodePrevious();
         }
     }
 
@@ -713,7 +595,7 @@ public class MainView extends AppCompatActivity {
      * @return MainViewModel
      */
     public MainViewModel getMainViewModel() {
-        return this.mainViewModel;
+        return mainViewModel;
     }
 
     /**
@@ -721,7 +603,7 @@ public class MainView extends AppCompatActivity {
      * @param view view needed to associated button with action
      */
     public void goBack(View view) {
-        this.closeBookmarks();
+        closeBookmarks();
     }
 
     /**
@@ -732,26 +614,26 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked
      */
     public void goHome(View view) {
-        ArrayList<ScNode> tempMainNodes = this.reader.getMainNodes();
+        ArrayList<ScNode> tempMainNodes = reader.getMainNodes();
         // Compares node sizes, first and last node's uniqueIDs in both arrays
-        if (tempMainNodes.size() == this.mainViewModel.getNodes().size() && tempMainNodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && tempMainNodes.get(this.mainViewModel.getNodes().size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
+        if (tempMainNodes.size() == mainViewModel.getNodes().size() && tempMainNodes.get(0).getUniqueId().equals(mainViewModel.getNodes().get(0).getUniqueId()) && tempMainNodes.get(mainViewModel.getNodes().size() -1 ).getUniqueId().equals(mainViewModel.getNodes().get(mainViewModel.getNodes().size() -1 ).getUniqueId())) {
             Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
         } else {
-            this.mainViewModel.setNodes(tempMainNodes);
-            this.currentNodePosition = -1;
-            if (bookmarksToggle && this.mainViewModel.getCurrentNode() != null) {
+            mainViewModel.setNodes(tempMainNodes);
+            currentNodePosition = -1;
+            if (bookmarksToggle && mainViewModel.getCurrentNode() != null) {
                 // Just in case user chose to come back from bookmarks to home and a node is selected
                 // it might me that selected node is in main menu
                 // this part checks for that and marks the node if it finds it
-                this.currentNodePosition = this.openedNodePositionInDrawerMenu();
+                currentNodePosition = openedNodePositionInDrawerMenu();
             }
-            this.adapter.markItemSelected(this.currentNodePosition);
-            this.adapter.notifyDataSetChanged();
+            adapter.markItemSelected(currentNodePosition);
+            adapter.notifyDataSetChanged();
         }
 
         if (bookmarksToggle) {
-            this.navigationNormalMode(true);
-            this.bookmarkVariablesReset();
+            navigationNormalMode(true);
+            bookmarkVariablesReset();
         }
     }
 
@@ -761,24 +643,24 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked
      */
     public void goNodeUp(View view) {
-        ArrayList<ScNode> nodes = this.reader.getParentWithSubnodes(this.mainViewModel.getNodes().get(0).getUniqueId());
-        if (nodes != null && nodes.size() != this.mainViewModel.getNodes().size()) {
+        ArrayList<ScNode> nodes = reader.getParentWithSubnodes(mainViewModel.getNodes().get(0).getUniqueId());
+        if (nodes != null && nodes.size() != mainViewModel.getNodes().size()) {
             // If retrieved nodes are not null and array size do not match the one displayed
             // it is definitely not the same node so it can go up
-            this.mainViewModel.setNodes(nodes);
-            this.currentNodePosition = -1;
-            this.adapter.markItemSelected(this.currentNodePosition);
-            this.adapter.notifyDataSetChanged();
+            mainViewModel.setNodes(nodes);
+            currentNodePosition = -1;
+            adapter.markItemSelected(currentNodePosition);
+            adapter.notifyDataSetChanged();
         } else {
             // If both nodes arrays matches in size it might be the same node (especially main/top)
             // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
-            if (nodes != null && nodes.get(0).getUniqueId().equals(this.mainViewModel.getNodes().get(0).getUniqueId()) && nodes.get(nodes.size() -1 ).getUniqueId().equals(this.mainViewModel.getNodes().get(this.mainViewModel.getNodes().size() -1 ).getUniqueId())) {
+            if (nodes != null && nodes.get(0).getUniqueId().equals(mainViewModel.getNodes().get(0).getUniqueId()) && nodes.get(nodes.size() -1 ).getUniqueId().equals(mainViewModel.getNodes().get(mainViewModel.getNodes().size() -1 ).getUniqueId())) {
                 Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
             } else {
-                this.mainViewModel.setNodes(nodes);
-                this.currentNodePosition = -1;
-                this.adapter.markItemSelected(this.currentNodePosition);
-                this.adapter.notifyDataSetChanged();
+                mainViewModel.setNodes(nodes);
+                currentNodePosition = -1;
+                adapter.markItemSelected(currentNodePosition);
+                adapter.notifyDataSetChanged();
             }
         }
     }
@@ -788,7 +670,7 @@ public class MainView extends AppCompatActivity {
      * Hide DrawerLayout completely
      */
     private void hideDrawerMenu() {
-        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED); // Locks drawer menu
         getSupportActionBar().hide(); // Hides action bar
     }
 
@@ -827,7 +709,7 @@ public class MainView extends AppCompatActivity {
      * UI elements.
      */
     private void highlightFindInNodeResult() {
-        this.mainViewModel.findInNodeStorageReset();
+        mainViewModel.findInNodeStorageReset();
         LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
         int counter = 0; // Iterator of the all the saved views from node content
         int resultCounter = 0;
@@ -836,8 +718,8 @@ public class MainView extends AppCompatActivity {
             View view = contentFragmentLinearLayout.getChildAt(i);
             if (view instanceof TextView) {
                 TextView currentTextView = (TextView) view;
-                SpannableStringBuilder currentTextViewContent = MainView.this.mainViewModel.getfindInNodeStorageContent(counter);
-                while (resultCounter < this.mainViewModel.getFindInNodeResultCount() && (currentResult = this.mainViewModel.getFindInNodeResult(resultCounter))[0] == counter) {
+                SpannableStringBuilder currentTextViewContent = mainViewModel.getfindInNodeStorageContent(counter);
+                while (resultCounter < mainViewModel.getFindInNodeResultCount() && (currentResult = mainViewModel.getFindInNodeResult(resultCounter))[0] == counter) {
                     currentTextViewContent.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_100)), currentResult[1], currentResult[2], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     resultCounter++;
                 }
@@ -849,8 +731,8 @@ public class MainView extends AppCompatActivity {
                     TableRow tableRow = (TableRow) tableLayout.getChildAt(row);
                     for (int cell = 0; cell < tableRow.getChildCount(); cell++) {
                         TextView currentCell = (TextView) tableRow.getChildAt(cell);
-                        SpannableStringBuilder currentTextViewContent = MainView.this.mainViewModel.getfindInNodeStorageContent(counter);
-                        while (resultCounter < this.mainViewModel.getFindInNodeResultCount() && (currentResult = this.mainViewModel.getFindInNodeResult(resultCounter))[0] == counter) {
+                        SpannableStringBuilder currentTextViewContent = mainViewModel.getfindInNodeStorageContent(counter);
+                        while (resultCounter < mainViewModel.getFindInNodeResultCount() && (currentResult = mainViewModel.getFindInNodeResult(resultCounter))[0] == counter) {
                             currentTextViewContent.setSpan(new BackgroundColorSpan(getColor(R.color.cherry_red_100)), currentResult[1], currentResult[2], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                             resultCounter++;
                         }
@@ -862,8 +744,8 @@ public class MainView extends AppCompatActivity {
         }
         FragmentManager fragmentManager = getSupportFragmentManager();
         NodeContentFragment nodeContentFragment = (NodeContentFragment) fragmentManager.findFragmentByTag("main");
-        nodeContentFragment.switchFindInNodeHighlight(-1, this.currentFindInNodeMarked);
-        this.updateMarkedIndex();
+        nodeContentFragment.switchFindInNodeHighlight(-1, currentFindInNodeMarked);
+        updateMarkedIndex();
     }
 
     /**
@@ -872,17 +754,17 @@ public class MainView extends AppCompatActivity {
      */
     private void initDrawerMenuFilter(SearchView searchView) {
         CheckBox checkBoxExcludeFromSearch = findViewById(R.id.navigation_drawer_omit_marked_to_exclude);
-        checkBoxExcludeFromSearch.setChecked(this.sharedPreferences.getBoolean("exclude_from_search", false));
+        checkBoxExcludeFromSearch.setChecked(sharedPreferences.getBoolean("exclude_from_search", false));
         checkBoxExcludeFromSearch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (MainView.this.filterNodeToggle) {
+                if (filterNodeToggle) {
                     // Gets new menu list only if filter mode is activated
-                    MainView.this.mainViewModel.setTempSearchNodes(MainView.this.reader.getAllNodes(isChecked));
-                    MainView.this.adapter.notifyDataSetChanged();
+                    mainViewModel.setTempSearchNodes(reader.getAllNodes(isChecked));
+                    adapter.notifyDataSetChanged();
                     searchView.requestFocus();
-                    MainView.this.filterNodes(searchView.getQuery().toString());
-                    SharedPreferences.Editor editor = MainView.this.sharedPreferences.edit();
+                    filterNodes(searchView.getQuery().toString());
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.putBoolean("exclude_from_search", isChecked);
                     editor.commit();
                 }
@@ -892,8 +774,8 @@ public class MainView extends AppCompatActivity {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextChange(String newText) {
-                if (MainView.this.filterNodeToggle) { // This check fixes bug where all database's nodes were displayed after screen rotation
-                    MainView.this.filterNodes(newText);
+                if (filterNodeToggle) { // This check fixes bug where all database's nodes were displayed after screen rotation
+                    filterNodes(newText);
                 }
                 return false;
             }
@@ -908,18 +790,18 @@ public class MainView extends AppCompatActivity {
             // When the user closes search view without selecting a node
             @Override
             public boolean onClose() {
-                if (MainView.this.mainViewModel.getCurrentNode() != null) {
-                    MainView.this.mainViewModel.restoreSavedCurrentNodes();
-                    MainView.this.currentNodePosition = MainView.this.tempCurrentNodePosition;
-                    MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
-                    MainView.this.adapter.notifyDataSetChanged();
+                if (mainViewModel.getCurrentNode() != null) {
+                    mainViewModel.restoreSavedCurrentNodes();
+                    currentNodePosition = tempCurrentNodePosition;
+                    adapter.markItemSelected(currentNodePosition);
+                    adapter.notifyDataSetChanged();
                 } else {
                     // If there is no node selected that means that main menu has to be loaded
-                    MainView.this.mainViewModel.setNodes(MainView.this.reader.getMainNodes());
+                    mainViewModel.setNodes(reader.getMainNodes());
                 }
-                MainView.this.hideNavigation(false);
-                MainView.this.mainViewModel.tempSearchNodesToggle(false);
-                MainView.this.filterNodeToggle = false;
+                hideNavigation(false);
+                mainViewModel.tempSearchNodesToggle(false);
+                filterNodeToggle = false;
                 return false;
             }
         });
@@ -931,20 +813,20 @@ public class MainView extends AppCompatActivity {
                 if (bookmarksToggle) {
                     // If bookmark menu was showed at the time of selecting search
                     // There is less things to change in menu
-                    MainView.this.navigationNormalMode(true);
-                    MainView.this.bookmarksToggle = false;
+                    navigationNormalMode(true);
+                    bookmarksToggle = false;
                 } else {
                     // If search was selected from normal menu current menu items, selected item have to be saved
-                    MainView.this.mainViewModel.saveCurrentNodes();
-                    MainView.this.tempCurrentNodePosition = MainView.this.currentNodePosition;
-                    MainView.this.currentNodePosition = -1;
-                    MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition); // Removing selection from menu item
+                    mainViewModel.saveCurrentNodes();
+                    tempCurrentNodePosition = currentNodePosition;
+                    currentNodePosition = -1;
+                    adapter.markItemSelected(currentNodePosition); // Removing selection from menu item
                 }
-                MainView.this.hideNavigation(true);
-                MainView.this.mainViewModel.setNodes(MainView.this.reader.getAllNodes(checkBoxExcludeFromSearch.isChecked()));
-                MainView.this.mainViewModel.tempSearchNodesToggle(true);
-                MainView.this.filterNodeToggle = true;
-                MainView.this.adapter.notifyDataSetChanged();
+                hideNavigation(true);
+                mainViewModel.setNodes(reader.getAllNodes(checkBoxExcludeFromSearch.isChecked()));
+                mainViewModel.tempSearchNodesToggle(true);
+                filterNodeToggle = true;
+                adapter.notifyDataSetChanged();
             }
         });
     }
@@ -954,94 +836,94 @@ public class MainView extends AppCompatActivity {
      * @param searchView DrawerMenu's search view
      */
     private void initDrawerMenuNavigation(SearchView searchView) {
-        this.adapter = new MenuItemAdapter(this.mainViewModel.getNodes(), this);
-        this.adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
+        adapter = new MenuItemAdapter(mainViewModel.getNodes(), this);
+        adapter.setOnItemClickListener(new MenuItemAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int position) {
-                if (MainView.this.mainViewModel.getCurrentNode() == null || !MainView.this.mainViewModel.getNodes().get(position).getUniqueId().equals(MainView.this.mainViewModel.getCurrentNode().getUniqueId())) {
+                if (mainViewModel.getCurrentNode() == null || !mainViewModel.getNodes().get(position).getUniqueId().equals(mainViewModel.getCurrentNode().getUniqueId())) {
                     // If current node is null (empty/nothing opened yet) or selected nodeUniqueID is not the same as currently opened node
-                    MainView.this.mainViewModel.setCurrentNode(MainView.this.mainViewModel.getNodes().get(position));
-                    MainView.this.loadNodeContent();
-                    if (MainView.this.mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked to have subnodes
+                    mainViewModel.setCurrentNode(mainViewModel.getNodes().get(position));
+                    loadNodeContent();
+                    if (mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked to have subnodes
                         // In this case it does not matter if node was selected from normal menu, bookmarks or search
-                        if (MainView.this.filterNodeToggle) {
+                        if (filterNodeToggle) {
                             searchView.onActionViewCollapsed();
-                            MainView.this.hideNavigation(false);
-                            MainView.this.filterNodeToggle = false;
+                            hideNavigation(false);
+                            filterNodeToggle = false;
                         }
-                        MainView.this.openSubmenu();
+                        openSubmenu();
                     } else {
-                        if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
+                        if (sharedPreferences.getBoolean("auto_open", false)) {
                             drawerLayout.close();
                         }
-                        if (MainView.this.bookmarksToggle) {
+                        if (bookmarksToggle) {
                             // If node was selected from bookmarks
-                            MainView.this.setClickedItemInSubmenu();
-                        } else if (MainView.this.filterNodeToggle) {
+                            setClickedItemInSubmenu();
+                        } else if (filterNodeToggle) {
                             // Node selected from the search
                             searchView.onActionViewCollapsed();
-                            MainView.this.hideNavigation(false);
-                            MainView.this.setClickedItemInSubmenu();
-                            MainView.this.filterNodeToggle = false;
+                            hideNavigation(false);
+                            setClickedItemInSubmenu();
+                            filterNodeToggle = false;
                         } else {
                             // Node selected from normal menu
-                            int previousNodePosition = MainView.this.currentNodePosition;
-                            MainView.this.currentNodePosition = position;
-                            MainView.this.adapter.markItemSelected(MainView.this.currentNodePosition);
-                            MainView.this.adapter.notifyItemChanged(previousNodePosition);
-                            MainView.this.adapter.notifyItemChanged(position);
+                            int previousNodePosition = currentNodePosition;
+                            currentNodePosition = position;
+                            adapter.markItemSelected(currentNodePosition);
+                            adapter.notifyItemChanged(previousNodePosition);
+                            adapter.notifyItemChanged(position);
                         }
                     }
-                    if (MainView.this.bookmarksToggle) {
-                        MainView.this.navigationNormalMode(true);
-                        MainView.this.bookmarkVariablesReset();
+                    if (bookmarksToggle) {
+                        navigationNormalMode(true);
+                        bookmarkVariablesReset();
                     }
                 } else {
                     // If already opened node was selected by the user
                     // Helps to save some reads from database and reloading of navigation menu
-                    if (MainView.this.sharedPreferences.getBoolean("auto_open", false)) {
+                    if (sharedPreferences.getBoolean("auto_open", false)) {
                         drawerLayout.close();
                     }
-                    if (MainView.this.mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked as having subnodes
-                        if (MainView.this.filterNodeToggle) {
+                    if (mainViewModel.getNodes().get(position).hasSubnodes()) { // Checks if node is marked as having subnodes
+                        if (filterNodeToggle) {
                             searchView.onActionViewCollapsed();
-                            MainView.this.hideNavigation(false);
-                            MainView.this.filterNodeToggle = false;
+                            hideNavigation(false);
+                            filterNodeToggle = false;
                         }
-                        MainView.this.openSubmenu();
+                        openSubmenu();
                     } else {
-                        if (MainView.this.bookmarksToggle) {
+                        if (bookmarksToggle) {
                             // If node was selected from bookmarks
-                            MainView.this.setClickedItemInSubmenu();
-                        } else if (MainView.this.filterNodeToggle) {
+                            setClickedItemInSubmenu();
+                        } else if (filterNodeToggle) {
                             // Node selected from the search
                             searchView.onActionViewCollapsed();
-                            MainView.this.hideNavigation(false);
-                            MainView.this.setClickedItemInSubmenu();
-                            MainView.this.filterNodeToggle = false;
+                            hideNavigation(false);
+                            setClickedItemInSubmenu();
+                            filterNodeToggle = false;
                         }
                     }
-                    if (MainView.this.bookmarksToggle) {
-                        MainView.this.navigationNormalMode(true);
-                        MainView.this.bookmarkVariablesReset();
+                    if (bookmarksToggle) {
+                        navigationNormalMode(true);
+                        bookmarkVariablesReset();
                     }
                 }
             }
         });
 
         // Listener for long click on drawer menu item
-        this.adapter.setOnLongClickListener(new MenuItemAdapter.OnLongClickListener() {
+        adapter.setOnLongClickListener(new MenuItemAdapter.OnLongClickListener() {
             @Override
             public void onLongClick(View itemView, int position) {
-                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position), position);
+                openMenuItemActionDialogFragment(mainViewModel.getNodes().get(position), position);
             }
         });
 
         // Listener for click on drawer menu item's action icon
-        this.adapter.setOnItemActionMenuClickListener(new MenuItemAdapter.OnActionIconClickListener() {
+        adapter.setOnItemActionMenuClickListener(new MenuItemAdapter.OnActionIconClickListener() {
             @Override
             public void onActionIconClick(View itemView, int position) {
-                MainView.this.openMenuItemActionDialogFragment(MainView.this.mainViewModel.getNodes().get(position), position);
+                openMenuItemActionDialogFragment(mainViewModel.getNodes().get(position), position);
             }
         });
 
@@ -1060,12 +942,12 @@ public class MainView extends AppCompatActivity {
                 // After user types the text in search field
                 // There is a delay of 400 milliseconds
                 // to start the search only when user stops typing
-                if (MainView.this.findInNodeToggle && findInNodeEditText.isFocused()) {
-                    MainView.this.handler.removeCallbacksAndMessages(null);
-                    MainView.this.handler.postDelayed(new Runnable() {
+                if (findInNodeToggle && findInNodeEditText.isFocused()) {
+                    handler.removeCallbacksAndMessages(null);
+                    handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            MainView.this.findInNode(s.toString());
+                            findInNode(s.toString());
                         }
                     }, 400);
                 }
@@ -1085,8 +967,8 @@ public class MainView extends AppCompatActivity {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 boolean handled = false;
-                if (actionId == EditorInfo.IME_ACTION_NEXT && MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
-                    MainView.this.findInNodeNext();
+                if (actionId == EditorInfo.IME_ACTION_NEXT && mainViewModel.getFindInNodeResultCount() > 1) {
+                    findInNodeNext();
                     handled = true;
                 }
                 return handled;
@@ -1097,7 +979,7 @@ public class MainView extends AppCompatActivity {
         findInNodeCloseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MainView.this.closeFindInNode();
+                closeFindInNode();
             }
         });
         // Button in findInView to jump/show next result
@@ -1106,8 +988,8 @@ public class MainView extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Only if there are more than one result
-                if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
-                    MainView.this.findInNodeNext();
+                if (mainViewModel.getFindInNodeResultCount() > 1) {
+                    findInNodeNext();
                 }
             }
         });
@@ -1117,8 +999,8 @@ public class MainView extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Only if there are more than one result
-                if (MainView.this.mainViewModel.getFindInNodeResultCount() > 1) {
-                    MainView.this.findInNodePrevious();
+                if (mainViewModel.getFindInNodeResultCount() > 1) {
+                    findInNodePrevious();
                 }
             }
         });
@@ -1163,8 +1045,8 @@ public class MainView extends AppCompatActivity {
     }
 
     private void loadNodeContent() {
-        this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
-        this.executor.execute(new Runnable() {
+        setToolbarTitle(mainViewModel.getCurrentNode().getName());
+        executor.execute(new Runnable() {
             @Override
             public void run() {
                 if ("0".equals(mainViewModel.getCurrentNode().getMasterId())) {
@@ -1183,30 +1065,30 @@ public class MainView extends AppCompatActivity {
      */
     public void moveNode(String targetNodeUniqueID, String destinationNodeUniqueID) {
         getSupportFragmentManager().popBackStack();
-        MainView.this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-        MainView.this.drawerLayout.open();
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        drawerLayout.open();
         getSupportActionBar().show();
-        if (this.reader.moveNode(targetNodeUniqueID, destinationNodeUniqueID)) {
-            if (this.mainViewModel.getCurrentNode() == null) {
-                int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
-                int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
-                this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
-                this.mainViewModel.getNodes().remove(targetNodePosition);
-                this.adapter.notifyItemChanged(destinationNodePosition);
-                this.adapter.notifyItemRemoved(targetNodePosition);
+        if (reader.moveNode(targetNodeUniqueID, destinationNodeUniqueID)) {
+            if (mainViewModel.getCurrentNode() == null) {
+                int targetNodePosition = mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
+                int destinationNodePosition = mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
+                mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
+                mainViewModel.getNodes().remove(targetNodePosition);
+                adapter.notifyItemChanged(destinationNodePosition);
+                adapter.notifyItemRemoved(targetNodePosition);
             } else {
-                if (this.mainViewModel.getNodes().size() <= 2) {
-                    this.mainViewModel.setCurrentNode(this.reader.getSingleMenuItem(this.mainViewModel.getCurrentNode().getUniqueId()));
-                    this.resetMenuToCurrentNode();
+                if (mainViewModel.getNodes().size() <= 2) {
+                    mainViewModel.setCurrentNode(reader.getSingleMenuItem(mainViewModel.getCurrentNode().getUniqueId()));
+                    resetMenuToCurrentNode();
                 } else {
-                    int targetNodePosition = this.mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
-                    int destinationNodePosition = this.mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
+                    int targetNodePosition = mainViewModel.getNodePositionInMenu(targetNodeUniqueID);
+                    int destinationNodePosition = mainViewModel.getNodePositionInMenu(destinationNodeUniqueID);
                     if (destinationNodePosition != -1) {
-                        this.mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
-                        this.adapter.notifyItemChanged(destinationNodePosition);
+                        mainViewModel.getNodes().get(destinationNodePosition).setHasSubnodes(true);
+                        adapter.notifyItemChanged(destinationNodePosition);
                     }
-                    this.mainViewModel.getNodes().remove(targetNodePosition);
-                    this.adapter.notifyItemRemoved(targetNodePosition);
+                    mainViewModel.getNodes().remove(targetNodePosition);
+                    adapter.notifyItemRemoved(targetNodePosition);
                 }
             }
         }
@@ -1252,9 +1134,9 @@ public class MainView extends AppCompatActivity {
         drawerLayout = findViewById(R.id.drawer_layout);
         actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.nav_open, R.string.nav_close);
         SearchView searchView = findViewById(R.id.navigation_drawer_search);
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         try {
-            this.reader = DatabaseReaderFactory.getReader(this, handler, sharedPreferences, mainViewModel);
+            reader = DatabaseReaderFactory.getReader(this, handler, sharedPreferences, mainViewModel);
         } catch (IOException | ParserConfigurationException | TransformerConfigurationException |
                  InterruptedException | SAXException | ExecutionException e) {
             Toast.makeText(this, R.string.toast_error_failed_to_initiate_reader, Toast.LENGTH_SHORT).show();
@@ -1361,8 +1243,8 @@ public class MainView extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (!isChangingConfigurations() && this.mainViewModel.getMultiDatabaseSync().getValue() != null) {
-            this.mainViewModel.getMultiDatabaseSync().getValue().cancel(true);
+        if (!isChangingConfigurations() && mainViewModel.getMultiDatabaseSync().getValue() != null) {
+            mainViewModel.getMultiDatabaseSync().getValue().cancel(true);
         }
     }
 
@@ -1376,7 +1258,7 @@ public class MainView extends AppCompatActivity {
             int itemID = item.getItemId();
             if (itemID == R.id.toolbar_button_edit_node) {
                 if (mainViewModel.getCurrentNode() != null) {
-                    this.openNodeEditor();
+                    openNodeEditor();
                 } else {
                     Toast.makeText(this, R.string.toast_message_please_open_a_node, Toast.LENGTH_SHORT).show();
                 }
@@ -1427,46 +1309,46 @@ public class MainView extends AppCompatActivity {
         // At this stage it is possible to load the content to the fragment after the screen rotation
         // at earlier point app will crash
         super.onResume();
-        if (this.mainViewModel.getCurrentNode() != null) {
-            this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
-            this.adapter.markItemSelected(this.currentNodePosition);
-            this.adapter.notifyItemChanged(this.currentNodePosition);
+        if (mainViewModel.getCurrentNode() != null) {
+            setToolbarTitle(mainViewModel.getCurrentNode().getName());
+            adapter.markItemSelected(currentNodePosition);
+            adapter.notifyItemChanged(currentNodePosition);
             // Even if LiveData can restore node content after screen rotation it has old context
             // and any clicks (like opening images) will cause a crash
-            this.loadNodeContent();
+            loadNodeContent();
         }
 
-        if (this.filterNodeToggle) {
-            this.hideNavigation(true);
+        if (filterNodeToggle) {
+            hideNavigation(true);
         }
 
-        if (this.bookmarksToggle) {
-            this.navigationNormalMode(false);
+        if (bookmarksToggle) {
+            navigationNormalMode(false);
         }
 
         // Restoring FindInNode variables to original state
-        if (this.findInNodeToggle) {
-            this.closeFindInNode();
+        if (findInNodeToggle) {
+            closeFindInNode();
         }
     }
 
     @Override
     public void onSaveInstanceState(@Nullable Bundle outState) {
         // Saving some variables to make it possible to restore the content after screen rotation
-        outState.putInt("currentNodePosition", this.currentNodePosition);
-        outState.putInt("tempCurrentNodePosition", this.tempCurrentNodePosition);
-        outState.putBoolean("bookmarksToggle", this.bookmarksToggle);
-        outState.putBoolean("filterNodeToggle", this.filterNodeToggle);
-        outState.putBoolean("findInNodeToggle", this.findInNodeToggle);
+        outState.putInt("currentNodePosition", currentNodePosition);
+        outState.putInt("tempCurrentNodePosition", tempCurrentNodePosition);
+        outState.putBoolean("bookmarksToggle", bookmarksToggle);
+        outState.putBoolean("filterNodeToggle", filterNodeToggle);
+        outState.putBoolean("findInNodeToggle", findInNodeToggle);
         super.onSaveInstanceState(outState);
     }
 
     @Override
     public void onStop() {
-        if (this.sharedPreferences.getBoolean("restore_last_node", false) && this.mainViewModel.getCurrentNode() != null) {
+        if (sharedPreferences.getBoolean("restore_last_node", false) && mainViewModel.getCurrentNode() != null) {
             // Saving current nodeUniqueID to be able to load it on next startup
-            SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
-            sharedPreferencesEditor.putString("last_node_unique_id", this.mainViewModel.getCurrentNode().getUniqueId());
+            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
+            sharedPreferencesEditor.putString("last_node_unique_id", mainViewModel.getCurrentNode().getUniqueId());
             sharedPreferencesEditor.apply();
         }
         super.onStop();
@@ -1478,14 +1360,14 @@ public class MainView extends AppCompatActivity {
      */
     public void openAnchorLink(ScNode node) {
         if (node != null) {
-            if (this.findInNodeToggle) {
+            if (findInNodeToggle) {
                 // Closes findInNode view to clear all variables
                 // Otherwise loaded node in some cases might display previous node's content
-                this.closeFindInNode();
+                closeFindInNode();
             }
-            this.mainViewModel.setCurrentNode(node);
-            this.resetMenuToCurrentNode();
-            this.loadNodeContent();
+            mainViewModel.setCurrentNode(node);
+            resetMenuToCurrentNode();
+            loadNodeContent();
         } else {
             Toast.makeText(this, R.string.toast_error_node_does_not_exists, Toast.LENGTH_SHORT).show();
         }
@@ -1496,11 +1378,11 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked by the user
      */
     public void openCloseBookmarks(View view) {
-        if (this.bookmarksToggle) {
+        if (bookmarksToggle) {
             // Showing normal menu
-            this.closeBookmarks();
+            closeBookmarks();
         } else {
-            this.showBookmarks();
+            showBookmarks();
         }
     }
 
@@ -1519,7 +1401,7 @@ public class MainView extends AppCompatActivity {
             File tmpAttachedFile = File.createTempFile(Filenames.getFileName(filename), "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
 
             // Writes Base64 encoded string to the temporary file
-            InputStream in = this.reader.getFileInputStream(nodeUniqueID, filename, time, control);
+            InputStream in = reader.getFileInputStream(nodeUniqueID, filename, time, control);
             FileOutputStream out = new FileOutputStream(tmpAttachedFile);
             byte[] buf = new byte[4 * 1024];
             int length;
@@ -1548,8 +1430,8 @@ public class MainView extends AppCompatActivity {
      * Sets FindInNode UI
      */
     private void openFindInNode() {
-        this.findInNodeToggle = true;
-        this.mainViewModel.findInNodeStorageToggle(true); // Created an array to store nodeContent
+        findInNodeToggle = true;
+        mainViewModel.findInNodeStorageToggle(true); // Created an array to store nodeContent
         ProgressBar progressBar = findViewById(R.id.find_in_node_progress_bar);
         progressBar.setProgress(0);
         LinearLayout findInNodeLinearLayout = findViewById(R.id.main_view_find_in_node_linear_layout);
@@ -1592,7 +1474,7 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, ImageViewFragment.class, bundle, "imageView")
                 .addToBackStack("imageView")
                 .commit();
-        this.disableDrawerMenu();
+        disableDrawerMenu();
     }
 
     /**
@@ -1636,7 +1518,7 @@ public class MainView extends AppCompatActivity {
     private void openNodeEditor() {
         Bundle bundle = new Bundle();
         ScrollView scrollView = findViewById(R.id.content_fragment_scrollview);
-        bundle.putString("nodeUniqueID", this.mainViewModel.getCurrentNode().getUniqueId());
+        bundle.putString("nodeUniqueID", mainViewModel.getCurrentNode().getUniqueId());
         bundle.putInt("scrollY", scrollView.getScrollY());
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
@@ -1708,15 +1590,129 @@ public class MainView extends AppCompatActivity {
      */
     private int openedNodePositionInDrawerMenu() {
         int position = -1;
-        if (this.mainViewModel.getCurrentNode() != null) {
-            for (int i = 0; i < this.mainViewModel.getNodes().size(); i++) {
-                if (this.mainViewModel.getCurrentNode().getUniqueId().equals(this.mainViewModel.getNodes().get(i).getUniqueId())) {
+        if (mainViewModel.getCurrentNode() != null) {
+            for (int i = 0; i < mainViewModel.getNodes().size(); i++) {
+                if (mainViewModel.getCurrentNode().getUniqueId().equals(mainViewModel.getNodes().get(i).getUniqueId())) {
                     position = i;
                     break;
                 }
             }
         }
         return position;
+    }
+
+    /**
+     * Registered ActivityResultLauncher launches a file chooser. If user select location - opens
+     * export dialog fragment for further configuration
+     * @return ActivityResultLauncher to select the location for database export
+     */
+    private ActivityResultLauncher<String> registerExportDatabaseDialogFragment() {
+        return registerForActivityResult(new ActivityResultContracts.CreateDocument("*/*"), result -> {
+            if (result != null) {
+                Bundle bundle = new Bundle();
+                bundle.putString("exportFileUri", result.toString());
+                ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+                exportDatabaseDialogFragment.setArguments(bundle);
+                exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+            }
+        });
+    }
+
+    /**
+     * Registered ActivityResultLauncher launches a file chooser to select a file to witch node
+     * will be exported to.
+     * @return ActivityResultLauncher to select the location for node PDF export
+     */
+    private ActivityResultLauncher<Intent> registerExportPdf() {
+        return registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == Activity.RESULT_OK) {
+                // If user actually chose a location to save a file
+                try {
+                    LinearLayout nodeContent = findViewById(R.id.content_fragment_linearlayout);
+                    PdfDocument document = new PdfDocument();
+                    int padding = 25; // It's used not only pad the document, but to calculate where title will be placed on the page
+                    int top = padding * 4; // This will used to move (translate) cursor where everything has to be drawn on canvas
+                    int width = nodeContent.getWidth(); // Width of the PDF page
+
+                    for (int i= 0; i < nodeContent.getChildCount(); i++) {
+                        // Going through all the views in node to find if there is a table
+                        // Tables might be wider than screen
+                        View v = nodeContent.getChildAt(i);
+                        if (v instanceof HorizontalScrollView) {
+                            // If table was encountered
+                            TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) v).getChildAt(0);
+                            if (tableLayout.getWidth() > width) {
+                                // If table is wider than normal view
+                                width = tableLayout.getWidth();
+
+                            }
+                        }
+                    }
+
+                    //* Creating a title view that will be drawn to PDF
+                    //** textPrimaryColor for the theme
+                    TypedValue typedValue = new TypedValue();
+                    getTheme().resolveAttribute(android.R.attr.textColorPrimary, typedValue, true);
+                    int color = ContextCompat.getColor(this, typedValue.resourceId);
+                    //**
+                    TextPaint paint = new TextPaint();
+                    paint.setColor(color);
+                    paint.setTextSize(50);
+
+                    StaticLayout title = StaticLayout.Builder.obtain(mainViewModel.getCurrentNode().getName(), 0, mainViewModel.getCurrentNode().getName().length(), paint, nodeContent.getWidth())
+                            .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                            .build();
+                    //*
+
+                    PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(width + (padding * 2), nodeContent.getHeight() + (padding * 4) + title.getHeight(), 1).create();
+                    PdfDocument.Page page = document.startPage(pageInfo);
+
+                    Canvas canvas = page.getCanvas();
+
+                    if ((getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
+                        // Changing background color of the canvas if drawing views from night mode
+                        // Otherwise text wont be visible
+                        canvas.drawColor(getColor(R.color.window_background));
+                    }
+
+                    //* Drawing title to the canvas
+                    canvas.save(); // Saves current coordinates system
+                    canvas.translate(padding, padding * 2); // Moves coordinate system
+                    title.draw(canvas);
+                    top += title.getHeight();
+                    canvas.restore();
+                    //*
+
+                    for (int i= 0; i < nodeContent.getChildCount(); i++) {
+                        View view = nodeContent.getChildAt(i);
+                        canvas.save(); // Saves current coordinates system
+                        canvas.translate(padding, top); // Moves coordinate system
+                        if (view instanceof HorizontalScrollView) {
+                            // If it is a table - TableLayout has to be drawn to canvas and not ScrollView
+                            // Otherwise only visible part of the table will be showed
+                            TableLayout tableLayout = (TableLayout) ((HorizontalScrollView) view).getChildAt(0);
+                            tableLayout.draw(canvas);
+                        } else {
+                            // TextView
+                            view.draw(canvas);
+                        }
+                        canvas.restore(); // Restores coordinates system to saved state
+                        top += view.getHeight();
+                    }
+
+                    document.finishPage(page);
+
+                    // Saving to file
+                    try (OutputStream outputStream = getContentResolver().openOutputStream(result.getData().getData(), "w")) { // Output file
+                        document.writeTo(outputStream);
+                    }
+                    // Cleaning up
+                    document.close();
+                } catch (Exception e) {
+                    Toast.makeText(this, R.string.toast_error_failed_to_export_node_to_pdf, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
     /**
@@ -1781,20 +1777,42 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
+     * Registered ActivityResultLauncher launches a file chooser that allows user to select a file
+     * for attachment to the node
+     * @return ActivityResultLauncher to a file to attach
+     */
+    private ActivityResultLauncher<String[]> registerSaveFile() {
+        return registerForActivityResult(new ReturnSelectedFileUriForSaving(), result -> {
+            if (result != null) {
+                try (InputStream inputStream = reader.getFileInputStream(result.getExtras().getString("nodeUniqueID"), result.getExtras().getString("filename"), result.getExtras().getString("time"), result.getExtras().getString("offset"));
+                     OutputStream outputStream = getContentResolver().openOutputStream(result.getData(), "w")) {
+                    byte[] buf = new byte[4 * 1024];
+                    int length;
+                    while ((length = inputStream.read(buf)) != -1) {
+                        outputStream.write(buf, 0, length);
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(this, R.string.toast_error_failed_to_save_file, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    /**
      * Removes node from bookmark list
      * Updates drawer menu if bookmarks are being displayed
      * @param nodeUniqueID unique ID of the node which to remove from bookmarks
      * @param position position of the node in drawer menu as reported by MenuItemAdapter
      */
     private void removeNodeFromBookmarks(String nodeUniqueID, int position) {
-        this.reader.removeNodeFromBookmarks(nodeUniqueID);
-        if (this.bookmarksToggle) {
-            Iterator<ScNode> iterator = this.mainViewModel.getNodes().iterator();
+        reader.removeNodeFromBookmarks(nodeUniqueID);
+        if (bookmarksToggle) {
+            Iterator<ScNode> iterator = mainViewModel.getNodes().iterator();
             while(iterator.hasNext()) {
                 ScNode node = iterator.next();
                 if (node.getUniqueId().equals(nodeUniqueID)) {
                     iterator.remove();
-                    this.adapter.notifyItemRemoved(position);
+                    adapter.notifyItemRemoved(position);
                     break;
                 }
             }
@@ -1806,7 +1824,7 @@ public class MainView extends AppCompatActivity {
      * @param nodeUniqueID unique ID of the node to search for
      */
     private void removeNodeFromTempNodes(String nodeUniqueID) {
-        Iterator<ScNode> iterator = this.mainViewModel.getTempNodes().iterator();
+        Iterator<ScNode> iterator = mainViewModel.getTempNodes().iterator();
         while (iterator.hasNext()) {
             ScNode currentNode = iterator.next();
             if (currentNode.getUniqueId().equals(nodeUniqueID)) {
@@ -1821,7 +1839,7 @@ public class MainView extends AppCompatActivity {
      * @param nodeUniqueID unique ID of the node that was deleted
      */
     private void removeNodeFromTempSearchNodes(String nodeUniqueID) {
-        Iterator<ScNode> iterator = this.mainViewModel.getTempSearchNodes().iterator();
+        Iterator<ScNode> iterator = mainViewModel.getTempSearchNodes().iterator();
         while (iterator.hasNext()) {
             ScNode currentNode = iterator.next();
             if (currentNode.getUniqueId().equals(nodeUniqueID)) {
@@ -1865,7 +1883,7 @@ public class MainView extends AppCompatActivity {
             for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
                 View view = contentFragmentLinearLayout.getChildAt(i);
                 if (view instanceof TextView) {
-                    SpannableStringBuilder originalText = new SpannableStringBuilder(this.mainViewModel.getTextViewContent(counter));
+                    SpannableStringBuilder originalText = new SpannableStringBuilder(mainViewModel.getTextViewContent(counter));
                     ((TextView) view).setText(originalText);
                     counter++;
                 } else if (view instanceof HorizontalScrollView) {
@@ -1917,8 +1935,8 @@ public class MainView extends AppCompatActivity {
      * sets toolbar title to currently opened node name
      */
     public void returnFromFragmentWithHomeButtonAndRestoreTitle() {
-        if (this.mainViewModel.getCurrentNode() != null) {
-            this.setToolbarTitle(this.mainViewModel.getCurrentNode().getName());
+        if (mainViewModel.getCurrentNode() != null) {
+            setToolbarTitle(mainViewModel.getCurrentNode().getName());
         }
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
         getOnBackPressedDispatcher().onBackPressed();
@@ -1941,7 +1959,7 @@ public class MainView extends AppCompatActivity {
             // Otherwise app will crash while trying to save the file
             fileMimeType = "*/*";
         }
-        String saveOpenFilePreference = this.sharedPreferences.getString("preferences_save_open_file", "Ask");
+        String saveOpenFilePreference = sharedPreferences.getString("preferences_save_open_file", "Ask");
         if (saveOpenFilePreference.equals("Ask")) {
             // Setting up to send arguments to Dialog Fragment
             Bundle bundle = new Bundle();
@@ -1960,7 +1978,7 @@ public class MainView extends AppCompatActivity {
             saveFile.launch(new String[]{fileMimeType, nodeUniqueID, attachedFileFilename, time});
         } else {
             // Opens file with intent for other apps
-            this.openFile(fileMimeType, nodeUniqueID, attachedFileFilename, time, control);
+            openFile(fileMimeType, nodeUniqueID, attachedFileFilename, time, control);
         }
     }
 
@@ -1984,7 +2002,7 @@ public class MainView extends AppCompatActivity {
     /**
      * Sets current node as opened in drawer menu
      * by finding it's nodeUniqueID in drawer menu items
-     * and setting it's index as this.currentNodePosition
+     * and setting it's index as currentNodePosition
      */
     private void setCurrentNodePosition() {
         for (int index = 0; index < mainViewModel.getNodes().size(); index++) {
@@ -2029,7 +2047,7 @@ public class MainView extends AppCompatActivity {
      * Displays bookmarks instead of normal navigation menu in navigation drawer
      */
     private void showBookmarks() {
-        ArrayList<ScNode> bookmarkedNodes = this.reader.getBookmarkedNodes();
+        ArrayList<ScNode> bookmarkedNodes = reader.getBookmarkedNodes();
         // Check if there are any bookmarks
         // If no bookmarks were found a message is displayed
         // No other action is taken
@@ -2037,17 +2055,17 @@ public class MainView extends AppCompatActivity {
             Toast.makeText(this, R.string.toast_no_bookmarks_message, Toast.LENGTH_SHORT).show();
         } else {
             // Displaying bookmarks
-            this.navigationNormalMode(false);
+            navigationNormalMode(false);
             // Saving current state of the menu
-            this.mainViewModel.saveCurrentNodes();
-            this.tempCurrentNodePosition = this.currentNodePosition;
+            mainViewModel.saveCurrentNodes();
+            tempCurrentNodePosition = currentNodePosition;
 
             // Displaying bookmarks
-            this.mainViewModel.setNodes(bookmarkedNodes);
-            this.currentNodePosition = this.openedNodePositionInDrawerMenu();
-            this.adapter.markItemSelected(this.currentNodePosition);
-            this.adapter.notifyDataSetChanged();
-            this.bookmarksToggle = true;
+            mainViewModel.setNodes(bookmarkedNodes);
+            currentNodePosition = openedNodePositionInDrawerMenu();
+            adapter.markItemSelected(currentNodePosition);
+            adapter.notifyDataSetChanged();
+            bookmarksToggle = true;
         }
     }
 
@@ -2057,7 +2075,7 @@ public class MainView extends AppCompatActivity {
      * @param show true - show progress bar, false - hide progress bar
      */
     private void showHideProgressBar(boolean show) {
-        this.handler.post(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
                 if (show) {
@@ -2089,12 +2107,12 @@ public class MainView extends AppCompatActivity {
      * Loads it to the MultiReader.
      */
     private void updateDrawerMenu() {
-        if (this.mainViewModel.getMultiDatabaseSync().getValue() != null) {
+        if (mainViewModel.getMultiDatabaseSync().getValue() != null) {
             Toast.makeText(this, R.string.toast_error_scan_already_in_progress, Toast.LENGTH_SHORT).show();
             return;
         }
         try {
-            this.mainViewModel.getMultiDatabaseSync().postValue(this.executor.schedule(new CollectNodesBackgroundRunnable(
+            mainViewModel.getMultiDatabaseSync().postValue(executor.schedule(new CollectNodesBackgroundRunnable(
                     Uri.parse(sharedPreferences.getString("databaseUri", null)),
                     MainView.this,
                     new NodesCollectedCallback() {
@@ -2149,7 +2167,7 @@ public class MainView extends AppCompatActivity {
         } catch (ParserConfigurationException e) {
             Toast.makeText(MainView.this, R.string.toast_error_failed_update_drawer_menu, Toast.LENGTH_SHORT).show();
             showHideProgressBar(false);
-            this.mainViewModel.getMultiDatabaseSync().postValue(null);
+            mainViewModel.getMultiDatabaseSync().postValue(null);
         }
     }
 
@@ -2162,7 +2180,7 @@ public class MainView extends AppCompatActivity {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                findInNodeEditTextMarkedIndex.setText(String.valueOf(MainView.this.currentFindInNodeMarked + 1));
+                findInNodeEditTextMarkedIndex.setText(String.valueOf(currentFindInNodeMarked + 1));
                 progressBar.setProgress(currentFindInNodeMarked + 1);
             }
         });
@@ -2180,7 +2198,7 @@ public class MainView extends AppCompatActivity {
      */
     public void updateNodeProperties(int position, String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh, boolean reloadNodeContent) {
         getSupportFragmentManager().popBackStack();
-        this.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
         getSupportActionBar().show();
         DatabaseReaderFactory.getReader().updateNodeProperties(nodeUniqueID, name, progLang, noSearchMe, noSearchCh);
         // updates drawerMenu items properties for shared nodes
@@ -2192,13 +2210,13 @@ public class MainView extends AppCompatActivity {
                 adapter.notifyItemChanged(i);
             }
         }
-        if (this.mainViewModel.getCurrentNode() != null && this.mainViewModel.getNodes().get(position).getUniqueId().equals(this.mainViewModel.getCurrentNode().getUniqueId())) {
+        if (mainViewModel.getCurrentNode() != null && mainViewModel.getNodes().get(position).getUniqueId().equals(mainViewModel.getCurrentNode().getUniqueId())) {
             // If opened node was changed - reloads node name in toolbar
             // and reloads node content if reloadNodeContent is true
-            this.mainViewModel.getCurrentNode().setName(name);
-            this.setToolbarTitle(name);
+            mainViewModel.getCurrentNode().setName(name);
+            setToolbarTitle(name);
             if (reloadNodeContent) {
-                this.loadNodeContent();
+                loadNodeContent();
             }
         }
     }
