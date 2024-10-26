@@ -68,19 +68,19 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             databaseDir = new File(getContext().getFilesDir(), "databases");
         }
 
-        String databaseOutputFile = databaseDir.getPath() + "/" + this.sharedPreferences.getString("databaseFilename", null);
-        Uri databaseUri = Uri.parse(this.sharedPreferences.getString("databaseUri", null));
-        this.totalLen = 0;
+        String databaseOutputFile = databaseDir.getPath() + "/" + sharedPreferences.getString("databaseFilename", null);
+        Uri databaseUri = Uri.parse(sharedPreferences.getString("databaseUri", null));
+        totalLen = 0;
 
         try (
                 InputStream databaseInputStream = getContext().getContentResolver().openInputStream(databaseUri);
                 OutputStream databaseOutputStream = new FileOutputStream(databaseOutputFile, false);
                 ){
-            this.fileSize = databaseInputStream.available();
+            fileSize = databaseInputStream.available();
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
+                    progressBar.setIndeterminate(false);
                 }
             });
 
@@ -89,10 +89,9 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             int len;
             while ((len = databaseInputStream.read(buf)) > 0) {
                 databaseOutputStream.write(buf, 0, len);
-                OpenDatabaseProgressDialogFragment.this.updateProgressBar(len);
+                updateProgressBar(len);
             }
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
             handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -108,7 +107,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         }
 
         //// Creating new settings
-        SharedPreferences.Editor sharedPrefEditor = this.sharedPreferences.edit();
+        SharedPreferences.Editor sharedPrefEditor = sharedPreferences.edit();
         sharedPrefEditor.putString("databaseStorageType", "internal");
         // This is not a real Uri, so don't try to use it, but I use it to check if database should be opened automatically
         sharedPrefEditor.putString("databaseUri", databaseOutputFile);
@@ -130,14 +129,14 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         }
 
         String tmpDatabaseFilename;
-        this.totalLen = 0;
+        totalLen = 0;
 
         try {
             //// Copying file to temporary internal apps storage (cache)
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_copying_database_message);
+                    message.setText(R.string.open_database_fragment_copying_database_message);
                 }
             });
 
@@ -147,16 +146,16 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
+                    progressBar.setIndeterminate(false);
                 }
             });
             // Copying files
-            this.fileSize = is.available();
+            fileSize = is.available();
             byte[] buf = new byte[4 * 1024];
             int len;
             while ((len = is.read(buf)) > 0) {
                 os.write(buf, 0, len);
-                this.updateProgressBar(len);
+                updateProgressBar(len);
             }
             ////
             is.close();
@@ -166,8 +165,8 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_extracting_database_message);
-                    OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(0);
+                    message.setText(R.string.open_database_fragment_extracting_database_message);
+                    progressBar.setProgress(0);
                 }
             });
 
@@ -180,8 +179,8 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             // At some point filenames inside CherryTree password protected archives were changed to include a random(?) integer
             // in the middle of the filename. To make it look normal again I had to remove it
             tmpDatabaseFilename = Filenames.getFileName(tmpDatabaseFilename) + "." + Filenames.getFileExtension(tmpDatabaseFilename); // Joining first and last part of the filename array
-            this.totalLen = 0; // Resetting totalLen value
-            this.fileSize = Long.parseLong(inArchive.getStringProperty(0, PropID.SIZE));
+            totalLen = 0; // Resetting totalLen value
+            fileSize = Long.parseLong(inArchive.getStringProperty(0, PropID.SIZE));
             // Writing data
             SequentialOutStream sequentialOutStream = new SequentialOutStream();
             sequentialOutStream.openOutputStream(new File(databaseDir, tmpDatabaseFilename));
@@ -194,7 +193,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             //// Creating new settings
             // Saved Uri is not a real Uri, so don't try to use it.
             // The only reason to save it here is, that I'm using it to check if database should be opened automatically
-            this.saveDatabaseToPrefs("internal", tmpDatabaseFilename, Filenames.getFileExtension(tmpDatabaseFilename), databaseDir.getPath() + "/" + tmpDatabaseFilename);
+            saveDatabaseToPrefs("internal", tmpDatabaseFilename, Filenames.getFileExtension(tmpDatabaseFilename), databaseDir.getPath() + "/" + tmpDatabaseFilename);
             ////
         } catch (FileNotFoundException e) {
             handler.post(new Runnable() {
@@ -203,7 +202,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                     Toast.makeText(getContext(), R.string.toast_error_database_does_not_exists, Toast.LENGTH_SHORT).show();
                 }
             });
-            this.dismiss();
+            dismiss();
         } catch (IOException e) {
             handler.post(new Runnable() {
                 @Override
@@ -211,7 +210,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
                     Toast.makeText(getContext(), R.string.toast_error_failed_to_extract_database, Toast.LENGTH_SHORT).show();
                 }
             });
-            this.dismiss();
+            dismiss();
         }
     }
 
@@ -235,12 +234,12 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         setCancelable(false); // Not allowing user to cancel the the dialog fragment
 
         // Setting up variables
-        this.progressBar = view.findViewById(R.id.progress_fragment_progressBar);
-        this.message = view.findViewById(R.id.progress_fragment_message);
+        progressBar = view.findViewById(R.id.progress_fragment_progressBar);
+        message = view.findViewById(R.id.progress_fragment_message);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
-        this.executor = appContainer.executor;
-        this.handler = appContainer.handler;
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        executor = appContainer.executor;
+        handler = appContainer.handler;
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         // Create the AlertDialog object and return it
         return builder.create();
@@ -255,15 +254,15 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        String databaseFileExtension = this.sharedPreferences.getString("databaseFileExtension", null);
+        String databaseFileExtension = sharedPreferences.getString("databaseFileExtension", null);
 
         if (databaseFileExtension.equals("ctb")) {
-            this.message.setText(R.string.open_database_fragment_copying_database_message);
+            message.setText(R.string.open_database_fragment_copying_database_message);
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.copyDatabaseToAppSpecificStorage();
-                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
+                    copyDatabaseToAppSpecificStorage();
+                    getDialog().cancel();
                 }
             });
         }
@@ -271,8 +270,8 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    OpenDatabaseProgressDialogFragment.this.extractDatabase();
-                    OpenDatabaseProgressDialogFragment.this.getDialog().cancel();
+                    extractDatabase();
+                    getDialog().cancel();
                 }
             });
         }
@@ -287,7 +286,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
      */
     private void saveDatabaseToPrefs(String databaseStorageType, String databaseFilename, String databaseFileExtension, String databaseUri) {
         // Saves passed information about database to preferences
-        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
         sharedPreferencesEditor.putString("databaseStorageType", databaseStorageType);
         sharedPreferencesEditor.putString("databaseFilename", databaseFilename);
         sharedPreferencesEditor.putString("databaseFileExtension", databaseFileExtension);
@@ -300,12 +299,12 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
      * @param len amount of data that was consumed
      */
     private void updateProgressBar(int len) {
-        this.totalLen += len;
-        int percent = (int) (this.totalLen * 100 / this.fileSize);
-        this.handler.post(new Runnable() {
+        totalLen += len;
+        int percent = (int) (totalLen * 100 / fileSize);
+        handler.post(new Runnable() {
             @Override
             public void run() {
-                OpenDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+                progressBar.setProgress(percent);
             }
         });
     }
@@ -321,7 +320,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
          */
         public void closeOutputStream() {
             try {
-                this.fileOutputStream.close();
+                fileOutputStream.close();
             } catch (IOException e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_close_extraction_output_stream, Toast.LENGTH_SHORT).show();
             }
@@ -333,7 +332,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
          */
         public void openOutputStream(File file) {
             try {
-                this.fileOutputStream = new FileOutputStream(file, false);
+                fileOutputStream = new FileOutputStream(file, false);
             } catch (FileNotFoundException e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_open_extraction_output_stream, Toast.LENGTH_SHORT).show();
             }
@@ -348,8 +347,8 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
         @Override
         public int write(byte[] data) throws SevenZipException {
             try {
-                this.fileOutputStream.write(data);
-                OpenDatabaseProgressDialogFragment.this.updateProgressBar(data.length);
+                fileOutputStream.write(data);
+                updateProgressBar(data.length);
             } catch (IOException e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_extract_database, Toast.LENGTH_SHORT).show();
             }
