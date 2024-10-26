@@ -90,12 +90,12 @@ public class SearchFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_search, container, false);
-        this.searchProgressBar = view.findViewById(R.id.search_fragment_progressBar);
-        this.searchResultLinearLayout = view.findViewById(R.id.search_fragment_results_linear_layout);
-        this.resultCount = view.findViewById(R.id.search_fragment_result_count);
+        searchProgressBar = view.findViewById(R.id.search_fragment_progressBar);
+        searchResultLinearLayout = view.findViewById(R.id.search_fragment_results_linear_layout);
+        resultCount = view.findViewById(R.id.search_fragment_result_count);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
-        this.handler = appContainer.handler;
-        this.executor = appContainer.executor;
+        handler = appContainer.handler;
+        executor = appContainer.executor;
         return view;
     }
 
@@ -120,7 +120,7 @@ public class SearchFragment extends Fragment {
                 return false;
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBackPressedCallback);
 
         // Checkmark for user to choose if searcher should skip "excluded" nodes
         CheckBox checkBoxExclude = view.findViewById(R.id.search_fragment_checkbox_exclude);
@@ -140,10 +140,10 @@ public class SearchFragment extends Fragment {
                 // submits a search request to searcher only when user presses the button
                 // gets current value of checkbox as boolean to pass it to searcher
                 // boolean tells if search should skip "excluded" nodes or not
-                SearchFragment.this.executor.execute(new Runnable() {
+                executor.execute(new Runnable() {
                     @Override
                     public void run() {
-                        SearchFragment.this.search(checkBoxExclude.isChecked(), query.toLowerCase());
+                        search(checkBoxExclude.isChecked(), query.toLowerCase());
                     }
                 });
                 return true;
@@ -157,29 +157,29 @@ public class SearchFragment extends Fragment {
      * @param query string to search for
      */
     private void search(Boolean noSearch, String query) {
-        this.handler.post(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
-                SearchFragment.this.searchProgressBar.setVisibility(View.VISIBLE);
+                searchProgressBar.setVisibility(View.VISIBLE);
             }
         });
 
-        LayoutInflater layoutInflater = this.getLayoutInflater();
+        LayoutInflater layoutInflater = getLayoutInflater();
 
-        this.handler.post(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
-                SearchFragment.this.searchResultLinearLayout.removeAllViews();
+                searchResultLinearLayout.removeAllViews();
             }
         });
 
         ArrayList<ScSearchNode> searchResult = DatabaseReaderFactory.getReader().search(noSearch, query);
 
-        this.handler.post(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
-                SearchFragment.this.resultCount.setText(getString(R.string.options_menu_search_result_count, searchResult.size()));
-                SearchFragment.this.resultCount.setVisibility(View.VISIBLE);
+                resultCount.setText(getString(R.string.options_menu_search_result_count, searchResult.size()));
+                resultCount.setVisibility(View.VISIBLE);
             }
         });
 
@@ -218,18 +218,18 @@ public class SearchFragment extends Fragment {
                         ((MainView) getActivity()).openSearchResult(result);
                     }
                 });
-                this.handler.post(new Runnable() {
+                handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        SearchFragment.this.searchResultLinearLayout.addView(searchResultItem);
+                        searchResultLinearLayout.addView(searchResultItem);
                     }
                 });
             }
         }
-        this.handler.post(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
-                SearchFragment.this.searchProgressBar.setVisibility(View.INVISIBLE);
+                searchProgressBar.setVisibility(View.INVISIBLE);
             }
         });
     }
