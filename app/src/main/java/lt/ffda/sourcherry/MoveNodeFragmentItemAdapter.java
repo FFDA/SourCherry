@@ -54,7 +54,7 @@ public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFr
         boolean nodeIsSubnode = nodeList.get(position).isSubnode();
 
         // Setting selected items background color
-        holder.itemView.setBackgroundColor(selectedPosition == position ? this.context.getResources().getColor(R.color.cherry_red_500, this.context.getTheme()) : Color.TRANSPARENT);
+        holder.itemView.setBackgroundColor(selectedPosition == position ? context.getResources().getColor(R.color.cherry_red_500, context.getTheme()) : Color.TRANSPARENT);
 
         ImageView menuItemPadding = holder.menuItemPadding;
         ImageView menuItemArrow = holder.menuItemArrow;
@@ -71,7 +71,6 @@ public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFr
         // Adding arrow that make menu item took differently to indicate that this node is a parent (top) node
         if (nodeIsParent) {
             menuItemArrow.setVisibility(View.VISIBLE);
-//            menuItemArrow.setImageDrawable((ContextCompat.getDrawable(holder.itemView.getContext(), R.drawable.ic_baseline_arrow_is_parent_24))); // Leaving this as a reminder
             menuItemArrow.setImageResource(R.drawable.ic_baseline_arrow_is_parent_24);
         }
 
@@ -119,10 +118,10 @@ public class MoveNodeFragmentItemAdapter extends RecyclerView.Adapter<MoveNodeFr
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
 
-            this.menuItemPadding = itemView.findViewById(R.id.menu_item_padding);
-            this.menuItemArrow = itemView.findViewById(R.id.menu_item_arrow);
-            this.menuItemText = itemView.findViewById(R.id.menu_item_name);
-            this.menuItemLinearLayout = itemView.findViewById(R.id.menu_linear_layout);
+            menuItemPadding = itemView.findViewById(R.id.menu_item_padding);
+            menuItemArrow = itemView.findViewById(R.id.menu_item_arrow);
+            menuItemText = itemView.findViewById(R.id.menu_item_name);
+            menuItemLinearLayout = itemView.findViewById(R.id.menu_linear_layout);
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
