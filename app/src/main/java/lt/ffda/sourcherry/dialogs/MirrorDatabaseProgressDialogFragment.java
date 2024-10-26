@@ -75,18 +75,18 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
 
     private void copyDatabaseToAppSpecificStorage() {
         // Set directory where database will be saved depending on user's choice in options menu
-        String databaseOutputFile = this.sharedPreferences.getString("databaseUri", null);
+        String databaseOutputFile = sharedPreferences.getString("databaseUri", null);
         Uri databaseUri = Uri.parse(getArguments().getString("mirrorDatabaseUri"));
-        this.totalLen = 0;
+        totalLen = 0;
 
         try {
             InputStream databaseInputStream = getContext().getContentResolver().openInputStream(databaseUri);
             OutputStream databaseOutputStream = new FileOutputStream(databaseOutputFile, false);
-            this.fileSize = databaseInputStream.available();
+            fileSize = databaseInputStream.available();
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    MirrorDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
+                    progressBar.setIndeterminate(false);
                 }
             });
 
@@ -95,13 +95,12 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             int len;
             while ((len = databaseInputStream.read(buf)) > 0) {
                 databaseOutputStream.write(buf, 0, len);
-                MirrorDatabaseProgressDialogFragment.this.updateProgressBar(len);
+                updateProgressBar(len);
             }
 
             databaseInputStream.close();
             databaseOutputStream.close();
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
             handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -116,19 +115,19 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             getDialog().dismiss();
         }
 
-        this.saveDatabaseToPrefs(getArguments().getLong("mirrorDatabaseLastModified"));
+        saveDatabaseToPrefs(getArguments().getLong("mirrorDatabaseLastModified"));
     }
 
     private void extractDatabase(String password) {
         String databaseString = getArguments().getString("mirrorDatabaseUri");
-        this.totalLen = 0;
+        totalLen = 0;
 
         try {
             //// Copying file to temporary internal apps storage (cache)
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    MirrorDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_copying_database_message);
+                    message.setText(R.string.open_database_fragment_copying_database_message);
                 }
             });
 
@@ -138,16 +137,16 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    MirrorDatabaseProgressDialogFragment.this.progressBar.setIndeterminate(false);
+                    progressBar.setIndeterminate(false);
                 }
             });
             // Copying files
-            this.fileSize = is.available();
+            fileSize = is.available();
             byte[] buf = new byte[4 * 1024];
             int len;
             while ((len = is.read(buf)) > 0) {
                 os.write(buf, 0, len);
-                MirrorDatabaseProgressDialogFragment.this.updateProgressBar(len);
+                updateProgressBar(len);
             }
             ////
             is.close();
@@ -157,8 +156,8 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    MirrorDatabaseProgressDialogFragment.this.message.setText(R.string.open_database_fragment_extracting_database_message);
-                    MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(0);
+                    message.setText(R.string.open_database_fragment_extracting_database_message);
+                    progressBar.setProgress(0);
                 }
             });
 
@@ -167,12 +166,12 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             RandomAccessFileInStream inStream = new RandomAccessFileInStream(randomAccessFile);
             IInArchive inArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, inStream);
 
-            this.totalLen = 0; // Resetting totalLen value
-            this.fileSize = Long.parseLong(inArchive.getStringProperty(0, PropID.SIZE));
+            totalLen = 0; // Resetting totalLen value
+            fileSize = Long.parseLong(inArchive.getStringProperty(0, PropID.SIZE));
 
             // Writing data
             SequentialOutStream sequentialOutStream = new SequentialOutStream();
-            sequentialOutStream.openOutputStream(new File(this.sharedPreferences.getString("databaseUri", null)));
+            sequentialOutStream.openOutputStream(new File(sharedPreferences.getString("databaseUri", null)));
             inArchive.extractSlow(0, sequentialOutStream, password); // Extracting file
 
             // Cleaning up
@@ -181,7 +180,7 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
             inStream.close();
 
             // Saving new LastModified datetime string to preferences
-            this.saveDatabaseToPrefs(getArguments().getLong("mirrorDatabaseLastModified"));
+            saveDatabaseToPrefs(getArguments().getLong("mirrorDatabaseLastModified"));
         } catch (FileNotFoundException e) {
             handler.post(new Runnable() {
                 @Override
@@ -189,7 +188,7 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                     Toast.makeText(getContext(), R.string.toast_error_database_does_not_exists, Toast.LENGTH_SHORT).show();
                 }
             });
-            this.dismiss();
+            dismiss();
         } catch (IOException e) {
             handler.post(new Runnable() {
                 @Override
@@ -197,13 +196,13 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                     Toast.makeText(getContext(), R.string.toast_error_failed_to_extract_database, Toast.LENGTH_SHORT).show();
                 }
             });
-            this.dismiss();
+            dismiss();
         }
     }
 
     @Override
     public void onCancel(@NonNull DialogInterface dialog) {
-        if (this.sharedPreferences.getBoolean("checkboxAutoOpen", false)) {
+        if (sharedPreferences.getBoolean("checkboxAutoOpen", false)) {
             ((MainActivity) getActivity()).startMainViewActivity();
         }
         dismissNow();
@@ -224,16 +223,16 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
         setCancelable(false); // Not allowing user to cancel the the dialog fragment
 
         // Setting up variables
-        this.progressBar = view.findViewById(R.id.mirror_database_progress_fragment_progressBar);
-        this.message = view.findViewById(R.id.mirror_database_progress_fragment_message);
-        this.passwordTextedit = view.findViewById(R.id.mirror_database_progress_fragment_password_textedit);
-        this.buttonLayout = view.findViewById(R.id.mirror_database_progress_fragment_button_layout);
-        this.buttonOK = view.findViewById(R.id.mirror_database_progress_fragment_password_button_ok);
-        this.buttonCancel = view.findViewById(R.id.mirror_database_progress_fragment_password_button_cancel);
+        progressBar = view.findViewById(R.id.mirror_database_progress_fragment_progressBar);
+        message = view.findViewById(R.id.mirror_database_progress_fragment_message);
+        passwordTextedit = view.findViewById(R.id.mirror_database_progress_fragment_password_textedit);
+        buttonLayout = view.findViewById(R.id.mirror_database_progress_fragment_button_layout);
+        buttonOK = view.findViewById(R.id.mirror_database_progress_fragment_password_button_ok);
+        buttonCancel = view.findViewById(R.id.mirror_database_progress_fragment_password_button_cancel);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
-        this.executor = appContainer.executor;
-        this.handler = appContainer.handler;
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        executor = appContainer.executor;
+        handler = appContainer.handler;
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         // Create the AlertDialog object and return it
         return builder.create();
@@ -251,25 +250,25 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
         String databaseFileExtension = getArguments().getString("mirrorDatabaseFileExtension");
 
         if (databaseFileExtension.equals("ctb")) {
-            this.message.setText(R.string.open_database_fragment_copying_database_message);
+            message.setText(R.string.open_database_fragment_copying_database_message);
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    MirrorDatabaseProgressDialogFragment.this.copyDatabaseToAppSpecificStorage();
-                    MirrorDatabaseProgressDialogFragment.this.getDialog().cancel();
+                    copyDatabaseToAppSpecificStorage();
+                    getDialog().cancel();
                 }
             });
         }
         if (databaseFileExtension.equals("ctz") || databaseFileExtension.equals("ctx")) {
-            this.passwordTextedit.setVisibility(View.VISIBLE);
-            this.buttonLayout.setVisibility(View.VISIBLE);
+            passwordTextedit.setVisibility(View.VISIBLE);
+            buttonLayout.setVisibility(View.VISIBLE);
 
             //// Code to show keyboard
             InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-            this.passwordTextedit.requestFocus();
+            passwordTextedit.requestFocus();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 // Shows keyboard on API 30 (Android 11) reliably
-                WindowCompat.getInsetsController(getDialog().getWindow(), this.passwordTextedit).show(WindowInsetsCompat.Type.ime());
+                WindowCompat.getInsetsController(getDialog().getWindow(), passwordTextedit).show(WindowInsetsCompat.Type.ime());
             } else {
                 new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                     // Delays to show soft keyboard by few milliseconds
@@ -277,35 +276,35 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
                     // It's a bit hacky (should be fixed)
                     @Override
                     public void run() {
-                        imm.showSoftInput(MirrorDatabaseProgressDialogFragment.this.passwordTextedit, InputMethodManager.SHOW_IMPLICIT);
+                        imm.showSoftInput(passwordTextedit, InputMethodManager.SHOW_IMPLICIT);
                     }
                 }, 20);
             }
             ////
 
-            this.message.setText(R.string.mirror_database_fragment_enter_password_message);
+            message.setText(R.string.mirror_database_fragment_enter_password_message);
 
-            this.buttonOK.setOnClickListener(new View.OnClickListener() {
+            buttonOK.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    MirrorDatabaseProgressDialogFragment.this.runExtractDatabase();
+                    runExtractDatabase();
                 }
             });
 
-            this.buttonCancel.setOnClickListener(new View.OnClickListener() {
+            buttonCancel.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    MirrorDatabaseProgressDialogFragment.this.dismiss();
+                    dismiss();
                 }
             });
 
-            this.passwordTextedit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            passwordTextedit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                 @Override
                 public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                     boolean handle = false;
                     if (actionId == EditorInfo.IME_ACTION_DONE) {
                         handle = true;
-                        MirrorDatabaseProgressDialogFragment.this.runExtractDatabase();
+                        runExtractDatabase();
                     }
                     return handle;
                 }
@@ -320,15 +319,15 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
      */
     private void runExtractDatabase() {
         InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-        String password = MirrorDatabaseProgressDialogFragment.this.passwordTextedit.getText().toString();
-        imm.hideSoftInputFromWindow(MirrorDatabaseProgressDialogFragment.this.passwordTextedit.getWindowToken(), 0); // Hides keyboard
-        MirrorDatabaseProgressDialogFragment.this.passwordTextedit.setVisibility(View.GONE);
-        MirrorDatabaseProgressDialogFragment.this.buttonLayout.setVisibility(View.GONE);
+        String password = passwordTextedit.getText().toString();
+        imm.hideSoftInputFromWindow(passwordTextedit.getWindowToken(), 0); // Hides keyboard
+        passwordTextedit.setVisibility(View.GONE);
+        buttonLayout.setVisibility(View.GONE);
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                MirrorDatabaseProgressDialogFragment.this.extractDatabase(password);
-                MirrorDatabaseProgressDialogFragment.this.getDialog().cancel();
+                extractDatabase(password);
+                getDialog().cancel();
             }
         });
     }
@@ -339,7 +338,7 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
      */
     private void saveDatabaseToPrefs(long mirrorDatabaseLastModified) {
         // Saves passed information about database to preferences
-        SharedPreferences.Editor sharedPreferencesEditor = this.sharedPreferences.edit();
+        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
         sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", mirrorDatabaseLastModified);
         sharedPreferencesEditor.apply();
     }
@@ -349,12 +348,12 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
      * @param len amount of data that was consumed
      */
     private void updateProgressBar(int len) {
-        this.totalLen += len;
-        int percent = (int) (this.totalLen * 100 / this.fileSize);
-        this.handler.post(new Runnable() {
+        totalLen += len;
+        int percent = (int) (totalLen * 100 / fileSize);
+        handler.post(new Runnable() {
             @Override
             public void run() {
-                MirrorDatabaseProgressDialogFragment.this.progressBar.setProgress(percent);
+                progressBar.setProgress(percent);
             }
         });
     }
@@ -370,7 +369,7 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
          */
         public void closeOutputStream() {
             try {
-                this.fileOutputStream.close();
+                fileOutputStream.close();
             } catch (Exception e) {
                 handler.post(new Runnable() {
                     @Override
@@ -387,7 +386,7 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
          */
         public void openOutputStream(File file) {
             try {
-                this.fileOutputStream = new FileOutputStream(file, false);
+                fileOutputStream = new FileOutputStream(file, false);
             } catch (FileNotFoundException e) {
                 handler.post(new Runnable() {
                     @Override
@@ -407,8 +406,8 @@ public class MirrorDatabaseProgressDialogFragment extends DialogFragment {
         @Override
         public int write(byte[] data) throws SevenZipException {
             try {
-                this.fileOutputStream.write(data);
-                MirrorDatabaseProgressDialogFragment.this.updateProgressBar(data.length);
+                fileOutputStream.write(data);
+                updateProgressBar(data.length);
             } catch (Exception e) {
                 handler.post(new Runnable() {
                     @Override
