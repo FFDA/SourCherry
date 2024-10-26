@@ -234,19 +234,19 @@ public class NodeContentFragment extends Fragment {
         super.onCreateView(inflater, container, savedInstanceState);
         View rootView = inflater.inflate(R.layout.fragment_node_content, container, false);
 
-        this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
-        this.contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
-        this.handler = appContainer.handler;
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-        this.backToExit = false;
+        handler = appContainer.handler;
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        backToExit = false;
         final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {
             @Override
             public void onChanged(ArrayList<ScNodeContent> scNodeContents) {
-                NodeContentFragment.this.loadContent();
+                loadContent();
             }
         };
-        this.mainViewModel.getNodeContent().observe(getViewLifecycleOwner(), contentObserver);
+        mainViewModel.getNodeContent().observe(getViewLifecycleOwner(), contentObserver);
         return rootView;
     }
 
@@ -284,12 +284,12 @@ public class NodeContentFragment extends Fragment {
             }
         }, getViewLifecycleOwner() , Lifecycle.State.RESUMED);
         // Registers listener for back button clicks
-        this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.callbackDisplayToastBeforeExit);
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), callbackDisplayToastBeforeExit);
 
         if (savedInstanceState != null) {
             // Tries to scroll screen to the same location where it was when screen orientation happened
             ScrollView scrollView = view.findViewById(R.id.content_fragment_scrollview);
-            this.handler.postDelayed(new Runnable() {
+            handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     double aspectRatio = (double) scrollView.getHeight() / scrollView.getWidth();
@@ -317,9 +317,9 @@ public class NodeContentFragment extends Fragment {
         int lineCounter = 0; // Needed to calculate position where view will have to be scrolled to
         int counter = 0; // Counts iteration over node layout. Counts every TextView
 
-        int viewCounter = this.mainViewModel.getFindInNodeResult(newResultIndex)[0]; // Saved findInNodeStorage view index
-        int startIndex = this.mainViewModel.getFindInNodeResult(newResultIndex)[1]; // Search result substring start index
-        int endIndex = this.mainViewModel.getFindInNodeResult(newResultIndex)[2]; // Search result substring end index
+        int viewCounter = mainViewModel.getFindInNodeResult(newResultIndex)[0]; // Saved findInNodeStorage view index
+        int startIndex = mainViewModel.getFindInNodeResult(newResultIndex)[1]; // Search result substring start index
+        int endIndex = mainViewModel.getFindInNodeResult(newResultIndex)[2]; // Search result substring end index
 
         for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
             View view = contentFragmentLinearLayout.getChildAt(i);
@@ -331,13 +331,13 @@ public class NodeContentFragment extends Fragment {
                         // If encountered the view that was previously marked view
                         // It is restored to original state
                         SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                        spannedSearchQuery.append(this.mainViewModel.getfindInNodeStorageContent(counter));
+                        spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                         currentTextView.setText(spannedSearchQuery);
                     }
                     if (viewCounter == counter) {
                         // If encountered the view that has to be marked now
                         SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                        spannedSearchQuery.append(this.mainViewModel.getfindInNodeStorageContent(counter));
+                        spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                         spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         currentTextView.setText(spannedSearchQuery);
                         int line = currentTextView.getLayout().getLineForOffset(startIndex);
@@ -352,7 +352,7 @@ public class NodeContentFragment extends Fragment {
                     // Previous "highlight" will be removed while marking the current one
                     if (viewCounter == counter) {
                         SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                        spannedSearchQuery.append(this.mainViewModel.getfindInNodeStorageContent(counter));
+                        spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                         spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         currentTextView.setText(spannedSearchQuery);
                         int line = currentTextView.getLayout().getLineForOffset(startIndex);
@@ -376,13 +376,13 @@ public class NodeContentFragment extends Fragment {
                             if (previouslyHighlightedViewIndex == counter) {
                                 // If encountered view that was previously highlighted
                                 SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                                spannedSearchQuery.append(this.mainViewModel.getfindInNodeStorageContent(counter));
+                                spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                                 ((TextView) tableRow.getChildAt(cell)).setText(spannedSearchQuery);
                             }
                             if (viewCounter == counter) {
                                 // If encountered a view that has to be highlighted
                                 SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                                spannedSearchQuery.append(this.mainViewModel.getfindInNodeStorageContent(counter));
+                                spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                                 spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                                 ((TextView) tableRow.getChildAt(cell)).setText(spannedSearchQuery);
                                 contentFragmentScrollView.scrollTo(0, lineCounter - 100);
@@ -399,7 +399,7 @@ public class NodeContentFragment extends Fragment {
                             if (viewCounter == counter) {
                                 // If encountered a view that has to be marked
                                 SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
-                                spannedSearchQuery.append(this.mainViewModel.getfindInNodeStorageContent(counter));
+                                spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                                 spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                                 ((TextView) tableRow.getChildAt(cell)).setText(spannedSearchQuery);
                                 contentFragmentScrollView.scrollTo(0, lineCounter - 100);
