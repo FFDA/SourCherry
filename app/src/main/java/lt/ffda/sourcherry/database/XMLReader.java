@@ -130,7 +130,7 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public void addNodeToBookmarks(String nodeUniqueID) {
-        NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
+        NodeList bookmarkTag = doc.getElementsByTagName("bookmarks");
         Node bookmarksNode = bookmarkTag.item(0);
         List<Integer> bmkrs;
         Node bookmarkList = bookmarksNode.getAttributes().getNamedItem("list");
@@ -144,7 +144,7 @@ public class XMLReader extends DatabaseReader {
         bmkrs.add(Integer.parseInt(nodeUniqueID));
         Collections.sort(bmkrs);
         bookmarksNode.getAttributes().getNamedItem("list").setTextContent(bmkrs.stream().map(String::valueOf).collect(Collectors.joining(",")));
-        this.writeIntoDatabase();
+        writeIntoDatabase();
     }
 
     /**
@@ -158,7 +158,7 @@ public class XMLReader extends DatabaseReader {
     private boolean areNodesRelated(String targetNodeUniqueID, String destinationNodeUniqueID) {
         ArrayList<String> heredity = new ArrayList<>();
 
-        NodeList nodeList = this.doc.getElementsByTagName("node");
+        NodeList nodeList = doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             // Finds destination node
@@ -319,7 +319,7 @@ public class XMLReader extends DatabaseReader {
                 nodeContent.append(node.getTextContent());
             } else if (node.getNodeName().equals("table")) {
                 int charOffset = getCharOffset(node) + totalCharOffset;
-                StringBuilder tableContent = this.convertTableNodeContentToPlainText(node);
+                StringBuilder tableContent = convertTableNodeContentToPlainText(node);
                 nodeContent.insert(charOffset, tableContent);
                 totalCharOffset += tableContent.length() - 1;
             } else if (node.getNodeName().equals("encoded_png")) {
@@ -327,7 +327,7 @@ public class XMLReader extends DatabaseReader {
                     if (node.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
                         // For latex boxes
                         int charOffset = getCharOffset(node) + totalCharOffset;
-                        StringBuilder latexContent = this.convertLatexToPlainText(node);
+                        StringBuilder latexContent = convertLatexToPlainText(node);
                         nodeContent.insert(charOffset, latexContent);
                         totalCharOffset += latexContent.length() - 1;
                         continue;
@@ -344,7 +344,7 @@ public class XMLReader extends DatabaseReader {
                 }
             } else if (node.getNodeName().equals("codebox")) {
                 int charOffset = getCharOffset(node) + totalCharOffset;
-                StringBuilder codeboxContent = this.convertCodeboxToPlainText(node);
+                StringBuilder codeboxContent = convertCodeboxToPlainText(node);
                 nodeContent.insert(charOffset, codeboxContent);
                 totalCharOffset += codeboxContent.length() - 1;
             }
@@ -369,9 +369,9 @@ public class XMLReader extends DatabaseReader {
                 // When converting to string it has to be added to the beginning
                 // of the string fro the information to make sense
                 if (tableRowCount > 1) {
-                    tableContent.append(this.convertTableRowToPlainText(node));
+                    tableContent.append(convertTableRowToPlainText(node));
                 } else {
-                    tableContent.insert(0, this.convertTableRowToPlainText(node));
+                    tableContent.insert(0, convertTableRowToPlainText(node));
                 }
                 tableRowCount--;
             }
@@ -385,15 +385,15 @@ public class XMLReader extends DatabaseReader {
         Node node = null;
         if (nodeUniqueID.equals("0")) {
             // User chose to create the node in main menu
-            node = this.doc.getElementsByTagName("cherrytree").item(0);
+            node = doc.getElementsByTagName("cherrytree").item(0);
         } else {
-            node = this.findNode(nodeUniqueID);
+            node = findNode(nodeUniqueID);
         }
         String newNodeUniqueID = String.valueOf(getNodeMaxID() + 1);
         String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
 
         // Creating new node with all necessary tags
-        Element newNode = this.doc.createElement("node");
+        Element newNode = doc.createElement("node");
         newNode.setAttribute("name", name);
         newNode.setAttribute("unique_id", newNodeUniqueID);
         newNode.setAttribute("master_id", "0");
@@ -429,7 +429,7 @@ public class XMLReader extends DatabaseReader {
             // As a subnode of selected node
             node.appendChild(newNode);
         }
-        this.writeIntoDatabase();
+        writeIntoDatabase();
         return new ScNode(newNodeUniqueID, "0", name,false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
     }
 
@@ -501,7 +501,7 @@ public class XMLReader extends DatabaseReader {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(XMLReader.this.context, message, Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -511,7 +511,7 @@ public class XMLReader extends DatabaseReader {
         if (nodeUniqueID == null) {
             return false;
         }
-        return this.findNode(nodeUniqueID) != null;
+        return findNode(nodeUniqueID) != null;
     }
 
     /**
@@ -683,7 +683,7 @@ public class XMLReader extends DatabaseReader {
      * @return found Node object or null
      */
     private Node findNode(String nodeUniqueID) {
-        NodeList nodeList = this.doc.getElementsByTagName("node");
+        NodeList nodeList = doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
@@ -697,7 +697,7 @@ public class XMLReader extends DatabaseReader {
     public ArrayList<ScNode> getAllNodes(boolean noSearch) {
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
-            NodeList nodeList = this.doc.getFirstChild().getChildNodes();
+            NodeList nodeList = doc.getFirstChild().getChildNodes();
             ArrayList<ScNode> nodes = new ArrayList<>();
 
             for (int i = 0; i < nodeList.getLength(); i++) {
@@ -710,22 +710,22 @@ public class XMLReader extends DatabaseReader {
                     if (nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
                         // if user haven't selected not to search subnodes of current node
                         // node list of current node is passed to another function that returns ArrayList with all menu items from that list
-                        nodes.addAll(this.returnSubnodeSearchArrayListList(nodeList.item(i).getChildNodes()));
+                        nodes.addAll(returnSubnodeSearchArrayListList(nodeList.item(i).getChildNodes()));
                     }
                 }
             }
             return nodes;
         } else {
-            return returnSubnodeArrayList(this.doc.getElementsByTagName("node"), false);
+            return returnSubnodeArrayList(doc.getElementsByTagName("node"), false);
         }
     }
 
     @Override
     public ArrayList<ScNode> getBookmarkedNodes() {
         ArrayList<ScNode> nodes = new ArrayList<>();
-        NodeList nodeBookmarkNode = this.doc.getElementsByTagName("bookmarks");
+        NodeList nodeBookmarkNode = doc.getElementsByTagName("bookmarks");
         List<String> nodeUniqueIDArray = Arrays.asList(nodeBookmarkNode.item(0).getAttributes().getNamedItem("list").getNodeValue().split(","));
-        NodeList nodeList = this.doc.getElementsByTagName("node");
+        NodeList nodeList = doc.getElementsByTagName("node");
 
         for (int i=0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
@@ -793,7 +793,7 @@ public class XMLReader extends DatabaseReader {
     @Override
     public InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control) {
         // Returns byte array (stream) to be written to file or opened
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
         if (node == null) {
             return null;
         }
@@ -815,7 +815,7 @@ public class XMLReader extends DatabaseReader {
     @Override
     public InputStream getImageInputStream(String nodeUniqueID, String control) {
         // Returns image byte array to be displayed in ImageViewFragment because some of the images are too big to pass in a bundle
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
         if (node == null) {
             return null;
         }
@@ -835,7 +835,7 @@ public class XMLReader extends DatabaseReader {
     public ArrayList<ScNode> getMainNodes() {
         // Returns main nodes from the document
         // Used to display menu when app starts
-        NodeList nodeList = this.doc.getElementsByTagName("cherrytree"); // There is only one this type of tag in the database
+        NodeList nodeList = doc.getElementsByTagName("cherrytree"); // There is only one this type of tag in the database
         NodeList mainNodeList = nodeList.item(0).getChildNodes(); // So selecting all children of the first node is always safe
         return returnSubnodeArrayList(mainNodeList, false);
     }
@@ -854,7 +854,7 @@ public class XMLReader extends DatabaseReader {
     @Override
     public int getNodeMaxID() {
         int maxID = -1;
-        NodeList nodeList = this.doc.getElementsByTagName("node");
+        NodeList nodeList = doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             int foundNodeUniqueID = Integer.parseInt(node.getAttributes().getNamedItem("unique_id").getNodeValue());
@@ -882,7 +882,7 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public String getParentNodeUniqueID(String nodeUniqueID) {
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
         if (node == null) {
             return null;
         }
@@ -897,7 +897,7 @@ public class XMLReader extends DatabaseReader {
     @Override
     public ArrayList<ScNode> getParentWithSubnodes(String nodeUniqueID) {
         ArrayList<ScNode> nodes = null;
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
         if (node == null) {
             return nodes;
         }
@@ -939,7 +939,7 @@ public class XMLReader extends DatabaseReader {
     @Override
     public List<String> getSharedNodesIds(String nodeUniqueID) {
         List<String> sharedNodes = new ArrayList<>();
-        NodeList nodeList = this.doc.getElementsByTagName("node");
+        NodeList nodeList = doc.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             NamedNodeMap nodeAttributes = nodeList.item(i).getAttributes();
             if (nodeAttributes.getNamedItem("master_id") != null &&
@@ -990,7 +990,7 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public boolean isNodeBookmarked(String nodeUniqueID) {
-        NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
+        NodeList bookmarkTag = doc.getElementsByTagName("bookmarks");
         if (bookmarkTag.getLength() < 1) {
             return false;
         }
@@ -1013,7 +1013,7 @@ public class XMLReader extends DatabaseReader {
         // prog_lang attribute is the same as syntax in SQL database
         // it is used to set formatting for the node and separate between node types
         // The same attribute is used for codeboxes
-        Node node = this.findNode(nodeUniqueID);
+        Node node = findNode(nodeUniqueID);
         String nodeProgLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
         if (nodeProgLang.equals("custom-colors") || nodeProgLang.equals("plain-text")) {
             // This is formatting for Rich Text and Plain Text nodes
@@ -1031,8 +1031,8 @@ public class XMLReader extends DatabaseReader {
                         }
                         break;
                     case "codebox": {
-                        int charOffset = this.getCharOffset(currentNode);
-                        SpannableStringBuilder codeboxText = this.makeFormattedCodeboxSpan(currentNode);
+                        int charOffset = getCharOffset(currentNode);
+                        SpannableStringBuilder codeboxText = makeFormattedCodeboxSpan(currentNode);
                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
                         totalCharOffset += codeboxText.length() - 1;
                         break;
@@ -1043,20 +1043,20 @@ public class XMLReader extends DatabaseReader {
                         if (currentNode.getAttributes().getNamedItem("filename") != null) {
                             if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
                                 // For latex boxes
-                                SpannableStringBuilder latexImageSpan = this.makeLatexImageSpan(currentNode);
+                                SpannableStringBuilder latexImageSpan = makeLatexImageSpan(currentNode);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
                             } else {
                                 // For actual attached files
-                                SpannableStringBuilder attachedFileSpan = this.makeAttachedFileSpan(currentNode, nodeUniqueID);
+                                SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode, nodeUniqueID);
                                 nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                 totalCharOffset += attachedFileSpan.length() - 1;
                             }
                         } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
-                            SpannableStringBuilder anchorImageSpan = this.makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
+                            SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
                             nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
                         } else {
                             // Images
-                            SpannableStringBuilder imageSpan = this.makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
+                            SpannableStringBuilder imageSpan = makeImageSpan(currentNode, nodeUniqueID, String.valueOf(charOffset));
                             nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                         }
                         break;
@@ -1064,16 +1064,16 @@ public class XMLReader extends DatabaseReader {
                     case "table": {
                         int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
                         nodeTableCharOffsets.add(charOffset);
-                        int[] cellMinMax = this.getTableMinMax(currentNode);
+                        int[] cellMinMax = getTableMinMax(currentNode);
                         ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
                         byte lightInterface = 0;
                         if (!((Element) currentNode).getAttribute("is_light").equals("")) {
                             lightInterface = Byte.parseByte(((Element) currentNode).getAttribute("is_light"));
                         }
                         NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
-                        currentTableContent.add(this.getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
+                        currentTableContent.add(getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
                         for (int row = 0; row < tableRowsNodes.getLength() - 1; row++) {
-                            currentTableContent.add(this.getTableRow(tableRowsNodes.item(row)));
+                            currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
                         }
                         ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], lightInterface, ((Element) currentNode).getAttribute("justification"), ((Element) currentNode).getAttribute("col_widths"));
                         nodeTables.add(scNodeContentTable);
@@ -1113,7 +1113,7 @@ public class XMLReader extends DatabaseReader {
             ScNodeContentText nodeContentText = new ScNodeContentText((byte) 0, nodeContentStringBuilder);
             nodeContent.add(nodeContentText);
         }
-        this.mainViewModel.getNodeContent().postValue(nodeContent);
+        mainViewModel.getNodeContent().postValue(nodeContent);
     }
 
     @Override
@@ -1137,7 +1137,7 @@ public class XMLReader extends DatabaseReader {
         ClickableSpanNode clickableSpanNode = new ClickableSpanNode() {
             @Override
             public void onClick(@NonNull View widget) {
-                ((MainView) XMLReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
+                ((MainView) context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
             }
 
             @Override
@@ -1185,7 +1185,7 @@ public class XMLReader extends DatabaseReader {
             @Override
             public void onClick(@NonNull View widget) {
             // Launches function in MainView that checks if there is a default action in for attached files
-            ((MainView) XMLReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, offset);
+            ((MainView) context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, offset);
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -1206,10 +1206,10 @@ public class XMLReader extends DatabaseReader {
         Drawable drawableBrokenImage;
         ImageSpan brokenImage;
         if (type == 0) {
-            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_image_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_image_48);
             brokenImage = new ImageSpanImage(drawableBrokenImage);
         } else {
-            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_latex_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_latex_48);
             brokenImage = new ImageSpanLatex(drawableBrokenImage);
         }
         // Inserting image
@@ -1225,7 +1225,7 @@ public class XMLReader extends DatabaseReader {
             @Override
             public void onClick(@NonNull View widget) {
                 // Decoding of Base64 is done here
-                ((MainView) XMLReader.this.context).fileFolderLinkFilepath(new String(Base64.decode(base64Filename, Base64.DEFAULT)));
+                ((MainView) context).fileFolderLinkFilepath(new String(Base64.decode(base64Filename, Base64.DEFAULT)));
             }
 
             @Override
@@ -1269,7 +1269,7 @@ public class XMLReader extends DatabaseReader {
 
         // Changes background color
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(context.getColor(R.color.codebox_background));
             formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return formattedCodeNode;
@@ -1311,12 +1311,12 @@ public class XMLReader extends DatabaseReader {
             formattedCodebox.setSpan(qs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             // Changes background color
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+                LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(context.getColor(R.color.codebox_background));
                 formattedCodebox.setSpan(lbs, 0, formattedCodebox.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             }
         } else {
             formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
+            BackgroundColorSpan bcs = new BackgroundColorSpan(context.getColor(R.color.codebox_background));
             formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         if (justificationAttribute.equals("right")) {
@@ -1371,9 +1371,9 @@ public class XMLReader extends DatabaseReader {
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken image span to display in node content
-            imageSpanImage = (ImageSpanImage) this.makeBrokenImageSpan(0);
+            imageSpanImage = (ImageSpanImage) makeBrokenImageSpan(0);
             formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
+            displayToast(context.getString(R.string.toast_error_failed_to_load_image));
         }
         //*
         String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
@@ -1436,16 +1436,16 @@ public class XMLReader extends DatabaseReader {
                 @Override
                 public void onClick(@NonNull View widget) {
                     // Starting fragment to view enlarged zoomable image
-                    ((MainView) XMLReader.this.context).openImageView(latexString);
+                    ((MainView) context).openImageView(latexString);
                 }
             };
             formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken latex image span to display in node content
-            imageSpanLatex = (ImageSpanLatex) this.makeBrokenImageSpan(1);
+            imageSpanLatex = (ImageSpanLatex) makeBrokenImageSpan(1);
             formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_compile_latex));
+            displayToast(context.getString(R.string.toast_error_failed_to_compile_latex));
         }
         //*
         String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
@@ -1468,10 +1468,10 @@ public class XMLReader extends DatabaseReader {
             Node destinationNode = null;
             // User chose to move the node to main menu
             if (destinationNodeUniqueID.equals("0")) {
-                NodeList nodeList = this.doc.getElementsByTagName("cherrytree");
+                NodeList nodeList = doc.getElementsByTagName("cherrytree");
                 destinationNode = nodeList.item(0);
             }
-            NodeList nodeList = this.doc.getElementsByTagName("node");
+            NodeList nodeList = doc.getElementsByTagName("node");
             for (int i = 0; i < nodeList.getLength(); i++) {
                 // Goes through the nodes until target and destination nodes are found
                 if (targetNode == null || destinationNode == null) {
@@ -1489,23 +1489,23 @@ public class XMLReader extends DatabaseReader {
             // Checks for when user wants to move node to the same parent node
             // In XML databases that causes crash and it is not necessary write operation
             if (destinationNode.getNodeName().equals("cherrytree") && targetNode.getParentNode().getNodeName().equals("cherrytree")) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
+                displayToast(context.getString(R.string.toast_error_failed_to_move_node));
                 return false;
             }
             Node parentNodeUniqueID = targetNode.getParentNode().getAttributes().getNamedItem("unique_id");
             if (parentNodeUniqueID != null && parentNodeUniqueID.getNodeValue().equals(destinationNodeUniqueID)) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
+                displayToast(context.getString(R.string.toast_error_failed_to_move_node));
                 return false;
             }
             destinationNode.appendChild(targetNode);
-            this.writeIntoDatabase();
+            writeIntoDatabase();
             return true;
         }
     }
 
     @Override
     public void removeNodeFromBookmarks(String nodeUniqueID) {
-        NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
+        NodeList bookmarkTag = doc.getElementsByTagName("bookmarks");
         Node bookmarksNode = bookmarkTag.item(0);
         ArrayList<String> bookmarks = new ArrayList<>(Arrays.asList(bookmarksNode.getAttributes().getNamedItem("list").getNodeValue().split(",")));
         bookmarks.remove(nodeUniqueID);
@@ -1518,7 +1518,7 @@ public class XMLReader extends DatabaseReader {
      * @param nodeUniqueIDs list of node unique IDs to remove from bookmarks
      */
     private void removeNodesFromBookmarks(List<String> nodeUniqueIDs) {
-        NodeList bookmarkTag = this.doc.getElementsByTagName("bookmarks");
+        NodeList bookmarkTag = doc.getElementsByTagName("bookmarks");
         Node bookmarksNode = bookmarkTag.item(0);
         ArrayList<String> bookmarks = new ArrayList<>(Arrays.asList(bookmarksNode.getAttributes().getNamedItem("list").getNodeValue().split(",")));
         for (String nodeUniqueID : nodeUniqueIDs) {
@@ -1597,7 +1597,7 @@ public class XMLReader extends DatabaseReader {
      * @return Element that can be added to Node and writen to the database
      */
     private Element saveImageSpanAnchor(ImageSpanAnchor imageSpanAnchor, String offset, String lastFoundJustification) {
-        Element element = this.doc.createElement("encoded_png");
+        Element element = doc.createElement("encoded_png");
         element.setAttribute("char_offset", offset);
         element.setAttribute("justification", lastFoundJustification);
         element.setAttribute("anchor", imageSpanAnchor.getAnchorName());
@@ -1613,17 +1613,17 @@ public class XMLReader extends DatabaseReader {
      * @return Element that can be added to Node and writen to the database
      */
     private Element saveImageSpanFile(ImageSpanFile imageSpanFile, String offset, String lastFoundJustification, Node node) {
-        Element element = this.doc.createElement("encoded_png");
+        Element element = doc.createElement("encoded_png");
         element.setAttribute("char_offset", offset);
         element.setAttribute("justification", lastFoundJustification);
         element.setAttribute("filename", imageSpanFile.getFilename());
         if (imageSpanFile.isFromDatabase()) {
             element.setAttribute("time", imageSpanFile.getTimestamp());
-            element.setTextContent(this.getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
+            element.setTextContent(getFileEncodedString(node, imageSpanFile.getOriginalOffset(), imageSpanFile.getFilename()));
         } else {
             Uri fileUri = Uri.parse(imageSpanFile.getFileUri());
             try (
-                    InputStream fileInputSteam = this.context.getContentResolver().openInputStream(fileUri);
+                    InputStream fileInputSteam = context.getContentResolver().openInputStream(fileUri);
                     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()
             ) {
                 byte[] buf = new byte[4 * 1024];
@@ -1635,7 +1635,7 @@ public class XMLReader extends DatabaseReader {
                 element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
                 element.setTextContent(base64String);
             } catch (IOException e) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+                displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
             }
         }
         return element;
@@ -1649,7 +1649,7 @@ public class XMLReader extends DatabaseReader {
      * @return Element that can be added to Node and writen to the database
      */
     private Element saveImageSpanImage(ImageSpanImage imageSpanImage, String offset, String lastFoundJustification) {
-        Element element = this.doc.createElement("encoded_png");
+        Element element = doc.createElement("encoded_png");
         Drawable drawable = imageSpanImage.getDrawable();
         // Hopefully it's always a Bitmap drawable, because I get it from the same source
         Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
@@ -1671,7 +1671,7 @@ public class XMLReader extends DatabaseReader {
      * @return Element that can be added to Node and writen to the database
      */
     private Element saveImageSpanLatex(ImageSpanLatex imageSpanLatex, String offset, String lastFoundJustification) {
-        Element element = this.doc.createElement("encoded_png");
+        Element element = doc.createElement("encoded_png");
         element.setAttribute("char_offset", offset);
         element.setAttribute("justification", lastFoundJustification);
         element.setAttribute("filename", "__ct_special.tex");
@@ -1683,7 +1683,7 @@ public class XMLReader extends DatabaseReader {
     public void saveNodeContent(String nodeUniqueID) {
         Node node = findNode(nodeUniqueID);
         if (node == null) {
-            displayToast(this.context.getString(R.string.toast_error_while_saving_node_content_not_found));
+            displayToast(context.getString(R.string.toast_error_while_saving_node_content_not_found));
             return;
         }
         if (mainViewModel.getCurrentNode().isRichText()) {
@@ -1821,13 +1821,13 @@ public class XMLReader extends DatabaseReader {
                     totalContentLength += currentPartContentLength;
                     currentPartContentLength = 0;
                 } else {
-                    offsetNodes.add(this.saveScNodeContentTable(
+                    offsetNodes.add(saveScNodeContentTable(
                             (ScNodeContentTable) scNodeContent,
                             String.valueOf(currentPartContentLength + totalContentLength)
                     ));
                 }
             }
-            this.deleteNodeContent(node);
+            deleteNodeContent(node);
             for (Element element : normalNodes) {
                 node.appendChild(element);
             }
@@ -1881,10 +1881,10 @@ public class XMLReader extends DatabaseReader {
                 collectedCodebox = null;
             }
         } else {
-            ScNodeContentText scNodeContentText = (ScNodeContentText) this.mainViewModel.getNodeContent().getValue().get(0);
+            ScNodeContentText scNodeContentText = (ScNodeContentText) mainViewModel.getNodeContent().getValue().get(0);
             SpannableStringBuilder nodeContent = scNodeContentText.getContent();
-            Element element = this.doc.createElement("rich_text");
-            this.deleteNodeContent(node);
+            Element element = doc.createElement("rich_text");
+            deleteNodeContent(node);
             element.setTextContent(nodeContent.toString());
             node.appendChild(element);
         }
@@ -1893,7 +1893,7 @@ public class XMLReader extends DatabaseReader {
             Element element = (Element) node;
             element.setAttribute("master_id", "0");
         }
-        this.writeIntoDatabase();
+        writeIntoDatabase();
     }
 
     /**
@@ -1903,7 +1903,7 @@ public class XMLReader extends DatabaseReader {
      * @return Element that can be added to Node and writen to the database
      */
     private Element saveScNodeContentTable(ScNodeContentTable scNodeContentTable, String offset) {
-        Element tableElement = this.doc.createElement("table");
+        Element tableElement = doc.createElement("table");
         tableElement.setAttribute("char_offset", offset);
         tableElement.setAttribute("justification", scNodeContentTable.getJustification());
         tableElement.setAttribute("col_min", String.valueOf(scNodeContentTable.getColMin()));
@@ -1912,18 +1912,18 @@ public class XMLReader extends DatabaseReader {
         tableElement.setAttribute("is_light", String.valueOf(scNodeContentTable.getLightInterface()));
         // Adding table content
         for (int i = 1; i < scNodeContentTable.getContent().size(); i++) {
-            Element rowElement = this.doc.createElement("row");
+            Element rowElement = doc.createElement("row");
             for (CharSequence cell: scNodeContentTable.getContent().get(i)) {
-                Element cellElement = this.doc.createElement("cell");
+                Element cellElement = doc.createElement("cell");
                 cellElement.setTextContent(cell.toString());
                 rowElement.appendChild(cellElement);
             }
             tableElement.appendChild(rowElement);
         }
         // Adding header at the end of the table tag
-        Element headerRowElement = this.doc.createElement("row");
+        Element headerRowElement = doc.createElement("row");
         for (CharSequence cell : scNodeContentTable.getContent().get(0)) {
-            Element cellElement = this.doc.createElement("cell");
+            Element cellElement = doc.createElement("cell");
             cellElement.setTextContent(cell.toString());
             headerRowElement.appendChild(cellElement);
         }
@@ -1940,7 +1940,7 @@ public class XMLReader extends DatabaseReader {
      * @return Element that can be added to Node and writen to the database
      */
     private Element saveTypefaceSpanCodebox(TypefaceSpanCodebox typefaceSpanCodebox, String offset, String lastFoundJustification, String codeboxContent) {
-        Element element = this.doc.createElement("codebox");
+        Element element = doc.createElement("codebox");
         element.setAttribute("char_offset", offset);
         element.setAttribute("justification", lastFoundJustification);
         element.setAttribute("frame_width", String.valueOf(typefaceSpanCodebox.getFrameWidth()));
@@ -2074,7 +2074,7 @@ public class XMLReader extends DatabaseReader {
         for (int i = 0; i < nodeList.getLength(); i++) {
             if (nodeList.item(i).getNodeName().equals("node")) {
                 // If node is a "node" and not some other tag
-                boolean hasSubnodes = this.hasSubnodes(nodeList.item(i));
+                boolean hasSubnodes = hasSubnodes(nodeList.item(i));
                 String noSearchCh = nodeList.item(i).getAttributes().getNamedItem("nosearch_ch").getNodeValue();
                 Node masterIdAttr = nodeList.item(i).getAttributes().getNamedItem("master_id");
                 if (masterIdAttr != null && !"0".equals(masterIdAttr.getNodeValue()) && hasSubnodes && noSearchCh.equals("0")) {
@@ -2095,14 +2095,14 @@ public class XMLReader extends DatabaseReader {
                         isParent = false;
                         isSubnode = true;
                     }
-                    ScSearchNode result = this.findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
+                    ScSearchNode result = findInNode(nodeList.item(i), query, hasSubnodes, isParent, isSubnode);
                     if (result != null) {
                         searchResult.add(result);
                     }
                 }
                 if (hasSubnodes && noSearchCh.equals("0")) {
                     // If node has subnodes and user haven't selected not to search subnodes of current node
-                    searchResult.addAll(this.searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
+                    searchResult.addAll(searchNodesSkippingExcluded(query, nodeList.item(i).getChildNodes()));
                 }
             }
         }
@@ -2120,7 +2120,7 @@ public class XMLReader extends DatabaseReader {
         properties.getNamedItem("name").setNodeValue(name);
         if (properties.getNamedItem("prog_lang").getNodeValue().equals("custom-colors") && !progLang.equals("custom-colors")) {
             StringBuilder nodeContent = convertRichTextNodeContentToPlainText(node);
-            this.deleteNodeContent(node);
+            deleteNodeContent(node);
             Element newContentNode = doc.createElement("rich_text");
             newContentNode.setTextContent(nodeContent.toString());
             node.appendChild(newContentNode);
@@ -2151,9 +2151,9 @@ public class XMLReader extends DatabaseReader {
             StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
             transformer.transform(dSource, result);
         } catch (TransformerException e) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
         } catch (FileNotFoundException e) {
-            displayToast(this.context.getString(R.string.toast_error_database_does_not_exists));
+            displayToast(context.getString(R.string.toast_error_database_does_not_exists));
         }
     }
 }
