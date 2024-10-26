@@ -46,7 +46,7 @@ public class NodePropertiesFragment extends Fragment {
      * @return "0" - checkbox not checked, "1" - checkbox checked
      */
     private String getNoSearchChState() {
-        if (this.checkBoxExcludeFromSearchesSubnodes.isChecked()) {
+        if (checkBoxExcludeFromSearchesSubnodes.isChecked()) {
             return "1";
         } else {
             return "0";
@@ -59,7 +59,7 @@ public class NodePropertiesFragment extends Fragment {
      * @return 0" - checkbox not checked, "1" - checkbox checked
      */
     private String getNoSearchMeState() {
-        if (this.checkBoxExcludeFromSearchesThisNode.isChecked()) {
+        if (checkBoxExcludeFromSearchesThisNode.isChecked()) {
             return "1";
         } else {
             return "0";
