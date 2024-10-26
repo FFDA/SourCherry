@@ -213,7 +213,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     public void changeBackgroundColor() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
-            if (this.checkSelectionForCodebox()) {
+            if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
@@ -231,17 +231,17 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 int endOfSpan = editText.getText().getSpanEnd(span);
                 editText.getText().removeSpan(span);
                 int backgroundColor = span.getBackgroundColor();
-                this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
+                reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
             }
-            BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(this.color);
+            BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(color);
             editText.getText().setSpan(bcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.unsavedChanges = true;
+            unsavedChanges = true;
         }
     }
 
     public void changeForegroundColor() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
-            if (this.checkSelectionForCodebox()) {
+            if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
@@ -261,7 +261,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 int foregroundColor = span.getForegroundColor();
                 reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
             }
-            ForegroundColorSpan fcs = new ForegroundColorSpan(this.color);
+            ForegroundColorSpan fcs = new ForegroundColorSpan(color);
             editText.getText().setSpan(fcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             unsavedChanges = true;
         }
@@ -403,7 +403,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @return EditText ready to be inserted in to view/layout
      */
     private EditText createEditText(Typeface typeface, int textSize, CharSequence content) {
-        CustomTextEdit editText = (CustomTextEdit) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+        CustomTextEdit editText = (CustomTextEdit) getLayoutInflater().inflate(R.layout.custom_edittext, nodeEditorFragmentLinearLayout, false);
         editText.setText(content, TextView.BufferType.EDITABLE);
         editText.addTextChangedListener(textWatcher);
         editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
@@ -474,7 +474,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @return OnFocusChangeListener for CustomeEditText
      */
     private View.OnFocusChangeListener createOnCustomTextEditFocusChangeListener() {
-        if (this.mainViewModel.getCurrentNode().isRichText()) {
+        if (mainViewModel.getCurrentNode().isRichText()) {
             return new View.OnFocusChangeListener() {
                 @Override
                 public void onFocusChange(View view, boolean hasFocus) {
@@ -515,7 +515,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @return EditText ready to be inserted in the table as a cell
      */
     private EditText createTableCell(boolean header, ViewGroup.LayoutParams params, Typeface typeface, int textSize, int colWidth, CharSequence content) {
-        CustomTextEdit cell = (CustomTextEdit) getLayoutInflater().inflate(R.layout.custom_edittext, this.nodeEditorFragmentLinearLayout, false);
+        CustomTextEdit cell = (CustomTextEdit) getLayoutInflater().inflate(R.layout.custom_edittext, nodeEditorFragmentLinearLayout, false);
         cell.setTableCell(true);
         if (header) {
             cell.setBackground(getActivity().getDrawable(R.drawable.table_header_cell));
@@ -619,7 +619,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void deleteColumn() {
-        HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        HorizontalScrollView tableScrollView = (HorizontalScrollView) nodeEditorFragmentLinearLayout.getFocusedChild();
         ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
         TableRow focusedTableRow = (TableRow) table.getFocusedChild();
         int focusedColumnIndex = -1;
@@ -634,12 +634,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             TableRow tableRow = (TableRow) table.getChildAt(i);
             tableRow.removeViewAt(focusedColumnIndex);
         }
-        this.unsavedChanges = true;
+        unsavedChanges = true;
     }
 
     @Override
     public void deleteRow() {
-        HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        HorizontalScrollView tableScrollView = (HorizontalScrollView) nodeEditorFragmentLinearLayout.getFocusedChild();
         ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
         int focusedRowIndex = -1;
         for (int i = 0; i < table.getChildCount(); i++) {
@@ -650,26 +650,26 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
         }
         table.removeViewAt(focusedRowIndex);
-        this.unsavedChanges = true;
+        unsavedChanges = true;
     }
 
     @Override
     public void deleteTable() {
-        View focusedTable = this.nodeEditorFragmentLinearLayout.getFocusedChild();
-        int indexOfTable = this.nodeEditorFragmentLinearLayout.indexOfChild(focusedTable);
+        View focusedTable = nodeEditorFragmentLinearLayout.getFocusedChild();
+        int indexOfTable = nodeEditorFragmentLinearLayout.indexOfChild(focusedTable);
         if (indexOfTable > 0) {
             // If table surrounded by by normal content they have to be merged again
-            if (this.nodeEditorFragmentLinearLayout.getChildAt(indexOfTable - 1) instanceof EditText && this.nodeEditorFragmentLinearLayout.getChildAt(indexOfTable + 1) instanceof EditText) {
-                ((EditText) this.nodeEditorFragmentLinearLayout.getChildAt(indexOfTable - 1)).getText().append(((EditText) this.nodeEditorFragmentLinearLayout.getChildAt(indexOfTable + 1)).getText());
-                this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
-                this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
+            if (nodeEditorFragmentLinearLayout.getChildAt(indexOfTable - 1) instanceof EditText && nodeEditorFragmentLinearLayout.getChildAt(indexOfTable + 1) instanceof EditText) {
+                ((EditText) nodeEditorFragmentLinearLayout.getChildAt(indexOfTable - 1)).getText().append(((EditText) nodeEditorFragmentLinearLayout.getChildAt(indexOfTable + 1)).getText());
+                nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
+                nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
             } else {
-                this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
+                nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
             }
         } else {
-            this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
+            nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
         }
-        this.unsavedChanges = true;
+        unsavedChanges = true;
     }
 
     /**
@@ -678,7 +678,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      */
     private Typeface getTypeface() {
         Typeface typeface = null;
-        switch (this.sharedPreferences.getString("preference_font_type", "Default")) {
+        switch (sharedPreferences.getString("preference_font_type", "Default")) {
             case "Comfortaa":
                 typeface = ResourcesCompat.getFont(getContext(), R.font.comfortaa_regular);
                 break;
@@ -697,7 +697,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void insertColumn() {
-        HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        HorizontalScrollView tableScrollView = (HorizontalScrollView) nodeEditorFragmentLinearLayout.getFocusedChild();
         ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
         TableRow focusedTableRow = (TableRow) table.getFocusedChild();
         int newColumnIndex = -1;
@@ -719,7 +719,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null), newColumnIndex);
             }
         }
-        this.unsavedChanges = true;
+        unsavedChanges = true;
     }
 
     @Override
@@ -740,7 +740,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void insertRow() {
-        HorizontalScrollView tableScrollView = (HorizontalScrollView) this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        HorizontalScrollView tableScrollView = (HorizontalScrollView) nodeEditorFragmentLinearLayout.getFocusedChild();
         ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
         TableRow focusedTableRow = (TableRow) table.getFocusedChild();
         int newRowIndex = -1;
@@ -761,7 +761,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             tableRow.addView(createTableCell(false, cellParams, typeface, textSize, 100, null));
         }
         table.addView(tableRow, newRowIndex);
-        this.unsavedChanges = true;
+        unsavedChanges = true;
     }
 
     /**
@@ -774,21 +774,21 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @param lightInterface set tables interface to be lightweight. 0 - normal interface, 1 - lightweight. Has no effect in mobile version
      */
     private void insertTable(int indexOfChild, int startOfSelection, int rows, int cols, int defaultWidth, byte lightInterface) {
-        EditText editText = (EditText) this.nodeEditorFragmentLinearLayout.getChildAt(indexOfChild);
+        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getChildAt(indexOfChild);
         Typeface typeface = getTypeface();
-        int textSize = this.sharedPreferences.getInt("preferences_text_size", 15);
-        if (startOfSelection == 0 && this.nodeEditorFragmentLinearLayout.getChildAt(indexOfChild - 1) instanceof HorizontalScrollView) {
+        int textSize = sharedPreferences.getInt("preferences_text_size", 15);
+        if (startOfSelection == 0 && nodeEditorFragmentLinearLayout.getChildAt(indexOfChild - 1) instanceof HorizontalScrollView) {
             // Table will be inserted before another table
-            this.nodeEditorFragmentLinearLayout.addView(createTableView(rows, cols, defaultWidth, lightInterface, typeface, textSize), indexOfChild);
+            nodeEditorFragmentLinearLayout.addView(createTableView(rows, cols, defaultWidth, lightInterface, typeface, textSize), indexOfChild);
         } else {
             EditText firstPart = createEditText(typeface, textSize, editText.getText().subSequence(0, startOfSelection));
             EditText secondPart = createEditText(typeface, textSize, editText.getText().subSequence(startOfSelection, editText.getText().length()));
-            this.nodeEditorFragmentLinearLayout.removeViewAt(indexOfChild);
-            this.nodeEditorFragmentLinearLayout.addView(firstPart, indexOfChild);
-            this.nodeEditorFragmentLinearLayout.addView(createTableView(rows, cols, defaultWidth, lightInterface, typeface, textSize), ++indexOfChild);
-            this.nodeEditorFragmentLinearLayout.addView(secondPart, ++indexOfChild);
+            nodeEditorFragmentLinearLayout.removeViewAt(indexOfChild);
+            nodeEditorFragmentLinearLayout.addView(firstPart, indexOfChild);
+            nodeEditorFragmentLinearLayout.addView(createTableView(rows, cols, defaultWidth, lightInterface, typeface, textSize), ++indexOfChild);
+            nodeEditorFragmentLinearLayout.addView(secondPart, ++indexOfChild);
         }
-        this.unsavedChanges = true;
+        unsavedChanges = true;
         getParentFragmentManager().clearFragmentResultListener("tablePropertiesListener");
     }
 
@@ -917,7 +917,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         }
         // If last NodeContent elements is a table it won't be possible to add text after it
         // Adding an extra EditText to allow user to continue typing after last table element
-        if (mainViewModel.getNodeContent().getValue().get(this.mainViewModel.getNodeContent().getValue().size() - 1).getContentType() == 1) {
+        if (mainViewModel.getNodeContent().getValue().get(mainViewModel.getNodeContent().getValue().size() - 1).getContentType() == 1) {
             EditText editText = createEditText(typeface, textSize, "");
             handler.post(new Runnable() {
                 @Override
@@ -946,13 +946,13 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_node_editor, container, false);
-        this.mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
-        this.onCustomTextEditFocusChangeListener = createOnCustomTextEditFocusChangeListener();
-        this.nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        onCustomTextEditFocusChangeListener = createOnCustomTextEditFocusChangeListener();
+        nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
-        this.handler = appContainer.handler;
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-        this.color = this.sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
+        handler = appContainer.handler;
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        color = sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
         return view;
     }
 
@@ -960,7 +960,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     public void onResume() {
         super.onResume();
         // Top and bottom paddings are always the same: 14px (5dp)
-        this.nodeEditorFragmentLinearLayout.setPadding(this.sharedPreferences.getInt("paddingStart", 14), 14, this.sharedPreferences.getInt("paddingEnd", 14), 14);
+        nodeEditorFragmentLinearLayout.setPadding(sharedPreferences.getInt("paddingStart", 14), 14, sharedPreferences.getInt("paddingEnd", 14), 14);
     }
 
     @Override
@@ -975,11 +975,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        this.textWatcher = new TextWatcher() {
+        textWatcher = new TextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
-                NodeContentEditorFragment.this.unsavedChanges = true;
-                NodeContentEditorFragment.this.removeTextChangedListeners();
+                unsavedChanges = true;
+                removeTextChangedListeners();
             }
 
             @Override
@@ -1012,16 +1012,16 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     requireActivity().getOnBackPressedDispatcher().onBackPressed();
                     return true;
                 } else if (menuItem.getItemId() == R.id.toolbar_button_save_node) {
-                    NodeContentEditorFragment.this.saveNodeContent();
+                    saveNodeContent();
                 }
                 return false;
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        this.requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), this.onBackPressedCallback);
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBackPressedCallback);
         ScrollView scrollView = view.findViewById(R.id.edit_node_fragment_scrollview);
         if (savedInstanceState == null) {
             // Tries to scroll screen to the same location where it was when user chose to open editor
-                this.handler.postDelayed(new Runnable() {
+                handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         scrollView.setScrollY(getArguments().getInt("scrollY"));
@@ -1030,7 +1030,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         } else {
             // Tries to scroll screen to the same location where it was when user rotated device
             if (savedInstanceState.getInt("scrollY") != 0) {
-                this.handler.postDelayed(new Runnable() {
+                handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         double aspectRatio = (double) scrollView.getHeight() / scrollView.getWidth();
@@ -1051,7 +1051,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         if (tableMenuFragment != null) {
             fragmentManager.popBackStack();
         }
-        if (this.mainViewModel.getCurrentNode().isRichText()) {
+        if (mainViewModel.getCurrentNode().isRichText()) {
             NodeContentEditorMenuMainFragment fragment = new NodeContentEditorMenuMainFragment();
             fragment.setNodeContentEditorMenuActions(this);
             fragmentManager.beginTransaction()
@@ -1061,7 +1061,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             FrameLayout buttonRowFragmentContainer = getView().findViewById(R.id.edit_node_fragment_button_row_fragment);
             buttonRowFragmentContainer.setVisibility(View.GONE);
         }
-        this.loadContent();
+        loadContent();
     }
 
     /**
@@ -1094,7 +1094,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * Does it on the main thread
      */
     private void removeTextChangedListeners() {
-        this.handler.post(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
@@ -1195,7 +1195,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @param choice user choice (ask, exit, save)
      */
     private void saveUnsavedChangesDialogChoice(String choice) {
-        SharedPreferences.Editor editor = this.sharedPreferences.edit();
+        SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString("preferences_unsaved_changes", choice);
         editor.apply();
     }
@@ -1220,13 +1220,13 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         if (!isTableInsertionAllowed()) {
             return;
         }
-        View view = this.nodeEditorFragmentLinearLayout.getFocusedChild();
+        View view = nodeEditorFragmentLinearLayout.getFocusedChild();
         if (view == null) {
             Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
             return;
         }
         // To insert a table EditText has to be split in two at the possition on the cursor
-        int indexOfChild = this.nodeEditorFragmentLinearLayout.indexOfChild(view);
+        int indexOfChild = nodeEditorFragmentLinearLayout.indexOfChild(view);
         EditText editText = ((EditText) view);
         int startOfSelection = editText.getSelectionStart();
         FragmentManager fm = getParentFragmentManager();
@@ -1251,7 +1251,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     @Override
     public void toggleFontBold() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
-            if (this.checkSelectionForCodebox()) {
+            if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
@@ -1269,19 +1269,19 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanBold(), new StyleSpanBold());
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanBold(), new StyleSpanBold());
                 }
             } else {
                 editText.getText().setSpan(new StyleSpanBold(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            this.unsavedChanges = true;
+            unsavedChanges = true;
         }
     }
 
     @Override
     public void toggleFontItalic() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
-            if (this.checkSelectionForCodebox()) {
+            if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
@@ -1299,12 +1299,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanItalic(), new StyleSpanItalic());
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanItalic(), new StyleSpanItalic());
                 }
             } else {
                 editText.getText().setSpan(new StyleSpanItalic(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            this.unsavedChanges = true;
+            unsavedChanges = true;
         }
     }
 
@@ -1367,7 +1367,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
                 }
             } else {
                 editText.getText().setSpan(new StrikethroughSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -1379,7 +1379,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     @Override
     public void toggleFontUnderline() {
         if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
-            if (this.checkSelectionForCodebox()) {
+            if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
@@ -1397,12 +1397,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     int startOfSpan = editText.getText().getSpanStart(span);
                     int endOfSpan = editText.getText().getSpanEnd(span);
                     editText.getText().removeSpan(span);
-                    this.reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new UnderlineSpan(), new UnderlineSpan());
+                    reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new UnderlineSpan(), new UnderlineSpan());
                 }
             } else {
                 editText.getText().setSpan(new UnderlineSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            this.unsavedChanges = true;
+            unsavedChanges = true;
         }
     }
 }
