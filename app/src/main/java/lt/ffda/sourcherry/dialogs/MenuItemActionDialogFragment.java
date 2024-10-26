@@ -47,7 +47,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonAddSiblingNode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SIBLING_NODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"));
+                sendResult(MenuItemAction.ADD_SIBLING_NODE, getArguments().getParcelable("node"));
             }
         });
 
@@ -55,7 +55,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonAddSubnode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_SUBNODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"));
+                sendResult(MenuItemAction.ADD_SUBNODE, getArguments().getParcelable("node"));
             }
         });
 
@@ -67,7 +67,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
             buttonRemoveFromBookmarks.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    MenuItemActionDialogFragment.this.sendResult(MenuItemAction.REMOVE_FROM_BOOKMARKS, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
+                    sendResult(MenuItemAction.REMOVE_FROM_BOOKMARKS, getArguments().getParcelable("node"), getArguments().getInt("position"));
                 }
             });
         } else {
@@ -76,7 +76,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
             buttonAddToBookmarks.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    MenuItemActionDialogFragment.this.sendResult(MenuItemAction.ADD_TO_BOOKMARKS, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"));
+                    sendResult(MenuItemAction.ADD_TO_BOOKMARKS, getArguments().getParcelable("node"));
                 }
             });
         }
@@ -85,7 +85,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonMoveNode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.MOVE_NODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"));
+                sendResult(MenuItemAction.MOVE_NODE, getArguments().getParcelable("node"));
             }
         });
 
@@ -104,7 +104,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
                 builder.setPositiveButton(R.string.button_delete, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        MenuItemActionDialogFragment.this.sendResult(MenuItemAction.DELETE_NODE, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
+                        sendResult(MenuItemAction.DELETE_NODE, getArguments().getParcelable("node"), getArguments().getInt("position"));
                     }
                 });
                 builder.show();
@@ -115,7 +115,7 @@ public class MenuItemActionDialogFragment extends DialogFragment {
         buttonProperties.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MenuItemActionDialogFragment.this.sendResult(MenuItemAction.PROPERTIES, MenuItemActionDialogFragment.this.getArguments().getParcelable("node"), MenuItemActionDialogFragment.this.getArguments().getInt("position"));
+                sendResult(MenuItemAction.PROPERTIES, getArguments().getParcelable("node"), getArguments().getInt("position"));
             }
         });
 
