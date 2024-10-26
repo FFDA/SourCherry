@@ -82,7 +82,7 @@ public class CollectNodesDialogRunnable extends CollectNodesAbstractRunnable imp
     public Document getDrawerMenuTree() throws IOException, SAXException {
         Document doc = documentBuilder.newDocument();
         Element sourCherry = doc.createElement("sourcherry");
-        sourCherry.setAttribute("saf_id", DocumentsContract.getTreeDocumentId(this.mainFolderUri));
+        sourCherry.setAttribute("saf_id", DocumentsContract.getTreeDocumentId(mainFolderUri));
         List<String> subnodes = null;
         try (Cursor cursor = getMainNodesCursor(mainFolderUri, context)) {
             while (cursor.moveToNext()) {
