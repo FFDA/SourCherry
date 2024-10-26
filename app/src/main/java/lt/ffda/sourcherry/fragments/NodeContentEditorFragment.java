@@ -105,71 +105,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     private Handler handler;
     private MainViewModel mainViewModel;
     private LinearLayout nodeEditorFragmentLinearLayout;
-    /**
-     * Promts user to select an image they want to attach to the node. If user selects an image
-     * inserts an image representing string at the possition of the cursor
-     */
-    private final ActivityResultLauncher<PickVisualMediaRequest> pickImage = registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
-        try {
-            if (uri != null) {
-                SpannableStringBuilder imageSpan = DatabaseReader.createImageSpan(getContext(), uri);
-                EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-                editText.getText().insert(editText.getSelectionStart(), imageSpan);
-            }
-        } catch (FileNotFoundException e) {
-            Toast.makeText(getContext(), R.string.toast_error_failed_to_insert_image, Toast.LENGTH_SHORT).show();
-        }
-    });
-    /**
-     * Promts user to select a file they want to attach to the node. If user selects a file inserts
-     * file representing string at the possition of the cursor
-     */
-    private final ActivityResultLauncher<String[]> attachFile = registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
-        if (result != null) {
-            DocumentFile file = DocumentFile.fromSingleUri(getContext(), result);
-            EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-            editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFileSpan(getContext(), file.getName(), mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
-        }
-    });
+    private final ActivityResultLauncher<PickVisualMediaRequest> pickImage = registerPickImage();
+    private final ActivityResultLauncher<String[]> attachFile = registerAttachFile();
     private SharedPreferences sharedPreferences;
     private boolean unsavedChanges = false;
     private TextWatcher textWatcher;
-    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
-        @Override
-        public void handleOnBackPressed() {
-            if (unsavedChanges) {
-                String unsavedChangesDefaultPreference = sharedPreferences.getString("preferences_unsaved_changes", null);
-                if (unsavedChangesDefaultPreference == null || unsavedChangesDefaultPreference.equals("ask")) {
-                    createUnsavedChangesAlertDialog();
-                } else if (unsavedChangesDefaultPreference.equals("save")) {
-                    saveNodeContent();
-                    View view = getActivity().getCurrentFocus();
-                    if (view != null) {
-                        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-                    }
-                    remove(); // Otherwise there will be onBackPressed infinite loop
-                    ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
-                } else {
-                    View view = getActivity().getCurrentFocus();
-                    if (view != null) {
-                        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-                    }
-                    remove(); // Otherwise there will be onBackPressed infinite loop
-                    ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
-                }
-            } else {
-                View view = getActivity().getCurrentFocus();
-                if (view != null) {
-                    InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-                }
-                remove(); // Otherwise there will be onBackPressed infinite loop
-                ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
-            }
-        }
-    };
+    private final OnBackPressedCallback onBackPressedCallback = createOnBackPressedCallback();
 
     /**
      * Adds textChangedListeners for all EditText views
@@ -466,6 +407,49 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         };
         newClickableSpanNode.setLinkAnchorName(clickableSpanNode.getLinkAnchorName());
         return newClickableSpanNode;
+    }
+
+    /**
+     * Creates callback to manage back button clicks in this fragment
+     * @return OnBackPressedCallback for the fragment
+     */
+    private OnBackPressedCallback createOnBackPressedCallback() {
+        return new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (unsavedChanges) {
+                    String unsavedChangesDefaultPreference = sharedPreferences.getString("preferences_unsaved_changes", null);
+                    if (unsavedChangesDefaultPreference == null || unsavedChangesDefaultPreference.equals("ask")) {
+                        createUnsavedChangesAlertDialog();
+                    } else if (unsavedChangesDefaultPreference.equals("save")) {
+                        saveNodeContent();
+                        View view = getActivity().getCurrentFocus();
+                        if (view != null) {
+                            InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                        }
+                        remove(); // Otherwise there will be onBackPressed infinite loop
+                        ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
+                    } else {
+                        View view = getActivity().getCurrentFocus();
+                        if (view != null) {
+                            InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                        }
+                        remove(); // Otherwise there will be onBackPressed infinite loop
+                        ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
+                    }
+                } else {
+                    View view = getActivity().getCurrentFocus();
+                    if (view != null) {
+                        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                    }
+                    remove(); // Otherwise there will be onBackPressed infinite loop
+                    ((MainView) getActivity()).returnFromFragmentWithHomeButton(changesSaved);
+                }
+            }
+        };
     }
 
     /**
@@ -1087,6 +1071,40 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             // If start if selection is inside of the span, but the end is outside
             editText.getText().setSpan(span1, startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
+    }
+
+    /**
+     * Registered ActivityResultLauncher launches a file picker that allows user to select a file
+     * for inserting into node. After user selects the file it is embded into node content.
+     * @return ActivityResultLauncher to select a file
+     */
+    private ActivityResultLauncher<String[]> registerAttachFile() {
+        return registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
+            if (result != null) {
+                DocumentFile file = DocumentFile.fromSingleUri(getContext(), result);
+                EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+                editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFileSpan(getContext(), file.getName(), mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
+            }
+        });
+    }
+
+    /**
+     * Registered ActivityResultLauncher launches an image picker that allows user to select an
+     * image for inserting into node. After user selects an image it is embded into node content.
+     * @return ActivityResultLauncher to select an image
+     */
+    private ActivityResultLauncher<PickVisualMediaRequest> registerPickImage() {
+        return registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
+            try {
+                if (uri != null) {
+                    SpannableStringBuilder imageSpan = DatabaseReader.createImageSpan(getContext(), uri);
+                    EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+                    editText.getText().insert(editText.getSelectionStart(), imageSpan);
+                }
+            } catch (FileNotFoundException e) {
+                Toast.makeText(getContext(), R.string.toast_error_failed_to_insert_image, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     /**
