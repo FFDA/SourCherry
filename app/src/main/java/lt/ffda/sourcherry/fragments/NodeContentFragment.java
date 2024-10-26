@@ -61,42 +61,47 @@ import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
 
 public class NodeContentFragment extends Fragment {
+    OnBackPressedCallback callbackDisplayToastBeforeExit = createCallbackDisplayToastBeforeExit();
     private boolean backToExit;
-    /**
-     * Deals with back button presses.
-     * If there are any fragment in the BackStack - removes one
-     * Handles back to exit to make user double press back button to exit
-     */
-    OnBackPressedCallback callbackDisplayToastBeforeExit = new OnBackPressedCallback(true /* enabled by default */) {
-        @Override
-        public void handleOnBackPressed() {
-            if (backToExit) { // If button back was already pressed once
-                getActivity().finish();
-                return;
-            }
-
-            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
-                getParentFragmentManager().popBackStack();
-                ((MainView) getActivity()).enableDrawer();
-                return;
-            }
-
-            backToExit = true; // Marks that back button was pressed once
-            Toast.makeText(getContext(), R.string.toast_confirm_mainview_exit, Toast.LENGTH_SHORT).show();
-
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                // Reverts boolean that marks if user pressed back button once after 2 seconds
-                @Override
-                public void run() {
-                    backToExit = false;
-                }
-            }, 2000);
-        }
-    };
     private LinearLayout contentFragmentLinearLayout;
     private Handler handler;
     private MainViewModel mainViewModel;
     private SharedPreferences sharedPreferences;
+
+    /**
+     * Create OnBackPressedCallback used to deal with clicks in NodeContentFragment fragemnt.
+     * If there are any fragment in the BackStack - removes one. Handles back to exit to make user
+     * double press back button to exit.
+     * @return OnBackPressedCallback for use in the fragment
+     */
+    private OnBackPressedCallback createCallbackDisplayToastBeforeExit() {
+        return new OnBackPressedCallback(true /* enabled by default */) {
+            @Override
+            public void handleOnBackPressed() {
+                if (backToExit) { // If button back was already pressed once
+                    getActivity().finish();
+                    return;
+                }
+
+                if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                    getParentFragmentManager().popBackStack();
+                    ((MainView) getActivity()).enableDrawer();
+                    return;
+                }
+
+                backToExit = true; // Marks that back button was pressed once
+                Toast.makeText(getContext(), R.string.toast_confirm_mainview_exit, Toast.LENGTH_SHORT).show();
+
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    // Reverts boolean that marks if user pressed back button once after 2 seconds
+                    @Override
+                    public void run() {
+                        backToExit = false;
+                    }
+                }, 2000);
+            }
+        };
+    }
 
     /**
      * Creates TextView that is ready to be inserted into table as a cell.
