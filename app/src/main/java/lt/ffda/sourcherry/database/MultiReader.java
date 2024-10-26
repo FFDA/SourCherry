@@ -141,7 +141,7 @@ public class MultiReader extends DatabaseReader {
     public void addNodeToBookmarks(String nodeUniqueID) {
         try {
             String lstFileDocumentId = null;
-            try (Cursor cursor = this.getMainNodesCursor()) {
+            try (Cursor cursor = getMainNodesCursor()) {
                 while (cursor.moveToNext()) {
                     if (cursor.getString(2).equals("bookmarks.lst")) {
                         lstFileDocumentId = cursor.getString(0);
@@ -151,14 +151,14 @@ public class MultiReader extends DatabaseReader {
             }
             if (lstFileDocumentId == null) {
                 lstFileDocumentId = DocumentsContract.getDocumentId(DocumentsContract.createDocument(
-                        this.context.getContentResolver(),
-                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri)),
+                        context.getContentResolver(),
+                        DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, DocumentsContract.getTreeDocumentId(mainFolderUri)),
                         "application/octet-stream",
                         "bookmarks.lst"
                 ));
             }
             List<Integer> list = null;
-            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
+            try (InputStream is = context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, lstFileDocumentId))) {
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 String line = br.readLine();
                 if (line != null) {
@@ -173,14 +173,14 @@ public class MultiReader extends DatabaseReader {
             }
             list.sort(Comparator.comparingInt(b -> b));
             try (
-                    OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
+                    OutputStream os = context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, lstFileDocumentId), "wt");
                     PrintWriter pw = new PrintWriter(os)) {
                 pw.println(list.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(",")));
             }
         } catch (IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "bookmarks.lst"));
+            displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, "bookmarks.lst"));
         }
     }
 
@@ -193,7 +193,7 @@ public class MultiReader extends DatabaseReader {
     private void addNodeToLst(String documentId, String nodeUniqueID) {
         try {
             String lstFileDocumentId = null;
-            try (Cursor cursor = this.getNodeChildrenCursorSaf(documentId)) {
+            try (Cursor cursor = getNodeChildrenCursorSaf(documentId)) {
                 while (cursor.moveToNext()) {
                     if (cursor.getString(2).equals("subnodes.lst")) {
                         lstFileDocumentId = cursor.getString(0);
@@ -203,14 +203,14 @@ public class MultiReader extends DatabaseReader {
             }
             if (lstFileDocumentId == null) {
                 lstFileDocumentId = DocumentsContract.getDocumentId(DocumentsContract.createDocument(
-                        this.context.getContentResolver(),
-                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, documentId),
+                        context.getContentResolver(),
+                        DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, documentId),
                         "application/octet-stream",
                         "subnodes.lst"
                 ));
             }
             List<Integer> list = null;
-            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
+            try (InputStream is = context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, lstFileDocumentId))) {
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 String line = br.readLine();
                 if (line != null) {
@@ -224,14 +224,14 @@ public class MultiReader extends DatabaseReader {
                 list.add(Integer.parseInt(nodeUniqueID));
             }
             try (
-                    OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
+                    OutputStream os = context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, lstFileDocumentId), "wt");
                     PrintWriter pw = new PrintWriter(os)) {
                 pw.println(list.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(",")));
             }
         } catch (IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
+            displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
         }
     }
 
@@ -284,7 +284,7 @@ public class MultiReader extends DatabaseReader {
                         .collect(Collectors.joining(",")));
             }
         } catch (IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
+            displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
         }
     }
 
@@ -295,7 +295,7 @@ public class MultiReader extends DatabaseReader {
      */
     private String calculateFileSha256Sum(Uri uri) {
         String sha256sum = null;
-        try (InputStream inputStream = this.context.getContentResolver().openInputStream(uri)) {
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             int length;
             byte[] buf = new byte[4 * 1024];
@@ -306,7 +306,7 @@ public class MultiReader extends DatabaseReader {
             sha256sum = new BigInteger(1, hash).toString(16);
             byteArrayOutputStream.close();
         } catch (IOException | NoSuchAlgorithmException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
         }
         return sha256sum;
     }
@@ -379,7 +379,7 @@ public class MultiReader extends DatabaseReader {
                 nodeContent.append(node.getTextContent());
             } else if (node.getNodeName().equals("table")) {
                 int charOffset = getCharOffset(node) + totalCharOffset;
-                StringBuilder tableContent = this.convertTableNodeContentToPlainText(node);
+                StringBuilder tableContent = convertTableNodeContentToPlainText(node);
                 nodeContent.insert(charOffset, tableContent);
                 totalCharOffset += tableContent.length() - 1;
             } else if (node.getNodeName().equals("encoded_png")) {
@@ -387,7 +387,7 @@ public class MultiReader extends DatabaseReader {
                     if (node.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
                         // For latex boxes
                         int charOffset = getCharOffset(node) + totalCharOffset;
-                        StringBuilder latexContent = this.convertLatexToPlainText(node);
+                        StringBuilder latexContent = convertLatexToPlainText(node);
                         nodeContent.insert(charOffset, latexContent);
                         totalCharOffset += latexContent.length() - 1;
                         continue;
@@ -404,7 +404,7 @@ public class MultiReader extends DatabaseReader {
                 }
             } else if (node.getNodeName().equals("codebox")) {
                 int charOffset = getCharOffset(node) + totalCharOffset;
-                StringBuilder codeboxContent = this.convertCodeboxToPlainText(node);
+                StringBuilder codeboxContent = convertCodeboxToPlainText(node);
                 nodeContent.insert(charOffset, codeboxContent);
                 totalCharOffset += codeboxContent.length() - 1;
             }
@@ -429,9 +429,9 @@ public class MultiReader extends DatabaseReader {
                 // When converting to string it has to be added to the beginning
                 // of the string fro the information to make sense
                 if (tableRowCount > 1) {
-                    tableContent.append(this.convertTableRowToPlainText(node));
+                    tableContent.append(convertTableRowToPlainText(node));
                 } else {
-                    tableContent.insert(0, this.convertTableRowToPlainText(node));
+                    tableContent.insert(0, convertTableRowToPlainText(node));
                 }
                 tableRowCount--;
             }
@@ -469,30 +469,30 @@ public class MultiReader extends DatabaseReader {
      */
     private void copyFileToNodeFolder(Uri uri, String filename) {
         OutputStream outputStream = null;
-        if (this.isFileInNode(this.mainViewModel.getCurrentNode().getUniqueId(), filename)) {
+        if (isFileInNode(mainViewModel.getCurrentNode().getUniqueId(), filename)) {
             // If file already exists with the same filename (hash256sum) there is no need to create a new one
             return;
         }
-        try (InputStream inputStream = this.context.getContentResolver().openInputStream(uri)) {
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
             Uri multiFileStorageFileUri = DocumentsContract.createDocument(
-                    this.context.getContentResolver(),
-                    this.getNodeUri(this.findSingleNode(this.mainViewModel.getCurrentNode().getUniqueId())),
+                    context.getContentResolver(),
+                    getNodeUri(findSingleNode(mainViewModel.getCurrentNode().getUniqueId())),
                     "*/*",
                     filename
             );
-            outputStream = this.context.getContentResolver().openOutputStream(multiFileStorageFileUri);
+            outputStream = context.getContentResolver().openOutputStream(multiFileStorageFileUri);
             int length;
             byte[] buf = new byte[4 * 1024];
             while ((length = inputStream.read(buf, 0, buf.length)) != -1) {
                 outputStream.write(buf, 0, length);
             }
         } catch (IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
         } finally {
             try {
                 outputStream.close();
             } catch (IOException e) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+                displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
             }
         }
     }
@@ -501,14 +501,14 @@ public class MultiReader extends DatabaseReader {
     public ScNode createNewNode(String nodeUniqueID, int relation, String name, String progLang, String noSearchMe, String noSearchCh) {
         ScNode scNode = null;
         try {
-            String newNodeUniqueID = String.valueOf(this.getNodeMaxID() + 1);
+            String newNodeUniqueID = String.valueOf(getNodeMaxID() + 1);
             Node node;
             Uri parentUri;
             boolean isSubnode = true;
             if (nodeUniqueID.equals("0")) {
                 // User chose to create node in MainMenu
                 node = drawerMenu.getElementsByTagName("sourcherry").item(0);
-                parentUri = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, node.getAttributes().getNamedItem("saf_id").getNodeValue());
+                parentUri = DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, node.getAttributes().getNamedItem("saf_id").getNodeValue());
             } else {
                 node = findSingleNode(nodeUniqueID);
                 if (relation == 0) {
@@ -524,11 +524,11 @@ public class MultiReader extends DatabaseReader {
                             node.getParentNode().getAttributes().getNamedItem("saf_id").getNodeValue()
                     );
                 } else {
-                    parentUri = DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, node.getAttributes().getNamedItem("saf_id").getNodeValue());
+                    parentUri = DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, node.getAttributes().getNamedItem("saf_id").getNodeValue());
                 }
             }
             if (parentUri == null) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_create_node));
+                displayToast(context.getString(R.string.toast_error_failed_to_create_node));
                 return null;
             }
             Uri newNodeFolderUri = DocumentsContract.createDocument(
@@ -538,7 +538,7 @@ public class MultiReader extends DatabaseReader {
                     newNodeUniqueID
             );
             if (newNodeFolderUri == null) {
-                displayToast(this.context.getString(R.string.toast_error_failed_to_create_node));
+                displayToast(context.getString(R.string.toast_error_failed_to_create_node));
                 return null;
             }
             Uri newNodeNodeXmlUri = DocumentsContract.createDocument(
@@ -548,7 +548,7 @@ public class MultiReader extends DatabaseReader {
                     "node.xml"
             );
             if (newNodeNodeXmlUri == null) {
-                displayToast(this.context.getString(R.string.toast_error_failed_to_create_node));
+                displayToast(context.getString(R.string.toast_error_failed_to_create_node));
                 return null;
             }
             String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
@@ -575,7 +575,7 @@ public class MultiReader extends DatabaseReader {
                 saveChanges(newCherryTreeNode, outputStream);
             }
             // Creating new drawerMenu.xml item
-            Element newDrawerMenuItem = this.drawerMenu.createElement("node");
+            Element newDrawerMenuItem = drawerMenu.createElement("node");
             newDrawerMenuItem.setAttribute("unique_id", newNodeUniqueID);
             newDrawerMenuItem.setAttribute("master_id", "0");
             newDrawerMenuItem.setAttribute("name", name);
@@ -602,7 +602,7 @@ public class MultiReader extends DatabaseReader {
             saveDrawerMenuToStorage();
             scNode = new ScNode(newNodeUniqueID, "0",name,false, false, isSubnode, progLang.equals("custom-colors"), false, "", 0, false);
         } catch (IOException e) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_create_node));
+            displayToast(context.getString(R.string.toast_error_failed_to_create_node));
         }
         return scNode;
     }
@@ -684,7 +684,7 @@ public class MultiReader extends DatabaseReader {
             Uri nodeParentUri = getNodeUri(parentNode);
             Uri nodeUri = getNodeUri(node);
             if (nodeUri == null || nodeParentUri == null) {
-                displayToast(this.context.getString(R.string.toast_error_failed_to_delete_node));
+                displayToast(context.getString(R.string.toast_error_failed_to_delete_node));
                 return;
             }
             // Collecting all nodeUniqueIDs to remove them from the bookmarks
@@ -750,7 +750,7 @@ public class MultiReader extends DatabaseReader {
             removeNodeFromLst(DocumentsContract.getDocumentId(nodeParentUri), nodeUniqueID, "subnodes.lst");
             saveDrawerMenuToStorage();
         } catch (FileNotFoundException e) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_delete_node));
+            displayToast(context.getString(R.string.toast_error_failed_to_delete_node));
         }
     }
 
@@ -991,7 +991,7 @@ public class MultiReader extends DatabaseReader {
     @Override
     public ArrayList<ScNode> getAllNodes(boolean noSearch) {
         if (noSearch) {
-            return this.returnSubnodeSearchArrayList(drawerMenu.getElementsByTagName("sourcherry").item(0).getChildNodes());
+            return returnSubnodeSearchArrayList(drawerMenu.getElementsByTagName("sourcherry").item(0).getChildNodes());
         } else {
             return returnSubnodeArrayList(drawerMenu.getElementsByTagName("node"), false);
         }
@@ -1001,10 +1001,10 @@ public class MultiReader extends DatabaseReader {
     public ArrayList<ScNode> getBookmarkedNodes() {
         ArrayList<ScNode> nodes;
         List<String> bookmarksIds = null;
-        try (Cursor cursor = this.getMainNodesCursor()) {
+        try (Cursor cursor = getMainNodesCursor()) {
             while (cursor != null && cursor.moveToNext()) {
                 if (cursor.getString(2).equals("bookmarks.lst")) {
-                    try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)))) {
+                    try (InputStream is = context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, cursor.getString(0)))) {
                         BufferedReader br = new BufferedReader(new InputStreamReader(is));
                         String line = br.readLine();
                         if (line != null) {
@@ -1012,7 +1012,7 @@ public class MultiReader extends DatabaseReader {
                                     .collect(Collectors.toList());
                         }
                     } catch (IOException e) {
-                        this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
+                        displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
                     }
                     break;
                 }
@@ -1024,11 +1024,11 @@ public class MultiReader extends DatabaseReader {
                 nodes = new ArrayList<>();
             }
         }
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        NodeList nodeList = drawerMenu.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node item = nodeList.item(i);
             if (bookmarksIds.contains(item.getAttributes().getNamedItem("unique_id").getNodeValue())) {
-                nodes.add(this.createSingleMenuItem(item, false, false));
+                nodes.add(createSingleMenuItem(item, false, false));
             }
             if (nodes.size() >= bookmarksIds.size()) {
                 break;
@@ -1064,7 +1064,7 @@ public class MultiReader extends DatabaseReader {
         }
         // Check if *.lst file was found
         if (lstFileDocumentId == null) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
+            displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
         }
         try (InputStream is = context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, lstFileDocumentId))) {
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -1074,21 +1074,21 @@ public class MultiReader extends DatabaseReader {
                 count = subnodes.length;
             }
         } catch (IOException e) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
+            displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
         }
         return count;
     }
 
     @Override
     public InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control) {
-        try (Cursor nodeContentCursor = this.getNodeChildrenCursor(nodeUniqueID)) {
+        try (Cursor nodeContentCursor = getNodeChildrenCursor(nodeUniqueID)) {
             while (nodeContentCursor.moveToNext()) {
                 if (!nodeContentCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR) && nodeContentCursor.getString(2).substring(0, nodeContentCursor.getString(2).lastIndexOf(".")).equals(control)) {
                     try {
-                        return this.context.getContentResolver().openInputStream(
-                                DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, nodeContentCursor.getString(0)));
+                        return context.getContentResolver().openInputStream(
+                                DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, nodeContentCursor.getString(0)));
                     } catch (FileNotFoundException e) {
-                        this.displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
+                        displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
                     }
                 }
             }
@@ -1098,14 +1098,14 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public InputStream getImageInputStream(String nodeUniqueID, String control) {
-        try (Cursor nodeContentCursor = this.getNodeChildrenCursor(nodeUniqueID)) {
+        try (Cursor nodeContentCursor = getNodeChildrenCursor(nodeUniqueID)) {
             while (nodeContentCursor.moveToNext()) {
                 if (!nodeContentCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR) && nodeContentCursor.getString(2).substring(0, nodeContentCursor.getString(2).lastIndexOf(".")).equals(control)) {
                     try {
-                        return this.context.getContentResolver().openInputStream(
-                                DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, nodeContentCursor.getString(0)));
+                        return context.getContentResolver().openInputStream(
+                                DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, nodeContentCursor.getString(0)));
                     } catch (FileNotFoundException e) {
-                        this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
+                        displayToast(context.getString(R.string.toast_error_failed_to_load_image));
                     }
                 }
             }
@@ -1124,8 +1124,8 @@ public class MultiReader extends DatabaseReader {
      * @return SAF cursor. Cursor should be closed after use manually. Cursor has 3 fields: 0 - document_id, 1 - mime_type, 2 - _display_name
      */
     private Cursor getMainNodesCursor() {
-        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(this.mainFolderUri, DocumentsContract.getTreeDocumentId(this.mainFolderUri));
-        return this.context.getContentResolver().query(
+        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mainFolderUri, DocumentsContract.getTreeDocumentId(mainFolderUri));
+        return context.getContentResolver().query(
                 childrenUri,
                 new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
                 null,
@@ -1137,12 +1137,12 @@ public class MultiReader extends DatabaseReader {
     @Override
     public ArrayList<ScNode> getMenu(String nodeUniqueID) {
         ArrayList<ScNode> nodes = new ArrayList<>();
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        NodeList nodeList = drawerMenu.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node item = nodeList.item(i);
             if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                nodes.add(this.createSingleMenuItem(item, true, false));
-                nodes.addAll(this.returnSubnodeArrayList(item.getChildNodes(), true));
+                nodes.add(createSingleMenuItem(item, true, false));
+                nodes.addAll(returnSubnodeArrayList(item.getChildNodes(), true));
             }
         }
         return nodes;
@@ -1155,14 +1155,14 @@ public class MultiReader extends DatabaseReader {
      */
     private Cursor getNodeChildrenCursor(String nodeUniqueID) {
         Cursor cursor = null;
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        NodeList nodeList = drawerMenu.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node item = nodeList.item(i);
             if (item.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
                 Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(
-                        this.mainFolderUri,
+                        mainFolderUri,
                         item.getAttributes().getNamedItem("saf_id").getNodeValue());
-                cursor = this.context.getContentResolver().query(
+                cursor = context.getContentResolver().query(
                         uri,
                         new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
                         null,
@@ -1181,10 +1181,10 @@ public class MultiReader extends DatabaseReader {
      */
     private Cursor getNodeChildrenCursor(Node node) {
         Uri uri = DocumentsContract.buildChildDocumentsUriUsingTree(
-                        this.mainFolderUri,
+                        mainFolderUri,
                         node.getAttributes().getNamedItem("saf_id").getNodeValue()
         );
-        return this.context.getContentResolver().query(
+        return context.getContentResolver().query(
                         uri,
                         new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
                         null,
@@ -1195,7 +1195,7 @@ public class MultiReader extends DatabaseReader {
 
     /**
      * Creates cursor with children of the document using SAF documentId. DocumentId has to be of a
-     * children of this.mainFolderUri.
+     * children of mainFolderUri.
      * @param documentId documentId of the document to create children of
      * @return cursor with children documents. Has to be closed after use.
      */
@@ -1213,7 +1213,7 @@ public class MultiReader extends DatabaseReader {
     @Override
     public int getNodeMaxID() {
         int maxID = -1;
-        NodeList nodeList = this.drawerMenu.getElementsByTagName("node");
+        NodeList nodeList = drawerMenu.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             int foundNodeUniqueID = Integer.parseInt(node.getAttributes().getNamedItem("unique_id").getNodeValue());
@@ -1257,8 +1257,8 @@ public class MultiReader extends DatabaseReader {
         try (Cursor nodeCursor = getNodeChildrenCursorSaf(safId)) {
             while (nodeCursor.moveToNext()) {
                 if (nodeCursor.getString(2).equals("node.xml")) {
-                    try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, nodeCursor.getString(0)))) {
-                        node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
+                    try (InputStream is = context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, nodeCursor.getString(0)))) {
+                        node = documentBuilder.parse(is).getElementsByTagName("node").item(0);
                     } catch (IOException | SAXException e) {
                         // Silently catch exception
                     }
@@ -1314,7 +1314,7 @@ public class MultiReader extends DatabaseReader {
                 } else if (parentNode.getNodeName().equals("sourcherry")) {
                     nodes = getMainNodes();
                 } else {
-                    nodes = this.returnSubnodeArrayList(parentNode.getChildNodes(), true);
+                    nodes = returnSubnodeArrayList(parentNode.getChildNodes(), true);
                     nodes.add(0, createParentNode(parentNode));
                 }
             }
@@ -1408,7 +1408,7 @@ public class MultiReader extends DatabaseReader {
      * @return true - file exists, false - opposite of that
      */
     private boolean isFileInNode(String nodeUniqueID, String filename) {
-        try (Cursor cursor = this.getNodeChildrenCursor(nodeUniqueID)) {
+        try (Cursor cursor = getNodeChildrenCursor(nodeUniqueID)) {
             while (cursor.moveToNext()) {
                 if (cursor.getString(2).equals(filename)) {
                     return true;
@@ -1431,7 +1431,7 @@ public class MultiReader extends DatabaseReader {
                             nodeBookmarked = Arrays.asList(line.split(",")).contains(nodeUniqueID);
                         }
                     } catch (IOException e) {
-                        displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
+                        displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, cursor.getString(2)));
                     }
                     break;
                 }
@@ -1446,9 +1446,9 @@ public class MultiReader extends DatabaseReader {
         SpannableStringBuilder nodeContentStringBuilder = new SpannableStringBuilder(); // Temporary storage for text, codebox, image formatting
         ArrayList<ScNodeContentTable> nodeTables = new ArrayList<>(); // Temporary storage for tables
         ArrayList<Integer> nodeTableCharOffsets = new ArrayList<>();
-        Cursor nodeContentCursor = this.getNodeChildrenCursor(nodeUniqueID);
+        Cursor nodeContentCursor = getNodeChildrenCursor(nodeUniqueID);
         if (nodeContentCursor == null) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_find_node_content));
+            displayToast(context.getString(R.string.toast_error_failed_to_find_node_content));
         }
         //// This needed to calculate where to place span in to builder
         // Because after every insertion in the middle it displaces the next insertion
@@ -1457,8 +1457,8 @@ public class MultiReader extends DatabaseReader {
         int totalCharOffset = 0;
         while (nodeContentCursor != null && nodeContentCursor.moveToNext()) {
             if (nodeContentCursor.getString(2).equals("node.xml")) {
-                try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, nodeContentCursor.getString(0)))) {
-                    Node node = this.documentBuilder.parse(is).getElementsByTagName("node").item(0);
+                try (InputStream is = context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, nodeContentCursor.getString(0)))) {
+                    Node node = documentBuilder.parse(is).getElementsByTagName("node").item(0);
                     String nodeProgLang = node.getAttributes().getNamedItem("prog_lang").getNodeValue();
                     if (nodeProgLang.equals("custom-colors") || nodeProgLang.equals("plain-text")) {
                         // This is formatting for Rich Text and Plain Text nodes
@@ -1475,8 +1475,8 @@ public class MultiReader extends DatabaseReader {
                                     }
                                     break;
                                 case "codebox": {
-                                    int charOffset = this.getCharOffset(currentNode);
-                                    SpannableStringBuilder codeboxText = this.makeFormattedCodeboxSpan(currentNode);
+                                    int charOffset = getCharOffset(currentNode);
+                                    SpannableStringBuilder codeboxText = makeFormattedCodeboxSpan(currentNode);
                                     nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
                                     totalCharOffset += codeboxText.length() - 1;
                                     break;
@@ -1487,22 +1487,22 @@ public class MultiReader extends DatabaseReader {
                                     if (currentNode.getAttributes().getNamedItem("filename") != null) {
                                         if (currentNode.getAttributes().getNamedItem("filename").getNodeValue().equals("__ct_special.tex")) {
                                             // For latex boxes
-                                            SpannableStringBuilder latexImageSpan = this.makeLatexImageSpan(currentNode);
+                                            SpannableStringBuilder latexImageSpan = makeLatexImageSpan(currentNode);
                                             nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
                                         } else {
                                             // For actual attached files
-                                            SpannableStringBuilder attachedFileSpan = this.makeAttachedFileSpan(currentNode, nodeUniqueID);
+                                            SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(currentNode, nodeUniqueID);
                                             nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
                                             totalCharOffset += attachedFileSpan.length() - 1;
                                         }
                                     } else if (currentNode.getAttributes().getNamedItem("anchor") != null) {
-                                        SpannableStringBuilder anchorImageSpan = this.makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
+                                        SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan(currentNode.getAttributes().getNamedItem("anchor").getNodeValue());
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
                                     } else {
                                         // Images
                                         int pos = nodeContentCursor.getPosition(); // Save position of the cursor before resetting
                                         nodeContentCursor.moveToPosition(-1);
-                                        SpannableStringBuilder imageSpan = this.makeImageSpan(nodeContentCursor, currentNode.getAttributes().getNamedItem("sha256sum").getNodeValue(), nodeUniqueID);
+                                        SpannableStringBuilder imageSpan = makeImageSpan(nodeContentCursor, currentNode.getAttributes().getNamedItem("sha256sum").getNodeValue(), nodeUniqueID);
                                         nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
                                         nodeContentCursor.moveToPosition(pos); // Restore cursor position, otherwise - infinite loop
                                     }
@@ -1511,16 +1511,16 @@ public class MultiReader extends DatabaseReader {
                                 case "table": {
                                     int charOffset = getCharOffset(currentNode) + totalCharOffset; // Place where SpannableStringBuilder will be split
                                     nodeTableCharOffsets.add(charOffset);
-                                    int[] cellMinMax = this.getTableMinMax(currentNode);
+                                    int[] cellMinMax = getTableMinMax(currentNode);
                                     ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
                                     byte lightInterface = 0;
                                     if (!((Element) currentNode).getAttribute("is_light").equals("")) {
                                         lightInterface = Byte.parseByte(((Element) currentNode).getAttribute("is_light"));
                                     }
                                     NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
-                                    currentTableContent.add(this.getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
+                                    currentTableContent.add(getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
                                     for (int row = 0; row < tableRowsNodes.getLength() - 1; row++) {
-                                        currentTableContent.add(this.getTableRow(tableRowsNodes.item(row)));
+                                        currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
                                     }
                                     ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMinMax[0], cellMinMax[1], lightInterface, ((Element) currentNode).getAttribute("justification"), ((Element) currentNode).getAttribute("col_widths"));
                                     nodeTables.add(scNodeContentTable);
@@ -1533,10 +1533,10 @@ public class MultiReader extends DatabaseReader {
                         }
                     } else {
                         // Node is Code Node. It's just a big CodeBox with no dimensions
-                        nodeContentStringBuilder.append(this.makeFormattedCodeNodeSpan(node));
+                        nodeContentStringBuilder.append(makeFormattedCodeNodeSpan(node));
                     }
                 } catch (IOException | SAXException e) {
-                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_node_content));
+                    displayToast(context.getString(R.string.toast_error_failed_to_load_node_content));
                 }
             }
         }
@@ -1565,7 +1565,7 @@ public class MultiReader extends DatabaseReader {
             ScNodeContentText nodeContentText = new ScNodeContentText((byte) 0, nodeContentStringBuilder);
             nodeContent.add(nodeContentText);
         }
-        this.mainViewModel.getNodeContent().postValue(nodeContent);
+        mainViewModel.getNodeContent().postValue(nodeContent);
     }
 
     @Override
@@ -1589,7 +1589,7 @@ public class MultiReader extends DatabaseReader {
         ClickableSpanNode clickableSpanNode = new ClickableSpanNode() {
             @Override
             public void onClick(@NonNull View widget) {
-                ((MainView) MultiReader.this.context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
+                ((MainView) context).openAnchorLink(getSingleMenuItem(nodeUniqueID));
             }
 
             @Override
@@ -1639,7 +1639,7 @@ public class MultiReader extends DatabaseReader {
             @Override
             public void onClick(@NonNull View widget) {
                 // Launches function in MainView that checks if there is a default action in for attached files
-                ((MainView) MultiReader.this.context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, sha256sum);
+                ((MainView) context).saveOpenFile(nodeUniqueID, attachedFileFilename, time, sha256sum);
             }
         };
         formattedAttachedFile.setSpan(imageClickableSpan, 0, attachedFileFilename.length() + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
@@ -1662,10 +1662,10 @@ public class MultiReader extends DatabaseReader {
         Drawable drawableBrokenImage;
         ImageSpan brokenImage;
         if (type == 0) {
-            drawableBrokenImage = AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_image_48);
+            drawableBrokenImage = AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_image_48);
             brokenImage = new ImageSpanImage(drawableBrokenImage);
         } else {
-            drawableBrokenImage =  AppCompatResources.getDrawable(this.context, R.drawable.ic_outline_broken_latex_48);
+            drawableBrokenImage =  AppCompatResources.getDrawable(context, R.drawable.ic_outline_broken_latex_48);
             brokenImage = new ImageSpanLatex(drawableBrokenImage);
         }
         //// Inserting image
@@ -1681,7 +1681,7 @@ public class MultiReader extends DatabaseReader {
             @Override
             public void onClick(@NonNull View widget) {
                 // Decoding of Base64 is done here
-                ((MainView) MultiReader.this.context).fileFolderLinkFilepath(new String(Base64.decode(base64Filename, Base64.DEFAULT)));
+                ((MainView) context).fileFolderLinkFilepath(new String(Base64.decode(base64Filename, Base64.DEFAULT)));
             }
 
             @Override
@@ -1723,7 +1723,7 @@ public class MultiReader extends DatabaseReader {
         formattedCodeNode.setSpan(tf, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         // Changes background color
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(this.context.getColor(R.color.codebox_background));
+            LineBackgroundSpan.Standard lbs = new LineBackgroundSpan.Standard(context.getColor(R.color.codebox_background));
             formattedCodeNode.setSpan(lbs, 0, formattedCodeNode.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return formattedCodeNode;
@@ -1770,7 +1770,7 @@ public class MultiReader extends DatabaseReader {
             }
         } else {
             formattedCodebox.setSpan(typefaceSpanCodebox, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            BackgroundColorSpan bcs = new BackgroundColorSpan(this.context.getColor(R.color.codebox_background));
+            BackgroundColorSpan bcs = new BackgroundColorSpan(context.getColor(R.color.codebox_background));
             formattedCodebox.setSpan(bcs, 0, formattedCodebox.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         if (justificationAttribute.equals("right")) {
@@ -1798,8 +1798,8 @@ public class MultiReader extends DatabaseReader {
             if (cursor.getString(1).equals("image/png") && cursor.getString(2).substring(0, cursor.getString(2).lastIndexOf(".")).equals(sha256sum)) {
                 try {
                     formattedImage.append(" ");
-                    InputStream inputStream = this.context.getContentResolver().openInputStream(
-                            DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)));
+                    InputStream inputStream = context.getContentResolver().openInputStream(
+                            DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, cursor.getString(0)));
                     Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
                     Drawable image = new BitmapDrawable(context.getResources(), bitmap);
                     image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
@@ -1827,9 +1827,9 @@ public class MultiReader extends DatabaseReader {
                     imageSpanImage.setSha256sum(sha256sum);
                 } catch (FileNotFoundException e) {
                     // Displays a toast message and appends broken image span to display in node content
-                    imageSpanImage = (ImageSpanImage) this.makeBrokenImageSpan(0);
+                    imageSpanImage = (ImageSpanImage) makeBrokenImageSpan(0);
                     formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    this.displayToast(this.context.getString(R.string.toast_error_failed_to_load_image));
+                    displayToast(context.getString(R.string.toast_error_failed_to_load_image));
                 }
             }
         }
@@ -1886,16 +1886,16 @@ public class MultiReader extends DatabaseReader {
                 @Override
                 public void onClick(@NonNull View widget) {
                     // Starting fragment to view enlarged zoomable image
-                    ((MainView) MultiReader.this.context).openImageView(latexString);
+                    ((MainView) context).openImageView(latexString);
                 }
             };
             formattedLatexImage.setSpan(imageClickableSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // Setting clickableSpan on image
             //**
         } catch (Exception e) {
             // Displays a toast message and appends broken latex image span to display in node content
-            imageSpanLatex = (ImageSpanLatex) this.makeBrokenImageSpan(1);
+            imageSpanLatex = (ImageSpanLatex) makeBrokenImageSpan(1);
             formattedLatexImage.setSpan(imageSpanLatex, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_compile_latex));
+            displayToast(context.getString(R.string.toast_error_failed_to_compile_latex));
         }
         //*
         String justificationAttribute = node.getAttributes().getNamedItem("justification").getNodeValue();
@@ -1935,12 +1935,12 @@ public class MultiReader extends DatabaseReader {
         // Checks for when user wants to move node to the same parent node
         // In XML file it causes a crash
         if (destinationNode.getNodeName().equals("sourcherry") && targetNode.getParentNode().getNodeName().equals("sourcherry")) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
+            displayToast(context.getString(R.string.toast_error_failed_to_move_node));
             return false;
         }
         Node parentNodeUniqueID = targetNode.getParentNode().getAttributes().getNamedItem("unique_id");
         if (parentNodeUniqueID != null && parentNodeUniqueID.getNodeValue().equals(destinationNodeUniqueID)) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
+            displayToast(context.getString(R.string.toast_error_failed_to_move_node));
             return false;
         }
         // Proceeding with the move
@@ -1956,11 +1956,11 @@ public class MultiReader extends DatabaseReader {
                     targetPerentDocumentUri
             );
         } catch (FileNotFoundException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_move_node));
+            displayToast(context.getString(R.string.toast_error_failed_to_move_node));
             return false;
         }
         if (result == null) {
-            this.displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
+            displayToast(context.getString(R.string.toast_error_new_parent_cant_be_one_of_its_children));
             return false;
         }
         // Removing unique node ID from subnodes.lst in source folder
@@ -1979,7 +1979,7 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public void removeNodeFromBookmarks(String nodeUniqueID) {
-        removeNodeFromLst(DocumentsContract.getTreeDocumentId(this.mainFolderUri), nodeUniqueID, "bookmarks.lst");
+        removeNodeFromLst(DocumentsContract.getTreeDocumentId(mainFolderUri), nodeUniqueID, "bookmarks.lst");
     }
 
     /**
@@ -2005,7 +2005,7 @@ public class MultiReader extends DatabaseReader {
             // bookmarks.lst can be missing if there were no bookmarks
             if (lstFileDocumentId == null) {
                 if (filename.equals("subnodes.lst")) {
-                    displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
+                    displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
                 }
                 return;
             }
@@ -2033,7 +2033,7 @@ public class MultiReader extends DatabaseReader {
                 }
             }
         } catch (IOException e) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
+            displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, filename));
         }
     }
 
@@ -2044,7 +2044,7 @@ public class MultiReader extends DatabaseReader {
     private void removeNodesFromBookmarks(List<String> nodeUniqueIDs) {
         try {
             String lstFileDocumentId = null;
-            try (Cursor cursor = this.getNodeChildrenCursorSaf(DocumentsContract.getTreeDocumentId(this.mainFolderUri))) {
+            try (Cursor cursor = getNodeChildrenCursorSaf(DocumentsContract.getTreeDocumentId(mainFolderUri))) {
                 while (cursor.moveToNext()) {
                     if (cursor.getString(2).equals("bookmarks.lst")) {
                         lstFileDocumentId = cursor.getString(0);
@@ -2057,7 +2057,7 @@ public class MultiReader extends DatabaseReader {
                 return;
             }
             String[] subnodes = null;
-            try (InputStream is = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId))) {
+            try (InputStream is = context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, lstFileDocumentId))) {
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 String line = br.readLine();
                 if (line != null) {
@@ -2065,7 +2065,7 @@ public class MultiReader extends DatabaseReader {
                 }
             }
             if (subnodes == null) {
-                this.displayToast(this.context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
+                displayToast(context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
                 return;
             }
             subnodes = Arrays.stream(subnodes)
@@ -2073,18 +2073,18 @@ public class MultiReader extends DatabaseReader {
                     .toArray(String[]::new);
             if (subnodes.length == 0) {
                 DocumentsContract.deleteDocument(
-                        this.context.getContentResolver(),
-                        DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId)
+                        context.getContentResolver(),
+                        DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, lstFileDocumentId)
                 );
             } else {
                 try (
-                        OutputStream os = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, lstFileDocumentId), "wt");
+                        OutputStream os = context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, lstFileDocumentId), "wt");
                         PrintWriter pw = new PrintWriter(os)) {
                     pw.println(String.join(",", subnodes));
                 }
             }
         } catch (IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
+            displayToast(context.getString(R.string.toast_error_failed_to_remove_nodes_from_bookmarks));
         }
     }
 
@@ -2113,10 +2113,10 @@ public class MultiReader extends DatabaseReader {
         for (int i = 0; i < nodelist.getLength(); i++) {
             Node item = nodelist.item(i);
             if (item.getAttributes().getNamedItem("nosearch_me").getNodeValue().equals("0")) {
-                nodes.add(this.createSingleMenuItem(item, false, false));
+                nodes.add(createSingleMenuItem(item, false, false));
             }
             if (item.getAttributes().getNamedItem("nosearch_ch").getNodeValue().equals("0")) {
-                nodes.addAll(this.returnSubnodeSearchArrayList(item.getChildNodes()));
+                nodes.addAll(returnSubnodeSearchArrayList(item.getChildNodes()));
             }
         }
         return nodes;
@@ -2136,7 +2136,7 @@ public class MultiReader extends DatabaseReader {
             StreamResult result = new StreamResult(outputStream);
             transformer.transform(dSource, result);
         } catch (TransformerException e) {
-            displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
         }
     }
 
@@ -2148,13 +2148,13 @@ public class MultiReader extends DatabaseReader {
         Transformer transformer;
         try {
             transformer = transformerFactory.newTransformer();
-            DOMSource dSource = new DOMSource(this.drawerMenu);
-            OutputStream fileOutputStream = new FileOutputStream(new File(this.context.getFilesDir(), "drawer_menu.xml"));
+            DOMSource dSource = new DOMSource(drawerMenu);
+            OutputStream fileOutputStream = new FileOutputStream(new File(context.getFilesDir(), "drawer_menu.xml"));
             StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
             transformer.transform(dSource, result);
             fileOutputStream.close();
         } catch (TransformerException | IOException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_save_database_changes));
+            displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
         }
     }
 
@@ -2196,10 +2196,10 @@ public class MultiReader extends DatabaseReader {
             fileImageSha256Sums.add(imageSpanFile.getSha256sum() + "."  + Filenames.getFileExtension(imageSpanFile.getFilename()));
         } else {
             Uri userAttachedFileUri = Uri.parse(imageSpanFile.getFileUri());
-            String sha256sum = this.calculateFileSha256Sum(userAttachedFileUri);
+            String sha256sum = calculateFileSha256Sum(userAttachedFileUri);
             String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
             String filename = extension != null ? sha256sum + "." + extension : sha256sum;
-            this.copyFileToNodeFolder(userAttachedFileUri, filename);
+            copyFileToNodeFolder(userAttachedFileUri, filename);
             element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
             element.setAttribute("sha256sum", sha256sum);
             fileImageSha256Sums.add(filename);
@@ -2224,8 +2224,8 @@ public class MultiReader extends DatabaseReader {
         if (imageSpanImage.getSha256sum().startsWith("content://")) {
             // Means it's not sha256sum, but an URI in string form
             Uri userAttachedFileUri = Uri.parse(imageSpanImage.getSha256sum());
-            String sha256sum = this.calculateFileSha256Sum(userAttachedFileUri);
-            this.copyFileToNodeFolder(userAttachedFileUri, sha256sum + ".png");
+            String sha256sum = calculateFileSha256Sum(userAttachedFileUri);
+            copyFileToNodeFolder(userAttachedFileUri, sha256sum + ".png");
             element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
             element.setAttribute("sha256sum", sha256sum);
             fileImageSha256Sums.add(sha256sum + ".png");
@@ -2341,7 +2341,7 @@ public class MultiReader extends DatabaseReader {
                             } else if (span instanceof ImageSpanFile) {
                                 // Attached file
                                 addContent = false;
-                                offsetNodes.add(this.saveImageSpanFile(
+                                offsetNodes.add(saveImageSpanFile(
                                         doc,
                                         fileImageSha256Sums,
                                         (ImageSpanFile) span,
@@ -2357,7 +2357,7 @@ public class MultiReader extends DatabaseReader {
                                 element.setAttribute("foreground", backgroundColor);
                             } else if (span instanceof ImageSpanAnchor) {
                                 addContent = false;
-                                offsetNodes.add(this.saveImageSpanAnchor(
+                                offsetNodes.add(saveImageSpanAnchor(
                                         doc,
                                         (ImageSpanAnchor) span,
                                         String.valueOf(currentPartContentLength + totalContentLength),
@@ -2365,7 +2365,7 @@ public class MultiReader extends DatabaseReader {
                                 ));
                             } else if (span instanceof ImageSpanImage) {
                                 addContent = false;
-                                offsetNodes.add(this.saveImageSpanImage(
+                                offsetNodes.add(saveImageSpanImage(
                                         doc,
                                         fileImageSha256Sums,
                                         (ImageSpanImage) span,
@@ -2374,7 +2374,7 @@ public class MultiReader extends DatabaseReader {
                                 ));
                             } else if (span instanceof ImageSpanLatex) {
                                 addContent = false;
-                                offsetNodes.add(this.saveImageSpanLatex(
+                                offsetNodes.add(saveImageSpanLatex(
                                         doc,
                                         (ImageSpanLatex) span,
                                         String.valueOf(currentPartContentLength + totalContentLength),
@@ -2386,7 +2386,7 @@ public class MultiReader extends DatabaseReader {
                                 element.setAttribute("indent", String.valueOf(indent));
                             } else if (span instanceof TypefaceSpanCodebox) {
                                 addContent = false;
-                                offsetNodes.add(this.saveTypefaceSpanCodebox(
+                                offsetNodes.add(saveTypefaceSpanCodebox(
                                         doc,
                                         (TypefaceSpanCodebox) span,
                                         String.valueOf(currentPartContentLength + totalContentLength),
@@ -2394,7 +2394,7 @@ public class MultiReader extends DatabaseReader {
                                         nodeContent.subSequence(i, next).toString()
                                 ));
                             } else if (span instanceof RelativeSizeSpan) {
-                                element.setAttribute("scale", this.saveRelativeSizeSpan((RelativeSizeSpan) span));
+                                element.setAttribute("scale", saveRelativeSizeSpan((RelativeSizeSpan) span));
                             } else if (span instanceof StrikethroughSpan) {
                                 element.setAttribute("strikethrough", "true");
                             } else if (span instanceof StyleSpanBold) {
@@ -2620,7 +2620,7 @@ public class MultiReader extends DatabaseReader {
                                 searchResult.add(scSearchNode);
                             }
                         } catch (IOException | SAXException e) {
-                            displayToast(this.context.getString(R.string.toast_error_while_searching));
+                            displayToast(context.getString(R.string.toast_error_while_searching));
                         }
                         break;
                     }
@@ -2665,7 +2665,7 @@ public class MultiReader extends DatabaseReader {
                                     searchResult.add(scSearchNode);
                                 }
                             } catch (IOException | SAXException e) {
-                                displayToast(this.context.getString(R.string.toast_error_while_searching));
+                                displayToast(context.getString(R.string.toast_error_while_searching));
                             }
                             break;
                         }
@@ -2685,23 +2685,23 @@ public class MultiReader extends DatabaseReader {
      * @throws SAXException Encapsulate a general SAX error or warning
      */
     public void setDrawerMenu() throws IOException, SAXException {
-        try (InputStream is = new FileInputStream(new File(this.context.getFilesDir(), "drawer_menu.xml"))) {
+        try (InputStream is = new FileInputStream(new File(context.getFilesDir(), "drawer_menu.xml"))) {
             drawerMenu = documentBuilder.parse(is);
         }
     }
 
     @Override
     public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        Node drawerMenuItem = this.findSingleNode(nodeUniqueID);
-        try (Cursor cursor = this.getNodeChildrenCursor(drawerMenuItem)) {
+        Node drawerMenuItem = findSingleNode(nodeUniqueID);
+        try (Cursor cursor = getNodeChildrenCursor(drawerMenuItem)) {
             while (cursor.moveToNext()) {
                 if (cursor.getString(2).equals("node.xml")) {
-                    InputStream inputStream = this.context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)));
-                    Document document = this.documentBuilder.parse(inputStream);
+                    InputStream inputStream = context.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, cursor.getString(0)));
+                    Document document = documentBuilder.parse(inputStream);
                     Node node = document.getElementsByTagName("node").item(0);
                     if (node.getAttributes().getNamedItem("prog_lang").getNodeValue().equals("custom-colors") && !progLang.equals("custom-colors")) {
-                        StringBuilder nodeContent = this.convertRichTextNodeContentToPlainText(node);
-                        this.deleteNodeContent(node);
+                        StringBuilder nodeContent = convertRichTextNodeContentToPlainText(node);
+                        deleteNodeContent(node);
                         Element newContentNode = document.createElement("rich_text");
                         newContentNode.setTextContent(nodeContent.toString());
                         node.appendChild(newContentNode);
@@ -2711,21 +2711,21 @@ public class MultiReader extends DatabaseReader {
                     node.getAttributes().getNamedItem("nosearch_me").setNodeValue(noSearchMe);
                     node.getAttributes().getNamedItem("nosearch_ch").setNodeValue(noSearchCh);
                     node.getAttributes().getNamedItem("ts_lastsave").setNodeValue(String.valueOf(System.currentTimeMillis() / 1000));
-                    OutputStream outputStream = this.context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(this.mainFolderUri, cursor.getString(0)), "wt");
-                    this.saveChanges(document, outputStream);
+                    OutputStream outputStream = context.getContentResolver().openOutputStream(DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, cursor.getString(0)), "wt");
+                    saveChanges(document, outputStream);
                     inputStream.close();
                     outputStream.close();
                     break;
                 }
             }
         } catch (IOException | SAXException e) {
-            this.displayToast(this.context.getString(R.string.toast_error_failed_to_get_node_properties));
+            displayToast(context.getString(R.string.toast_error_failed_to_get_node_properties));
         }
         Element element = (Element) drawerMenuItem;
         element.setAttribute("name", name);
         element.setAttribute("prog_lang", progLang);
         element.setAttribute("nosearch_me", noSearchMe);
         element.setAttribute("nosearch_ch", noSearchCh);
-        this.saveDrawerMenuToStorage();
+        saveDrawerMenuToStorage();
     }
 }
