@@ -1777,8 +1777,8 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
-     * Registered ActivityResultLauncher launches a file chooser that allows user to select a file
-     * for attachment to the node
+     * Registered ActivityResultLauncher launches a file chooser that allows user to select where
+     * attached file in the node will be saved
      * @return ActivityResultLauncher to a file to attach
      */
     private ActivityResultLauncher<String[]> registerSaveFile() {
