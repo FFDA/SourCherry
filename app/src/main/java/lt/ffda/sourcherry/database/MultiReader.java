@@ -779,21 +779,6 @@ public class MultiReader extends DatabaseReader {
         });
     }
 
-    @Override
-    public boolean doesNodeExist(String nodeUniqueID) {
-        if (nodeUniqueID == null) {
-            return false;
-        }
-        NodeList nodeList = drawerMenu.getElementsByTagName("node");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getAttributes().getNamedItem("unique_id").getNodeValue().equals(nodeUniqueID)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * Searches through node's content
      * @param node node to search in

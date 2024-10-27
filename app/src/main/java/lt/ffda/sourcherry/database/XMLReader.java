@@ -506,14 +506,6 @@ public class XMLReader extends DatabaseReader {
         });
     }
 
-    @Override
-    public boolean doesNodeExist(String nodeUniqueID) {
-        if (nodeUniqueID == null) {
-            return false;
-        }
-        return findNode(nodeUniqueID) != null;
-    }
-
     /**
      * Searches through node's content
      * @param node node to search in

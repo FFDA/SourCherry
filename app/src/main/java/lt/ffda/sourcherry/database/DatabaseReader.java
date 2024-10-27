@@ -182,13 +182,6 @@ public abstract class DatabaseReader {
     public abstract void displayToast(String message);
 
     /**
-     * Checks database if the node exists in it
-     * @param nodeUniqueID unique ID of the node to check existence of
-     * @return true - if node exists, false - if it doesn't
-     */
-    public abstract boolean doesNodeExist(String nodeUniqueID);
-
-    /**
      * Returns all nodes from the database. Used for search/filter function in drawer menu.
      * @param noSearch true - skips all nodes that are marked not to be searched
      * @return ArrayList of all the nodes in the database.

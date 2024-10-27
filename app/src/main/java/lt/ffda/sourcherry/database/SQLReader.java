@@ -570,20 +570,6 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         });
     }
 
-    @Override
-    public boolean doesNodeExist(String nodeUniqueID) {
-        if (nodeUniqueID == null) {
-            return false;
-        }
-        try (Cursor cursor = sqlite.rawQuery("SELECT node.name FROM node WHERE node.node_id=?", new String[]{nodeUniqueID})) {
-            if (cursor.getCount() == 1) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-
     /**
      * Searches through node's content
      * @param cursor cursor that holds all the data of the of the node to search through
