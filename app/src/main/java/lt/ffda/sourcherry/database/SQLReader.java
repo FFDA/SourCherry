@@ -581,7 +581,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      */
     private ScSearchNode findInNode(Cursor cursor, String query, boolean hasSubnodes, boolean isParent, boolean isSubnode) {
         // Skip all sharedNodes
-        if (!cursor.getString(3).equals("0")) {
+        if (cursor.getString(3) != null && !cursor.getString(3).equals("0")) {
             return null;
         }
         // This string builder will hold all text content of the node
@@ -785,7 +785,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             }
             int iconId = cursor.getInt(9) >> 1;
             boolean isReadOnly = (cursor.getInt(9) & 0x01) == 1;
-            return new ScSearchNode(cursor.getString(0), cursor.getString(3), cursor.getString(5), isParent, hasSubnodes, isSubnode, cursor.getString(3).equals("custom-colors"), isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
+            return new ScSearchNode(cursor.getString(0), cursor.getString(3) == null ? "0" : cursor.getString(3), cursor.getString(5), isParent, hasSubnodes, isSubnode, cursor.getString(7).equals("custom-colors"), isBold, foregroundColor, iconId, isReadOnly, query, resultCount, samples.toString());
         } else {
             return null;
         }
