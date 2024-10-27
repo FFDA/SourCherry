@@ -1137,8 +1137,7 @@ public class MainView extends AppCompatActivity {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         try {
             reader = DatabaseReaderFactory.getReader(this, handler, sharedPreferences, mainViewModel);
-        } catch (IOException | ParserConfigurationException | TransformerConfigurationException |
-                 InterruptedException | SAXException | ExecutionException e) {
+        } catch (Exception e) {
             Toast.makeText(this, R.string.toast_error_failed_to_initiate_reader, Toast.LENGTH_SHORT).show();
             finish();
             return;
