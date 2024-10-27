@@ -1159,20 +1159,23 @@ public class MainView extends AppCompatActivity {
             findInNodeToggle = false;
             mainViewModel.getMultiDatabaseSync().postValue(null);
             currentFindInNodeMarked = -1;
-            if (sharedPreferences.getBoolean("restore_last_node", false) && reader.doesNodeExist(sharedPreferences.getString("last_node_unique_id", null))) {
+            if (sharedPreferences.getBoolean("restore_last_node", false)) {
                 // Restores node on startup if user set this in settings
-                mainViewModel.setCurrentNode(reader.getSingleMenuItem(sharedPreferences.getString("last_node_unique_id", null)));
-                if (mainViewModel.getCurrentNode().hasSubnodes()) { // Checks if menu has subnodes and creates appropriate menu
-                    mainViewModel.setNodes(reader.getMenu(mainViewModel.getCurrentNode().getUniqueId()));
+                ScNode scNode = reader.getSingleMenuItem(sharedPreferences.getString("last_node_unique_id", null));
+                if (scNode != null) {
+                    mainViewModel.setCurrentNode(scNode);
+                    if (mainViewModel.getCurrentNode().hasSubnodes()) {
+                        mainViewModel.setNodes(reader.getMenu(mainViewModel.getCurrentNode().getUniqueId()));
+                    } else {
+                        mainViewModel.setNodes(reader.getParentWithSubnodes(mainViewModel.getCurrentNode().getUniqueId()));
+                    }
+                    loadNodeContent();
+                    setCurrentNodePosition();
                 } else {
-                    mainViewModel.setNodes(reader.getParentWithSubnodes(mainViewModel.getCurrentNode().getUniqueId()));
+                    setMainMenuOnStart();
                 }
-                loadNodeContent();
-                setCurrentNodePosition();
             } else {
-                currentNodePosition = -1;
-                mainViewModel.setCurrentNode(null); // This needs to be placed before restoring the instance if there was one
-                mainViewModel.setNodes(reader.getMainNodes());
+                setMainMenuOnStart();
             }
             if (reader instanceof MultiReader && sharedPreferences.getBoolean("preference_multifile_auto_sync", false)) {
                 updateDrawerMenu();
@@ -2032,6 +2035,15 @@ public class MainView extends AppCompatActivity {
                 progressBar.setIndeterminate(status);
             }
         });
+    }
+
+    /**
+     * Sets main menu items to drawerMenu on start
+     */
+    private void setMainMenuOnStart() {
+        currentNodePosition = -1;
+        mainViewModel.setCurrentNode(null); // This needs to be placed before restoring the instance if there was one
+        mainViewModel.setNodes(reader.getMainNodes());
     }
 
     /**

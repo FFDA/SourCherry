@@ -302,7 +302,7 @@ public abstract class DatabaseReader {
     /**
      * Returns single menu item with current information
      * @param nodeUniqueID unique ID of the node to find and return
-     * @return Single drawer menu item.
+     * @return Single drawer menu item, or null if not found
      */
     public abstract ScNode getSingleMenuItem(String nodeUniqueID);
 
