@@ -74,7 +74,7 @@ public class NodePropertiesFragment extends Fragment {
      */
     private String getNodeName() {
         String nodeName = ((EditText) getView().findViewById(R.id.edit_text_node_name)).getText().toString().trim();
-        if (nodeName.length() == 0) {
+        if (nodeName.isEmpty()) {
             nodeName = "?";
         }
         return nodeName;

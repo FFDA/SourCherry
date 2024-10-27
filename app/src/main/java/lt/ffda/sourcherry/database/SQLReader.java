@@ -1326,7 +1326,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         }
 
         int subStringStart = 0; // Holds start from where SpannableStringBuilder has to be split from
-        if (nodeTables.size() > 0) {
+        if (!nodeTables.isEmpty()) {
             // If there are at least one table in the node
             // SpannableStringBuilder that holds are split in to parts
             for (int i = 0; i < nodeTables.size(); i++) {
@@ -1384,7 +1384,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             }
         };
         clickableSpanNode.setNodeUniqueID(nodeUniqueID);
-        if (linkAnchorName.length() > 0) {
+        if (!linkAnchorName.isEmpty()) {
             clickableSpanNode.setLinkAnchorName(linkAnchorName);
         }
         return clickableSpanNode;
@@ -1820,9 +1820,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param imageSpanAnchor ImageSpanAnchor object from nodeContent
      * @param nodeUniqueID unique ID of the node associated with Anchor image
      * @param offset offset of the Anchor image
-     * @param lastFoundJustification justification of the Anchor image
      */
-    private void saveImageSpanAnchor(ImageSpanAnchor imageSpanAnchor, String nodeUniqueID, int offset, String lastFoundJustification) {
+    private void saveImageSpanAnchor(ImageSpanAnchor imageSpanAnchor, String nodeUniqueID, int offset) {
         sqlite.beginTransaction();
         try {
             ContentValues contentValues = new ContentValues();
@@ -1897,9 +1896,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param imageSpanImage ImageSpan object from nodeContent
      * @param nodeUniqueID unique ID of the node associated with image
      * @param offset offset of the image
-     * @param lastFoundJustification justification of the image
      */
-    private void saveImageSpanImage(ImageSpanImage imageSpanImage, String nodeUniqueID, int offset, String lastFoundJustification) {
+    private void saveImageSpanImage(ImageSpanImage imageSpanImage, String nodeUniqueID, int offset) {
         Drawable drawable = imageSpanImage.getDrawable();
         // Hopefully it's always a Bitmap drawable, because I get it from the same source
         Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
@@ -1928,9 +1926,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @param imageSpanLatex ImageSpanLatex object from nodeContent
      * @param nodeUniqueID unique ID of the node associated with LaTeX image
      * @param offset offset of the LaTeX image
-     * @param lastFoundJustification justification of the LaTeX image
      */
-    private void saveImageSpanLatex(ImageSpanLatex imageSpanLatex, String nodeUniqueID, int offset, String lastFoundJustification) {
+    private void saveImageSpanLatex(ImageSpanLatex imageSpanLatex, String nodeUniqueID, int offset) {
         sqlite.beginTransaction();
         try {
             ContentValues contentValues = new ContentValues();
@@ -2163,8 +2160,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         saveImageSpanAnchor(
                                 imageSpanAnchor,
                                 nodeUniqueID,
-                                imageSpanAnchor.getNewOffset() + extraCharOffset,
-                                lastFoundJustification
+                                imageSpanAnchor.getNewOffset() + extraCharOffset
                         );
                         attachedFileOffset.add(imageSpanAnchor.getNewOffset() + extraCharOffset);
                         extraCharOffset++;
@@ -2199,8 +2195,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         saveImageSpanLatex(
                                 imageSpanLatex,
                                 nodeUniqueID,
-                                imageSpanLatex.getNewOffset() + extraCharOffset,
-                                lastFoundJustification
+                                imageSpanLatex.getNewOffset() + extraCharOffset
                         );
                         attachedFileOffset.add(imageSpanLatex.getNewOffset() + extraCharOffset);
                         extraCharOffset++;
@@ -2217,8 +2212,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                         saveImageSpanImage(
                                 imageSpanImage,
                                 nodeUniqueID,
-                                imageSpanImage.getNewOffset() + extraCharOffset,
-                                lastFoundJustification
+                                imageSpanImage.getNewOffset() + extraCharOffset
                         );
                         attachedFileOffset.add(imageSpanImage.getNewOffset() + extraCharOffset);
                         extraCharOffset++;

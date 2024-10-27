@@ -64,7 +64,7 @@ public class ScSearchNode extends ScNode {
      * @param resultSamples sample lines in the node with the query
      */
     public ScSearchNode(String uniqueId, String masterId, String name, boolean isParent, boolean hasSubnodes, boolean isSubnode, boolean isRichText, boolean isBold, String foregroundColor, int iconId, boolean isReadOnly, String query, int resultCount, String resultSamples) {
-        super(uniqueId, "0", name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
+        super(uniqueId, masterId, name, isParent, hasSubnodes, isSubnode, isRichText, isBold, foregroundColor, iconId, isReadOnly);
         this.query = query;
         this.resultCount = resultCount;
         this.resultSamples = resultSamples;

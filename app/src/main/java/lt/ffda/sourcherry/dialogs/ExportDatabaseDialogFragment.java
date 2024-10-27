@@ -148,7 +148,7 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
             }
             // Compressed (password protected) databases have a
             // different filename extension based on their type
-            String databaseExtensionCompressed = null;
+            String databaseExtensionCompressed;
             if (sharedPreferences.getString("databaseFileExtension", null).equals("ctd")) {
                 // XML
                 databaseExtensionCompressed = "ctz";

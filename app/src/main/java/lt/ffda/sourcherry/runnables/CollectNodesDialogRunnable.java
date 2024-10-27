@@ -93,7 +93,7 @@ public class CollectNodesDialogRunnable extends CollectNodesAbstractRunnable imp
             if (subnodes == null) {
                 throw new FileNotFoundException("Could not find subnodes.lst file");
             }
-            while (subnodes.size() > 0) {
+            while (!subnodes.isEmpty()) {
                 cursor.moveToPosition(-1);
                 String nextNodeUniqueID = subnodes.remove(0);
                 while (cursor.moveToNext()) {

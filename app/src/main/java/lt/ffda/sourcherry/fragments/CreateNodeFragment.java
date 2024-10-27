@@ -151,7 +151,7 @@ public class CreateNodeFragment extends Fragment {
      */
     private String validateNodeName(String nodeName) {
         nodeName = nodeName.trim();
-        if (nodeName.length() == 0) {
+        if (nodeName.isEmpty()) {
             nodeName = "?";
         }
         return nodeName;

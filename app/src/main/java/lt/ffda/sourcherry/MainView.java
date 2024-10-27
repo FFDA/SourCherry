@@ -239,7 +239,7 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked by the user
      */
     public void createNode(View view) {
-        if (mainViewModel.getNodes().size() == 0 || !mainViewModel.getNodes().get(0).isParent()) {
+        if (mainViewModel.getNodes().isEmpty() || !mainViewModel.getNodes().get(0).isParent()) {
             launchCreateNewNodeFragment("0", 1);
         } else {
             if (mainViewModel.getNodes().get(0).isParent()) {
@@ -493,7 +493,7 @@ public class MainView extends AppCompatActivity {
      * @param query search query
      */
     private void findInNode(String query) {
-        if (query.length() > 0) {
+        if (!query.isEmpty()) {
             // If new query is longer when one character
             restoreHighlightedView();
             executor.submit(new FindInNodeRunnable(mainViewModel, query, new FindInNodeRunnableCallback() {
@@ -1993,7 +1993,6 @@ public class MainView extends AppCompatActivity {
         mainViewModel.setNodes(reader.getParentWithSubnodes(mainViewModel.getCurrentNode().getUniqueId()));
         for (int index = 0; index < mainViewModel.getNodes().size(); index++) {
             if (mainViewModel.getNodes().get(index).getUniqueId().equals(mainViewModel.getCurrentNode().getUniqueId())) {
-                int previousNodePosition = currentNodePosition;
                 currentNodePosition = index;
                 adapter.markItemSelected(currentNodePosition);
                 adapter.notifyItemChanged(currentNodePosition);

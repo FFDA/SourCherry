@@ -88,7 +88,7 @@ public class CollectNodesBackgroundRunnable extends CollectNodesAbstractRunnable
             if (subnodes == null) {
                 throw new FileNotFoundException(context.getString(R.string.toast_error_failed_to_delete_multi_database_file, "subnodes.lst"));
             }
-            while (subnodes.size() > 0) {
+            while (!subnodes.isEmpty()) {
                 cursor.moveToPosition(-1);
                 String nextNodeUniqueID = subnodes.remove(0);
                 while (cursor.moveToNext()) {

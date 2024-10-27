@@ -91,7 +91,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
             menuItemPadding.setVisibility(View.GONE);
         }
 
-        if (!nodeList.get(position).getForegroundColor().equals("")) {
+        if (!nodeList.get(position).getForegroundColor().isEmpty()) {
             menuItemText.setTextColor(Color.parseColor(nodeList.get(position).getForegroundColor()));
         } else {
             menuItemText.setTextColor(textColorSecondary);

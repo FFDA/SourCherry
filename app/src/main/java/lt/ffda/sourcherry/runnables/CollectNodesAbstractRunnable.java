@@ -177,7 +177,7 @@ public abstract class CollectNodesAbstractRunnable {
             }
             if (hasSubnodes && subnodes != null) {
                 cursor.moveToPosition(-1);
-                while (subnodes.size() > 0) {
+                while (!subnodes.isEmpty()) {
                     String nextNodeUniqueID = subnodes.remove(0);
                     while (cursor.moveToNext()) {
                         if (cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR) && cursor.getString(2).equals(nextNodeUniqueID)) {

@@ -69,7 +69,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -1002,7 +1001,7 @@ public class MultiReader extends DatabaseReader {
                     break;
                 }
             }
-            if (bookmarksIds == null || bookmarksIds.size() == 0) {
+            if (bookmarksIds == null || bookmarksIds.isEmpty()) {
                 // Bookmark list is empty
                 return null;
             } else {
@@ -1527,7 +1526,7 @@ public class MultiReader extends DatabaseReader {
         }
         nodeContentCursor.close();
         int subStringStart = 0; // Holds start from where SpannableStringBuilder has to be split from
-        if (nodeTables.size() > 0) {
+        if (!nodeTables.isEmpty()) {
             // If there are at least one table in the node
             // SpannableStringBuilder that holds are split in to parts
             for (int i = 0; i < nodeTables.size(); i++) {
@@ -1585,7 +1584,7 @@ public class MultiReader extends DatabaseReader {
             }
         };
         clickableSpanNode.setNodeUniqueID(nodeUniqueID);
-        if (linkAnchorName.length() > 0) {
+        if (!linkAnchorName.isEmpty()) {
             clickableSpanNode.setLinkAnchorName(linkAnchorName);
         }
         return clickableSpanNode;
