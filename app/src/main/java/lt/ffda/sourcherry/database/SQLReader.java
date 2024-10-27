@@ -157,19 +157,18 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         ArrayList<String> heredity = new ArrayList<>();
         heredity.add(destinationNodeUniqueID);
         while (true) {
-            Cursor cursor = sqlite.query("children", new String[]{"father_id"}, "node_id = ?", new String[]{destinationNodeUniqueID}, null, null, null, null);
-            if (cursor.moveToFirst()) {
-                destinationNodeUniqueID = cursor.getString(0);
-                heredity.add(destinationNodeUniqueID);
-                if (destinationNodeUniqueID.equals("0")) {
-                    cursor.close();
+            try (Cursor cursor = sqlite.query("children", new String[]{"father_id"}, "node_id = ?", new String[]{destinationNodeUniqueID}, null, null, null, null)) {
+                if (cursor.moveToFirst()) {
+                    destinationNodeUniqueID = cursor.getString(0);
+                    heredity.add(destinationNodeUniqueID);
+                    if (destinationNodeUniqueID.equals("0")) {
+                        cursor.close();
+                        break;
+                    }
+                } else {
                     break;
                 }
-            } else {
-                cursor.close();
-                break;
             }
-            cursor.close();
         }
         return heredity.contains(targetNodeUniqueID);
     }
@@ -338,47 +337,47 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         }
         // Getting offset data for all images (latex, images, files), tables and codeboxes
         // Adding 7 - for codebox, 8 - for table and 9 for image as a second column
-        Cursor codeboxTableImageCursor = sqlite.rawQuery(new String("SELECT offset, 7 FROM codebox WHERE node_id=? UNION SELECT offset, 8 FROM grid WHERE node_id=? UNION SELECT offset, 9 FROM image WHERE node_id=? ORDER BY offset ASC"), new String[]{nodeUniqueID, nodeUniqueID, nodeUniqueID});
-        while (codeboxTableImageCursor.moveToNext()) {
-            if (codeboxTableImageCursor.getInt(1) == 7) {
-                Cursor cursorCodeboxes = sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
-                while (cursorCodeboxes.moveToNext()) {
-                    int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
-                    StringBuilder codeboxContent = convertCodeboxToPlainText(cursorCodeboxes.getString(0));
-                    nodeContent.insert(charOffset, codeboxContent);
-                    totalCharOffset += codeboxContent.length() - 1;
-                }
-                cursorCodeboxes.close();
-            }
-            if (codeboxTableImageCursor.getInt(1) == 8) {
-                Cursor cursorTables = sqlite.query("grid", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
-                while (cursorTables.moveToNext()) {
-                    int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
-                    StringBuilder tableContent = convertTableContentToPlainText(cursorTables.getString(0));
-                    nodeContent.insert(charOffset, tableContent);
-                    totalCharOffset += tableContent.length() - 1;
-                }
-                cursorTables.close();
-            }
-            if (codeboxTableImageCursor.getInt(1) == 9) {
-                Cursor cursorImages = sqlite.query("image", new String[]{"anchor", "png", "filename"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null);
-                while (cursorImages.moveToNext()) {
-                    if (cursorImages.getString(2).equals("__ct_special.tex")) {
-                        int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
-                        StringBuilder imageContent = convertLatexToPlainText(new String(cursorImages.getBlob(1)));
-                        nodeContent.insert(charOffset, imageContent);
-                        totalCharOffset += imageContent.length() - 1;
-                    } else {
-                        // For every element, even ones that will not be added
-                        // 1 has to be deducted from totalCharOffset
-                        // to make node's data be displayed in order
-                        totalCharOffset -= 1;
+        try (Cursor codeboxTableImageCursor = sqlite.rawQuery(new String("SELECT offset, 7 FROM codebox WHERE node_id=? UNION SELECT offset, 8 FROM grid WHERE node_id=? UNION SELECT offset, 9 FROM image WHERE node_id=? ORDER BY offset ASC"), new String[]{nodeUniqueID, nodeUniqueID, nodeUniqueID})) {
+            while (codeboxTableImageCursor.moveToNext()) {
+                if (codeboxTableImageCursor.getInt(1) == 7) {
+                    try (Cursor cursorCodeboxes = sqlite.query("codebox", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null)) {
+                        while (cursorCodeboxes.moveToNext()) {
+                            int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
+                            StringBuilder codeboxContent = convertCodeboxToPlainText(cursorCodeboxes.getString(0));
+                            nodeContent.insert(charOffset, codeboxContent);
+                            totalCharOffset += codeboxContent.length() - 1;
+                        }
                     }
                 }
-                cursorImages.close();
+                if (codeboxTableImageCursor.getInt(1) == 8) {
+                    try (Cursor cursorTables = sqlite.query("grid", new String[]{"txt"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null)) {
+                        while (cursorTables.moveToNext()) {
+                            int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
+                            StringBuilder tableContent = convertTableContentToPlainText(cursorTables.getString(0));
+                            nodeContent.insert(charOffset, tableContent);
+                            totalCharOffset += tableContent.length() - 1;
+                        }
+                    }
+                }
+                if (codeboxTableImageCursor.getInt(1) == 9) {
+                    try (Cursor cursorImages = sqlite.query("image", new String[]{"anchor", "png", "filename"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, codeboxTableImageCursor.getString(0)}, null, null, "offset ASC", null)) {
+                        while (cursorImages.moveToNext()) {
+                            if (cursorImages.getString(2).equals("__ct_special.tex")) {
+                                int charOffset = codeboxTableImageCursor.getInt(0) + totalCharOffset;
+                                StringBuilder imageContent = convertLatexToPlainText(new String(cursorImages.getBlob(1)));
+                                nodeContent.insert(charOffset, imageContent);
+                                totalCharOffset += imageContent.length() - 1;
+                            } else {
+                                // For every element, even ones that will not be added
+                                // 1 has to be deducted from totalCharOffset
+                                // to make node's data be displayed in order
+                                totalCharOffset -= 1;
+                            }
+                        }
+                    }
+                }
             }
         }
-        codeboxTableImageCursor.close();
         return nodeContent;
     }
 
@@ -451,20 +450,20 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             contentValues.put("father_id", parentNodeUniqueID);
             // Searching for position for new node in parent node children sequence
             int newNodeSequenceNumber = -1;
-            Cursor parentNodeChildrenSequenceCursor = sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id=?", new String[]{String.valueOf(parentNodeUniqueID)}, null, null, "sequence ASC", null);
-            while (parentNodeChildrenSequenceCursor.moveToNext()) {
-                if (nodeUniqueID.equals(parentNodeChildrenSequenceCursor.getString(0))) {
-                    // Found the node that was selected to create sibling node
-                    newNodeSequenceNumber = parentNodeChildrenSequenceCursor.getInt(1) + 1;
-                    break;
+            try (Cursor parentNodeChildrenSequenceCursor = sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id=?", new String[]{String.valueOf(parentNodeUniqueID)}, null, null, "sequence ASC", null)) {
+                while (parentNodeChildrenSequenceCursor.moveToNext()) {
+                    if (nodeUniqueID.equals(parentNodeChildrenSequenceCursor.getString(0))) {
+                        // Found the node that was selected to create sibling node
+                        newNodeSequenceNumber = parentNodeChildrenSequenceCursor.getInt(1) + 1;
+                        break;
+                    }
                 }
             }
-            parentNodeChildrenSequenceCursor.close();
             // Updating sequence position (+1) for all nodes
             // that follows new node in sequence
-            Cursor updateChildrenTableCursor = sqlite.rawQuery("UPDATE children SET sequence = sequence + 1 WHERE father_id=? and sequence >= ?;", new String[]{String.valueOf(parentNodeUniqueID), String.valueOf(newNodeSequenceNumber)});
-            updateChildrenTableCursor.moveToFirst();
-            updateChildrenTableCursor.close();
+            try (Cursor updateChildrenTableCursor = sqlite.rawQuery("UPDATE children SET sequence = sequence + 1 WHERE father_id=? and sequence >= ?;", new String[]{String.valueOf(parentNodeUniqueID), String.valueOf(newNodeSequenceNumber)})) {
+                updateChildrenTableCursor.moveToFirst();
+            }
             contentValues.put("sequence", newNodeSequenceNumber);
             if (parentNodeUniqueID == 0) {
                 isSubnode = false;
@@ -576,13 +575,12 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         if (nodeUniqueID == null) {
             return false;
         }
-        Cursor cursor = sqlite.rawQuery("SELECT node.name FROM node WHERE node.node_id=?", new String[]{nodeUniqueID});
-        if (cursor.getCount() == 1) {
-            cursor.close();
-            return true;
-        } else {
-            cursor.close();
-            return false;
+        try (Cursor cursor = sqlite.rawQuery("SELECT node.name FROM node WHERE node.node_id=?", new String[]{nodeUniqueID})) {
+            if (cursor.getCount() == 1) {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
@@ -662,80 +660,79 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 ///
                 ////
 
-                Cursor codeboxTableImageCursor = sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
-
-                while (codeboxTableImageCursor.moveToNext()) {
-                    int charOffset = codeboxTableImageCursor.getInt(0);
-                    if (codeboxTableImageCursor.getInt(2) == 9) {
-                        if (!codeboxTableImageCursor.getString(1).isEmpty()) {
-                            // Text in column 5 means that this line is for file OR LaTeX formula box
-                            if (!codeboxTableImageCursor.getString(1).equals("__ct_special.tex")) {
-                                // If it is not LaTex file
-                                String attachedFileFilename = " " + codeboxTableImageCursor.getString(1) + " ";
-                                if (nodeContent.length() < charOffset + totalCharOffset) {
-                                    // This check most likely needed in Searcher, but not in Reader
-                                    // Because in search some objects (like images) are being skipped, however their offset is still being counted
-                                    nodeContent.append(attachedFileFilename);
-                                } else {
-                                    nodeContent.insert(charOffset + totalCharOffset, attachedFileFilename);
+                try (Cursor codeboxTableImageCursor = sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments)) {
+                    while (codeboxTableImageCursor.moveToNext()) {
+                        int charOffset = codeboxTableImageCursor.getInt(0);
+                        if (codeboxTableImageCursor.getInt(2) == 9) {
+                            if (!codeboxTableImageCursor.getString(1).isEmpty()) {
+                                // Text in column 5 means that this line is for file OR LaTeX formula box
+                                if (!codeboxTableImageCursor.getString(1).equals("__ct_special.tex")) {
+                                    // If it is not LaTex file
+                                    String attachedFileFilename = " " + codeboxTableImageCursor.getString(1) + " ";
+                                    if (nodeContent.length() < charOffset + totalCharOffset) {
+                                        // This check most likely needed in Searcher, but not in Reader
+                                        // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                                        nodeContent.append(attachedFileFilename);
+                                    } else {
+                                        nodeContent.insert(charOffset + totalCharOffset, attachedFileFilename);
+                                    }
+                                    totalCharOffset += attachedFileFilename.length() - 1;
+                                    continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                                 }
-                                totalCharOffset += attachedFileFilename.length() - 1;
-                                continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
                             }
-                        }
-                    } else if (codeboxTableImageCursor.getInt(2) == 7) {
-                        // codebox row
-                        String codeboxText = codeboxTableImageCursor.getString(1);
-                        if (nodeContent.length() < charOffset + totalCharOffset) {
-                            // This check most likely needed in Searcher, but not in Reader
-                            // Because in search some objects (like images) are being skipped, however their offset is still being counted
-                            nodeContent.append(codeboxText);
-                        } else {
-                            nodeContent.insert(charOffset + totalCharOffset, codeboxText);
-                        }
-                        totalCharOffset += codeboxText.length() - 1;
-                    } else if (codeboxTableImageCursor.getInt(2) == 8) {
-                        StringBuilder tableContent = new StringBuilder();
-                        // table row
-                        NodeList tableRows = getDocumentFromString(codeboxTableImageCursor.getString(1)).getElementsByTagName("table").item(0).getChildNodes();
-                        // Adding all rows to arraylist
-                        ArrayList<String> tableRowArray = new ArrayList<>();
-                        for (int row = 0; row < tableRows.getLength(); row++) {
-                            if (tableRows.item(row).getNodeName().equals("row")) {
-                                // For table content from SQL database spaces around each cell needs to be added
-                                // because there aren't any
-                                // All cells from one row has to be connected to one string that represents a row
-                                // Otherwise it might be not possible to put table header to the top of the table
-                                StringBuilder rowStringBuilder = new StringBuilder();
-                                NodeList cells = tableRows.item(row).getChildNodes();
-                                for (int cell = 0; cell < cells.getLength(); cell++) {
-                                    rowStringBuilder.append(" ").append(cells.item(cell).getTextContent()).append(" ");
+                        } else if (codeboxTableImageCursor.getInt(2) == 7) {
+                            // codebox row
+                            String codeboxText = codeboxTableImageCursor.getString(1);
+                            if (nodeContent.length() < charOffset + totalCharOffset) {
+                                // This check most likely needed in Searcher, but not in Reader
+                                // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                                nodeContent.append(codeboxText);
+                            } else {
+                                nodeContent.insert(charOffset + totalCharOffset, codeboxText);
+                            }
+                            totalCharOffset += codeboxText.length() - 1;
+                        } else if (codeboxTableImageCursor.getInt(2) == 8) {
+                            StringBuilder tableContent = new StringBuilder();
+                            // table row
+                            NodeList tableRows = getDocumentFromString(codeboxTableImageCursor.getString(1)).getElementsByTagName("table").item(0).getChildNodes();
+                            // Adding all rows to arraylist
+                            ArrayList<String> tableRowArray = new ArrayList<>();
+                            for (int row = 0; row < tableRows.getLength(); row++) {
+                                if (tableRows.item(row).getNodeName().equals("row")) {
+                                    // For table content from SQL database spaces around each cell needs to be added
+                                    // because there aren't any
+                                    // All cells from one row has to be connected to one string that represents a row
+                                    // Otherwise it might be not possible to put table header to the top of the table
+                                    StringBuilder rowStringBuilder = new StringBuilder();
+                                    NodeList cells = tableRows.item(row).getChildNodes();
+                                    for (int cell = 0; cell < cells.getLength(); cell++) {
+                                        rowStringBuilder.append(" ").append(cells.item(cell).getTextContent()).append(" ");
+                                    }
+                                    tableRowArray.add(rowStringBuilder.toString());
                                 }
-                                tableRowArray.add(rowStringBuilder.toString());
                             }
-                        }
 
-                        // Adding the last row of the table to string builder as first because that's where header of the table is located
-                        tableContent.append(tableRowArray.get(tableRowArray.size() - 1));
-                        // Rest of the rows can be added in order
-                        for (int x = 0; x < tableRowArray.size() - 1; x++) {
-                            tableContent.append(tableRowArray.get(x));
-                        }
+                            // Adding the last row of the table to string builder as first because that's where header of the table is located
+                            tableContent.append(tableRowArray.get(tableRowArray.size() - 1));
+                            // Rest of the rows can be added in order
+                            for (int x = 0; x < tableRowArray.size() - 1; x++) {
+                                tableContent.append(tableRowArray.get(x));
+                            }
 
-                        // Adding table's content to nodes content string builder
-                        if (nodeContent.length() < charOffset + totalCharOffset) {
-                            // This check most likely needed in Searcher, but not in Reader
-                            // Because in search some objects (like images) are being skipped, however their offset is still being counted
-                            nodeContent.append(tableContent);
-                        } else {
-                            nodeContent.insert(charOffset + totalCharOffset, tableContent);
+                            // Adding table's content to nodes content string builder
+                            if (nodeContent.length() < charOffset + totalCharOffset) {
+                                // This check most likely needed in Searcher, but not in Reader
+                                // Because in search some objects (like images) are being skipped, however their offset is still being counted
+                                nodeContent.append(tableContent);
+                            } else {
+                                nodeContent.insert(charOffset + totalCharOffset, tableContent);
+                            }
+                            // Changing total offset value with a value of the table content, because CherryTree uses different GUI toolkit
+                            // And without doing this the first element with offset would mess node content order (or maybe that's by design)
+                            totalCharOffset += tableContent.length() - 1;
                         }
-                        // Changing total offset value with a value of the table content, because CherryTree uses different GUI toolkit
-                        // And without doing this the first element with offset would mess node content order (or maybe that's by design)
-                        totalCharOffset += tableContent.length() - 1;
                     }
                 }
-                codeboxTableImageCursor.close();
             }
         } else if (nodeSyntax.equals("plain-text")) {
             // Plain text node does not have any formatting and has no node embedded in to it
@@ -815,8 +812,7 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      */
     private void fixBookmarkNodeSequence() {
         sqlite.beginTransaction();
-        try {
-            Cursor cursor = sqlite.query("bookmark", new String[]{"node_id"}, null, null, null, null, "node_id ASC", null);
+        try (Cursor cursor = sqlite.query("bookmark", new String[]{"node_id"}, null, null, null, null, "node_id ASC", null)) {
             int counter = 1;
             ContentValues contentValues = new ContentValues();
             while (cursor.moveToNext()) {
@@ -825,7 +821,6 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 sqlite.update("bookmark", contentValues, "node_id = ?", new String[]{cursor.getString(0)});
                 counter++;
             }
-            cursor.close();
             sqlite.setTransactionSuccessful();
         } finally {
             sqlite.endTransaction();
@@ -843,9 +838,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             return;
         }
         int sequenceCounter = 1;
-        Cursor cursor = sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id = ?", new String[]{nodeUniqueID}, null, null, "sequence ASC", null);
-        sqlite.beginTransaction();
-        try {
+        try (Cursor cursor = sqlite.query("children", new String[]{"node_id", "sequence"}, "father_id = ?", new String[]{nodeUniqueID}, null, null, "sequence ASC", null)) {
+            sqlite.beginTransaction();
             while (cursor.moveToNext()) {
                 ContentValues contentValues = new ContentValues();
                 contentValues.put("sequence", sequenceCounter);
@@ -856,35 +850,30 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         } finally {
             sqlite.endTransaction();
         }
-        cursor.close();
     }
 
     @Override
     public ArrayList<ScNode> getAllNodes(boolean noSearch) {
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
-            Cursor cursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id, node.level FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=0", null);
-            ArrayList<ScNode> nodes = returnSubnodeSearchArrayList(cursor);
-            cursor.close();
-            return nodes;
+            try (Cursor cursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id, node.level FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=0", null)) {
+                return returnSubnodeSearchArrayList(cursor);
+            }
         } else {
-            Cursor cursor = sqlite.query("node", new String[]{"name", "node_id", "is_richtxt", "syntax", "is_ro", "0"}, null, null, null, null, null);
-            ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, false);
-            cursor.close();
-            return nodes;
+            try (Cursor cursor = sqlite.query("node", new String[]{"name", "node_id", "is_richtxt", "syntax", "is_ro", "0"}, null, null, null, null, null)) {
+                return returnSubnodeArrayList(cursor, false);
+            }
         }
     }
 
     @Override
     public ArrayList<ScNode> getBookmarkedNodes() {
-        Cursor cursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id FROM children LEFT JOIN node on children.node_id=node.node_id INNER JOIN bookmark ON children.node_id=bookmark.node_id ORDER BY bookmark.sequence ASC", null);
-        if(cursor.getCount() == 0) {
-            cursor.close();
-            return null;
+        try (Cursor cursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id FROM children LEFT JOIN node on children.node_id=node.node_id INNER JOIN bookmark ON children.node_id=bookmark.node_id ORDER BY bookmark.sequence ASC", null)) {
+            if (cursor.getCount() == 0) {
+                return null;
+            }
+            return returnSubnodeArrayList(cursor, false);
         }
-        ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, false);
-        cursor.close();
-        return nodes;
     }
 
     @Override
@@ -916,13 +905,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control) {
-        // Returns byte array (stream) to be written to file or opened
-
-        Cursor cursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=? AND offset=?", new String[]{nodeUniqueID, filename, time, control}, null, null, null);
         // Getting user choice how big the cursor window should be
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
-        try {
+        try (Cursor cursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND filename=? AND time=? AND offset=?", new String[]{nodeUniqueID, filename, time, control}, null, null, null)) {
             // Try needed to close the cursor. Otherwise ofter return statement it won't be closed;
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 // Expands cursor window for API 28 (Android 9) and greater
@@ -939,19 +925,15 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         } catch (Exception SQLiteBlobTooBigException) {
             displayToast(context.getString(R.string.toast_error_failed_to_open_file_large, cursorWindow));
             return null;
-        } finally {
-            cursor.close();
         }
     }
 
     @Override
     public InputStream getImageInputStream(String nodeUniqueID, String control) {
-        // Returns image byte array to be displayed in ImageViewFragment because some of the images are too big to pass in a bundle
-        Cursor cursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, control}, null, null, null);
         // Getting user choice how big the cursor window should be
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
-        try {
+        try (Cursor cursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, control}, null, null, null)) {
             // Try is needed to close the cursor. Otherwise after return statement it won't be closed;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 // Expands cursor window for API 28 (Android 9) and greater
@@ -968,8 +950,6 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         } catch (Exception SQLiteBlobTooBigException) {
             displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
             return null;
-        } finally {
-            cursor.close();
         }
     }
 
@@ -1004,11 +984,11 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     @Override
     public ArrayList<ScNode> getMenu(String nodeUniqueID) {
         // Returns Subnodes of the node which nodeUniqueID is provided
-        Cursor cursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID});
-        ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, true);
-        nodes.add(0, createParentNode(String.valueOf(nodeUniqueID)));
-        cursor.close();
-        return nodes;
+        try (Cursor cursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{nodeUniqueID})) {
+            ArrayList<ScNode> nodes = returnSubnodeArrayList(cursor, true);
+            nodes.add(0, createParentNode(String.valueOf(nodeUniqueID)));
+            return nodes;
+        }
     }
 
     /**
@@ -1018,20 +998,19 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @return next available sequence number
      */
     private int getNewNodeSequenceNumber(String nodeUniqueID) {
-        Cursor cursor = sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {nodeUniqueID});
-        cursor.moveToFirst();
-        int sequence = cursor.getInt(0);
-        cursor.close();
-        return sequence + 1;
+        try (Cursor cursor = sqlite.rawQuery("SELECT MAX(sequence) FROM children WHERE father_id = ?", new String[] {nodeUniqueID})) {
+            cursor.moveToFirst();
+            int sequence = cursor.getInt(0);
+            return sequence + 1;
+        }
     }
 
     @Override
     public int getNodeMaxID() {
-        Cursor cursor = sqlite.rawQuery("SELECT MAX(node_id) FROM node", null);
-        cursor.moveToFirst();
-        int nodeUniqueID = cursor.getInt(0);
-        cursor.close();
-        return nodeUniqueID;
+        try (Cursor cursor = sqlite.rawQuery("SELECT MAX(node_id) FROM node", null)) {
+            cursor.moveToFirst();
+            return cursor.getInt(0);
+        }
     }
 
     @Override
@@ -1062,11 +1041,10 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @return unique id of the node
      */
     private int getParentNodeUniqueIDInt(String nodeUniqueID) {
-        Cursor cursor = sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {nodeUniqueID});
-        cursor.moveToFirst();
-        int parentNodeUniqueID = cursor.getInt(0);
-        cursor.close();
-        return parentNodeUniqueID;
+        try (Cursor cursor = sqlite.rawQuery("SELECT father_id FROM children WHERE node_id = ?", new String[] {nodeUniqueID})) {
+            cursor.moveToFirst();
+            return cursor.getInt(0);
+        }
     }
 
     @Override
@@ -1148,22 +1126,20 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
      * @return true if node has a subnode, false - if not
      */
     private boolean hasSubnodes(String nodeUniqueID) {
-        Cursor cursor = sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID},null,null,null);
-        if (cursor.getCount() > 0) {
-            cursor.close();
-            return true;
-        } else {
-            cursor.close();
-            return false;
+        try (Cursor cursor = sqlite.query("children", new String[]{"node_id"}, "father_id=?", new String[]{nodeUniqueID},null,null,null)) {
+            if (cursor.getCount() > 0) {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
     @Override
     public boolean isNodeBookmarked(String nodeUniqueID) {
-        Cursor cursor = sqlite.query("bookmark", new String[]{"node_id"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null, null);
-        boolean isNodeBookmarked = cursor.getCount() > 0;
-        cursor.close();
-        return isNodeBookmarked;
+        try (Cursor cursor = sqlite.query("bookmark", new String[]{"node_id"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null, null)) {
+            return cursor.getCount() > 0;
+        }
     }
 
     @Override
@@ -1181,193 +1157,187 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         int totalCharOffset = 0;
         ////
 
-        Cursor cursor = sqlite.query("node", new String[]{"txt", "syntax", "has_codebox", "has_table", "has_image"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null); // Get node table entry with nodeUniqueID
-        if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
-            // syntax is the same as prog_lang attribute in XML database
-            // It is used to set formatting for the node and separate between node types (Code Node)
-            // The same attribute is used for codeboxes
-            String nodeSyntax = cursor.getString(1);
+        try (Cursor cursor = sqlite.query("node", new String[]{"txt", "syntax", "has_codebox", "has_table", "has_image"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null)) { // Get node table entry with nodeUniqueID
+            if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!
+                // syntax is the same as prog_lang attribute in XML database
+                // It is used to set formatting for the node and separate between node types (Code Node)
+                // The same attribute is used for codeboxes
+                String nodeSyntax = cursor.getString(1);
 
-            if (nodeSyntax.equals("custom-colors")) {
-                // This is formatting for Rich Text and Plain Text nodes
-                NodeList nodeContentNodeList = getDocumentFromString(cursor.getString(0)).getElementsByTagName("node").item(0).getChildNodes(); // Gets all the subnodes/childnodes of selected node
-                for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
-                    // Loops through nodes of selected node
-                    Node currentNode = nodeContentNodeList.item(x);
-                    if (currentNode.hasAttributes()) {
-                        nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
-                    } else {
-                        nodeContentStringBuilder.append(currentNode.getTextContent());
+                if (nodeSyntax.equals("custom-colors")) {
+                    // This is formatting for Rich Text and Plain Text nodes
+                    NodeList nodeContentNodeList = getDocumentFromString(cursor.getString(0)).getElementsByTagName("node").item(0).getChildNodes(); // Gets all the subnodes/childnodes of selected node
+                    for (int x = 0; x < nodeContentNodeList.getLength(); x++) {
+                        // Loops through nodes of selected node
+                        Node currentNode = nodeContentNodeList.item(x);
+                        if (currentNode.hasAttributes()) {
+                            nodeContentStringBuilder.append(makeFormattedRichText(currentNode));
+                        } else {
+                            nodeContentStringBuilder.append(currentNode.getTextContent());
+                        }
                     }
-                }
 
-                int hasCodebox = cursor.getInt(2);
-                int hasTable = cursor.getInt(3);
-                int hasImage = cursor.getInt(4);
+                    int hasCodebox = cursor.getInt(2);
+                    int hasTable = cursor.getInt(3);
+                    int hasImage = cursor.getInt(4);
 
-                // If it is marked that node has codebox, table or image
-                if (hasCodebox == 1 || hasTable == 1 || hasImage == 1) {
-                    //// Building string for SQLQuery
-                    // Because every element is in it own table
-                    // Only the tables that are marked that node have assets will be search
-                    // Only offsets will be selected and second column will be created
-                    // That will have 7 (codebox), 8 (table) or 9 (image) written in it
-                    StringBuilder codeboxTableImageQueryString = new StringBuilder();
+                    // If it is marked that node has codebox, table or image
+                    if (hasCodebox == 1 || hasTable == 1 || hasImage == 1) {
+                        //// Building string for SQLQuery
+                        // Because every element is in it own table
+                        // Only the tables that are marked that node have assets will be search
+                        // Only offsets will be selected and second column will be created
+                        // That will have 7 (codebox), 8 (table) or 9 (image) written in it
+                        StringBuilder codeboxTableImageQueryString = new StringBuilder();
 
-                    // Depending on how many tables will be searched
-                    // instances of how many times nodeUniqueID will have to be inserted will differ
-                    int queryCounter = 0; // This is the counter for that
-                    if (hasCodebox == 1) {
-                        // Means that node has has codeboxes in it
-                        codeboxTableImageQueryString.append("SELECT offset, 7 FROM codebox WHERE node_id=? ");
-                        queryCounter++;
-                    }
-                    if (hasTable == 1) {
-                        // Means that node has tables in it
+                        // Depending on how many tables will be searched
+                        // instances of how many times nodeUniqueID will have to be inserted will differ
+                        int queryCounter = 0; // This is the counter for that
                         if (hasCodebox == 1) {
-                            codeboxTableImageQueryString.append("UNION ");
+                            // Means that node has has codeboxes in it
+                            codeboxTableImageQueryString.append("SELECT offset, 7 FROM codebox WHERE node_id=? ");
+                            queryCounter++;
                         }
-                        codeboxTableImageQueryString.append("SELECT offset, 8 FROM grid WHERE node_id=? ");
-                        queryCounter++;
-                    }
-                    if (hasImage == 1) {
-                        // Means that node has has images (images, anchors or files) in it
-                        if (hasCodebox == 1 || hasTable == 1) {
-                            codeboxTableImageQueryString.append("UNION ");
+                        if (hasTable == 1) {
+                            // Means that node has tables in it
+                            if (hasCodebox == 1) {
+                                codeboxTableImageQueryString.append("UNION ");
+                            }
+                            codeboxTableImageQueryString.append("SELECT offset, 8 FROM grid WHERE node_id=? ");
+                            queryCounter++;
                         }
-                        codeboxTableImageQueryString.append("SELECT offset, 9 FROM image WHERE node_id=? ");
-                        queryCounter++;
-                    }
-                    codeboxTableImageQueryString.append("ORDER BY offset ASC");
+                        if (hasImage == 1) {
+                            // Means that node has has images (images, anchors or files) in it
+                            if (hasCodebox == 1 || hasTable == 1) {
+                                codeboxTableImageQueryString.append("UNION ");
+                            }
+                            codeboxTableImageQueryString.append("SELECT offset, 9 FROM image WHERE node_id=? ");
+                            queryCounter++;
+                        }
+                        codeboxTableImageQueryString.append("ORDER BY offset ASC");
 
-                    /// Creating the array that will be used to insert nodeUniqueIDs
-                    String[] queryArguments = new String[queryCounter];
-                    Arrays.fill(queryArguments, nodeUniqueID);
-                    ///
-                    ////
-                    // Getting user choice how big the cursor window should be
-                    SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
-                    long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
-                    Cursor codeboxTableImageCursor = sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments);
-
-                    while (codeboxTableImageCursor.moveToNext()) {
-                        int charOffset = codeboxTableImageCursor.getInt(0);
-                        if (codeboxTableImageCursor.getInt(1) == 9) {
-                            // Get image entry for current node_id and charOffset
-                            Cursor imageCursor = sqlite.query("image", new String[]{"anchor", "filename", "time", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
-                            if (imageCursor.moveToFirst()) {
-                                if (!imageCursor.getString(0).isEmpty()) {
-                                    // Text in column "anchor" (0) means that this line is for anchor
-                                    SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan(imageCursor.getString(0));
-                                    imageCursor.close();
-                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
-                                    continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
-                                }
-                                if (!imageCursor.getString(1).isEmpty()) {
-                                    // Text in column "filename" (1) means that this line is for file OR LaTeX formula box
-                                    if (imageCursor.getString(1).equals("__ct_special.tex")) {
-                                        // For latex boxes
-                                        Cursor latexBlobCursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
-                                        latexBlobCursor.moveToFirst();
-                                        SpannableStringBuilder latexImageSpan = makeLatexImageSpan(latexBlobCursor.getBlob(0), imageCursor.getString(3));
-                                        imageCursor.close();
-                                        latexBlobCursor.close();
-                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
-                                        continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
-                                    } else {
-                                        // If it is not LaTex file (normal file)
-                                        SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(nodeUniqueID, imageCursor.getString(1), String.valueOf(imageCursor.getDouble(2)), String.valueOf(charOffset), imageCursor.getString(3));
-                                        imageCursor.close();
-                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
-                                        totalCharOffset += attachedFileSpan.length() - 1;
-                                        continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                        /// Creating the array that will be used to insert nodeUniqueIDs
+                        String[] queryArguments = new String[queryCounter];
+                        Arrays.fill(queryArguments, nodeUniqueID);
+                        ///
+                        ////
+                        // Getting user choice how big the cursor window should be
+                        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+                        long cursorWindow = sharedPreferences.getInt("preferences_cursor_window_size", 15);
+                        try (Cursor codeboxTableImageCursor = sqlite.rawQuery(codeboxTableImageQueryString.toString(), queryArguments)) {
+                            while (codeboxTableImageCursor.moveToNext()) {
+                                int charOffset = codeboxTableImageCursor.getInt(0);
+                                if (codeboxTableImageCursor.getInt(1) == 9) {
+                                    // Get image entry for current node_id and charOffset
+                                    try (Cursor imageCursor = sqlite.query("image", new String[]{"anchor", "filename", "time", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null)) {
+                                        if (imageCursor.moveToFirst()) {
+                                            if (!imageCursor.getString(0).isEmpty()) {
+                                                // Text in column "anchor" (0) means that this line is for anchor
+                                                SpannableStringBuilder anchorImageSpan = makeAnchorImageSpan(imageCursor.getString(0));
+                                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, anchorImageSpan);
+                                                continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                            }
+                                            if (!imageCursor.getString(1).isEmpty()) {
+                                                // Text in column "filename" (1) means that this line is for file OR LaTeX formula box
+                                                if (imageCursor.getString(1).equals("__ct_special.tex")) {
+                                                    // For latex boxes
+                                                    try (Cursor latexBlobCursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null)) {
+                                                        latexBlobCursor.moveToFirst();
+                                                        SpannableStringBuilder latexImageSpan = makeLatexImageSpan(latexBlobCursor.getBlob(0), imageCursor.getString(3));
+                                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, latexImageSpan);
+                                                    }
+                                                    continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                                } else {
+                                                    // If it is not LaTex file (normal file)
+                                                    SpannableStringBuilder attachedFileSpan = makeAttachedFileSpan(nodeUniqueID, imageCursor.getString(1), String.valueOf(imageCursor.getDouble(2)), String.valueOf(charOffset), imageCursor.getString(3));
+                                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, attachedFileSpan);
+                                                    totalCharOffset += attachedFileSpan.length() - 1;
+                                                    continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                                }
+                                            } else {
+                                                // Any other line should be an image
+                                                imageCursor.close();
+                                                try (Cursor imageBlobCursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null)) {
+                                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                                        // Expands cursor window for API 28 (Android 9) and greater
+                                                        // This allows to display bigger images and open/save bigger files
+                                                        // Right now limit is 15mb
+                                                        ((SQLiteCursor) imageBlobCursor).setWindow(new CursorWindow(null, 1024 * 1024 * cursorWindow));
+                                                    } else {
+                                                        // Setting cursorWindow as to 2 (default android value)
+                                                        // Android 8 and lower versions do not have this function
+                                                        // It's only that error toast would show a correct size
+                                                        cursorWindow = 2;
+                                                    }
+                                                    // Tries to move to get image blob from DB. Might me too big.
+                                                    imageBlobCursor.moveToFirst();
+                                                    SpannableStringBuilder imageSpan = makeImageSpan(imageBlobCursor.getBlob(0), nodeUniqueID, String.valueOf(charOffset), cursor.getString(3)); // Blob is the image in byte[] form
+                                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
+                                                } catch (Exception SQLiteBlobTooBigException) {
+                                                    // If image blob was to big for SQL Toast error message will be displayed
+                                                    // And placeholder image is placed
+                                                    SpannableStringBuilder brokenImageSpan = new SpannableStringBuilder();
+                                                    brokenImageSpan.append(" ");
+                                                    brokenImageSpan.setSpan(makeBrokenImageSpan(0), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                                    nodeContentStringBuilder.insert(charOffset + totalCharOffset, brokenImageSpan);
+                                                    displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
+                                                }
+                                                continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
+                                            }
+                                        }
+                                    }
+                                } else if (codeboxTableImageCursor.getInt(1) == 7) {
+                                    // codebox row
+                                    // Get codebox entry for current node_id and charOffset
+                                    try (Cursor codeboxCursor = sqlite.rawQuery(new String("SELECT * FROM codebox WHERE node_id = ? AND offset = ?"), new String[]{nodeUniqueID, String.valueOf(charOffset)})) {
+                                        if (codeboxCursor.moveToFirst()) {
+                                            SpannableStringBuilder codeboxText = makeFormattedCodeboxSpan(codeboxCursor.getString(2), codeboxCursor.getString(3), codeboxCursor.getString(4), codeboxCursor.getInt(5), codeboxCursor.getInt(6), codeboxCursor.getInt(7) == 1, codeboxCursor.getInt(8) == 1, codeboxCursor.getInt(9) == 1);
+                                            nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
+                                            totalCharOffset += codeboxText.length() - 1;
+                                        }
+                                    }
+                                } else if (codeboxTableImageCursor.getInt(1) == 8) {
+                                    // table row
+                                    // Get table row entry for current node_id and charOffset
+                                    try (Cursor tableCursor = sqlite.query("grid", new String[]{"txt", "col_min", "col_max", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null)) {
+                                        if (tableCursor.moveToFirst()) {
+                                            int tableCharOffset = charOffset + totalCharOffset; // Place where SpannableStringBuilder will be split
+                                            nodeTableCharOffsets.add(tableCharOffset);
+                                            int cellMin = tableCursor.getInt(1);
+                                            int cellMax = tableCursor.getInt(2);
+                                            ArrayList<CharSequence[]> currentTableContent = new ArrayList<>();
+                                            Document document = getDocumentFromString(tableCursor.getString(0));
+                                            // All the rows of the table. Not like in XML database, there aren't any empty text nodes to be filtered out
+                                            NodeList tableRowsNodes = document.getElementsByTagName("table").item(0).getChildNodes();
+                                            byte lightInterface = 0;
+                                            if (!((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light").equals("")) {
+                                                lightInterface = Byte.parseByte(((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light"));
+                                            }
+                                            // Tables in database are saved content first and the last row is the header of the table
+                                            currentTableContent.add(getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
+                                            for (int row = 0; row < tableRowsNodes.getLength() - 1; row++) {
+                                                currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
+                                            }
+                                            ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, lightInterface, tableCursor.getString(3), ((Element) document.getElementsByTagName("table").item(0)).getAttribute("col_widths"));
+                                            nodeTables.add(scNodeContentTable);
+                                            // Instead of adding space for formatting reason
+                                            // it might be better to take one of totalCharOffset
+                                            totalCharOffset -= 1;
+                                        }
                                     }
                                 }
-                                else {
-                                    // Any other line should be an image
-                                    imageCursor.close();
-                                    Cursor imageBlobCursor = sqlite.query("image", new String[]{"png"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
-                                    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                        // Expands cursor window for API 28 (Android 9) and greater
-                                        // This allows to display bigger images and open/save bigger files
-                                        // Right now limit is 15mb
-                                        ((SQLiteCursor) imageBlobCursor).setWindow(new CursorWindow(null, 1024 * 1024 * cursorWindow));
-                                    }  else {
-                                        // Setting cursorWindow as to 2 (default android value)
-                                        // Android 8 and lower versions do not have this function
-                                        // It's only that error toast would show a correct size
-                                        cursorWindow = 2;
-                                    }
-                                    try {
-                                        // Tries to move to get image blob from DB. Might me too big.
-                                        imageBlobCursor.moveToFirst();
-                                        SpannableStringBuilder imageSpan = makeImageSpan(imageBlobCursor.getBlob(0), nodeUniqueID, String.valueOf(charOffset), cursor.getString(3)); // Blob is the image in byte[] form
-                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, imageSpan);
-                                    } catch (Exception SQLiteBlobTooBigException) {
-                                        // If image blob was to big for SQL Toast error message will be displayed
-                                        // And placeholder image is placed
-                                        SpannableStringBuilder brokenImageSpan = new SpannableStringBuilder();
-                                        brokenImageSpan.append(" ");
-                                        brokenImageSpan.setSpan(makeBrokenImageSpan(0), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                                        nodeContentStringBuilder.insert(charOffset + totalCharOffset, brokenImageSpan);
-                                        displayToast(context.getString(R.string.toast_error_failed_to_load_image_large, cursorWindow));
-                                    }
-                                    imageBlobCursor.close();
-                                    continue; // Needed. Otherwise error toast will be displayed. Maybe switch statement would solve this issue.
-                                }
-                            }
-                        } else if (codeboxTableImageCursor.getInt(1) == 7) {
-                            // codebox row
-                            // Get codebox entry for current node_id and charOffset
-                            Cursor codeboxCursor = sqlite.rawQuery(new String("SELECT * FROM codebox WHERE node_id = ? AND offset = ?"), new String[]{nodeUniqueID, String.valueOf(charOffset)});
-                            if (codeboxCursor.moveToFirst()) {
-                                SpannableStringBuilder codeboxText = makeFormattedCodeboxSpan(codeboxCursor.getString(2), codeboxCursor.getString(3), codeboxCursor.getString(4), codeboxCursor.getInt(5), codeboxCursor.getInt(6), codeboxCursor.getInt(7) == 1, codeboxCursor.getInt(8) == 1, codeboxCursor.getInt(9) == 1);
-                                nodeContentStringBuilder.insert(charOffset + totalCharOffset, codeboxText);
-                                codeboxCursor.close();
-                                totalCharOffset += codeboxText.length() - 1;
-                            }
-                        } else if (codeboxTableImageCursor.getInt(1) == 8) {
-                            // table row
-                            // Get table row entry for current node_id and charOffset
-                            Cursor tableCursor = sqlite.query("grid", new String[]{"txt", "col_min", "col_max", "justification"}, "node_id=? AND offset=?", new String[]{nodeUniqueID, String.valueOf(charOffset)}, null, null, null);
-                            if (tableCursor.moveToFirst()) {
-                                int tableCharOffset = charOffset + totalCharOffset; // Place where SpannableStringBuilder will be split
-                                nodeTableCharOffsets.add(tableCharOffset);
-                                int cellMin = tableCursor.getInt(1);
-                                int cellMax = tableCursor.getInt(2);
-                                ArrayList<CharSequence[]> currentTableContent = new ArrayList<>();
-                                Document document = getDocumentFromString(tableCursor.getString(0));
-                                // All the rows of the table. Not like in XML database, there aren't any empty text nodes to be filtered out
-                                NodeList tableRowsNodes = document.getElementsByTagName("table").item(0).getChildNodes();
-                                byte lightInterface = 0;
-                                if (!((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light").equals("")) {
-                                    lightInterface = Byte.parseByte(((Element) document.getElementsByTagName("table").item(0)).getAttribute("is_light"));
-                                }
-                                // Tables in database are saved content first and the last row is the header of the table
-                                currentTableContent.add(getTableRow(tableRowsNodes.item(tableRowsNodes.getLength() - 1)));
-                                for (int row = 0; row < tableRowsNodes.getLength() - 1; row++) {
-                                    currentTableContent.add(getTableRow(tableRowsNodes.item(row)));
-                                }
-                                ScNodeContentTable scNodeContentTable = new ScNodeContentTable((byte) 1, currentTableContent, cellMin, cellMax, lightInterface, tableCursor.getString(3), ((Element) document.getElementsByTagName("table").item(0)).getAttribute("col_widths"));
-                                tableCursor.close();
-                                nodeTables.add(scNodeContentTable);
-                                // Instead of adding space for formatting reason
-                                // it might be better to take one of totalCharOffset
-                                totalCharOffset -= 1;
                             }
                         }
                     }
-                    codeboxTableImageCursor.close();
+                } else if (nodeSyntax.equals("plain-text")) {
+                    // Plain text node does not have any formatting and has not node embedded in to it
+                    nodeContentStringBuilder.append(cursor.getString(0));
+                } else {
+                    // Node is Code Node. It's just a big CodeBox with no dimensions
+                    nodeContentStringBuilder.append(makeFormattedCodeNodeSpan(cursor.getString(0)));
                 }
-            } else if (nodeSyntax.equals("plain-text")) {
-                // Plain text node does not have any formatting and has not node embedded in to it
-                nodeContentStringBuilder.append(cursor.getString(0));
-            } else {
-                // Node is Code Node. It's just a big CodeBox with no dimensions
-                nodeContentStringBuilder.append(makeFormattedCodeNodeSpan(cursor.getString(0)));
             }
         }
-        cursor.close();
 
         int subStringStart = 0; // Holds start from where SpannableStringBuilder has to be split from
         if (nodeTables.size() > 0) {
@@ -1823,18 +1793,18 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     nodes.add(new ScNode(nodeUniqueID, "0", nameValue, false, hasSubnodes, false, isRichText, isBold, foregroundColor, iconId, isReadOnly));
                 }
                 if (hasSubnodes) {
-                    Cursor subCursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id, node.level FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{String.valueOf(nodeUniqueID)});
-                    nodes.addAll(returnSubnodeSearchArrayList(subCursor));
-                    subCursor.close();
+                    try (Cursor subCursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id, node.level FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{String.valueOf(nodeUniqueID)})) {
+                        nodes.addAll(returnSubnodeSearchArrayList(subCursor));
+                    }
                 }
             } else if (cursor.getInt(6) == 1) {
                 // If only node is selected to be excluded from search
                 String nodeUniqueID = cursor.getString(1);
                 boolean hasSubnodes = hasSubnodes(nodeUniqueID);
                 if (hasSubnodes) {
-                    Cursor subCursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id, node.level FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)});
-                    nodes.addAll(returnSubnodeSearchArrayList(subCursor));
-                    subCursor.close();
+                    try (Cursor subCursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id, node.level FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=? ORDER BY sequence ASC", new String[]{String.valueOf(nodeUniqueID)})) {
+                        nodes.addAll(returnSubnodeSearchArrayList(subCursor));
+                    }
                 }
             } else if (cursor.getInt(6) == 2) {
                 // if only subnodes are selected to be excluded from search
@@ -2275,9 +2245,8 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                     collectedCodebox = null;
                 }
                 // Deleting all data from image table, that was removed by user from nodeContent
-                Cursor cursor = sqlite.query("image", new String[]{"offset"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null);
-                sqlite.beginTransaction();
-                try {
+                try (Cursor cursor = sqlite.query("image", new String[]{"offset"}, "node_id = ?", new String[]{nodeUniqueID}, null, null, null)) {
+                    sqlite.beginTransaction();
                     while (cursor.moveToNext()) {
                         if (!attachedFileOffset.contains(cursor.getInt(0))) {
                             sqlite.delete("image", "node_id = ? AND offset = ?", new String[]{nodeUniqueID, cursor.getString(0)});
@@ -2287,7 +2256,6 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
                 } finally {
                     sqlite.endTransaction();
                 }
-                cursor.close();
                 Node node = doc.createElement("node");
                 for (Element element : normalNodes) {
                     node.appendChild(element);
@@ -2407,57 +2375,57 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
         if (noSearch) {
             // If user marked that filter should omit nodes and/or node children from filter results
             ArrayList<ScSearchNode> searchResult = new ArrayList<>();
-            Cursor cursor = sqlite.rawQuery("SELECT * FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=0", null);
-            while (cursor.moveToNext()) {
-                if (cursor.getInt(10) == 0) {
-                    // If node and subnodes are not selected to be excluded from search
+            try (Cursor cursor = sqlite.rawQuery("SELECT * FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=0", null)) {
+                while (cursor.moveToNext()) {
+                    if (cursor.getInt(10) == 0) {
+                        // If node and subnodes are not selected to be excluded from search
+                        String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                        boolean hasSubnode = hasSubnodes(nodeUniqueID);
+                        // Main menu item will always be displayed as a parent
+                        ScSearchNode result = findInNode(cursor, query, hasSubnode, true, false);
+                        if (result != null) {
+                            searchResult.add(result);
+                        }
+                        if (hasSubnode) {
+                            searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
+                        }
+                    } else if (cursor.getInt(10) == 1) {
+                        // If only the node is selected to be excluded from search
+                        String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                        boolean hasSubnode = hasSubnodes(nodeUniqueID);
+                        if (hasSubnode) {
+                            searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
+                        }
+                    } else if (cursor.getInt(10) == 2) {
+                        // if only subnodes are selected to be excluded from search
+                        String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                        boolean hasSubnodes = hasSubnodes(nodeUniqueID);
+                        // Main menu node will always be a parent
+                        // Main menu item will always be displayed as parent
+                        ScSearchNode result = findInNode(cursor, query, hasSubnodes, true, false);
+                        if (result != null) {
+                            searchResult.add(result);
+                        }
+                    }
+                }
+            }
+            return searchResult;
+        } else {
+            ArrayList<ScSearchNode> searchResult = new ArrayList<>();
+            try (Cursor cursor = sqlite.rawQuery("SELECT * FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=0", null)) {
+                while (cursor.moveToNext()) {
                     String nodeUniqueID = String.valueOf(cursor.getInt(0));
                     boolean hasSubnode = hasSubnodes(nodeUniqueID);
-                    // Main menu item will always be displayed as a parent
+                    // Main menu item will displayed as parent
                     ScSearchNode result = findInNode(cursor, query, hasSubnode, true, false);
                     if (result != null) {
                         searchResult.add(result);
                     }
                     if (hasSubnode) {
-                        searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
-                    }
-                } else if (cursor.getInt(10) == 1) {
-                    // If only the node is selected to be excluded from search
-                    String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                    boolean hasSubnode = hasSubnodes(nodeUniqueID);
-                    if (hasSubnode) {
-                        searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
-                    }
-                } else if (cursor.getInt(10) == 2) {
-                    // if only subnodes are selected to be excluded from search
-                    String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                    boolean hasSubnodes = hasSubnodes(nodeUniqueID);
-                    // Main menu node will always be a parent
-                    // Main menu item will always be displayed as parent
-                    ScSearchNode result = findInNode(cursor, query, hasSubnodes, true, false);
-                    if (result != null) {
-                        searchResult.add(result);
+                        searchResult.addAll(searchAllNodes(nodeUniqueID, query));
                     }
                 }
             }
-            cursor.close();
-            return searchResult;
-        } else {
-            Cursor cursor = sqlite.rawQuery("SELECT * FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=0", null);
-            ArrayList<ScSearchNode> searchResult = new ArrayList<>();
-            while (cursor.moveToNext()) {
-                String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                boolean hasSubnode = hasSubnodes(nodeUniqueID);
-                // Main menu item will displayed as parent
-                ScSearchNode result = findInNode(cursor, query, hasSubnode, true, false);
-                if (result != null) {
-                    searchResult.add(result);
-                }
-                if (hasSubnode) {
-                    searchResult.addAll(searchAllNodes(nodeUniqueID, query));
-                }
-            }
-            cursor.close();
             return searchResult;
         }
     }
@@ -2471,26 +2439,26 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     private ArrayList<ScSearchNode> searchAllNodes(String parentUniqueID, String query) {
         // It actually just filters node and it's subnodes
         // The search of the string is done in findInNode()
-        Cursor cursor = sqlite.rawQuery("SELECT * FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{parentUniqueID});
         ArrayList<ScSearchNode> searchResult = new ArrayList<>();
-        while (cursor.moveToNext()) {
-            String nodeUniqueID = String.valueOf(cursor.getInt(0));
-            boolean hasSubnode = hasSubnodes(nodeUniqueID);
-            boolean isParent = false;
-            boolean isSubnode = true;
-            if (hasSubnode) {
-                isParent = true;
-                isSubnode = false;
-            }
-            ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
-            if (result != null) {
-                searchResult.add(result);
-            }
-            if (hasSubnode) {
-                searchResult.addAll(searchAllNodes(nodeUniqueID, query));
+        try (Cursor cursor = sqlite.rawQuery("SELECT * FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{parentUniqueID})) {
+            while (cursor.moveToNext()) {
+                String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                boolean hasSubnode = hasSubnodes(nodeUniqueID);
+                boolean isParent = false;
+                boolean isSubnode = true;
+                if (hasSubnode) {
+                    isParent = true;
+                    isSubnode = false;
+                }
+                ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+                if (result != null) {
+                    searchResult.add(result);
+                }
+                if (hasSubnode) {
+                    searchResult.addAll(searchAllNodes(nodeUniqueID, query));
+                }
             }
         }
-        cursor.close();
         return searchResult;
     }
 
@@ -2503,59 +2471,58 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
     private ArrayList<ScSearchNode> searchNodesSkippingExcluded(String parentUniqueID, String query) {
         // If user marked that filter should omit nodes and/or node children from filter results
         ArrayList<ScSearchNode> searchResult = new ArrayList<>();
-        Cursor cursor = sqlite.rawQuery("SELECT * FROM children INNER JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{parentUniqueID});
-        while (cursor.moveToNext()) {
-            if (cursor.getInt(10) == 0) {
-                // If node and subnodes are not selected to be excluded from search
-                String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                boolean hasSubnode = hasSubnodes(nodeUniqueID);
-                boolean isParent = false;
-                boolean isSubnode = true;
-                if (hasSubnode) {
-                    isParent = true;
-                    isSubnode = false;
-                }
-                ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
-                if (result != null) {
-                    searchResult.add(result);
-                }
-                if (hasSubnode) {
-                    searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
-                }
-            } else if (cursor.getInt(10) == 1) {
-                // If only the node is selected to be excluded from search
-                String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                String hasSubnode = String.valueOf(hasSubnodes(nodeUniqueID));
-                if (hasSubnode.equals("true")) {
-                    searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
-                }
-            } else if (cursor.getInt(10) == 2) {
-                // if only subnodes are selected to be excluded from search
-                String nodeUniqueID = String.valueOf(cursor.getInt(0));
-                boolean hasSubnode = hasSubnodes(nodeUniqueID);
-                boolean isParent = false;
-                boolean isSubnode = true;
-                if (hasSubnode) {
-                    isParent = true;
-                    isSubnode = false;
-                }
-                ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
-                if (result != null) {
-                    searchResult.add(result);
+        try (Cursor cursor = sqlite.rawQuery("SELECT * FROM children INNER JOIN node ON children.node_id=node.node_id WHERE children.father_id=?", new String[]{parentUniqueID})) {
+            while (cursor.moveToNext()) {
+                if (cursor.getInt(10) == 0) {
+                    // If node and subnodes are not selected to be excluded from search
+                    String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                    boolean hasSubnode = hasSubnodes(nodeUniqueID);
+                    boolean isParent = false;
+                    boolean isSubnode = true;
+                    if (hasSubnode) {
+                        isParent = true;
+                        isSubnode = false;
+                    }
+                    ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+                    if (result != null) {
+                        searchResult.add(result);
+                    }
+                    if (hasSubnode) {
+                        searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
+                    }
+                } else if (cursor.getInt(10) == 1) {
+                    // If only the node is selected to be excluded from search
+                    String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                    String hasSubnode = String.valueOf(hasSubnodes(nodeUniqueID));
+                    if (hasSubnode.equals("true")) {
+                        searchResult.addAll(searchNodesSkippingExcluded(nodeUniqueID, query));
+                    }
+                } else if (cursor.getInt(10) == 2) {
+                    // if only subnodes are selected to be excluded from search
+                    String nodeUniqueID = String.valueOf(cursor.getInt(0));
+                    boolean hasSubnode = hasSubnodes(nodeUniqueID);
+                    boolean isParent = false;
+                    boolean isSubnode = true;
+                    if (hasSubnode) {
+                        isParent = true;
+                        isSubnode = false;
+                    }
+                    ScSearchNode result = findInNode(cursor, query, hasSubnode, isParent, isSubnode);
+                    if (result != null) {
+                        searchResult.add(result);
+                    }
                 }
             }
         }
-        cursor.close();
         return searchResult;
     }
 
     @Override
     public void updateNodeProperties(String nodeUniqueID, String name, String progLang, String noSearchMe, String noSearchCh) {
-        Cursor cursor = sqlite.query("node", new String[]{"txt", "is_richtxt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null);
-        cursor.moveToFirst();
-        boolean isRichText = cursor.getInt(1) == 1;
-        sqlite.beginTransaction();
-        try {
+        try (Cursor cursor = sqlite.query("node", new String[]{"txt", "is_richtxt"}, "node_id=?", new String[]{nodeUniqueID}, null, null, null, null)) {
+            cursor.moveToFirst();
+            boolean isRichText = cursor.getInt(1) == 1;
+            sqlite.beginTransaction();
             ContentValues contentValues = new ContentValues();
             contentValues.put("name", name);
             if (isRichText && !progLang.equals("custom-colors")) {
