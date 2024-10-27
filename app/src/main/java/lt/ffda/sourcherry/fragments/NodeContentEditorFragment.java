@@ -96,6 +96,7 @@ import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
+import lt.ffda.sourcherry.utils.CheckBoxSwitch;
 import lt.ffda.sourcherry.utils.ColorPickerPresets;
 
 public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions, NodeContentEditorInsertMenuActions, NodeContentEditorTableMenuActions {
@@ -833,6 +834,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
                 SpannableStringBuilder nodeContentSSB = scNodeContentText.getContent();
                 EditText editText = createEditText(typeface, textSize, nodeContentSSB);
+                editText.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        checkBoxToggle((EditText) view);
+                    }
+                });
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -923,6 +930,22 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 }
             }
         });
+    }
+
+    /**
+     * Checks if clicked char in the EditText is a checkbox. If so - toggles it's state in this
+     * order: Empty -> Checked -> Crossed
+     * @param editText clicked EditText
+     */
+    private void checkBoxToggle(EditText editText) {
+        int clickedChar = editText.getText().charAt(editText.getSelectionStart());
+        if (clickedChar == CheckBoxSwitch.EMPTY.getCode()) {
+            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CHECKED.getCharSequence());
+        } else if (clickedChar == CheckBoxSwitch.CHECKED.getCode()) {
+            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CROSSED.getCharSequence());
+        } else if (clickedChar == CheckBoxSwitch.CROSSED.getCode()) {
+            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.EMPTY.getCharSequence());
+        }
     }
 
     @Nullable

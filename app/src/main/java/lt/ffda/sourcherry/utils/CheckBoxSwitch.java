@@ -10,24 +10,33 @@
 
 package lt.ffda.sourcherry.utils;
 
-public enum ColorPickerPresets {
-    BLUE(-10313494),
-    GREEN(-11017335),
-    YELLOW(-465828),
-    ORANGE(-23736),
-    RED(-630447),
-    VIOLET(-2323747),
-    BROWN(-3298417),
-    WHITE(-1),
-    BLACK(-8948101);
+/**
+ * Enum of checkbox states
+ */
+public enum CheckBoxSwitch {
+    EMPTY(9744),
+    CHECKED(9745),
+    CROSSED(9746);
 
-    private final int color;
+    private final int code;
 
-    ColorPickerPresets(int color) {
-        this.color = color;
+    CheckBoxSwitch(int code) {
+        this.code = code;
     }
 
-    public int getColor() {
-        return color;
+    /**
+     * Returns unicode decimal code of the checkbox
+     * @return unicode decimal code
+     */
+    public int getCode() {
+        return code;
+    }
+
+    /**
+     * Returns CharSequence value of CheckBox that can be used in replace method
+     * @return CharSequence value of CheckBox
+     */
+    public CharSequence getCharSequence() {
+        return String.valueOf((char) code);
     }
 }
