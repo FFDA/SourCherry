@@ -111,6 +111,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     private SharedPreferences sharedPreferences;
     private boolean unsavedChanges = false;
     private TextWatcher textWatcher;
+    private View.OnClickListener clickListener;
     private final OnBackPressedCallback onBackPressedCallback = createOnBackPressedCallback();
 
     /**
@@ -348,6 +349,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         CustomTextEdit editText = (CustomTextEdit) getLayoutInflater().inflate(R.layout.custom_edittext, nodeEditorFragmentLinearLayout, false);
         editText.setText(content, TextView.BufferType.EDITABLE);
         editText.addTextChangedListener(textWatcher);
+        editText.setOnClickListener(clickListener);
         editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
         editText.setTypeface(typeface);
         editText.setOnFocusChangeListener(onCustomTextEditFocusChangeListener);
@@ -456,7 +458,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     /**
      * Creates focus change listiner for CustomEditText. It changes editor menu depending on where
      * the user puts cursor. When cursor in table it should have different editor menu items.
-     * @return OnFocusChangeListener for CustomeEditText
+     * @return OnFocusChangeListener for CustomEditText
      */
     private View.OnFocusChangeListener createOnCustomTextEditFocusChangeListener() {
         if (mainViewModel.getCurrentNode().isRichText()) {
@@ -834,12 +836,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 ScNodeContentText scNodeContentText = (ScNodeContentText) part;
                 SpannableStringBuilder nodeContentSSB = scNodeContentText.getContent();
                 EditText editText = createEditText(typeface, textSize, nodeContentSSB);
-                editText.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        checkBoxToggle((EditText) view);
-                    }
-                });
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -997,6 +993,13 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
 
+            }
+        };
+
+        clickListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                checkBoxToggle((EditText) view);
             }
         };
 
