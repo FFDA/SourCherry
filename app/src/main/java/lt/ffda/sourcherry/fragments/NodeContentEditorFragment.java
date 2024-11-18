@@ -1015,12 +1015,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                         while (lastLine.find()) {
                             indexOfLastNewline = lastLine.end();
                         }
-                        Matcher matcher = allListStarts.matcher(editText.getText());
-                        matcher.region(indexOfLastNewline, editText.getText().length());
-                        if (matcher.lookingAt()) {
+                        Matcher listStartMatcher = allListStarts.matcher(editText.getText());
+                        listStartMatcher.region(indexOfLastNewline, editText.getText().length());
+                        if (listStartMatcher.lookingAt()) {
                             changedInput = true;
                             SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder();
-                            spannableStringBuilder.append(editText.getText().subSequence(indexOfLastNewline, matcher.end()));
+                            spannableStringBuilder.append(editText.getText().subSequence(indexOfLastNewline, listStartMatcher.end()));
                             Matcher checkboxMatcher = checkedCheckbox.matcher(spannableStringBuilder);
                             if (checkboxMatcher.find()) {
                                 spannableStringBuilder.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getString());
