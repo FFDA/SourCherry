@@ -14,14 +14,16 @@ package lt.ffda.sourcherry.utils;
  * Enum of checkbox states
  */
 public enum CheckBoxSwitch {
-    EMPTY(9744),
-    CHECKED(9745),
-    CROSSED(9746);
+    EMPTY(9744, "☐"),
+    CHECKED(9745, "☑"),
+    CROSSED(9746, "☒");
 
     private final int code;
+    private final String string;
 
-    CheckBoxSwitch(int code) {
+    CheckBoxSwitch(int code, String string) {
         this.code = code;
+        this.string = string;
     }
 
     /**
@@ -36,7 +38,7 @@ public enum CheckBoxSwitch {
      * Returns CharSequence value of CheckBox that can be used in replace method
      * @return CharSequence value of CheckBox
      */
-    public CharSequence getCharSequence() {
-        return String.valueOf((char) code);
+    public String getString() {
+        return string;
     }
 }

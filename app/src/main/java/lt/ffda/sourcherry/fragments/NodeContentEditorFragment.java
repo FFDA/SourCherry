@@ -224,11 +224,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     private void checkBoxToggle(EditText editText) {
         int clickedChar = editText.getText().charAt(editText.getSelectionStart());
         if (clickedChar == CheckBoxSwitch.EMPTY.getCode()) {
-            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CHECKED.getCharSequence());
+            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CHECKED.getString());
         } else if (clickedChar == CheckBoxSwitch.CHECKED.getCode()) {
-            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CROSSED.getCharSequence());
+            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CROSSED.getString());
         } else if (clickedChar == CheckBoxSwitch.CROSSED.getCode()) {
-            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.EMPTY.getCharSequence());
+            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.EMPTY.getString());
         }
     }
 
@@ -1023,7 +1023,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                             spannableStringBuilder.append(editText.getText().subSequence(indexOfLastNewline, matcher.end()));
                             Matcher checkboxMatcher = checkedCheckbox.matcher(spannableStringBuilder);
                             if (checkboxMatcher.find()) {
-                                spannableStringBuilder.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getCharSequence());
+                                spannableStringBuilder.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getString());
                             }
                             CustomTextEdit customTextEdit = (CustomTextEdit) editText;
                             customTextEdit.getText().insert(start + count, spannableStringBuilder);
