@@ -124,7 +124,7 @@ public class NodeContentEditorMenuMainFragment extends Fragment {
                 }
             }
         });
-        ImageButton showInsertRowButton = view.findViewById(R.id.edit_node_fragment_button_row_insert_row);
+        ImageButton showInsertRowButton = view.findViewById(R.id.edit_node_fragment_button_row_insert);
         showInsertRowButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

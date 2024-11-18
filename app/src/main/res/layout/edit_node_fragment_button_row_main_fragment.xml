@@ -99,7 +99,7 @@
             android:contentDescription="@/string/edit_node_fragment_button_row_monospace"
             android:src="@drawable/monospace" />
         <ImageButton
-            android:id="@+id/edit_node_fragment_button_row_insert_row"
+            android:id="@+id/edit_node_fragment_button_row_insert"
             android:layout_width="40dp"
             android:layout_height="match_parent"
             android:background="?selectableItemBackground"
