@@ -11,34 +11,27 @@
 package lt.ffda.sourcherry.utils;
 
 /**
- * Enum of checkbox states
+ * Enum for unordered/bulleted list items
  */
-public enum CheckBoxSwitch {
-    EMPTY(9744, "☐"), // U+2610
-    CHECKED(9745, "☑"), // U+2611
-    CROSSED(9746, "☒"); // U+2612
+public enum UnorderedSwitch {
+    BULLTET(8226), // First level bullet point U+2022
+    DIAMOND(9671), // Second level bullet point U+25C7
+    BLACK_SMALL_SQUERE(9642), // Third level bullet point U+25AA
+    HYPHEN_MINUS(45), // Forth level bullet point U+002D
+    RIGHTWARDS_ARROW(8594), // Fifth level bullter point U+2192
+    RIGHTWARDS_DOUBLE_ARROW(8658); // Sixth level bullter point U+21D2
 
     private final int code;
-    private final String string;
 
-    CheckBoxSwitch(int code, String string) {
+    UnorderedSwitch(int code) {
         this.code = code;
-        this.string = string;
     }
 
     /**
-     * Returns unicode decimal code of the checkbox
+     * Returns unicode decimal code of the unordered list item
      * @return unicode decimal code
      */
     public int getCode() {
         return code;
-    }
-
-    /**
-     * Returns CharSequence value of CheckBox that can be used in replace method
-     * @return CharSequence value of CheckBox
-     */
-    public String getString() {
-        return string;
     }
 }
