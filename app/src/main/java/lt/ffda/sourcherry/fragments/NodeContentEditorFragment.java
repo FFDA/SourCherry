@@ -10,6 +10,10 @@
 
 package lt.ffda.sourcherry.fragments;
 
+import static lt.ffda.sourcherry.utils.RegexPatterns.allListStarts;
+import static lt.ffda.sourcherry.utils.RegexPatterns.checkedCheckbox;
+import static lt.ffda.sourcherry.utils.RegexPatterns.lastNewline;
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -17,6 +21,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
+import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
@@ -72,6 +77,7 @@ import androidx.preference.PreferenceManager;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
 
 import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.MainView;
@@ -207,6 +213,22 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             ForegroundColorSpan fcs = new ForegroundColorSpan(color);
             editText.getText().setSpan(fcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             unsavedChanges = true;
+        }
+    }
+
+    /**
+     * Checks if clicked char in the EditText is a checkbox. If so - toggles it's state in this
+     * order: Empty -> Checked -> Crossed
+     * @param editText clicked EditText
+     */
+    private void checkBoxToggle(EditText editText) {
+        int clickedChar = editText.getText().charAt(editText.getSelectionStart());
+        if (clickedChar == CheckBoxSwitch.EMPTY.getCode()) {
+            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CHECKED.getCharSequence());
+        } else if (clickedChar == CheckBoxSwitch.CHECKED.getCode()) {
+            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CROSSED.getCharSequence());
+        } else if (clickedChar == CheckBoxSwitch.CROSSED.getCode()) {
+            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.EMPTY.getCharSequence());
         }
     }
 
@@ -928,22 +950,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         });
     }
 
-    /**
-     * Checks if clicked char in the EditText is a checkbox. If so - toggles it's state in this
-     * order: Empty -> Checked -> Crossed
-     * @param editText clicked EditText
-     */
-    private void checkBoxToggle(EditText editText) {
-        int clickedChar = editText.getText().charAt(editText.getSelectionStart());
-        if (clickedChar == CheckBoxSwitch.EMPTY.getCode()) {
-            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CHECKED.getCharSequence());
-        } else if (clickedChar == CheckBoxSwitch.CHECKED.getCode()) {
-            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CROSSED.getCharSequence());
-        } else if (clickedChar == CheckBoxSwitch.CROSSED.getCode()) {
-            editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.EMPTY.getCharSequence());
-        }
-    }
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -979,20 +985,51 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         textWatcher = new TextWatcher() {
+            int lineCount;
+            EditText editText;
+            boolean changedInput = false;
             @Override
             public void afterTextChanged(Editable s) {
                 unsavedChanges = true;
-                removeTextChangedListeners();
+                if (changedInput) {
+                    changedInput = false;
+                }
             }
 
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
+                if (!changedInput) {
+                    editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+                    lineCount = editText.getLineCount();
+                }
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-
+                if (!changedInput) {
+                    editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+                    if (lineCount < editText.getLineCount()) {
+                        Matcher lastLine = lastNewline.matcher(editText.getText());
+                        lastLine.region(0, start);
+                        int indexOfLastNewline = 0;
+                        while (lastLine.find()) {
+                            indexOfLastNewline = lastLine.end();
+                        }
+                        Matcher matcher = allListStarts.matcher(editText.getText());
+                        matcher.region(indexOfLastNewline, editText.getText().length());
+                        if (matcher.lookingAt()) {
+                            changedInput = true;
+                            SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder();
+                            spannableStringBuilder.append(editText.getText().subSequence(indexOfLastNewline, matcher.end()));
+                            Matcher checkboxMatcher = checkedCheckbox.matcher(spannableStringBuilder);
+                            if (checkboxMatcher.find()) {
+                                spannableStringBuilder.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getCharSequence());
+                            }
+                            CustomTextEdit customTextEdit = (CustomTextEdit) editText;
+                            customTextEdit.getText().insert(start + count, spannableStringBuilder);
+                        }
+                    }
+                }
             }
         };
 
@@ -1129,32 +1166,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 }
             } catch (FileNotFoundException e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_insert_image, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    /**
-     * Removes all textChangedListeners from EditText views
-     * Does it on the main thread
-     */
-    private void removeTextChangedListeners() {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
-                    View view = nodeEditorFragmentLinearLayout.getChildAt(i);
-                    if (view instanceof TextView) {
-                        ((EditText) view).removeTextChangedListener(textWatcher);
-                    } else if (view instanceof HorizontalScrollView){
-                        ScTableLayout scTableLayout = (ScTableLayout) ((HorizontalScrollView) view).getChildAt(0);
-                        for (int j = 0; j < scTableLayout.getChildCount(); j++) {
-                            TableRow tableRow = (TableRow) scTableLayout.getChildAt(j);
-                            for (int k = 0; k < tableRow.getChildCount(); k++) {
-                                ((EditText) tableRow.getChildAt(k)).removeTextChangedListener(textWatcher);
-                            }
-                        }
-                    }
-                }
             }
         });
     }
