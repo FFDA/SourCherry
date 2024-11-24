@@ -40,4 +40,9 @@ public class RegexPatterns {
      * Matches new line char
      */
     public static final Pattern lastNewline = Pattern.compile("\\n", Pattern.DOTALL);
+
+    /**
+     * Matches oldered list and it's digit as a group(1)
+     */
+    public static final Pattern orderdList = Pattern.compile("^\\s*(\\d+)[\\.\\)\\->]");
 }

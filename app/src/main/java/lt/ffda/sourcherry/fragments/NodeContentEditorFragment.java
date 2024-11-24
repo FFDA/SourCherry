@@ -14,6 +14,7 @@ import static lt.ffda.sourcherry.utils.RegexPatterns.allCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.allListStarts;
 import static lt.ffda.sourcherry.utils.RegexPatterns.checkedCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.lastNewline;
+import static lt.ffda.sourcherry.utils.RegexPatterns.orderdList;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -1063,15 +1064,24 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                         Matcher allListMatcher = allListStarts.matcher(editText.getText());
                         allListMatcher.region(indexOfLastNewline, editText.getText().length());
                         if (allListMatcher.lookingAt()) {
+                            // If newline follows list item line
                             changedInput = true;
-                            SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder();
-                            spannableStringBuilder.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
-                            Matcher checkboxMatcher = checkedCheckbox.matcher(spannableStringBuilder);
+                            SpannableStringBuilder newListItem = new SpannableStringBuilder();
+                            // Substrings start of the previous list line with the list symbol and spaces
+                            newListItem.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+                            Matcher checkboxMatcher = checkedCheckbox.matcher(newListItem);
+                            Matcher orderedMatcher = orderdList.matcher(newListItem);
                             if (checkboxMatcher.find()) {
-                                spannableStringBuilder.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getString());
+                                // Checks if new line chas a checkbox that is in checked or crossed state
+                                // If so - replces it with empty checkbox
+                                newListItem.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getString());
+                            } else if (orderedMatcher.find()) {
+                                // If new line has a number in front of it - replaces the number with currect number + 1
+                                int position = Integer.parseInt(orderedMatcher.group(1));
+                                newListItem.replace(orderedMatcher.start(1), orderedMatcher.end(1), String.valueOf(position + 1) );
                             }
                             CustomTextEdit customTextEdit = (CustomTextEdit) editText;
-                            customTextEdit.getText().insert(start + count, spannableStringBuilder);
+                            customTextEdit.getText().insert(start + count, newListItem);
                         }
                     }
                 }
