@@ -10,6 +10,7 @@
 
 package lt.ffda.sourcherry.fragments;
 
+import static lt.ffda.sourcherry.utils.RegexPatterns.allCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.allListStarts;
 import static lt.ffda.sourcherry.utils.RegexPatterns.checkedCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.lastNewline;
@@ -21,7 +22,6 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
-import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
@@ -105,7 +105,9 @@ import lt.ffda.sourcherry.spans.URLSpanWebs;
 import lt.ffda.sourcherry.utils.CheckBoxSwitch;
 import lt.ffda.sourcherry.utils.ColorPickerPresets;
 
-public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions, NodeContentEditorInsertMenuActions, NodeContentEditorTableMenuActions {
+public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions,
+        NodeContentEditorInsertMenuActions, NodeContentEditorTableMenuActions,
+        NodeContentEditorMenuBackAction, NodeContentEditorListsMenuActions {
     private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
     private boolean changesSaved = false;
     private int color;
@@ -117,8 +119,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     private SharedPreferences sharedPreferences;
     private boolean unsavedChanges = false;
     private TextWatcher textWatcher;
-    private View.OnClickListener clickListener;
     private final OnBackPressedCallback onBackPressedCallback = createOnBackPressedCallback();
+    private View.OnClickListener clickListener;
 
     /**
      * Adds textChangedListeners for all EditText views
@@ -158,6 +160,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             return;
         }
         attachFile.launch(new String[]{"*/*"});
+    }
+
+    @Override
+    public void back() {
+        getChildFragmentManager().popBackStack();
     }
 
     public void changeBackgroundColor() {
@@ -222,7 +229,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @param editText clicked EditText
      */
     private void checkBoxToggle(EditText editText) {
-        int clickedChar = editText.getText().charAt(editText.getSelectionStart());
+        int selection = editText.getSelectionStart();
+        int length = editText.getText().length();
+        if (selection >= length) {
+            selection = length - 1;
+        }
+        int clickedChar = editText.getText().charAt(selection);
         if (clickedChar == CheckBoxSwitch.EMPTY.getCode()) {
             editText.getText().replace(editText.getSelectionStart(), editText.getSelectionEnd() + 1, CheckBoxSwitch.CHECKED.getString());
         } else if (clickedChar == CheckBoxSwitch.CHECKED.getCode()) {
@@ -682,6 +694,44 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
+     * Return index of last newLine char in the given editText. Looks from the start of the editText
+     * to the provided end index. Does no do any checks. End index should be valid.
+     * @param editText edit text to search for new line chars
+     * @param end index up to which search for new line
+     * @return index of found last new line or -1 if not found
+     */
+    private int getLastIndexOfNewLine(EditText editText, int end) {
+        Matcher lastLine = lastNewline.matcher(editText.getText());
+        lastLine.region(0, end);
+        int indexOfLastNewline = -1;
+        while (lastLine.find()) {
+            indexOfLastNewline = lastLine.end();
+        }
+        return indexOfLastNewline;
+    }
+
+    /**
+     * Returns start and end of the paragraph in which a cursor is currently placed
+     * @param editText currectly focused editText
+     * @return start and end index of paragraphs in array [start,end]
+     */
+    private int[] getParagraphStartEnd(EditText editText) {
+        Matcher paragraph = lastNewline.matcher(editText.getText());
+        int cursorLocation = editText.getSelectionStart();
+        paragraph.region(0, cursorLocation);
+        int start = 0; // Defaults to the start of the editText
+        while (paragraph.find()) {
+            start = paragraph.end();
+        }
+        int end = editText.getText().length(); // defaults to the end of the edtiText
+        paragraph.region(cursorLocation, end);
+        if (paragraph.find()) {
+            end = paragraph.start();
+        }
+        return new int[] {start, end};
+    }
+
+    /**
      * Get typeface that user set to be used in preferences
      * @return Typeface that can be used to change Views font
      */
@@ -1009,18 +1059,13 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 if (!changedInput) {
                     editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
                     if (lineCount < editText.getLineCount()) {
-                        Matcher lastLine = lastNewline.matcher(editText.getText());
-                        lastLine.region(0, start);
-                        int indexOfLastNewline = 0;
-                        while (lastLine.find()) {
-                            indexOfLastNewline = lastLine.end();
-                        }
-                        Matcher listStartMatcher = allListStarts.matcher(editText.getText());
-                        listStartMatcher.region(indexOfLastNewline, editText.getText().length());
-                        if (listStartMatcher.lookingAt()) {
+                        int indexOfLastNewline = getLastIndexOfNewLine(editText, start);
+                        Matcher allListMatcher = allListStarts.matcher(editText.getText());
+                        allListMatcher.region(indexOfLastNewline, editText.getText().length());
+                        if (allListMatcher.lookingAt()) {
                             changedInput = true;
                             SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder();
-                            spannableStringBuilder.append(editText.getText().subSequence(indexOfLastNewline, listStartMatcher.end()));
+                            spannableStringBuilder.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
                             Matcher checkboxMatcher = checkedCheckbox.matcher(spannableStringBuilder);
                             if (checkboxMatcher.find()) {
                                 spannableStringBuilder.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getString());
@@ -1263,11 +1308,43 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     @Override
     public void showInsertRow() {
         NodeContentEditorMenuInsertFragment fragment = new NodeContentEditorMenuInsertFragment();
-        fragment.setNodeContentEditorMenuActions(this);
+        fragment.setNodeContentEditorMenuActions(this, this);
         getChildFragmentManager().beginTransaction()
                 .add(R.id.edit_node_fragment_button_row_fragment, fragment, null)
                 .addToBackStack("inserMenu")
                 .commit();
+    }
+
+    @Override
+    public void showListsRow() {
+        NodeContentEditorMenuListsFragment fragment = new NodeContentEditorMenuListsFragment();
+        fragment.setNodeContentEditorInsertMenuActions(this, this);
+        getChildFragmentManager().beginTransaction()
+                .add(R.id.edit_node_fragment_button_row_fragment, fragment, null)
+                .addToBackStack("listsMenu")
+                .commit();
+    }
+
+    @Override
+    public void startChecklist() {
+        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+        int[] paraStartEnd = getParagraphStartEnd(editText);
+        Matcher allListMatcher = allListStarts.matcher(editText.getText());
+        allListMatcher.region(paraStartEnd[0], paraStartEnd[1]);
+        // Checking if there is already a list at this line
+        if (allListMatcher.lookingAt()) {
+            Matcher checkboxMatcher = allCheckbox.matcher(editText.getText());
+            checkboxMatcher.region(paraStartEnd[0], paraStartEnd[1]);
+            if (checkboxMatcher.find()) {
+                // If it's a checkbox list line - deleting it
+                editText.getText().replace(checkboxMatcher.start(), checkboxMatcher.end() + 1, "");
+            } else {
+                // If it's any other list line
+                editText.getText().replace(allListMatcher.start(1), allListMatcher.end(1), CheckBoxSwitch.EMPTY.getString());
+            }
+        } else {
+            editText.getText().insert(paraStartEnd[0], new StringBuilder(CheckBoxSwitch.EMPTY.getString()).append(" "));
+        }
     }
 
     @Override

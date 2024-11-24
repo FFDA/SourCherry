@@ -133,6 +133,15 @@ public class NodeContentEditorMenuMainFragment extends Fragment {
                 }
             }
         });
+        ImageButton showListsRowButton = view.findViewById(R.id.edit_node_fragment_button_row_lists);
+        showListsRowButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (nodeContentEditorMenuActions != null) {
+                    nodeContentEditorMenuActions.showListsRow();
+                }
+            }
+        });
     }
 
     /**

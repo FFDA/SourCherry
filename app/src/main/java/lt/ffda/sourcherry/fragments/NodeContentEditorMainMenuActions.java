@@ -38,6 +38,11 @@ public interface NodeContentEditorMainMenuActions {
     void showInsertRow();
 
     /**
+     * Shows fragment with list actions menu in nodeEditContent button row
+     */
+    void showListsRow();
+
+    /**
      * Makes selected font bold if there isn't any bold text in selection.
      * Otherwise it will remove bold text  property of the in selected part of the text.
      */

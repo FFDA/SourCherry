@@ -107,5 +107,14 @@
             android:focusable="true"
             android:contentDescription="@string/edit_node_fragment_button_row_insert_menu"
             android:src="@drawable/baseline_add_circle_outline_24" />
+        <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_lists"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_list_menu"
+            android:src="@drawable/baseline_list_alt_24" />
     </LinearLayout>
 </HorizontalScrollView>

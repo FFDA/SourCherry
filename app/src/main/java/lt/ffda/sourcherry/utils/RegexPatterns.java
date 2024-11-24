@@ -20,12 +20,16 @@ public class RegexPatterns {
 
     /**
      * Should match all list starts available in CherryTree with any amount of spaces in front of
-     * list symbol and any space after it, but not new line. Right now matches only checkboxes and
-     * unordered lists.
+     * list symbol and any space after it, but not new line.
      */
     public static final Pattern allListStarts = Pattern.compile(
-            "^\\s*[\\u2610\\u2611\\u2612\\u2022\\u25C7\\u25AA\\u002D\\u2192\\u21D2]|^\\s*(?:\\d+[.\\)\\->]+)[ \\t\\f\\r]*"
+            "^\\s*(([\\u2610\\u2611\\u2612\\u2022\\u25C7\\u25AA\\u002D\\u2192\\u21D2])|(\\d+[\\.\\)\\->]))[ \\t\\f\\r]*"
     );
+
+    /**
+     * Matches all checkboxes
+     */
+    public static final Pattern allCheckbox = Pattern.compile("[\\u2610\\u2611\\u2612]");
 
     /**
      * Matches checked and crossed checkboxes

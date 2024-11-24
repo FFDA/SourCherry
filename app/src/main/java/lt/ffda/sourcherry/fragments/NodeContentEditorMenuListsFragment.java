@@ -22,21 +22,21 @@ import androidx.fragment.app.Fragment;
 
 import lt.ffda.sourcherry.R;
 
-public class NodeContentEditorMenuInsertFragment extends Fragment {
-    private NodeContentEditorInsertMenuActions nodeContentEditorInsertMenuActions;
+public class NodeContentEditorMenuListsFragment extends Fragment {
+    private NodeContentEditorListsMenuActions nodeContentEditorListsMenuActions;
     private NodeContentEditorMenuBackAction nodeContentEditorMenuBackAction;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        return inflater.inflate(R.layout.edit_node_fragment_button_row_insert_fragment, container, false);
+        return inflater.inflate(R.layout.edit_node_fragment_button_row_lists_fragment, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        ImageButton backButton = view.findViewById(R.id.edit_node_fragment_button_row_back);
+        ImageButton backButton = view.findViewById(R.id.edit_node_fragment_button_row_lists_back);
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -45,30 +45,12 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
                 }
             }
         });
-        ImageButton attachFileButton = view.findViewById(R.id.edit_node_fragment_button_row_attach_file);
-        attachFileButton.setOnClickListener(new View.OnClickListener() {
+        ImageButton startChecklists = view.findViewById(R.id.edit_node_fragment_button_row_lists_start_checklist);
+        startChecklists.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (nodeContentEditorInsertMenuActions != null) {
-                    nodeContentEditorInsertMenuActions.attachFile();
-                }
-            }
-        });
-        ImageButton insertImageButton = view.findViewById(R.id.edit_node_fragment_button_row_insert_image);
-        insertImageButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (nodeContentEditorInsertMenuActions != null) {
-                    nodeContentEditorInsertMenuActions.insertImage();
-                }
-            }
-        });
-        ImageButton insertTableButton = view.findViewById(R.id.edit_node_fragment_button_row_insert_table);
-        insertTableButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (nodeContentEditorInsertMenuActions != null) {
-                    nodeContentEditorInsertMenuActions.startInsertTable();
+                if (nodeContentEditorMenuBackAction != null) {
+                    nodeContentEditorListsMenuActions.startChecklist();
                 }
             }
         });
@@ -77,11 +59,11 @@ public class NodeContentEditorMenuInsertFragment extends Fragment {
     /**
      * Set an instance of the parent fragment that implements NodeContentEditorInsertMenuActions to
      * be able to manipulate it's content
-     * @param nodeContentEditorMenuActions instance of fragment that implelents NodeContentEditorInsertMenuActions
+     * @param nodeContentEditorInsertMenuActions instance of fragment that implelents NodeContentEditorInsertMenuActions
      */
-    public void setNodeContentEditorMenuActions(NodeContentEditorInsertMenuActions nodeContentEditorInsertMenuActions,
-                                                NodeContentEditorMenuBackAction nodeContentEditorMenuBackAction ) {
-        this.nodeContentEditorInsertMenuActions = nodeContentEditorInsertMenuActions;
+    public void setNodeContentEditorInsertMenuActions(NodeContentEditorListsMenuActions nodeContentEditorListsMenuActions,
+                                                      NodeContentEditorMenuBackAction nodeContentEditorMenuBackAction) {
+        this.nodeContentEditorListsMenuActions = nodeContentEditorListsMenuActions;
         this.nodeContentEditorMenuBackAction = nodeContentEditorMenuBackAction;
     }
 }
