@@ -151,12 +151,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void attachFile() {
-        View view = nodeEditorFragmentLinearLayout.getFocusedChild();
-        if (view == null) {
+        if (!isCursorPlaced()) {
             Toast.makeText(getContext(), R.string.toast_message_attach_file_place_cursor, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (view instanceof HorizontalScrollView) {
+        if (isCursorInTable()) {
             Toast.makeText(getContext(), R.string.toast_message_attach_file_insert_into_table, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -250,16 +249,14 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @return true - if at least one codebox was found, false - otherwise
      */
     private boolean checkSelectionForCodebox() {
-        boolean codeboxExists = false;
         EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
         Object[] spans = editText.getText().getSpans(editText.getSelectionStart(), editText.getSelectionEnd(), Object.class);
         for (Object span: spans) {
             if (span instanceof TypefaceSpanCodebox) {
-                codeboxExists = true;
-                break;
+                return true;
             }
         }
-        return codeboxExists;
+        return false;
     }
 
     public void clearFormatting() {
@@ -784,12 +781,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void insertImage() {
-        View view = nodeEditorFragmentLinearLayout.getFocusedChild();
-        if (view == null) {
+        if (!isCursorPlaced()) {
             Toast.makeText(getContext(), R.string.toast_message_insert_image_place_cursor, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (view instanceof HorizontalScrollView) {
+        if (isCursorInTable()) {
             Toast.makeText(getContext(), R.string.toast_message_insert_image_insert_into_table, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -853,16 +849,32 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
+     * Checks if cursor is placed in table or not
+     * @return true if cursor is in table, false - otherwise
+     */
+    private boolean isCursorInTable() {
+        return nodeEditorFragmentLinearLayout.getFocusedChild() instanceof HorizontalScrollView;
+    }
+
+    /**
+     * Checks if cursor is placed
+     * @return true if cursor is placed, false - otherwise
+     */
+    private boolean isCursorPlaced() {
+        return nodeEditorFragmentLinearLayout.getFocusedChild() != null;
+    }
+
+    /**
      * Checks if table can be inserted at the cursor location
      * @return true - if table can be inserted at the cursor location, false - otherwise
      */
     private boolean isTableInsertionAllowed() {
         boolean allowed = true;
-        EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-        if (editText == null) {
+        if (!isCursorPlaced()) {
             Toast.makeText(getContext(), R.string.toast_message_insert_table_place_cursor, Toast.LENGTH_SHORT).show();
             return false;
         }
+        EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
         Object[] spans = editText.getText().getSpans(editText.getSelectionStart(), editText.getSelectionEnd(), Object.class);
         for (Object span: spans) {
             if (span instanceof TypefaceSpanCodebox) {
@@ -1337,6 +1349,14 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void startChecklist() {
+        if (!isCursorPlaced()) {
+            Toast.makeText(getContext(), R.string.toast_message_start_list_place_cursor, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (isCursorInTable()) {
+            Toast.makeText(getContext(), R.string.toast_message_start_list_insert_into_table, Toast.LENGTH_SHORT).show();
+            return;
+        }
         EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
         int[] paraStartEnd = getParagraphStartEnd(editText);
         Matcher allListMatcher = allListStarts.matcher(editText.getText());
