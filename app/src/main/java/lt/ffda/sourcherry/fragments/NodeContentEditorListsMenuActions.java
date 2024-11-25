@@ -14,7 +14,13 @@ public interface NodeContentEditorListsMenuActions {
 
     /**
      * Starts checklist at the current line. Insert empty checkbox ant the beginning of the current
-     * line.
+     * line. If there is a checkbox at the start of the line - removes it.
      */
     void startChecklist();
+
+    /**
+     * Starts unordered list at the current line. If the line is already an unordered list line -
+     * makes it a normal line.
+     */
+    void startUnordered();
 }

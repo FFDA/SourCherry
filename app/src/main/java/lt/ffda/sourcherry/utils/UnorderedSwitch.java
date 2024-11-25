@@ -14,17 +14,19 @@ package lt.ffda.sourcherry.utils;
  * Enum for unordered/bulleted list items
  */
 public enum UnorderedSwitch {
-    BULLTET(8226), // First level bullet point U+2022
-    DIAMOND(9671), // Second level bullet point U+25C7
-    BLACK_SMALL_SQUERE(9642), // Third level bullet point U+25AA
-    HYPHEN_MINUS(45), // Forth level bullet point U+002D
-    RIGHTWARDS_ARROW(8594), // Fifth level bullter point U+2192
-    RIGHTWARDS_DOUBLE_ARROW(8658); // Sixth level bullter point U+21D2
+    BULLTET(8226, "•"), // First level bullet point U+2022
+    DIAMOND(9671, "◇"), // Second level bullet point U+25C7
+    BLACK_SMALL_SQUERE(9642, "▪"), // Third level bullet point U+25AA
+    HYPHEN_MINUS(45, "-"), // Forth level bullet point U+002D
+    RIGHTWARDS_ARROW(8594, "→"), // Fifth level bullter point U+2192
+    RIGHTWARDS_DOUBLE_ARROW(8658, "⇒"); // Sixth level bullter point U+21D2
 
     private final int code;
+    private final String string;
 
-    UnorderedSwitch(int code) {
+    UnorderedSwitch(int code, String string) {
         this.code = code;
+        this.string = string;
     }
 
     /**
@@ -33,5 +35,35 @@ public enum UnorderedSwitch {
      */
     public int getCode() {
         return code;
+    }
+
+    /**
+     * Returns CharSequence value of unordered list item that can be used in replace method
+     * @return CharSequence value of nordered list item
+     */
+    public String getString() {
+        return string;
+    }
+
+    /**
+     * Returns unordered list item string value for a specific level. Unordered lists have 6 levels
+     * @param level item's level
+     * @return unordered list sting item
+     */
+    public static String getItemForLevel(int level) {
+        switch (level) {
+            case 1:
+                return DIAMOND.string;
+            case 2:
+                return BLACK_SMALL_SQUERE.string;
+            case 3:
+                return HYPHEN_MINUS.string;
+            case 4:
+                return RIGHTWARDS_ARROW.string;
+            case 5:
+                return RIGHTWARDS_DOUBLE_ARROW.string;
+            default:
+                return BULLTET.string;
+        }
     }
 }

@@ -15,6 +15,7 @@ import static lt.ffda.sourcherry.utils.RegexPatterns.allListStarts;
 import static lt.ffda.sourcherry.utils.RegexPatterns.checkedCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.lastNewline;
 import static lt.ffda.sourcherry.utils.RegexPatterns.orderdList;
+import static lt.ffda.sourcherry.utils.RegexPatterns.unorderedList;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -105,6 +106,7 @@ import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 import lt.ffda.sourcherry.utils.CheckBoxSwitch;
 import lt.ffda.sourcherry.utils.ColorPickerPresets;
+import lt.ffda.sourcherry.utils.UnorderedSwitch;
 
 public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions,
         NodeContentEditorInsertMenuActions, NodeContentEditorTableMenuActions,
@@ -706,6 +708,25 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             indexOfLastNewline = lastLine.end();
         }
         return indexOfLastNewline;
+    }
+
+    /**
+     * Calculates which indentation level by the space infornt of the list item. Indentation starts
+     * at 0 spaces (level 0) and adds 3 spaces for each level going forward. Unordered list have 6
+     * level, ordered - 4.
+     * @param indentation spaces in front of the list item at the start of the line
+     * @param maxLevel maximum level for the list. Should be 6 for unordered list, 4 for ordered
+     * @return level of the indentation
+     */
+    private int getListIndentationLevel(int indentation, int maxLevel) {
+        if (indentation == 0) {
+            return 0;
+        }
+        int level = indentation / 3;
+        if (level > maxLevel) {
+            level = level % maxLevel;
+        }
+        return level;
     }
 
     /**
@@ -1370,7 +1391,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 editText.getText().replace(checkboxMatcher.start(), checkboxMatcher.end() + 1, "");
             } else {
                 // If it's any other list line
-                editText.getText().replace(allListMatcher.start(1), allListMatcher.end(1), CheckBoxSwitch.EMPTY.getString());
+                editText.getText().replace(allListMatcher.start(2), allListMatcher.end(2), CheckBoxSwitch.EMPTY.getString());
             }
         } else {
             editText.getText().insert(paraStartEnd[0], new StringBuilder(CheckBoxSwitch.EMPTY.getString()).append(" "));
@@ -1408,6 +1429,37 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 .add(R.id.main_view_fragment, CreateTableOptionsFragment.class, null, "insertTable")
                 .addToBackStack("insertTable")
                 .commit();
+    }
+
+    @Override
+    public void startUnordered() {
+        if (!isCursorPlaced()) {
+            Toast.makeText(getContext(), R.string.toast_message_start_list_place_cursor, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (isCursorInTable()) {
+            Toast.makeText(getContext(), R.string.toast_message_start_list_insert_into_table, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+        int[] paraStartEnd = getParagraphStartEnd(editText);
+        Matcher allListMatcher = allListStarts.matcher(editText.getText());
+        allListMatcher.region(paraStartEnd[0], paraStartEnd[1]);
+        // Checking if there is already a list at this line
+        if (allListMatcher.lookingAt()) {
+            Matcher unorderedMatcher = unorderedList.matcher(editText.getText());
+            unorderedMatcher.region(paraStartEnd[0], paraStartEnd[1]);
+            if (unorderedMatcher.find()) {
+                // If it's a unordered list line - deleting it
+                editText.getText().replace(unorderedMatcher.start(1), unorderedMatcher.end(1) + 1, "");
+            } else {
+                // If it's any other list line
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6);
+                editText.getText().replace(allListMatcher.start(2), allListMatcher.end(2), UnorderedSwitch.getItemForLevel(level));
+            }
+        } else {
+            editText.getText().insert(paraStartEnd[0], new StringBuilder(UnorderedSwitch.BULLTET.getString()).append(" "));
+        }
     }
 
     @Override

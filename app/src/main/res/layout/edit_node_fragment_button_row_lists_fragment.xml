@@ -35,5 +35,14 @@
             android:focusable="true"
             android:contentDescription="@string/edit_node_fragment_button_row_lists_start_checklist"
             android:src="@drawable/baseline_checklist_24" />
+        <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_lists_start_unordered"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_lists_start_unordered"
+            android:src="@drawable/baseline_format_list_bulleted_24" />
     </LinearLayout>
 </HorizontalScrollView>

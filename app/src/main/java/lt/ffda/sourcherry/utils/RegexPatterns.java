@@ -23,7 +23,7 @@ public class RegexPatterns {
      * list symbol and any space after it, but not new line.
      */
     public static final Pattern allListStarts = Pattern.compile(
-            "^\\s*(([\\u2610\\u2611\\u2612\\u2022\\u25C7\\u25AA\\u002D\\u2192\\u21D2])|(\\d+[\\.\\)\\->]))[ \\t\\f\\r]*"
+            "^(\\s*)(([\\u2610\\u2611\\u2612\\u2022\\u25C7\\u25AA\\u002D\\u2192\\u21D2])|(\\d+[\\.\\)\\->]))[ \\t\\f\\r]*"
     );
 
     /**
@@ -45,4 +45,9 @@ public class RegexPatterns {
      * Matches oldered list and it's digit as a group(1)
      */
     public static final Pattern orderdList = Pattern.compile("^\\s*(\\d+)[\\.\\)\\->]");
+
+    /**
+     * Matches unordered list items
+     */
+    public static final Pattern unorderedList = Pattern.compile("^\\s*([\\u2022\\u25C7\\u25AA\\u002D\\u2192\\u21D2])");
 }
