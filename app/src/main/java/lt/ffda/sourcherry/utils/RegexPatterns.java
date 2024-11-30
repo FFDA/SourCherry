@@ -29,12 +29,12 @@ public class RegexPatterns {
     /**
      * Matches all checkboxes
      */
-    public static final Pattern allCheckbox = Pattern.compile("[\\u2610\\u2611\\u2612]");
+    public static final Pattern allCheckbox = Pattern.compile("\\s*[\\u2610\\u2611\\u2612]");
 
     /**
      * Matches checked and crossed checkboxes
      */
-    public static final Pattern checkedCheckbox = Pattern.compile("[\\u2611\\u2612]");
+    public static final Pattern checkedCheckbox = Pattern.compile("\\s*[\\u2611\\u2612]");
 
     /**
      * Matches new line char
