@@ -11,26 +11,24 @@
 package lt.ffda.sourcherry.utils;
 
 /**
- * Enum for unordered/bulleted list items
+ * Enum for ordered/numbered list items
  */
-public enum UnorderedSwitch {
-    BULLTET(8226, "•"), // First level bullet point U+2022
-    DIAMOND(9671, "◇"), // Second level bullet point U+25C7
-    BLACK_SMALL_SQUERE(9642, "▪"), // Third level bullet point U+25AA
-    HYPHEN_MINUS(45, "-"), // Forth level bullet point U+002D
-    RIGHTWARDS_ARROW(8594, "→"), // Fifth level bullter point U+2192
-    RIGHTWARDS_DOUBLE_ARROW(8658, "⇒"); // Sixth level bullter point U+21D2
+public enum OrderedSwitch {
+    FULL_STOP(46, "."), // First level ordered list item's mark
+    RIGHT_PARENTHESIS(29, ")"), // Second level ordered list item's mark
+    HYPHEN_MINUS(45, "-"), // Third level ordered list item's mark
+    GREATER_THAN_SIGN(62, ">"); // Fourth level ordered list item's mark
 
     private final int code;
     private final String string;
 
-    UnorderedSwitch(int code, String string) {
+    OrderedSwitch(int code, String string) {
         this.code = code;
         this.string = string;
     }
 
     /**
-     * Returns unicode decimal code of the unordered list item
+     * Returns unicode decimal code of the ordered list item
      * @return unicode decimal code
      */
     public int getCode() {
@@ -38,32 +36,28 @@ public enum UnorderedSwitch {
     }
 
     /**
-     * Returns CharSequence value of unordered list item that can be used in replace method
-     * @return CharSequence value of unordered list item
+     * Returns CharSequence value of ordered list item that can be used in replace method
+     * @return CharSequence value of ordered list item
      */
     public String getString() {
         return string;
     }
 
     /**
-     * Returns unordered list item string value for a specific level. Unordered lists have 6 levels
+     * Returns ordered list item string value for a specific level. Ordered lists have 4 levels
      * @param level item's level
-     * @return unordered list string item
+     * @return ordered list string item
      */
     public static String getItemForLevel(int level) {
         switch (level) {
             case 1:
-                return DIAMOND.string;
+                return RIGHT_PARENTHESIS.string;
             case 2:
-                return BLACK_SMALL_SQUERE.string;
-            case 3:
                 return HYPHEN_MINUS.string;
-            case 4:
-                return RIGHTWARDS_ARROW.string;
-            case 5:
-                return RIGHTWARDS_DOUBLE_ARROW.string;
+            case 3:
+                return GREATER_THAN_SIGN.string;
             default:
-                return BULLTET.string;
+                return FULL_STOP.string;
         }
     }
 }

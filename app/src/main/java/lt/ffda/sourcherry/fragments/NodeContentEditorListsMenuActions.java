@@ -23,4 +23,10 @@ public interface NodeContentEditorListsMenuActions {
      * makes it a normal line.
      */
     void startUnordered();
+
+    /**
+     * Starts ordered list at the current line. If the line is already an ordered list line -
+     * makes it a normal line.
+     */
+    void startOrdered();
 }

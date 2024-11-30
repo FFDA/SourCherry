@@ -15,6 +15,7 @@ import static lt.ffda.sourcherry.utils.RegexPatterns.allListStarts;
 import static lt.ffda.sourcherry.utils.RegexPatterns.checkedCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.lastNewline;
 import static lt.ffda.sourcherry.utils.RegexPatterns.orderdList;
+import static lt.ffda.sourcherry.utils.RegexPatterns.orderedList;
 import static lt.ffda.sourcherry.utils.RegexPatterns.unorderedList;
 
 import android.content.Context;
@@ -106,6 +107,7 @@ import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 import lt.ffda.sourcherry.utils.CheckBoxSwitch;
 import lt.ffda.sourcherry.utils.ColorPickerPresets;
+import lt.ffda.sourcherry.utils.OrderedSwitch;
 import lt.ffda.sourcherry.utils.UnorderedSwitch;
 
 public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions,
@@ -1394,7 +1396,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 editText.getText().replace(allListMatcher.start(2), allListMatcher.end(2), CheckBoxSwitch.EMPTY.getString());
             }
         } else {
-            editText.getText().insert(paraStartEnd[0], new StringBuilder(CheckBoxSwitch.EMPTY.getString()).append(" "));
+            editText.getText().insert(paraStartEnd[0], new StringBuilder(CheckBoxSwitch.EMPTY.getString()).append(' '));
         }
     }
 
@@ -1458,7 +1460,38 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 editText.getText().replace(allListMatcher.start(2), allListMatcher.end(2), UnorderedSwitch.getItemForLevel(level));
             }
         } else {
-            editText.getText().insert(paraStartEnd[0], new StringBuilder(UnorderedSwitch.BULLTET.getString()).append(" "));
+            editText.getText().insert(paraStartEnd[0], new StringBuilder(UnorderedSwitch.BULLTET.getString()).append(' '));
+        }
+    }
+
+    @Override
+    public void startOrdered() {
+        if (!isCursorPlaced()) {
+            Toast.makeText(getContext(), R.string.toast_message_start_list_place_cursor, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (isCursorInTable()) {
+            Toast.makeText(getContext(), R.string.toast_message_start_list_insert_into_table, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+        int[] paraStartEnd = getParagraphStartEnd(editText);
+        Matcher allListMatcher = allListStarts.matcher(editText.getText());
+        allListMatcher.region(paraStartEnd[0], paraStartEnd[1]);
+        // Checking if there is already a list at this line
+        if (allListMatcher.lookingAt()) {
+            Matcher orderedMatcher = orderedList.matcher(editText.getText());
+            orderedMatcher.region(paraStartEnd[0], paraStartEnd[1]);
+            if (orderedMatcher.find()) {
+                // If it's a ordered list line - deleting it
+                editText.getText().replace(orderedMatcher.start(1), orderedMatcher.end(1) + 1, "");
+            } else {
+                // If it's any other list line
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6);
+                editText.getText().replace(allListMatcher.start(2), allListMatcher.end(2), new StringBuilder("1").append(OrderedSwitch.getItemForLevel(level)).append(' '));
+            }
+        } else {
+            editText.getText().insert(paraStartEnd[0], new StringBuilder("1").append(OrderedSwitch.FULL_STOP.getString()).append(' '));
         }
     }
 

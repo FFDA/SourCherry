@@ -63,6 +63,15 @@ public class NodeContentEditorMenuListsFragment extends Fragment {
                 }
             }
         });
+        ImageButton startOrdered = view.findViewById(R.id.edit_node_fragment_button_row_lists_start_ordered);
+        startOrdered.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (nodeContentEditorMenuBackAction != null) {
+                    nodeContentEditorListsMenuActions.startOrdered();
+                }
+            }
+        });
     }
 
     /**

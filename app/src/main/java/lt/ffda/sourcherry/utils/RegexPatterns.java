@@ -50,4 +50,9 @@ public class RegexPatterns {
      * Matches unordered list items
      */
     public static final Pattern unorderedList = Pattern.compile("^\\s*([\\u2022\\u25C7\\u25AA\\u002D\\u2192\\u21D2])");
+
+    /**
+     * Matches ordered list items
+     */
+    public static final Pattern orderedList = Pattern.compile("^\\s*(\\d+[\\.\\)\\->])");
 }
