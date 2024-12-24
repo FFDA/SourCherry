@@ -1101,22 +1101,35 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                         if (allListMatcher.lookingAt()) {
                             // If newline follows list item line
                             changedInput = true;
-                            SpannableStringBuilder newListItem = new SpannableStringBuilder();
-                            // Substrings start of the previous list line with the list symbol and spaces
-                            newListItem.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
-                            Matcher checkboxMatcher = checkedCheckbox.matcher(newListItem);
-                            Matcher orderedMatcher = orderdList.matcher(newListItem);
-                            if (checkboxMatcher.find()) {
-                                // Checks if new line chas a checkbox that is in checked or crossed state
-                                // If so - replces it with empty checkbox
-                                newListItem.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getString());
-                            } else if (orderedMatcher.find()) {
-                                // If new line has a number in front of it - replaces the number with currect number + 1
-                                int position = Integer.parseInt(orderedMatcher.group(1));
-                                newListItem.replace(orderedMatcher.start(1), orderedMatcher.end(1), String.valueOf(position + 1) );
+                            if (allListMatcher.end() == editText.getSelectionStart() - 1) {
+                                // If cursor is at the start of the list items
+                                if (allListMatcher.group(1).isEmpty()) {
+                                    // list item should be removed
+                                    editText.getText().replace(allListMatcher.start(), allListMatcher.end() + 1, "");
+                                } else {
+                                    // indentation should be lowered
+                                    editText.getText().replace(allListMatcher.end() + 1, allListMatcher.end() + 2, ""); // Deleting newline at otherwise not only indentation will be removed
+                                    editText.getText().replace(allListMatcher.start(), allListMatcher.start() + 3, "");
+                                }
+                            } else {
+                                // If user started typing at the list item line, new item should be added
+                                SpannableStringBuilder newListItem = new SpannableStringBuilder();
+                                // Substrings start of the previous list line with the list symbol and spaces
+                                newListItem.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+                                Matcher checkboxMatcher = checkedCheckbox.matcher(newListItem);
+                                Matcher orderedMatcher = orderdList.matcher(newListItem);
+                                if (checkboxMatcher.find()) {
+                                    // Checks if new line chas a checkbox that is in checked or crossed state
+                                    // If so - replces it with empty checkbox
+                                    newListItem.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getString());
+                                } else if (orderedMatcher.find()) {
+                                    // If new line has a number in front of it - replaces the number with currect number + 1
+                                    int position = Integer.parseInt(orderedMatcher.group(1));
+                                    newListItem.replace(orderedMatcher.start(1), orderedMatcher.end(1), String.valueOf(position + 1));
+                                }
+                                CustomTextEdit customTextEdit = (CustomTextEdit) editText;
+                                customTextEdit.getText().insert(start + count, newListItem);
                             }
-                            CustomTextEdit customTextEdit = (CustomTextEdit) editText;
-                            customTextEdit.getText().insert(start + count, newListItem);
                         }
                     }
                 }
@@ -1487,7 +1500,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 editText.getText().replace(orderedMatcher.start(1), orderedMatcher.end(1) + 1, "");
             } else {
                 // If it's any other list line
-                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6);
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 4);
                 editText.getText().replace(allListMatcher.start(2), allListMatcher.end(2), new StringBuilder("1").append(OrderedSwitch.getItemForLevel(level)).append(' '));
             }
         } else {
