@@ -29,4 +29,9 @@ public interface NodeContentEditorListsMenuActions {
      * makes it a normal line.
      */
     void startOrdered();
+
+    /**
+     * Decreases list item indentation. Changes list items symbol if necessary.
+     */
+    void decreaseListItemIndentation();
 }

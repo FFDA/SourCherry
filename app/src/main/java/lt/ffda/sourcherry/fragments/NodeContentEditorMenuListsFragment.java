@@ -72,6 +72,15 @@ public class NodeContentEditorMenuListsFragment extends Fragment {
                 }
             }
         });
+        ImageButton decreaseIndentation = view.findViewById(R.id.edit_node_fragment_button_row_lists_indent_decrease);
+        decreaseIndentation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (nodeContentEditorMenuBackAction != null) {
+                    nodeContentEditorListsMenuActions.decreaseListItemIndentation();
+                }
+            }
+        });
     }
 
     /**

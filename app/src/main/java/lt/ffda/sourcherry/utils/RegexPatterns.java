@@ -42,9 +42,14 @@ public class RegexPatterns {
     public static final Pattern lastNewline = Pattern.compile("\\n", Pattern.DOTALL);
 
     /**
-     * Matches oldered list and it's digit as a group(1)
+     * Matches oldered list and it's digit as a group(1) at the start of the string
      */
-    public static final Pattern orderdList = Pattern.compile("^\\s*(\\d+)[\\.\\)\\->]");
+    public static final Pattern orderdList = Pattern.compile("^(\\s*)(\\d+)[\\.\\)\\->]");
+
+    /**
+     * Matches oldered list and it's digit as a group(1) at any place of the string
+     */
+    public static final Pattern orderdListItem = Pattern.compile("\\n([ \\t\\f\\r]*)(\\d+)[\\.\\)\\->].*");
 
     /**
      * Matches unordered list items

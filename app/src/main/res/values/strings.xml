@@ -222,6 +222,7 @@
     <string name="edit_node_fragment_button_row_lists_start_checklist">START CHECKLIST. Starts checklist at the current line.</string>
     <string name="edit_node_fragment_button_row_lists_start_unordered">START UNORDERED LIST. Starts unordered list at the current line.</string>
     <string name="edit_node_fragment_button_row_lists_start_ordered">START ORDERED LIST. Starts ordered list at the current line.</string>
+    <string name="edit_node_fragment_button_row_lists_indent_decrease">INDENT DECREASE. Decreases indentation of the list item. Changes list item symbol if necessary.</string>
     <string name="menu_item_padding_content_description">Drawer menu item padding. Used to indent menu item that they marking that item is a sub node.</string>
     <string name="menu_item_arrow_content_description">Drawer menu item arrow. Displayed if node has sub nodes. It has two positions: sub nodes are expanded (arrow pointing down) and not (arrow pointing right)</string>
     <string name="menu_item_action_content_description">Drawer menu item preferences. Displays settings icon. When clicked opens contextual menu.</string>

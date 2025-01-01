@@ -15,6 +15,7 @@ import static lt.ffda.sourcherry.utils.RegexPatterns.allListStarts;
 import static lt.ffda.sourcherry.utils.RegexPatterns.checkedCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.lastNewline;
 import static lt.ffda.sourcherry.utils.RegexPatterns.orderdList;
+import static lt.ffda.sourcherry.utils.RegexPatterns.orderdListItem;
 import static lt.ffda.sourcherry.utils.RegexPatterns.orderedList;
 import static lt.ffda.sourcherry.utils.RegexPatterns.unorderedList;
 
@@ -732,6 +733,27 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
+     * Returns nummeric value of last ordered list item from the start of the provided EditText to
+     * the posittion of the cursor. Returns nummeric value of specified level of the ordered item.
+     * @param editText EditText to search for the nummeric value of the last ordered list item
+     * @param level level of the ordered list item to search number for
+     * @return ordered list items nummeric value
+     */
+    private int getLastOrderedItemNumValueOfLevel(EditText editText, int level) {
+        Matcher paragraph = orderdListItem.matcher(editText.getText());
+        int cursorLocation = editText.getSelectionStart();
+        paragraph.region(0, cursorLocation);
+        int orderedItem = 1;
+        while (paragraph.find()) {
+            int currentItemsLevel = paragraph.group(1) != null ? paragraph.group(1).length() / 3 : 0;
+            if (currentItemsLevel == level) {
+                orderedItem = Integer.parseInt(paragraph.group(2));
+            }
+        }
+        return orderedItem;
+    }
+
+    /**
      * Returns start and end of the paragraph in which a cursor is currently placed
      * @param editText currectly focused editText
      * @return start and end index of paragraphs in array [start,end]
@@ -1109,7 +1131,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                                 } else {
                                     // indentation should be lowered
                                     editText.getText().replace(allListMatcher.end() + 1, allListMatcher.end() + 2, ""); // Deleting newline at otherwise not only indentation will be removed
-                                    editText.getText().replace(allListMatcher.start(), allListMatcher.start() + 3, "");
+                                    editText.setSelection(editText.getSelectionStart() - 1); // After replace selectionStart moves by one and decreaseListItemIndentation() methods starts to work incorrectly
+                                    decreaseListItemIndentation();
                                 }
                             } else {
                                 // If user started typing at the list item line, new item should be added
@@ -1124,8 +1147,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                                     newListItem.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getString());
                                 } else if (orderedMatcher.find()) {
                                     // If new line has a number in front of it - replaces the number with currect number + 1
-                                    int position = Integer.parseInt(orderedMatcher.group(1));
-                                    newListItem.replace(orderedMatcher.start(1), orderedMatcher.end(1), String.valueOf(position + 1));
+                                    int position = Integer.parseInt(orderedMatcher.group(2));
+                                    newListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(position + 1));
                                 }
                                 CustomTextEdit customTextEdit = (CustomTextEdit) editText;
                                 customTextEdit.getText().insert(start + count, newListItem);
@@ -1505,6 +1528,33 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
         } else {
             editText.getText().insert(paraStartEnd[0], new StringBuilder("1").append(OrderedSwitch.FULL_STOP.getString()).append(' '));
+        }
+    }
+
+    @Override
+    public void decreaseListItemIndentation() {
+        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+        int indexOfLastNewline = getLastIndexOfNewLine(editText, editText.getSelectionStart());
+        Matcher allListMatcher = allListStarts.matcher(editText.getText());
+        allListMatcher.region(indexOfLastNewline, editText.getText().length());
+        if (allListMatcher.lookingAt()) {
+            if (allListMatcher.group(1).length() > 2) {
+                SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
+                updatedListItem.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+                Matcher orderedMatcher = orderdList.matcher(updatedListItem);
+                Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
+                if (orderedMatcher.find()) {
+                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) - 1;
+                    int position = getLastOrderedItemNumValueOfLevel(editText, level);
+                    updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(position + 1));
+                    updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
+                } else if (unorderedMatcher.find()) {
+                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 6);
+                    updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level - 1));
+                }
+                updatedListItem.replace(0, 3, "");
+                editText.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+            }
         }
     }
 
