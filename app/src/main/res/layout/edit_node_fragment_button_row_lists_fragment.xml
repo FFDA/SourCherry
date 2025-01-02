@@ -60,7 +60,16 @@
             android:background="?selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:contentDescription="@string/edit_node_fragment_button_row_lists_start_ordered"
+            android:contentDescription="@string/edit_node_fragment_button_row_lists_indent_decrease"
             android:src="@drawable/baseline_format_indent_decrease_24" />
+        <ImageButton
+            android:id="@+id/edit_node_fragment_button_row_lists_indent_increase"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/edit_node_fragment_button_row_lists_indent_increase"
+            android:src="@drawable/baseline_format_indent_increase_24" />
     </LinearLayout>
 </HorizontalScrollView>

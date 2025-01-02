@@ -726,7 +726,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             return 0;
         }
         int level = indentation / 3;
-        if (level > maxLevel) {
+        if (level >= maxLevel) {
             level = level % maxLevel;
         }
         return level;
@@ -1545,16 +1545,46 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
                 if (orderedMatcher.find()) {
                     int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) - 1;
+                    if (level < 0) {
+                        level = 3;
+                    }
                     int position = getLastOrderedItemNumValueOfLevel(editText, level);
                     updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(position + 1));
                     updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
                 } else if (unorderedMatcher.find()) {
-                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 6);
-                    updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level - 1));
+                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) - 1;
+                    if (level < 0) {
+                        level = 5;
+                    }
+                    updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
                 }
                 updatedListItem.replace(0, 3, "");
                 editText.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
             }
+        }
+    }
+
+    @Override
+    public void increaseListItemIndentation() {
+        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
+        int indexOfLastNewline = getLastIndexOfNewLine(editText, editText.getSelectionStart());
+        Matcher allListMatcher = allListStarts.matcher(editText.getText());
+        allListMatcher.region(indexOfLastNewline, editText.getText().length());
+        if (allListMatcher.lookingAt()) {
+            SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
+            updatedListItem.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+            Matcher orderedMatcher = orderdList.matcher(updatedListItem);
+            Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
+            if (orderedMatcher.find()) {
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) + 1;
+                updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(1));
+                updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
+            } else if (unorderedMatcher.find()) {
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) + 1;
+                updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
+            }
+            updatedListItem.insert(0, "   ");
+            editText.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
         }
     }
 

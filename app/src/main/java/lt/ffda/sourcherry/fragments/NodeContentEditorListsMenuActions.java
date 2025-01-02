@@ -34,4 +34,9 @@ public interface NodeContentEditorListsMenuActions {
      * Decreases list item indentation. Changes list items symbol if necessary.
      */
     void decreaseListItemIndentation();
+
+    /**
+     * Increases list item indentation. Changes list items symbol if necessary.
+     */
+    void increaseListItemIndentation();
 }
