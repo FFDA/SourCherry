@@ -127,6 +127,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     private TextWatcher textWatcher;
     private final OnBackPressedCallback onBackPressedCallback = createOnBackPressedCallback();
     private View.OnClickListener clickListener;
+    private boolean typing = true; // As apposed to pasting
 
     /**
      * Adds textChangedListeners for all EditText views
@@ -1102,14 +1103,15 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             @Override
             public void afterTextChanged(Editable s) {
                 unsavedChanges = true;
-                if (changedInput) {
+                if (typing && changedInput) {
                     changedInput = false;
                 }
             }
 
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                if (!changedInput) {
+                typing = Math.abs(count - after) < 2;
+                if (typing && !changedInput) {
                     editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
                     lineCount = editText.getLineCount();
                 }
@@ -1117,7 +1119,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (!changedInput) {
+                if (typing && !changedInput) {
                     editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
                     if (lineCount < editText.getLineCount()) {
                         int indexOfLastNewline = getLastIndexOfNewLine(editText, start);
