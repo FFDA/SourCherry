@@ -236,6 +236,9 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     private void checkBoxToggle(EditText editText) {
         int selection = editText.getSelectionStart();
         int length = editText.getText().length();
+        if (length < 1) {
+            return;
+        }
         if (selection >= length) {
             selection = length - 1;
         }
