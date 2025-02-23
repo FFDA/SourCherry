@@ -128,32 +128,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     private final OnBackPressedCallback onBackPressedCallback = createOnBackPressedCallback();
     private View.OnClickListener clickListener;
     private boolean typing = true; // As apposed to pasting
-
-    /**
-     * Adds textChangedListeners for all EditText views
-     * Does it on the main thread
-     */
-    private void addTextChangedListeners() {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
-                    View view = nodeEditorFragmentLinearLayout.getChildAt(i);
-                    if (view instanceof TextView) {
-                        ((EditText) view).addTextChangedListener(textWatcher);
-                    } else if (view instanceof HorizontalScrollView){
-                        ScTableLayout scTableLayout = (ScTableLayout) ((HorizontalScrollView) view).getChildAt(0);
-                        for (int j = 0; j < scTableLayout.getChildCount(); j++) {
-                            TableRow tableRow = (TableRow) scTableLayout.getChildAt(j);
-                            for (int k = 0; k < tableRow.getChildCount(); k++) {
-                                ((EditText) tableRow.getChildAt(k)).addTextChangedListener(textWatcher);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
+    CustomTextEdit focusedChild = null;
 
     @Override
     public void attachFile() {
@@ -174,57 +149,55 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     public void changeBackgroundColor() {
-        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+        if (focusedChild instanceof EditText) {
             if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
             }
-            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int startOfSelection = editText.getSelectionStart();
-            int endOfSelection = editText.getSelectionEnd();
+            int startOfSelection = focusedChild.getSelectionStart();
+            int endOfSelection = focusedChild.getSelectionEnd();
             if (endOfSelection - startOfSelection == 0) {
                 // No text selected
                 return;
             }
-            BackgroundColorSpanCustom[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, BackgroundColorSpanCustom.class);
+            BackgroundColorSpanCustom[] spans = focusedChild.getText().getSpans(startOfSelection, endOfSelection, BackgroundColorSpanCustom.class);
             for (BackgroundColorSpanCustom span : spans) {
-                int startOfSpan = editText.getText().getSpanStart(span);
-                int endOfSpan = editText.getText().getSpanEnd(span);
-                editText.getText().removeSpan(span);
+                int startOfSpan = focusedChild.getText().getSpanStart(span);
+                int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                focusedChild.getText().removeSpan(span);
                 int backgroundColor = span.getBackgroundColor();
                 reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
             }
             BackgroundColorSpanCustom bcs = new BackgroundColorSpanCustom(color);
-            editText.getText().setSpan(bcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            focusedChild.getText().setSpan(bcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             unsavedChanges = true;
         }
     }
 
     public void changeForegroundColor() {
-        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+        if (focusedChild instanceof EditText) {
             if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
             }
-            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int startOfSelection = editText.getSelectionStart();
-            int endOfSelection = editText.getSelectionEnd();
+            int startOfSelection = focusedChild.getSelectionStart();
+            int endOfSelection = focusedChild.getSelectionEnd();
             if (endOfSelection - startOfSelection == 0) {
                 // No text selected
                 return;
             }
-            ForegroundColorSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, ForegroundColorSpan.class);
+            ForegroundColorSpan[] spans = focusedChild.getText().getSpans(startOfSelection, endOfSelection, ForegroundColorSpan.class);
             for (ForegroundColorSpan span : spans) {
-                int startOfSpan = editText.getText().getSpanStart(span);
-                int endOfSpan = editText.getText().getSpanEnd(span);
-                editText.getText().removeSpan(span);
+                int startOfSpan = focusedChild.getText().getSpanStart(span);
+                int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                focusedChild.getText().removeSpan(span);
                 int foregroundColor = span.getForegroundColor();
                 reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
             }
             ForegroundColorSpan fcs = new ForegroundColorSpan(color);
-            editText.getText().setSpan(fcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            focusedChild.getText().setSpan(fcs, startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             unsavedChanges = true;
         }
     }
@@ -258,8 +231,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @return true - if at least one codebox was found, false - otherwise
      */
     private boolean checkSelectionForCodebox() {
-        EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-        Object[] spans = editText.getText().getSpans(editText.getSelectionStart(), editText.getSelectionEnd(), Object.class);
+        Object[] spans = focusedChild.getText().getSpans(focusedChild.getSelectionStart(), focusedChild.getSelectionEnd(), Object.class);
         for (Object span: spans) {
             if (span instanceof TypefaceSpanCodebox) {
                 return true;
@@ -269,15 +241,14 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     public void clearFormatting() {
-        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
-            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int startOfSelection = editText.getSelectionStart();
-            int endOfSelection = editText.getSelectionEnd();
+        if (focusedChild instanceof EditText) {
+            int startOfSelection = focusedChild.getSelectionStart();
+            int endOfSelection = focusedChild.getSelectionEnd();
             if (endOfSelection - startOfSelection == 0) {
                 // No text selected
                 return;
             }
-            Object[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, Object.class);
+            Object[] spans = focusedChild.getText().getSpans(startOfSelection, endOfSelection, Object.class);
             if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be cleared using clear formatting
                 // It only should be deleted
@@ -286,93 +257,93 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
             for (Object span: spans) {
                 if (span instanceof ForegroundColorSpan) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     int foregroundColor = ((ForegroundColorSpan) span).getForegroundColor();
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new ForegroundColorSpan(foregroundColor), new ForegroundColorSpan(foregroundColor));
                     unsavedChanges = true;
                 } else if (span instanceof BackgroundColorSpan) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     int backgroundColor = ((BackgroundColorSpan) span).getBackgroundColor();
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new BackgroundColorSpanCustom(backgroundColor), new BackgroundColorSpanCustom(backgroundColor));
                     unsavedChanges = true;
                 } else if (span instanceof StrikethroughSpan) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
                     unsavedChanges = true;
                 } else if (span instanceof StyleSpanBold) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanBold(), new StyleSpanBold());
                     unsavedChanges = true;
                 } else if (span instanceof StyleSpanItalic) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanItalic(), new StyleSpanItalic());
                     unsavedChanges = true;
                 } else if (span instanceof RelativeSizeSpan) {
                     RelativeSizeSpan relativeSizeSpan = (RelativeSizeSpan) span;
                     float size = relativeSizeSpan.getSizeChange();
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new RelativeSizeSpan(size), new RelativeSizeSpan(size));
                     unsavedChanges = true;
                 } else if (span instanceof SubscriptSpan) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SubscriptSpan(), new SubscriptSpan());
                     unsavedChanges = true;
                 } else if (span instanceof SuperscriptSpan) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new SuperscriptSpan(), new SuperscriptSpan());
                     unsavedChanges = true;
                 } else if (span instanceof TypefaceSpanFamily) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new TypefaceSpanFamily("monospace"), new TypefaceSpanFamily("monospace"));
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new MonospaceBackgroundColorSpan(getContext().getColor(R.color.monospace_background)), new MonospaceBackgroundColorSpan(getContext().getColor(R.color.monospace_background)));
                     unsavedChanges = true;
                 } else if (span instanceof UnderlineSpan) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new UnderlineSpan(), new UnderlineSpan());
                     unsavedChanges = true;
                 } else if (span instanceof URLSpanWebs) {
                     URLSpanWebs urlSpanWebs = (URLSpanWebs) span;
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new URLSpanWebs(urlSpanWebs.getURL()), new URLSpanWebs(urlSpanWebs.getURL()));
                     unsavedChanges = true;
                 } else if (span instanceof ClickableSpanNode) {
                     ClickableSpanNode clickableSpanNode = (ClickableSpanNode) span;
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, createNodeLink(clickableSpanNode), createNodeLink(clickableSpanNode));
                     unsavedChanges = true;
                 } else if (span instanceof ClickableSpanLink) {
                     ClickableSpanLink clickableSpanLink = (ClickableSpanLink) span;
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, createFileFolderLink(clickableSpanLink), createFileFolderLink(clickableSpanLink));
                     unsavedChanges = true;
                 } else if (span instanceof LeadingMarginSpan.Standard) {
-                    editText.getText().removeSpan(span);
+                    focusedChild.getText().removeSpan(span);
                     unsavedChanges = true;
                 }
             }
@@ -499,6 +470,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     /**
      * Creates focus change listiner for CustomEditText. It changes editor menu depending on where
      * the user puts cursor. When cursor in table it should have different editor menu items.
+     * Moreover, it adds text chagne listener to the focus view that was focused and removes the it
+     * from the view that lost focus.
      * @return OnFocusChangeListener for CustomEditText
      */
     private View.OnFocusChangeListener createOnCustomTextEditFocusChangeListener() {
@@ -506,10 +479,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             return new View.OnFocusChangeListener() {
                 @Override
                 public void onFocusChange(View view, boolean hasFocus) {
+                    CustomTextEdit customTextEdit = (CustomTextEdit) view;
                     if (hasFocus) {
+                        focusedChild = customTextEdit;
+                        customTextEdit.addTextChangedListener(textWatcher);
                         FragmentManager fragmentManager = getChildFragmentManager();
                         Fragment tableMenuFragment = fragmentManager.findFragmentByTag("tableMenuFragment");
-                        CustomTextEdit customTextEdit = (CustomTextEdit) view;
                         if (customTextEdit.isTableCell() && tableMenuFragment == null) {
                             tableMenuFragment = new NodeContentEditorMenuTableFragment();
                             ((NodeContentEditorMenuTableFragment) tableMenuFragment).setNodeContentEditorTableMenuActions(NodeContentEditorFragment.this);
@@ -523,6 +498,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                                 fragmentManager.popBackStack();
                             }
                         }
+                    } else {
+                        customTextEdit.removeTextChangedListener(textWatcher);
                     }
                 }
             };
@@ -1098,12 +1075,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         super.onViewCreated(view, savedInstanceState);
         textWatcher = new TextWatcher() {
             int lineCount;
-            EditText editText;
             boolean changedInput = false;
             @Override
             public void afterTextChanged(Editable s) {
                 unsavedChanges = true;
-                if (typing && changedInput) {
+                if (!focusedChild.isTableCell() && typing && changedInput) {
                     changedInput = false;
                 }
             }
@@ -1111,39 +1087,38 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                 typing = Math.abs(count - after) < 2;
-                if (typing && !changedInput) {
-                    editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-                    lineCount = editText.getLineCount();
+                if (!focusedChild.isTableCell() && typing && !changedInput) {
+                    focusedChild = (CustomTextEdit) nodeEditorFragmentLinearLayout.getFocusedChild();
+                    lineCount = focusedChild.getLineCount();
                 }
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (typing && !changedInput) {
-                    editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-                    if (lineCount < editText.getLineCount()) {
-                        int indexOfLastNewline = getLastIndexOfNewLine(editText, start);
-                        Matcher allListMatcher = allListStarts.matcher(editText.getText());
-                        allListMatcher.region(indexOfLastNewline, editText.getText().length());
+                if (!focusedChild.isTableCell() && typing && !changedInput) {
+                    if (lineCount < focusedChild.getLineCount()) {
+                        int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, start);
+                        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
+                        allListMatcher.region(indexOfLastNewline, focusedChild.getText().length());
                         if (allListMatcher.lookingAt()) {
                             // If newline follows list item line
                             changedInput = true;
-                            if (allListMatcher.end() == editText.getSelectionStart() - 1) {
+                            if (allListMatcher.end() == focusedChild.getSelectionStart() - 1) {
                                 // If cursor is at the start of the list items
                                 if (allListMatcher.group(1).isEmpty()) {
                                     // list item should be removed
-                                    editText.getText().replace(allListMatcher.start(), allListMatcher.end() + 1, "");
+                                    focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end() + 1, "");
                                 } else {
                                     // indentation should be lowered
-                                    editText.getText().replace(allListMatcher.end() + 1, allListMatcher.end() + 2, ""); // Deleting newline at otherwise not only indentation will be removed
-                                    editText.setSelection(editText.getSelectionStart() - 1); // After replace selectionStart moves by one and decreaseListItemIndentation() methods starts to work incorrectly
+                                    focusedChild.getText().replace(allListMatcher.end() + 1, allListMatcher.end() + 2, ""); // Deleting newline at otherwise not only indentation will be removed
+                                    focusedChild.setSelection(focusedChild.getSelectionStart() - 1); // After replace selectionStart moves by one and decreaseListItemIndentation() methods starts to work incorrectly
                                     decreaseListItemIndentation();
                                 }
                             } else {
                                 // If user started typing at the list item line, new item should be added
                                 SpannableStringBuilder newListItem = new SpannableStringBuilder();
                                 // Substrings start of the previous list line with the list symbol and spaces
-                                newListItem.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+                                newListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
                                 Matcher checkboxMatcher = checkedCheckbox.matcher(newListItem);
                                 Matcher orderedMatcher = orderdList.matcher(newListItem);
                                 if (checkboxMatcher.find()) {
@@ -1155,7 +1130,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                                     int position = Integer.parseInt(orderedMatcher.group(2));
                                     newListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(position + 1));
                                 }
-                                CustomTextEdit customTextEdit = (CustomTextEdit) editText;
+                                CustomTextEdit customTextEdit = (CustomTextEdit) focusedChild;
                                 customTextEdit.getText().insert(start + count, newListItem);
                             }
                         }
@@ -1253,17 +1228,16 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @param span2 span to reapply
      */
     private void reapplySpanOutsideSelection(int startOfSelection, int endOfSelection, int startOfSpan, int endOfSpan, Object span1, Object span2) {
-        EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
         if (startOfSelection >= startOfSpan && endOfSelection <= endOfSpan) {
             // If selection is inside the span
-            editText.getText().setSpan(span1, startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            editText.getText().setSpan(span2, endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            focusedChild.getText().setSpan(span1, startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            focusedChild.getText().setSpan(span2, endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else if (startOfSelection < startOfSpan && endOfSelection <= endOfSpan) {
             // If start of selection is outside the span, but the end is inside
-            editText.getText().setSpan(span1, endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            focusedChild.getText().setSpan(span1, endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else if (startOfSelection >= startOfSpan) {
             // If start if selection is inside of the span, but the end is outside
-            editText.getText().setSpan(span1, startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            focusedChild.getText().setSpan(span1, startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
     }
 
@@ -1276,8 +1250,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         return registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
             if (result != null) {
                 DocumentFile file = DocumentFile.fromSingleUri(getContext(), result);
-                EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-                editText.getText().insert(editText.getSelectionStart(), DatabaseReader.createAttachFileSpan(getContext(), file.getName(), mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
+                focusedChild.getText().insert(focusedChild.getSelectionStart(), DatabaseReader.createAttachFileSpan(getContext(), file.getName(), mainViewModel.getCurrentNode().getUniqueId(), result.toString()));
             }
         });
     }
@@ -1292,8 +1265,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             try {
                 if (uri != null) {
                     SpannableStringBuilder imageSpan = DatabaseReader.createImageSpan(getContext(), uri);
-                    EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-                    editText.getText().insert(editText.getSelectionStart(), imageSpan);
+                    focusedChild.getText().insert(focusedChild.getSelectionStart(), imageSpan);
                 }
             } catch (FileNotFoundException e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_insert_image, Toast.LENGTH_SHORT).show();
@@ -1373,7 +1345,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         } else {
             DatabaseReaderFactory.getReader().saveNodeContent(mainViewModel.getCurrentNode().getMasterId());
         }
-        addTextChangedListeners();
     }
 
     /**
@@ -1421,23 +1392,22 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             Toast.makeText(getContext(), R.string.toast_message_start_list_insert_into_table, Toast.LENGTH_SHORT).show();
             return;
         }
-        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-        int[] paraStartEnd = getParagraphStartEnd(editText);
-        Matcher allListMatcher = allListStarts.matcher(editText.getText());
+        int[] paraStartEnd = getParagraphStartEnd(focusedChild);
+        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
         allListMatcher.region(paraStartEnd[0], paraStartEnd[1]);
         // Checking if there is already a list at this line
         if (allListMatcher.lookingAt()) {
-            Matcher checkboxMatcher = allCheckbox.matcher(editText.getText());
+            Matcher checkboxMatcher = allCheckbox.matcher(focusedChild.getText());
             checkboxMatcher.region(paraStartEnd[0], paraStartEnd[1]);
             if (checkboxMatcher.find()) {
                 // If it's a checkbox list line - deleting it
-                editText.getText().replace(checkboxMatcher.start(), checkboxMatcher.end() + 1, "");
+                focusedChild.getText().replace(checkboxMatcher.start(), checkboxMatcher.end() + 1, "");
             } else {
                 // If it's any other list line
-                editText.getText().replace(allListMatcher.start(2), allListMatcher.end(2), CheckBoxSwitch.EMPTY.getString());
+                focusedChild.getText().replace(allListMatcher.start(2), allListMatcher.end(2), CheckBoxSwitch.EMPTY.getString());
             }
         } else {
-            editText.getText().insert(paraStartEnd[0], new StringBuilder(CheckBoxSwitch.EMPTY.getString()).append(' '));
+            focusedChild.getText().insert(paraStartEnd[0], new StringBuilder(CheckBoxSwitch.EMPTY.getString()).append(' '));
         }
     }
 
@@ -1484,24 +1454,23 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             Toast.makeText(getContext(), R.string.toast_message_start_list_insert_into_table, Toast.LENGTH_SHORT).show();
             return;
         }
-        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-        int[] paraStartEnd = getParagraphStartEnd(editText);
-        Matcher allListMatcher = allListStarts.matcher(editText.getText());
+        int[] paraStartEnd = getParagraphStartEnd(focusedChild);
+        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
         allListMatcher.region(paraStartEnd[0], paraStartEnd[1]);
         // Checking if there is already a list at this line
         if (allListMatcher.lookingAt()) {
-            Matcher unorderedMatcher = unorderedList.matcher(editText.getText());
+            Matcher unorderedMatcher = unorderedList.matcher(focusedChild.getText());
             unorderedMatcher.region(paraStartEnd[0], paraStartEnd[1]);
             if (unorderedMatcher.find()) {
                 // If it's a unordered list line - deleting it
-                editText.getText().replace(unorderedMatcher.start(1), unorderedMatcher.end(1) + 1, "");
+                focusedChild.getText().replace(unorderedMatcher.start(1), unorderedMatcher.end(1) + 1, "");
             } else {
                 // If it's any other list line
                 int level = getListIndentationLevel(allListMatcher.group(1).length(), 6);
-                editText.getText().replace(allListMatcher.start(2), allListMatcher.end(2), UnorderedSwitch.getItemForLevel(level));
+                focusedChild.getText().replace(allListMatcher.start(2), allListMatcher.end(2), UnorderedSwitch.getItemForLevel(level));
             }
         } else {
-            editText.getText().insert(paraStartEnd[0], new StringBuilder(UnorderedSwitch.BULLTET.getString()).append(' '));
+            focusedChild.getText().insert(paraStartEnd[0], new StringBuilder(UnorderedSwitch.BULLTET.getString()).append(' '));
         }
     }
 
@@ -1515,37 +1484,35 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             Toast.makeText(getContext(), R.string.toast_message_start_list_insert_into_table, Toast.LENGTH_SHORT).show();
             return;
         }
-        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-        int[] paraStartEnd = getParagraphStartEnd(editText);
-        Matcher allListMatcher = allListStarts.matcher(editText.getText());
+        int[] paraStartEnd = getParagraphStartEnd(focusedChild);
+        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
         allListMatcher.region(paraStartEnd[0], paraStartEnd[1]);
         // Checking if there is already a list at this line
         if (allListMatcher.lookingAt()) {
-            Matcher orderedMatcher = orderedList.matcher(editText.getText());
+            Matcher orderedMatcher = orderedList.matcher(focusedChild.getText());
             orderedMatcher.region(paraStartEnd[0], paraStartEnd[1]);
             if (orderedMatcher.find()) {
                 // If it's a ordered list line - deleting it
-                editText.getText().replace(orderedMatcher.start(1), orderedMatcher.end(1) + 1, "");
+                focusedChild.getText().replace(orderedMatcher.start(1), orderedMatcher.end(1) + 1, "");
             } else {
                 // If it's any other list line
                 int level = getListIndentationLevel(allListMatcher.group(1).length(), 4);
-                editText.getText().replace(allListMatcher.start(2), allListMatcher.end(2), new StringBuilder("1").append(OrderedSwitch.getItemForLevel(level)).append(' '));
+                focusedChild.getText().replace(allListMatcher.start(2), allListMatcher.end(2), new StringBuilder("1").append(OrderedSwitch.getItemForLevel(level)).append(' '));
             }
         } else {
-            editText.getText().insert(paraStartEnd[0], new StringBuilder("1").append(OrderedSwitch.FULL_STOP.getString()).append(' '));
+            focusedChild.getText().insert(paraStartEnd[0], new StringBuilder("1").append(OrderedSwitch.FULL_STOP.getString()).append(' '));
         }
     }
 
     @Override
     public void decreaseListItemIndentation() {
-        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-        int indexOfLastNewline = getLastIndexOfNewLine(editText, editText.getSelectionStart());
-        Matcher allListMatcher = allListStarts.matcher(editText.getText());
-        allListMatcher.region(indexOfLastNewline, editText.getText().length());
+        int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, focusedChild.getSelectionStart());
+        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
+        allListMatcher.region(indexOfLastNewline, focusedChild.getText().length());
         if (allListMatcher.lookingAt()) {
             if (allListMatcher.group(1).length() > 2) {
                 SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
-                updatedListItem.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+                updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
                 Matcher orderedMatcher = orderdList.matcher(updatedListItem);
                 Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
                 if (orderedMatcher.find()) {
@@ -1553,7 +1520,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     if (level < 0) {
                         level = 3;
                     }
-                    int position = getLastOrderedItemNumValueOfLevel(editText, level);
+                    int position = getLastOrderedItemNumValueOfLevel(focusedChild, level);
                     updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(position + 1));
                     updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
                 } else if (unorderedMatcher.find()) {
@@ -1564,20 +1531,19 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
                 }
                 updatedListItem.replace(0, 3, "");
-                editText.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+                focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
             }
         }
     }
 
     @Override
     public void increaseListItemIndentation() {
-        EditText editText = (EditText) nodeEditorFragmentLinearLayout.getFocusedChild();
-        int indexOfLastNewline = getLastIndexOfNewLine(editText, editText.getSelectionStart());
-        Matcher allListMatcher = allListStarts.matcher(editText.getText());
-        allListMatcher.region(indexOfLastNewline, editText.getText().length());
+        int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, focusedChild.getSelectionStart());
+        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
+        allListMatcher.region(indexOfLastNewline, focusedChild.getText().length());
         if (allListMatcher.lookingAt()) {
             SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
-            updatedListItem.append(editText.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+            updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
             Matcher orderedMatcher = orderdList.matcher(updatedListItem);
             Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
             if (orderedMatcher.find()) {
@@ -1589,35 +1555,34 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
             }
             updatedListItem.insert(0, "   ");
-            editText.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+            focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
         }
     }
 
     @Override
     public void toggleFontBold() {
-        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+        if (focusedChild instanceof EditText) {
             if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
             }
-            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int startOfSelection = editText.getSelectionStart();
-            int endOfSelection = editText.getSelectionEnd();
+            int startOfSelection = focusedChild.getSelectionStart();
+            int endOfSelection = focusedChild.getSelectionEnd();
             if (endOfSelection - startOfSelection == 0) {
                 // No text selected
                 return;
             }
-            StyleSpanBold[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StyleSpanBold.class);
+            StyleSpanBold[] spans = focusedChild.getText().getSpans(startOfSelection, endOfSelection, StyleSpanBold.class);
             if (spans.length > 0) {
                 for (StyleSpanBold span: spans) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanBold(), new StyleSpanBold());
                 }
             } else {
-                editText.getText().setSpan(new StyleSpanBold(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                focusedChild.getText().setSpan(new StyleSpanBold(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             unsavedChanges = true;
         }
@@ -1625,29 +1590,28 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void toggleFontItalic() {
-        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+        if (focusedChild instanceof EditText) {
             if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
             }
-            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int startOfSelection = editText.getSelectionStart();
-            int endOfSelection = editText.getSelectionEnd();
+            int startOfSelection = focusedChild.getSelectionStart();
+            int endOfSelection = focusedChild.getSelectionEnd();
             if (endOfSelection - startOfSelection == 0) {
                 // No text selected
                 return;
             }
-            StyleSpanItalic[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StyleSpanItalic.class);
+            StyleSpanItalic[] spans = focusedChild.getText().getSpans(startOfSelection, endOfSelection, StyleSpanItalic.class);
             if (spans.length > 0) {
                 for (StyleSpan span: spans) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StyleSpanItalic(), new StyleSpanItalic());
                 }
             } else {
-                editText.getText().setSpan(new StyleSpanItalic(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                focusedChild.getText().setSpan(new StyleSpanItalic(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             unsavedChanges = true;
         }
@@ -1655,37 +1619,36 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void toggleFontMonospace() {
-        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+        if (focusedChild instanceof EditText) {
             if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
             }
-            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int startOfSelection = editText.getSelectionStart();
-            int endOfSelection = editText.getSelectionEnd();
+            int startOfSelection = focusedChild.getSelectionStart();
+            int endOfSelection = focusedChild.getSelectionEnd();
             if (endOfSelection - startOfSelection == 0) {
                 // No text selected
                 return;
             }
-            TypefaceSpanFamily[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, TypefaceSpanFamily.class);
-            MonospaceBackgroundColorSpan[] backgroundSpans = editText.getText().getSpans(startOfSelection, endOfSelection, MonospaceBackgroundColorSpan.class);
+            TypefaceSpanFamily[] spans = focusedChild.getText().getSpans(startOfSelection, endOfSelection, TypefaceSpanFamily.class);
+            MonospaceBackgroundColorSpan[] backgroundSpans = focusedChild.getText().getSpans(startOfSelection, endOfSelection, MonospaceBackgroundColorSpan.class);
             if (spans.length > 0) {
                 for (TypefaceSpanFamily span: spans) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new TypefaceSpanFamily("monospace"), new TypefaceSpanFamily("monospace"));
                 }
                 for (MonospaceBackgroundColorSpan span: backgroundSpans) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new MonospaceBackgroundColorSpan(R.color.monospace_background), new MonospaceBackgroundColorSpan(R.color.monospace_background));
                 }
             } else {
-                editText.getText().setSpan(new TypefaceSpanFamily("monospace"), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                editText.getText().setSpan(new MonospaceBackgroundColorSpan(R.color.monospace_background), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                focusedChild.getText().setSpan(new TypefaceSpanFamily("monospace"), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                focusedChild.getText().setSpan(new MonospaceBackgroundColorSpan(R.color.monospace_background), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             unsavedChanges = true;
         }
@@ -1693,29 +1656,28 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void toggleFontStrikethrough() {
-        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+        if (focusedChild instanceof EditText) {
             if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
             }
-            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int startOfSelection = editText.getSelectionStart();
-            int endOfSelection = editText.getSelectionEnd();
+            int startOfSelection = focusedChild.getSelectionStart();
+            int endOfSelection = focusedChild.getSelectionEnd();
             if (endOfSelection - startOfSelection == 0) {
                 // No text selected
                 return;
             }
-            StrikethroughSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, StrikethroughSpan.class);
+            StrikethroughSpan[] spans = focusedChild.getText().getSpans(startOfSelection, endOfSelection, StrikethroughSpan.class);
             if (spans.length > 0) {
                 for (StrikethroughSpan span: spans) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new StrikethroughSpan(), new StrikethroughSpan());
                 }
             } else {
-                editText.getText().setSpan(new StrikethroughSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                focusedChild.getText().setSpan(new StrikethroughSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             unsavedChanges = true;
         }
@@ -1723,29 +1685,28 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     @Override
     public void toggleFontUnderline() {
-        if (nodeEditorFragmentLinearLayout.getFocusedChild() instanceof EditText) {
+        if (focusedChild instanceof EditText) {
             if (checkSelectionForCodebox()) {
                 // As in CherryTree codebox can't be formatted
                 Toast.makeText(getContext(), R.string.toast_message_codebox_cant_be_formatted, Toast.LENGTH_SHORT).show();
                 return;
             }
-            EditText editText = ((EditText) nodeEditorFragmentLinearLayout.getFocusedChild());
-            int startOfSelection = editText.getSelectionStart();
-            int endOfSelection = editText.getSelectionEnd();
+            int startOfSelection = focusedChild.getSelectionStart();
+            int endOfSelection = focusedChild.getSelectionEnd();
             if (endOfSelection - startOfSelection == 0) {
                 // No text selected
                 return;
             }
-            UnderlineSpan[] spans = editText.getText().getSpans(startOfSelection, endOfSelection, UnderlineSpan.class);
+            UnderlineSpan[] spans = focusedChild.getText().getSpans(startOfSelection, endOfSelection, UnderlineSpan.class);
             if (spans.length > 0) {
                 for (UnderlineSpan span: spans) {
-                    int startOfSpan = editText.getText().getSpanStart(span);
-                    int endOfSpan = editText.getText().getSpanEnd(span);
-                    editText.getText().removeSpan(span);
+                    int startOfSpan = focusedChild.getText().getSpanStart(span);
+                    int endOfSpan = focusedChild.getText().getSpanEnd(span);
+                    focusedChild.getText().removeSpan(span);
                     reapplySpanOutsideSelection(startOfSelection, endOfSelection, startOfSpan, endOfSpan, new UnderlineSpan(), new UnderlineSpan());
                 }
             } else {
-                editText.getText().setSpan(new UnderlineSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                focusedChild.getText().setSpan(new UnderlineSpan(), startOfSelection, endOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             unsavedChanges = true;
         }
