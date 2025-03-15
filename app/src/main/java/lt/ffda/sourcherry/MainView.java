@@ -1400,7 +1400,12 @@ public class MainView extends AppCompatActivity {
         try {
             // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
             // most important that it will have correct extension
-            File tmpAttachedFile = File.createTempFile(Filenames.getFileName(filename), "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
+            String prefix = Filenames.getFileName(filename);
+            if (prefix.length() < 3) {
+                // Prefixes for temp files can't be shorter than 3 symbols
+                prefix = prefix + "123";
+            }
+            File tmpAttachedFile = File.createTempFile(prefix, "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
 
             // Writes Base64 encoded string to the temporary file
             InputStream in = reader.getFileInputStream(nodeUniqueID, filename, time, control);

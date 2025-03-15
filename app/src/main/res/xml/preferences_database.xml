@@ -70,4 +70,10 @@
         android:title="@string/preference_multifile_auto_sync_title"
         android:summary="@string/preference_multifile_auto_sync_summary"
         app:isPreferenceVisible="false"/>
+
+    <SwitchPreference
+        android:key="preference_multifile_use_embedded_file_name_on_disk"
+        android:title="@string/preference_multifile_use_embedded_file_name_on_disk"
+        android:summary="@string/preference_multifile_use_embedded_file_name_on_disk_summary"
+        app:isPreferenceVisible="false"/>
 </PreferenceScreen>

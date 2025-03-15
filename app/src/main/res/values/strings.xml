@@ -64,6 +64,7 @@
     <string name="toast_error_failed_to_load_node_content">Failed to load node content</string>
     <string name="toast_error_failed_to_get_node_properties">Failed to get node properties</string>
     <string name="toast_error_failed_to_remove_nodes_from_bookmarks">Failed to remove nodes from bookmarks</string>
+    <string name="toast_error_failed_to_save_an_attached_file">Failed to save an attached file</string>
     <string name="toast_message_please_enter_password">Please enter the password</string>
     <string name="toast_message_please_open_a_node">Please open a node</string>
     <string name="toast_message_rich_text_node_editing_not_supported">Rich text node editing is not supported</string>
@@ -180,6 +181,8 @@
     <string name="preferences_database_vacuum_title">Vacuum SQL database</string>
     <string name="preferences_database_vacuum_summary">Can reduce database size after removing large amount of data</string>
     <string name="preference_multifile_auto_sync_title">Multifile database auto sync</string>
+    <string name="preference_multifile_use_embedded_file_name_on_disk">Use embedded file name on disk</string>
+    <string name="preference_multifile_use_embedded_file_name_on_disk_summary">By default, the SHA-256 checksum of the file is used as the filename</string>
     <string name="preference_multifile_auto_sync_summary">Scans Multifile database folder at startup in the background</string>
     <string name="preferences_about_title">About</string>
     <string name="preferences_about_summary">About SourCherry</string>

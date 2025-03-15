@@ -11,6 +11,7 @@
 package lt.ffda.sourcherry.database;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -45,6 +46,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.preference.PreferenceManager;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -70,7 +72,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -114,6 +118,8 @@ public class MultiReader extends DatabaseReader {
     private final Uri mainFolderUri;
     private final MainViewModel mainViewModel;
     private Document drawerMenu;
+    private SharedPreferences sharedPreferences;
+    private boolean reloadCursor = false;
 
     /**
      * Class that opens databases based on file system and categories in it. Every node has it's own
@@ -131,6 +137,7 @@ public class MultiReader extends DatabaseReader {
         this.context = context;
         this.handler = handler;
         this.mainViewModel = mainViewModel;
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         this.documentBuilder = DocumentBuilderFactory
                 .newInstance()
                 .newDocumentBuilder();
@@ -1065,9 +1072,14 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public InputStream getFileInputStream(String nodeUniqueID, String filename, String time, String control) {
+        boolean noControl = control == null;
+        if (noControl) {
+            control = filename;
+        }
         try (Cursor nodeContentCursor = getNodeChildrenCursor(nodeUniqueID)) {
             while (nodeContentCursor.moveToNext()) {
-                if (!nodeContentCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR) && nodeContentCursor.getString(2).substring(0, nodeContentCursor.getString(2).lastIndexOf(".")).equals(control)) {
+                if (!nodeContentCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)
+                        && ((noControl ? nodeContentCursor.getString(2) : Filenames.getFileName(nodeContentCursor.getString(2))).equals(control))) {
                     try {
                         return context.getContentResolver().openInputStream(
                                 DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, nodeContentCursor.getString(0)));
@@ -1192,6 +1204,26 @@ public class MultiReader extends DatabaseReader {
                 null,
                 null
         );
+    }
+
+    /**
+     * Finds and returns Uri of the cursors children specified by the filename in the system
+     * @param cursor children cursor. Resets cursor position! Does not search for folder name.
+     * @param name name to look for
+     * @return Uri of the found file or null
+     */
+    private Uri getCursorChildrenUriByName(Cursor cursor, String name) {
+        cursor.moveToPosition(-1);
+        Uri uri = null;
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            if (!cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
+                if (name.equals(cursor.getString(2))) {
+                    uri = DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, cursor.getString(0));
+                }
+            }
+        }
+        return uri;
     }
 
     @Override
@@ -1603,7 +1635,7 @@ public class MultiReader extends DatabaseReader {
         String attachedFileFilename = node.getAttributes().getNamedItem("filename").getNodeValue();
         String time = node.getAttributes().getNamedItem("time").getNodeValue();
         String offset = node.getAttributes().getNamedItem("char_offset").getNodeValue();
-        String sha256sum = node.getAttributes().getNamedItem("sha256sum").getNodeValue();
+        String sha256sum = node.getAttributes().getNamedItem("sha256sum") != null ? node.getAttributes().getNamedItem("sha256sum").getNodeValue() : null;
         SpannableStringBuilder formattedAttachedFile = new SpannableStringBuilder();
         formattedAttachedFile.append(" "); // Needed to insert an image
         // Inserting image
@@ -2167,25 +2199,79 @@ public class MultiReader extends DatabaseReader {
      * @param imageSpanFile ImageSpanFile object from nodeContent
      * @param offset offset of the file
      * @param lastFoundJustification justification of the file
+     * @param cursor cursor of the nodes chhildren
+     * @param useFilenameOnDisk user preference for saving files with real filenames or sha256sum as a filename
+     * @param savedFiles maps with all the filenames of the node and sha256sums if they are saved (depends on useFilenameOnDisk setting)
      * @return Element that can be added to Node and writen to the node.xml file
      */
-    private Element saveImageSpanFile(Document doc, List<String> fileImageSha256Sums, ImageSpanFile imageSpanFile, String offset, String lastFoundJustification) {
+    private Element saveImageSpanFile(Document doc, List<String> fileImageSha256Sums,
+              ImageSpanFile imageSpanFile, String offset, String lastFoundJustification,
+              Cursor cursor, boolean useFilenameOnDisk, Map<String, String> savedFiles) {
         Element element = doc.createElement("encoded_png");
         element.setAttribute("char_offset", offset);
         element.setAttribute("justification", lastFoundJustification);
         element.setAttribute("filename", imageSpanFile.getFilename());
         if (imageSpanFile.isFromDatabase()) {
             element.setAttribute("time", imageSpanFile.getTimestamp());
-            element.setAttribute("sha256sum", imageSpanFile.getSha256sum());
-            fileImageSha256Sums.add(imageSpanFile.getSha256sum() + "."  + Filenames.getFileExtension(imageSpanFile.getFilename()));
+            if (useFilenameOnDisk) {
+                fileImageSha256Sums.add(imageSpanFile.getFilename());
+                if (imageSpanFile.getSha256sum() != null) {
+                    // It means node was originaly saved with useFilenameOnDisk turned off
+                    Uri uri = getCursorChildrenUriByName(cursor, new StringBuilder(imageSpanFile.getSha256sum()).append('.').append(Filenames.getFileExtension(imageSpanFile.getFilename())).toString());
+                    if (!savedFiles.containsKey(imageSpanFile.getFilename())) {
+                        try {
+                            DocumentsContract.renameDocument(context.getContentResolver(), uri, imageSpanFile.getFilename());
+                        } catch (FileNotFoundException e) {
+                            displayToast(context.getString(R.string.toast_error_failed_to_save_an_attached_file));
+                        }
+                        savedFiles.put(imageSpanFile.getFilename(), imageSpanFile.getSha256sum());
+                    }
+                    imageSpanFile.setSha256sum(null);
+                }
+            } else {
+                String sha256sum = imageSpanFile.getSha256sum();
+                StringBuilder filename = new StringBuilder();
+                if (sha256sum == null) {
+                    // It means node was originaly saved with useFilenameOnDisk turned on
+                    Uri uri = getCursorChildrenUriByName(cursor, imageSpanFile.getFilename());
+                    if (uri != null) {
+                        if (savedFiles.containsKey(imageSpanFile.getFilename())) {
+                            sha256sum = savedFiles.get(imageSpanFile.getFilename());
+                        } else {
+                            sha256sum = calculateFileSha256Sum(uri);
+                            savedFiles.put(imageSpanFile.getFilename(), sha256sum);
+                            filename.setLength(0);
+                            filename = filename.append(sha256sum).append('.').append(Filenames.getFileExtension(imageSpanFile.getFilename()));
+                            try {
+                                DocumentsContract.renameDocument(context.getContentResolver(), uri, filename.toString());
+                            } catch (FileNotFoundException e) {
+                                displayToast(context.getString(R.string.toast_error_failed_to_save_an_attached_file));
+                            }
+                        }
+                        imageSpanFile.setSha256sum(sha256sum);
+                        reloadCursor = true;
+                    }
+                } else {
+                    filename.append(sha256sum).append('.').append(Filenames.getFileExtension(imageSpanFile.getFilename()));
+                }
+                element.setAttribute("sha256sum", sha256sum);
+                fileImageSha256Sums.add(filename.toString());
+            }
         } else {
             Uri userAttachedFileUri = Uri.parse(imageSpanFile.getFileUri());
-            String sha256sum = calculateFileSha256Sum(userAttachedFileUri);
-            String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
-            String filename = extension != null ? sha256sum + "." + extension : sha256sum;
-            copyFileToNodeFolder(userAttachedFileUri, filename);
+            String filename;
             element.setAttribute("time", String.valueOf(System.currentTimeMillis() / 1000));
-            element.setAttribute("sha256sum", sha256sum);
+            if (useFilenameOnDisk) {
+                filename = imageSpanFile.getFilename();
+                fileImageSha256Sums.add(filename);
+            } else {
+                String sha256sum = calculateFileSha256Sum(userAttachedFileUri);
+                String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
+                filename = extension != null ? sha256sum + "." + extension : sha256sum;
+                element.setAttribute("sha256sum", sha256sum);
+                fileImageSha256Sums.add(imageSpanFile.getSha256sum() + "."  + Filenames.getFileExtension(imageSpanFile.getFilename()));
+            }
+            copyFileToNodeFolder(userAttachedFileUri, filename);
             fileImageSha256Sums.add(filename);
         }
         return element;
@@ -2239,6 +2325,7 @@ public class MultiReader extends DatabaseReader {
 
     @Override
     public void saveNodeContent(String nodeUniqueID) {
+        boolean filenameOnDisk = sharedPreferences.getBoolean("preference_multifile_use_embedded_file_name_on_disk", false);
         Cursor cursor = getNodeChildrenCursor(findSingleNode(nodeUniqueID));
         if (cursor == null) {
             displayToast(context.getString(R.string.toast_error_error_while_saving_node_content_aborting));
@@ -2277,6 +2364,8 @@ public class MultiReader extends DatabaseReader {
             String lastFoundJustification = "left";
             // Collecting all sha256 sums that were saved in to database. Rest will have to be deleted from internal storage
             List<String> fileImageSha256Sums = new ArrayList<>();
+            // Cellenting all filenames/sha256 of the node help to deal savin node when it has two or more the same named files
+            Map<String, String> attachedFiles = new HashMap<>();
             for (ScNodeContent scNodeContent : mainViewModel.getNodeContent().getValue()) {
                 if (scNodeContent.getContentType() == 0) {
                     // To not add content of the the span that is being processed
@@ -2326,11 +2415,9 @@ public class MultiReader extends DatabaseReader {
                                 // Attached file
                                 addContent = false;
                                 offsetNodes.add(saveImageSpanFile(
-                                        doc,
-                                        fileImageSha256Sums,
-                                        (ImageSpanFile) span,
+                                        doc, fileImageSha256Sums, (ImageSpanFile) span,
                                         String.valueOf(currentPartContentLength + totalContentLength),
-                                        lastFoundJustification
+                                        lastFoundJustification, cursor, filenameOnDisk, attachedFiles
                                 ));
                             } else if (span instanceof ClickableSpanFile) {
                                 // Attached File text part
@@ -2470,7 +2557,12 @@ public class MultiReader extends DatabaseReader {
                 collectedCodebox = null;
             }
             // Cleaning up files if user deleted any
-            cursor.moveToPosition(-1);
+            if (reloadCursor) {
+                cursor.close();
+                cursor = getNodeChildrenCursor(findSingleNode(nodeUniqueID));
+            } else {
+                cursor.moveToPosition(-1);
+            }
             while (cursor.moveToNext()) {
                 if (!cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
                     String filename = cursor.getString(2);
@@ -2487,7 +2579,6 @@ public class MultiReader extends DatabaseReader {
                         }
                     }
                 }
-
             }
             cursor.close();
         } else {

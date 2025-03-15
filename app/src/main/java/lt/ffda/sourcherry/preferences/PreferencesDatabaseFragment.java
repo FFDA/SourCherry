@@ -208,6 +208,12 @@ public class PreferencesDatabaseFragment extends PreferenceFragmentCompat {
             return;
         }
         multifileDatabaseAutoSync.setVisible(true);
+        SwitchPreference useEmbeddedFileNameOnDisk = findPreference("preference_multifile_use_embedded_file_name_on_disk");
+        if (useEmbeddedFileNameOnDisk == null) {
+            Toast.makeText(getContext(), R.string.toast_error_failed_to_show_a_preference, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        useEmbeddedFileNameOnDisk.setVisible(true);
     }
 
     /**

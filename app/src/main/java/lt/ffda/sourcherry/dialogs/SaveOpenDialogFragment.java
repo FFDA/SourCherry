@@ -140,7 +140,12 @@ public class SaveOpenDialogFragment extends DialogFragment {
         try {
             // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
             // most important that it will have correct extension
-            File tmpAttachedFile = File.createTempFile(Filenames.getFileName(filename), "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
+            String prefix = Filenames.getFileName(filename);
+            if (prefix.length() < 3) {
+                // Prefixes for temp files can't be shorter than 3 symbols
+                prefix = prefix + "123";
+            }
+            File tmpAttachedFile = File.createTempFile(prefix, "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
             // Writes Base64 encoded string to the temporary file
             InputStream in = DatabaseReaderFactory.getReader().getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
             FileOutputStream out = new FileOutputStream(tmpAttachedFile);
@@ -159,7 +164,6 @@ public class SaveOpenDialogFragment extends DialogFragment {
             intent.setDataAndType(tmpFileUri, this.fileMimeType);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(intent);
-
         } catch (Exception e) {
             Toast.makeText(getContext(), R.string.toast_error_failed_to_open_file, Toast.LENGTH_SHORT).show();
         }
