@@ -95,12 +95,13 @@ import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
+import lt.ffda.sourcherry.utils.DatabaseType;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class XMLReader extends DatabaseReader {
-    private final Document doc;
     private final Context context;
     private final String databaseUri;
+    private final Document doc;
     private final Handler handler;
     private final MainViewModel mainViewModel;
 
@@ -758,6 +759,11 @@ public class XMLReader extends DatabaseReader {
             }
         }
         return count;
+    }
+
+    @Override
+    public DatabaseType getDatabaseType() {
+        return DatabaseType.XML;
     }
 
     /**

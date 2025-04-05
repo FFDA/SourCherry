@@ -38,7 +38,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import lt.ffda.sourcherry.R;
+import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
+import lt.ffda.sourcherry.database.MultiDbFileShare;
+import lt.ffda.sourcherry.utils.DatabaseType;
 import lt.ffda.sourcherry.utils.Filenames;
 
 public class SaveOpenDialogFragment extends DialogFragment {
@@ -138,31 +141,42 @@ public class SaveOpenDialogFragment extends DialogFragment {
 
     private void openFile() {
         try {
-            // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
-            // most important that it will have correct extension
-            String prefix = Filenames.getFileName(filename);
-            if (prefix.length() < 3) {
-                // Prefixes for temp files can't be shorter than 3 symbols
-                prefix = prefix + "123";
+            Uri fileToShare;
+            DatabaseReader reader = DatabaseReaderFactory.getReader();
+            if (reader.getDatabaseType() == DatabaseType.MULTI) {
+                fileToShare = ((MultiDbFileShare) reader).getAttachedFileUri(nodeUniqueID, filename, this.offset);
+            } else {
+                // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
+                // most important that it will have correct extension
+                String prefix = Filenames.getFileName(filename);
+                if (prefix.length() < 3) {
+                    // Prefixes for temp files can't be shorter than 3 symbols
+                    prefix = prefix + "123";
+                }
+                File tmpAttachedFile = File.createTempFile(prefix, "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
+                // Writes Base64 encoded string to the temporary file
+                InputStream in = reader.getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
+                FileOutputStream out = new FileOutputStream(tmpAttachedFile);
+                byte[] buf = new byte[4 * 1024];
+                int length;
+                while ((length = in.read(buf)) != -1) {
+                    out.write(buf, 0, length);
+                }
+                in.close();
+                out.close();
+                // Getting Uri to share
+                fileToShare = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", tmpAttachedFile);
             }
-            File tmpAttachedFile = File.createTempFile(prefix, "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
-            // Writes Base64 encoded string to the temporary file
-            InputStream in = DatabaseReaderFactory.getReader().getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
-            FileOutputStream out = new FileOutputStream(tmpAttachedFile);
-            byte[] buf = new byte[4 * 1024];
-            int length;
-            while ((length = in.read(buf)) != -1) {
-                out.write(buf, 0, length);
-            }
-            in.close();
-            out.close();
-            // Getting Uri to share
-            Uri tmpFileUri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", tmpAttachedFile);
             // Intent to open file
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_VIEW);
-            intent.setDataAndType(tmpFileUri, this.fileMimeType);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.setDataAndType(fileToShare, this.fileMimeType);
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+            if (reader.getDatabaseType() == DatabaseType.MULTI && sharedPreferences.getBoolean("preference_multifile_use_embedded_file_name_on_disk", false)) {
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            } else {
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
             startActivity(intent);
         } catch (Exception e) {
             Toast.makeText(getContext(), R.string.toast_error_failed_to_open_file, Toast.LENGTH_SHORT).show();

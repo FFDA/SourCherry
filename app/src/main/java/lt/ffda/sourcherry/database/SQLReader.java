@@ -102,14 +102,15 @@ import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
+import lt.ffda.sourcherry.utils.DatabaseType;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class SQLReader extends DatabaseReader implements DatabaseVacuum {
-    private final SQLiteDatabase sqlite;
     private final Context context;
+    private final DocumentBuilder documentBuilder;
     private final Handler handler;
     private final MainViewModel mainViewModel;
-    private final DocumentBuilder documentBuilder;
+    private final SQLiteDatabase sqlite;
     private final Transformer transformer;
 
     /**
@@ -870,6 +871,11 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
             }
         }
         return 0;
+    }
+
+    @Override
+    public DatabaseType getDatabaseType() {
+        return DatabaseType.SQL;
     }
 
     /**

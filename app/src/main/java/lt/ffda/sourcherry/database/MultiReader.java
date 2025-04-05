@@ -108,18 +108,19 @@ import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
+import lt.ffda.sourcherry.utils.DatabaseType;
 import lt.ffda.sourcherry.utils.Filenames;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
-public class MultiReader extends DatabaseReader {
+public class MultiReader extends DatabaseReader implements MultiDbFileShare {
     private final Context context;
     private final DocumentBuilder documentBuilder;
     private final Handler handler;
     private final Uri mainFolderUri;
     private final MainViewModel mainViewModel;
     private Document drawerMenu;
-    private SharedPreferences sharedPreferences;
     private boolean reloadCursor = false;
+    private SharedPreferences sharedPreferences;
 
     /**
      * Class that opens databases based on file system and categories in it. Every node has it's own
@@ -989,6 +990,23 @@ public class MultiReader extends DatabaseReader {
     }
 
     @Override
+    public Uri getAttachedFileUri(String nodeUniqueID, String filename, String control) {
+        boolean noControl = control == null;
+        if (noControl) {
+            control = filename;
+        }
+        try (Cursor nodeContentCursor = getNodeChildrenCursor(nodeUniqueID)) {
+            while (nodeContentCursor.moveToNext()) {
+                if (!nodeContentCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)
+                        && ((noControl ? nodeContentCursor.getString(2) : Filenames.getFileName(nodeContentCursor.getString(2))).equals(control))) {
+                    return DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, nodeContentCursor.getString(0));
+                }
+            }
+        }
+        return null;
+    }
+
+    @Override
     public ArrayList<ScNode> getBookmarkedNodes() {
         ArrayList<ScNode> nodes;
         List<String> bookmarksIds = null;
@@ -1068,6 +1086,31 @@ public class MultiReader extends DatabaseReader {
             displayToast(context.getString(R.string.toast_error_failed_to_open_multi_database_file, "subnodes.lst"));
         }
         return count;
+    }
+
+    /**
+     * Finds and returns Uri of the cursors children specified by the filename in the system
+     * @param cursor children cursor. Resets cursor position! Does not search for folder name.
+     * @param name name to look for
+     * @return Uri of the found file or null
+     */
+    private Uri getCursorChildrenUriByName(Cursor cursor, String name) {
+        cursor.moveToPosition(-1);
+        Uri uri = null;
+        cursor.moveToPosition(-1);
+        while (cursor.moveToNext()) {
+            if (!cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
+                if (name.equals(cursor.getString(2))) {
+                    uri = DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, cursor.getString(0));
+                }
+            }
+        }
+        return uri;
+    }
+
+    @Override
+    public DatabaseType getDatabaseType() {
+        return DatabaseType.MULTI;
     }
 
     @Override
@@ -1204,26 +1247,6 @@ public class MultiReader extends DatabaseReader {
                 null,
                 null
         );
-    }
-
-    /**
-     * Finds and returns Uri of the cursors children specified by the filename in the system
-     * @param cursor children cursor. Resets cursor position! Does not search for folder name.
-     * @param name name to look for
-     * @return Uri of the found file or null
-     */
-    private Uri getCursorChildrenUriByName(Cursor cursor, String name) {
-        cursor.moveToPosition(-1);
-        Uri uri = null;
-        cursor.moveToPosition(-1);
-        while (cursor.moveToNext()) {
-            if (!cursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                if (name.equals(cursor.getString(2))) {
-                    uri = DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, cursor.getString(0));
-                }
-            }
-        }
-        return uri;
     }
 
     @Override

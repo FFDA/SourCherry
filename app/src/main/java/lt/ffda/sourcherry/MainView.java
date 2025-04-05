@@ -89,17 +89,16 @@ import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerConfigurationException;
 
 import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
+import lt.ffda.sourcherry.database.MultiDbFileShare;
 import lt.ffda.sourcherry.database.MultiReader;
 import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
 import lt.ffda.sourcherry.dialogs.MenuItemActionDialogFragment;
@@ -117,6 +116,7 @@ import lt.ffda.sourcherry.runnables.CollectNodesBackgroundRunnable;
 import lt.ffda.sourcherry.runnables.FindInNodeRunnable;
 import lt.ffda.sourcherry.runnables.FindInNodeRunnableCallback;
 import lt.ffda.sourcherry.runnables.NodesCollectedCallback;
+import lt.ffda.sourcherry.utils.DatabaseType;
 import lt.ffda.sourcherry.utils.Filenames;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
@@ -1398,34 +1398,42 @@ public class MainView extends AppCompatActivity {
      */
     private void openFile(String fileMimeType, String nodeUniqueID, String filename, String time, String control) {
         try {
-            // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
-            // most important that it will have correct extension
-            String prefix = Filenames.getFileName(filename);
-            if (prefix.length() < 3) {
-                // Prefixes for temp files can't be shorter than 3 symbols
-                prefix = prefix + "123";
+            Uri fileToShare;
+            if (reader.getDatabaseType() == DatabaseType.MULTI) {
+                fileToShare = ((MultiDbFileShare) reader).getAttachedFileUri(nodeUniqueID, filename, control);
+            } else {
+                // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
+                // most important that it will have correct extension
+                String prefix = Filenames.getFileName(filename);
+                if (prefix.length() < 3) {
+                    // Prefixes for temp files can't be shorter than 3 symbols
+                    prefix = prefix + "123";
+                }
+                File tmpAttachedFile = File.createTempFile(prefix, "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
+
+                // Writes Base64 encoded string to the temporary file
+                InputStream in = reader.getFileInputStream(nodeUniqueID, filename, time, control);
+                FileOutputStream out = new FileOutputStream(tmpAttachedFile);
+                byte[] buf = new byte[4 * 1024];
+                int length;
+                while ((length = in.read(buf)) != -1) {
+                    out.write(buf, 0, length);
+                }
+                in.close();
+                out.close();
+
+                // Getting Uri to share
+                fileToShare = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", tmpAttachedFile);
             }
-            File tmpAttachedFile = File.createTempFile(prefix, "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
-
-            // Writes Base64 encoded string to the temporary file
-            InputStream in = reader.getFileInputStream(nodeUniqueID, filename, time, control);
-            FileOutputStream out = new FileOutputStream(tmpAttachedFile);
-            byte[] buf = new byte[4 * 1024];
-            int length;
-            while ((length = in.read(buf)) != -1) {
-                out.write(buf, 0, length);
-            }
-            in.close();
-            out.close();
-
-            // Getting Uri to share
-            Uri tmpFileUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", tmpAttachedFile);
-
             // Intent to open file
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_VIEW);
-            intent.setDataAndType(tmpFileUri, fileMimeType);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.setDataAndType(fileToShare, fileMimeType);
+            if (reader.getDatabaseType() == DatabaseType.MULTI && sharedPreferences.getBoolean("preference_multifile_use_embedded_file_name_on_disk", false)) {
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            } else {
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
             startActivity(intent);
 
         } catch (Exception e) {

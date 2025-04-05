@@ -60,6 +60,7 @@ import lt.ffda.sourcherry.spans.StyleSpanBold;
 import lt.ffda.sourcherry.spans.StyleSpanItalic;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
+import lt.ffda.sourcherry.utils.DatabaseType;
 
 /**
  * Class that reads data from the database and provides it to MainView and its model to
@@ -200,6 +201,12 @@ public abstract class DatabaseReader {
      * @return count of direct children node
      */
     public abstract int getChildrenNodeCount(String nodeUniqueID);
+
+    /**
+     * Returns enum representig database type
+     * @return database type (SQL, XML, MULTI)
+     */
+    public abstract DatabaseType getDatabaseType();
 
     /**
      * Returns byte array (stream) of the embedded file in the database to be written to file or opened
