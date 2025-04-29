@@ -682,7 +682,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * to the provided end index. Does no do any checks. End index should be valid.
      * @param editText edit text to search for new line chars
      * @param end index up to which search for new line
-     * @return index of found last new line or -1 if not found
+     * @return index of found last new line. If no new line was found return 0 - start of edit text
      */
     private int getLastIndexOfNewLine(EditText editText, int end) {
         Matcher lastLine = lastNewline.matcher(editText.getText());
@@ -691,7 +691,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         while (lastLine.find()) {
             indexOfLastNewline = lastLine.end();
         }
-        return indexOfLastNewline;
+        return indexOfLastNewline != -1 ? indexOfLastNewline : 0;
     }
 
     /**
@@ -1087,9 +1087,13 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                 typing = Math.abs(count - after) < 2;
-                if (!focusedChild.isTableCell() && typing && !changedInput) {
-                    focusedChild = (CustomTextEdit) nodeEditorFragmentLinearLayout.getFocusedChild();
-                    lineCount = focusedChild.getLineCount();
+                if (typing) {
+                    if (focusedChild == null) {
+                        focusedChild = (CustomTextEdit) nodeEditorFragmentLinearLayout.getFocusedChild();
+                    }
+                    if (!focusedChild.isTableCell() && !changedInput) {
+                        lineCount = focusedChild.getLineCount();
+                    }
                 }
             }
 
