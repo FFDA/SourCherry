@@ -10,10 +10,14 @@
 
 package lt.ffda.sourcherry;
 
+import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -23,10 +27,16 @@ public class AboutActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_about);
 
         Toolbar imageViewActivityToolbar = findViewById(R.id.about_activity_toolbar);
+        ViewCompat.setOnApplyWindowInsetsListener(imageViewActivityToolbar, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), insets.top, v.getPaddingRight(), v.getPaddingBottom());
+            return windowInsets;
+        });
         setSupportActionBar(imageViewActivityToolbar);
         ActionBar toolbar = getSupportActionBar();
         if (toolbar != null) {

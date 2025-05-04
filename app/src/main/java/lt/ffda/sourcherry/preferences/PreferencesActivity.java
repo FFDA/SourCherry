@@ -10,10 +10,14 @@
 
 package lt.ffda.sourcherry.preferences;
 
+import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
@@ -39,11 +43,17 @@ public class PreferencesActivity extends AppCompatActivity implements
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_preferences);
         // Displays toolbar
         Toolbar imageViewActivityToolbar = findViewById(R.id.preferences_activity_toolbar);
         setSupportActionBar(imageViewActivityToolbar);
+        ViewCompat.setOnApplyWindowInsetsListener(imageViewActivityToolbar, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), insets.top, v.getPaddingRight(), v.getPaddingBottom());
+            return windowInsets;
+        });
         toolbar = getSupportActionBar();
         toolbar.setDisplayHomeAsUpEnabled(true); // Enables home (arrow back button)
         if (savedInstanceState == null) {

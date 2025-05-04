@@ -4,7 +4,7 @@ SourCherry is an Android app to open CherryTree’s (note taking program [1](htt
 
 ![gif with SourCherry UI](https://github.com/FFDA/ffda.github.storage/raw/main/images/SourCherry.gif)
 
-App is targeted for sdk 33 (Android 13) with min version of 24 (Android 7).
+App is targeted for sdk 35 (Android 15) with min version of 24 (Android 7).
 
 This project is for Android/Java/Git learning purposes and is not official CherryTree android app or are associated with CherryTree project or it's creator.
 

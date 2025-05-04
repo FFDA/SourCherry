@@ -10,6 +10,7 @@
 
 package lt.ffda.sourcherry;
 
+import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -21,10 +22,13 @@ import androidx.appcompat.content.res.AppCompatResources;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.Observer;
@@ -591,6 +595,14 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
+     * Returns findInNodeToggle value;
+     * @return findInNodeToggle value;
+     */
+    public boolean getFindInNodeToggle() {
+        return findInNodeToggle;
+    }
+
+    /**
      * Returns MainViewModel used to store all information of the app (DrawerMenu nodes, NodeContent)
      * @return MainViewModel
      */
@@ -1007,6 +1019,34 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
+     * Sets all necessery view insets for them to not overlap
+     * @param toolbar apps toolbar
+     */
+    private void insetSetup(Toolbar toolbar) {
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), insets.top, v.getPaddingRight(), v.getPaddingBottom());
+            return windowInsets;
+        });
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_view_find_in_node_linear_layout), (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets insetsIme = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), Math.max(insets.bottom, insetsIme.bottom));
+
+            // Reapply fragment insets
+            Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.main_view_fragment);
+            if (currentFragment != null && currentFragment.getView() != null) {
+                View contentFragmentLinearLayout = currentFragment.getView().findViewById(R.id.content_fragment_linearlayout);
+                if (contentFragmentLinearLayout != null) {
+                    ViewCompat.requestApplyInsets(contentFragmentLinearLayout);
+                }
+            }
+            return windowInsets;
+        });
+    }
+
+    /**
      * Displays create new node fragment
      * @param nodeUniqueID unique node ID of the node which action menu was launched
      * @param relation relation to the node selected. 0 - sibling, 1 - subnode
@@ -1119,11 +1159,13 @@ public class MainView extends AppCompatActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mainview);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        insetSetup(toolbar);
 
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         AppContainer appContainer = ((ScApplication) getApplication()).appContainer;

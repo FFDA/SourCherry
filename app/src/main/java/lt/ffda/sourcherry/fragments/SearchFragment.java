@@ -31,8 +31,11 @@ import android.widget.TextView;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.Insets;
 import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 
@@ -98,6 +101,11 @@ public class SearchFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_search, container, false);
+        ViewCompat.setOnApplyWindowInsetsListener(view.findViewById(R.id.main_search_content), (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(),v.getPaddingTop(), v.getPaddingRight(), insets.bottom);
+            return windowInsets;
+        });
         searchProgressBar = view.findViewById(R.id.search_fragment_progressBar);
         searchResultLinearLayout = view.findViewById(R.id.search_fragment_results_linear_layout);
         resultCount = view.findViewById(R.id.search_fragment_result_count);

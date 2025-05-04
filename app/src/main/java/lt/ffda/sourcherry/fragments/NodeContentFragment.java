@@ -39,8 +39,11 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.core.graphics.Insets;
 import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.Observer;
@@ -238,9 +241,14 @@ public class NodeContentFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View rootView = inflater.inflate(R.layout.fragment_node_content, container, false);
+        contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
+        ViewCompat.setOnApplyWindowInsetsListener(contentFragmentLinearLayout, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), ((MainView) getActivity()).getFindInNodeToggle() ? 0 : insets.bottom);
+            return windowInsets;
+        });
 
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
-        contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
         handler = appContainer.handler;
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -260,6 +268,8 @@ public class NodeContentFragment extends Fragment {
         super.onResume();
         // Top and bottom paddings are always the same: 14px (5dp)
         contentFragmentLinearLayout.setPadding(sharedPreferences.getInt("paddingStart", 14), 14, sharedPreferences.getInt("paddingEnd", 14), 14);
+        // Otherwise when content is recreated insets won't be set and some of it will be under navigation bar
+        ViewCompat.requestApplyInsets(contentFragmentLinearLayout);
     }
 
     @Override

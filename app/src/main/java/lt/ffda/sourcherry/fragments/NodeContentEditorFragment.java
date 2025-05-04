@@ -67,8 +67,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.core.graphics.Insets;
 import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.documentfile.provider.DocumentFile;
@@ -1044,6 +1046,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_node_editor, container, false);
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets insetsIme = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), Math.max(insets.bottom, insetsIme.bottom));
+            return windowInsets;
+        });
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         onCustomTextEditFocusChangeListener = createOnCustomTextEditFocusChangeListener();
         nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
