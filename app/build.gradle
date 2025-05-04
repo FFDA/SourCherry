@@ -12,7 +12,7 @@ android {
         versionCode 15
         versionName "1.7.1"
 
-        archivesBaseName = "SourCherry_" + versionName
+        base.archivesName = "SourCherry_" + versionName
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
