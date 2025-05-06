@@ -1044,6 +1044,12 @@ public class MainView extends AppCompatActivity {
             }
             return windowInsets;
         });
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.navigationView), (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), insets.bottom);
+            return windowInsets;
+        });
     }
 
     /**
