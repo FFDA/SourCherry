@@ -277,7 +277,7 @@ public class MainView extends AppCompatActivity {
             String parentNodeUniqueID = reader.getParentNodeUniqueID(nodeUniqueID);
             reader.deleteNode(nodeUniqueID);
             mainViewModel.deleteNodeContent();
-            setToolbarTitle("SourCherry");
+            setToolbarTitle(getString(R.string.app_name));
             currentNodePosition = RecyclerView.NO_POSITION;
             adapter.markItemSelected(currentNodePosition);
             mainViewModel.setCurrentNode(null);
@@ -1603,7 +1603,7 @@ public class MainView extends AppCompatActivity {
                 .add(R.id.main_view_fragment, SearchFragment.class, null, "search")
                 .addToBackStack("search")
                 .commit();
-        setToolbarTitle("Search");
+        setToolbarTitle(getString(R.string.options_menu_item_search));
         disableDrawerMenu();
     }
 
@@ -1983,6 +1983,8 @@ public class MainView extends AppCompatActivity {
     public void returnFromFragmentWithHomeButtonAndRestoreTitle() {
         if (mainViewModel.getCurrentNode() != null) {
             setToolbarTitle(mainViewModel.getCurrentNode().getName());
+        } else {
+            setToolbarTitle(getString(R.string.app_name));
         }
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
         getOnBackPressedDispatcher().onBackPressed();
