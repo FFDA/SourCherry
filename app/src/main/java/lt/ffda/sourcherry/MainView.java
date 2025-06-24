@@ -43,7 +43,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.database.Cursor;
 import android.graphics.Canvas;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
@@ -51,7 +50,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.DocumentsContract;
 import android.text.Editable;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
@@ -107,6 +105,7 @@ import lt.ffda.sourcherry.database.MultiReader;
 import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
 import lt.ffda.sourcherry.dialogs.MenuItemActionDialogFragment;
 import lt.ffda.sourcherry.dialogs.SaveOpenDialogFragment;
+import lt.ffda.sourcherry.model.FileInfo;
 import lt.ffda.sourcherry.fragments.CreateNodeFragment;
 import lt.ffda.sourcherry.fragments.ImageViewFragment;
 import lt.ffda.sourcherry.fragments.NodeContentFragment;
@@ -120,8 +119,9 @@ import lt.ffda.sourcherry.runnables.CollectNodesBackgroundRunnable;
 import lt.ffda.sourcherry.runnables.FindInNodeRunnable;
 import lt.ffda.sourcherry.runnables.FindInNodeRunnableCallback;
 import lt.ffda.sourcherry.runnables.NodesCollectedCallback;
+import lt.ffda.sourcherry.services.DatabaseExportService;
 import lt.ffda.sourcherry.utils.DatabaseType;
-import lt.ffda.sourcherry.utils.Filenames;
+import lt.ffda.sourcherry.utils.Files;
 import lt.ffda.sourcherry.utils.MenuItemAction;
 import lt.ffda.sourcherry.utils.ReturnSelectedFileUriForSaving;
 
@@ -378,39 +378,21 @@ public class MainView extends AppCompatActivity {
         if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
             // If user uses MirrorDatabase
             // Variables that will be put into bundle for MirrorDatabaseProgressDialogFragment
-            Uri mirrorDatabaseFileUri = null; // Uri to the Mirror Database File inside Mirror Database Folder
-            long mirrorDatabaseDocumentFileLastModified = 0;
+            FileInfo data = Files.getFileUriAndModDate(getContentResolver(), sharedPreferences.getString("mirrorDatabaseFolderUri", null), sharedPreferences.getString("mirrorDatabaseFilename", null));
 
-            // Reading through files inside Mirror Database Folder
-            Uri mirrorDatabaseFolderUri = Uri.parse(sharedPreferences.getString("mirrorDatabaseFolderUri", null));
-            Uri mirrorDatabaseFolderChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(mirrorDatabaseFolderUri, DocumentsContract.getTreeDocumentId(mirrorDatabaseFolderUri));
-
-            Cursor cursor = getContentResolver().query(mirrorDatabaseFolderChildrenUri, new String[]{"document_id", "_display_name", "last_modified"}, null, null, null);
-            while (cursor != null && cursor.moveToNext()) {
-                if (cursor.getString(1).equals(sharedPreferences.getString("mirrorDatabaseFilename", null))) {
-                    // if file with the Mirror Database File filename was wound inside Mirror Database Folder
-                    mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
-                    mirrorDatabaseDocumentFileLastModified = cursor.getLong(2);
-                    break;
-                }
-            }
-            if (cursor != null) {
-                cursor.close();
-            }
-
-            if (mirrorDatabaseDocumentFileLastModified == 0) {
+            if (data.getUri() == null) {
                 Toast.makeText(this, R.string.toast_error_failed_to_find_mirror_database, Toast.LENGTH_SHORT).show();
                 return;
             }
 
             // If found Mirror Database File is older or the same as the last time it was synchronized
             // copying is done immediately
-            if (mirrorDatabaseDocumentFileLastModified <= sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
-                    Bundle bundle = new Bundle();
-                    bundle.putString("exportFileUri", mirrorDatabaseFileUri.toString());
-                    ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
-                    exportDatabaseDialogFragment.setArguments(bundle);
-                    exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
+            if (data.getModified() <= sharedPreferences.getLong("mirrorDatabaseLastModified", 0)) {
+                Bundle bundle = new Bundle();
+                bundle.putString("exportFileUri", data.getUri().toString());
+                ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
+                exportDatabaseDialogFragment.setArguments(bundle);
+                exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
             } else {
                 // If found Mirror Database File is newer that the last time it was synchronized
                 // User is prompted to choose to cancel or continue
@@ -423,18 +405,16 @@ public class MainView extends AppCompatActivity {
 
                     }
                 });
-                Uri finalMirrorDatabaseFileUri = mirrorDatabaseFileUri;
-                long finalMirrorDatabaseDocumentFileLastModified = mirrorDatabaseDocumentFileLastModified;
                 builder.setPositiveButton(R.string.button_overwrite, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // Saving new last modified date to preferences
                         SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-                        sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", finalMirrorDatabaseDocumentFileLastModified);
+                        sharedPreferencesEditor.putLong("mirrorDatabaseLastModified", data.getModified());
                         sharedPreferencesEditor.apply();
                         // Launching copying dialog
                         Bundle bundle = new Bundle();
-                        bundle.putString("exportFileUri", finalMirrorDatabaseFileUri.toString());
+                        bundle.putString("exportFileUri", data.getUri().toString());
                         ExportDatabaseDialogFragment exportDatabaseDialogFragment = new ExportDatabaseDialogFragment();
                         exportDatabaseDialogFragment.setArguments(bundle);
                         exportDatabaseDialogFragment.show(getSupportFragmentManager(), "exportDatabaseDialogFragment");
@@ -589,7 +569,7 @@ public class MainView extends AppCompatActivity {
             // Reached the first index of the result array
             // currentFindInNodeMarked has to be reset to last index of the result array and this function restarted
             // If you want to though the result in a loop
-            currentFindInNodeMarked =  mainViewModel.getFindInNodeResultCount();
+            currentFindInNodeMarked = mainViewModel.getFindInNodeResultCount();
             findInNodePrevious();
         }
     }
@@ -628,7 +608,7 @@ public class MainView extends AppCompatActivity {
     public void goHome(View view) {
         ArrayList<ScNode> tempMainNodes = reader.getMainNodes();
         // Compares node sizes, first and last node's uniqueIDs in both arrays
-        if (tempMainNodes.size() == mainViewModel.getNodes().size() && tempMainNodes.get(0).getUniqueId().equals(mainViewModel.getNodes().get(0).getUniqueId()) && tempMainNodes.get(mainViewModel.getNodes().size() -1 ).getUniqueId().equals(mainViewModel.getNodes().get(mainViewModel.getNodes().size() -1 ).getUniqueId())) {
+        if (tempMainNodes.size() == mainViewModel.getNodes().size() && tempMainNodes.get(0).getUniqueId().equals(mainViewModel.getNodes().get(0).getUniqueId()) && tempMainNodes.get(mainViewModel.getNodes().size() - 1).getUniqueId().equals(mainViewModel.getNodes().get(mainViewModel.getNodes().size() - 1).getUniqueId())) {
             Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
         } else {
             mainViewModel.setNodes(tempMainNodes);
@@ -1401,6 +1381,9 @@ public class MainView extends AppCompatActivity {
             sharedPreferencesEditor.putString("last_node_unique_id", mainViewModel.getCurrentNode().getUniqueId());
             sharedPreferencesEditor.apply();
         }
+        if (!isChangingConfigurations() && sharedPreferences.getBoolean("mirror_database_auto_export_switch", false)) {
+            ContextCompat.startForegroundService(this, new Intent(this, DatabaseExportService.class));
+        }
         super.onStop();
     }
 
@@ -1452,12 +1435,12 @@ public class MainView extends AppCompatActivity {
             } else {
                 // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
                 // most important that it will have correct extension
-                String prefix = Filenames.getFileName(filename);
+                String prefix = Files.getFileName(filename);
                 if (prefix.length() < 3) {
                     // Prefixes for temp files can't be shorter than 3 symbols
                     prefix = prefix + "123";
                 }
-                File tmpAttachedFile = File.createTempFile(prefix, "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
+                File tmpAttachedFile = File.createTempFile(prefix, "." + Files.getFileExtension(filename)); // Temporary file that will shared
 
                 // Writes Base64 encoded string to the temporary file
                 InputStream in = reader.getFileInputStream(nodeUniqueID, filename, time, control);

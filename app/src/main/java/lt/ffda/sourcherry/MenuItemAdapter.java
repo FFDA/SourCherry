@@ -49,7 +49,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
 
     @Override
     public int getItemCount() {
-        return nodeList.size();
+        return nodeList == null ? 0 : nodeList.size();
     }
 
     public void markItemSelected(int selectedPos) {

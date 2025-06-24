@@ -109,7 +109,7 @@ import lt.ffda.sourcherry.spans.TypefaceSpanCodebox;
 import lt.ffda.sourcherry.spans.TypefaceSpanFamily;
 import lt.ffda.sourcherry.spans.URLSpanWebs;
 import lt.ffda.sourcherry.utils.DatabaseType;
-import lt.ffda.sourcherry.utils.Filenames;
+import lt.ffda.sourcherry.utils.Files;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 public class MultiReader extends DatabaseReader implements MultiDbFileShare {
@@ -998,7 +998,7 @@ public class MultiReader extends DatabaseReader implements MultiDbFileShare {
         try (Cursor nodeContentCursor = getNodeChildrenCursor(nodeUniqueID)) {
             while (nodeContentCursor.moveToNext()) {
                 if (!nodeContentCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)
-                        && ((noControl ? nodeContentCursor.getString(2) : Filenames.getFileName(nodeContentCursor.getString(2))).equals(control))) {
+                        && ((noControl ? nodeContentCursor.getString(2) : Files.getFileName(nodeContentCursor.getString(2))).equals(control))) {
                     return DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, nodeContentCursor.getString(0));
                 }
             }
@@ -1122,7 +1122,7 @@ public class MultiReader extends DatabaseReader implements MultiDbFileShare {
         try (Cursor nodeContentCursor = getNodeChildrenCursor(nodeUniqueID)) {
             while (nodeContentCursor.moveToNext()) {
                 if (!nodeContentCursor.getString(1).equals(DocumentsContract.Document.MIME_TYPE_DIR)
-                        && ((noControl ? nodeContentCursor.getString(2) : Filenames.getFileName(nodeContentCursor.getString(2))).equals(control))) {
+                        && ((noControl ? nodeContentCursor.getString(2) : Files.getFileName(nodeContentCursor.getString(2))).equals(control))) {
                     try {
                         return context.getContentResolver().openInputStream(
                                 DocumentsContract.buildDocumentUriUsingTree(mainFolderUri, nodeContentCursor.getString(0)));
@@ -1553,7 +1553,7 @@ public class MultiReader extends DatabaseReader implements MultiDbFileShare {
                                     int[] cellMinMax = getTableMinMax(currentNode);
                                     ArrayList<CharSequence[]> currentTableContent = new ArrayList<>(); // ArrayList with all the content of the table
                                     byte lightInterface = 0;
-                                    if (!((Element) currentNode).getAttribute("is_light").equals("")) {
+                                    if (!((Element) currentNode).getAttribute("is_light").isEmpty()) {
                                         lightInterface = Byte.parseByte(((Element) currentNode).getAttribute("is_light"));
                                     }
                                     NodeList tableRowsNodes = ((Element) currentNode).getElementsByTagName("row"); // All the rows of the table. There are empty text nodes that has to be filtered out (or only row nodes selected this way)
@@ -2240,7 +2240,7 @@ public class MultiReader extends DatabaseReader implements MultiDbFileShare {
                 fileImageSha256Sums.add(imageSpanFile.getFilename());
                 if (imageSpanFile.getSha256sum() != null) {
                     // It means node was originaly saved with useFilenameOnDisk turned off
-                    Uri uri = getCursorChildrenUriByName(cursor, new StringBuilder(imageSpanFile.getSha256sum()).append('.').append(Filenames.getFileExtension(imageSpanFile.getFilename())).toString());
+                    Uri uri = getCursorChildrenUriByName(cursor, new StringBuilder(imageSpanFile.getSha256sum()).append('.').append(Files.getFileExtension(imageSpanFile.getFilename())).toString());
                     if (!savedFiles.containsKey(imageSpanFile.getFilename())) {
                         try {
                             DocumentsContract.renameDocument(context.getContentResolver(), uri, imageSpanFile.getFilename());
@@ -2264,7 +2264,7 @@ public class MultiReader extends DatabaseReader implements MultiDbFileShare {
                             sha256sum = calculateFileSha256Sum(uri);
                             savedFiles.put(imageSpanFile.getFilename(), sha256sum);
                             filename.setLength(0);
-                            filename = filename.append(sha256sum).append('.').append(Filenames.getFileExtension(imageSpanFile.getFilename()));
+                            filename = filename.append(sha256sum).append('.').append(Files.getFileExtension(imageSpanFile.getFilename()));
                             try {
                                 DocumentsContract.renameDocument(context.getContentResolver(), uri, filename.toString());
                             } catch (FileNotFoundException e) {
@@ -2275,7 +2275,7 @@ public class MultiReader extends DatabaseReader implements MultiDbFileShare {
                         reloadCursor = true;
                     }
                 } else {
-                    filename.append(sha256sum).append('.').append(Filenames.getFileExtension(imageSpanFile.getFilename()));
+                    filename.append(sha256sum).append('.').append(Files.getFileExtension(imageSpanFile.getFilename()));
                 }
                 element.setAttribute("sha256sum", sha256sum);
                 fileImageSha256Sums.add(filename.toString());
@@ -2289,10 +2289,10 @@ public class MultiReader extends DatabaseReader implements MultiDbFileShare {
                 fileImageSha256Sums.add(filename);
             } else {
                 String sha256sum = calculateFileSha256Sum(userAttachedFileUri);
-                String extension = Filenames.getFileExtension(imageSpanFile.getFilename());
+                String extension = Files.getFileExtension(imageSpanFile.getFilename());
                 filename = extension != null ? sha256sum + "." + extension : sha256sum;
                 element.setAttribute("sha256sum", sha256sum);
-                fileImageSha256Sums.add(imageSpanFile.getSha256sum() + "."  + Filenames.getFileExtension(imageSpanFile.getFilename()));
+                fileImageSha256Sums.add(imageSpanFile.getSha256sum() + "."  + Files.getFileExtension(imageSpanFile.getFilename()));
             }
             copyFileToNodeFolder(userAttachedFileUri, filename);
             fileImageSha256Sums.add(filename);

@@ -48,7 +48,7 @@ import lt.ffda.sourcherry.AppContainer;
 import lt.ffda.sourcherry.MainActivity;
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.ScApplication;
-import lt.ffda.sourcherry.utils.Filenames;
+import lt.ffda.sourcherry.utils.Files;
 
 public class OpenDatabaseProgressDialogFragment extends DialogFragment {
     private ScheduledThreadPoolExecutor executor;
@@ -178,7 +178,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             tmpDatabaseFilename = inArchive.getStringProperty(0, PropID.PATH);
             // At some point filenames inside CherryTree password protected archives were changed to include a random(?) integer
             // in the middle of the filename. To make it look normal again I had to remove it
-            tmpDatabaseFilename = Filenames.getFileName(tmpDatabaseFilename) + "." + Filenames.getFileExtension(tmpDatabaseFilename); // Joining first and last part of the filename array
+            tmpDatabaseFilename = Files.getFileName(tmpDatabaseFilename) + "." + Files.getFileExtension(tmpDatabaseFilename); // Joining first and last part of the filename array
             totalLen = 0; // Resetting totalLen value
             fileSize = Long.parseLong(inArchive.getStringProperty(0, PropID.SIZE));
             // Writing data
@@ -193,7 +193,7 @@ public class OpenDatabaseProgressDialogFragment extends DialogFragment {
             //// Creating new settings
             // Saved Uri is not a real Uri, so don't try to use it.
             // The only reason to save it here is, that I'm using it to check if database should be opened automatically
-            saveDatabaseToPrefs("internal", tmpDatabaseFilename, Filenames.getFileExtension(tmpDatabaseFilename), databaseDir.getPath() + "/" + tmpDatabaseFilename);
+            saveDatabaseToPrefs("internal", tmpDatabaseFilename, Files.getFileExtension(tmpDatabaseFilename), databaseDir.getPath() + "/" + tmpDatabaseFilename);
             ////
         } catch (FileNotFoundException e) {
             handler.post(new Runnable() {

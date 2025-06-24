@@ -42,7 +42,7 @@ import lt.ffda.sourcherry.database.DatabaseReader;
 import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.database.MultiDbFileShare;
 import lt.ffda.sourcherry.utils.DatabaseType;
-import lt.ffda.sourcherry.utils.Filenames;
+import lt.ffda.sourcherry.utils.Files;
 
 public class SaveOpenDialogFragment extends DialogFragment {
     private String fileMimeType;
@@ -148,12 +148,12 @@ public class SaveOpenDialogFragment extends DialogFragment {
             } else {
                 // If attached filename has more than one . (dot) in it temporary filename will not have full original filename in it
                 // most important that it will have correct extension
-                String prefix = Filenames.getFileName(filename);
+                String prefix = Files.getFileName(filename);
                 if (prefix.length() < 3) {
                     // Prefixes for temp files can't be shorter than 3 symbols
                     prefix = prefix + "123";
                 }
-                File tmpAttachedFile = File.createTempFile(prefix, "." + Filenames.getFileExtension(filename)); // Temporary file that will shared
+                File tmpAttachedFile = File.createTempFile(prefix, "." + Files.getFileExtension(filename)); // Temporary file that will shared
                 // Writes Base64 encoded string to the temporary file
                 InputStream in = reader.getFileInputStream(this.nodeUniqueID, this.filename, this.time, this.offset);
                 FileOutputStream out = new FileOutputStream(tmpAttachedFile);

@@ -10,6 +10,8 @@
 
 package lt.ffda.sourcherry;
 
+import static lt.ffda.sourcherry.utils.Constants.DATABASE_EXPORT_NOTI;
+
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -27,6 +29,8 @@ import androidx.documentfile.provider.DocumentFile;
 import androidx.lifecycle.Lifecycle;
 import androidx.preference.PreferenceManager;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -61,7 +65,8 @@ import lt.ffda.sourcherry.dialogs.CollectNodesDialogFragment;
 import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
 import lt.ffda.sourcherry.dialogs.MirrorDatabaseProgressDialogFragment;
 import lt.ffda.sourcherry.dialogs.OpenDatabaseProgressDialogFragment;
-import lt.ffda.sourcherry.utils.Filenames;
+import lt.ffda.sourcherry.utils.Files;
+import lt.ffda.sourcherry.utils.PreferencesUtils;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -105,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
                 // Saves selected database's information to the settings
-                saveDatabaseToPrefs("internal", databaseFilename, Filenames.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
+                saveDatabaseToPrefs("internal", databaseFilename, Files.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
                 resetMirrorDatabasePreferences();
                 setMessageWithDatabaseName();
             }
@@ -116,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean onLongClick(View v) {
                 File selectedDatabaseToOpen = new File(databaseDir, databaseFilename);
                 // Saves selected database's information to the settings
-                saveDatabaseToPrefs("internal", databaseFilename, Filenames.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
+                saveDatabaseToPrefs("internal", databaseFilename, Files.getFileExtension(databaseFilename), selectedDatabaseToOpen.getPath());
                 resetMirrorDatabasePreferences();
                 setMessageWithDatabaseName();
                 // Opens database
@@ -163,6 +168,20 @@ public class MainActivity extends AppCompatActivity {
         });
         ////
         return importedDatabaseItem;
+    }
+
+    /**
+     * Creates NotificationChannel for API 26+ devices to show notification on them
+     */
+    private void createNotificationChanel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.preferences_mirror_database_title);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(DATABASE_EXPORT_NOTI, name, importance);
+            channel.setDescription(getString(R.string.noti_chanel_description));
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     /**
@@ -246,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
                 if (cursor.getString(1).equals(sharedPreferences.getString("mirrorDatabaseFilename", null))) {
                     // if file with the Mirror Database File filename was wound inside Mirror Database Folder
                     mirrorDatabaseFileUri = DocumentsContract.buildDocumentUriUsingTree(mirrorDatabaseFolderUri, cursor.getString(0));
-                    mirrorDatabaseFileExtension = Filenames.getFileExtension(cursor.getString(1));
+                    mirrorDatabaseFileExtension = Files.getFileExtension(cursor.getString(1));
                     mirrorDatabaseDocumentFileLastModified = cursor.getLong(2);
                     break;
                 }
@@ -272,11 +291,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // If mirror database folder URI isn't saved in the preferences for some reason
             // Turning off MirrorDatabase preferences without trying to copy the database file
-            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-            sharedPreferencesEditor.putBoolean("mirror_database_switch", false);
-            sharedPreferencesEditor.remove("mirrorDatabaseFilename");
-            sharedPreferencesEditor.remove("mirrorDatabaseLastModified");
-            sharedPreferencesEditor.apply();
+            PreferencesUtils.disableMirrorDatabase(sharedPreferences);
             Toast.makeText(this, R.string.toast_error_missing_mirror_database_folder_missing, Toast.LENGTH_SHORT).show();
         }
     }
@@ -324,6 +339,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        createNotificationChanel();
+
         // Creates internal and external folders for databases
         if (!(new File (getFilesDir(), "databases")).exists()) {
             (new File (getFilesDir(), "databases")).mkdirs();
@@ -334,7 +351,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if (intent.getAction().equals(Intent.ACTION_VIEW)) {
             DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, intent.getData());
-            String databaseFileExtension = Filenames.getFileExtension(databaseDocumentFile.getName());
+            String databaseFileExtension = Files.getFileExtension(databaseDocumentFile.getName());
             if (databaseFileExtension == null) {
                 Toast.makeText(this, R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
                 return;
@@ -535,11 +552,11 @@ public class MainActivity extends AppCompatActivity {
         return registerForActivityResult(new ActivityResultContracts.OpenDocument(), result -> {
             if (result != null) {
                 DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, result);
-                String databaseFileExtension = Filenames.getFileExtension(databaseDocumentFile.getName());
+                String databaseFileExtension = Files.getFileExtension(databaseDocumentFile.getName());
                 // Saving filename and path to the file in the preferences
                 saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, result.toString());
                 //
-                if (Filenames.getFileExtension(databaseDocumentFile.getName()).equals("ctd")) {
+                if (Files.getFileExtension(databaseDocumentFile.getName()).equals("ctd")) {
                     // Only if user selects ctd (not protected xml database) permanent permission should be requested
                     // When uri is received from intent-filter app will crash
                     getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -557,12 +574,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void resetMirrorDatabasePreferences() {
         if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
-            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-//        sharedPreferencesEditor.remove("mirrorDatabaseFolderUri"); // Not necessary to delete, user most likely will use the same folder in the future
-            sharedPreferencesEditor.remove("mirrorDatabaseLastModified");
-            sharedPreferencesEditor.remove("mirrorDatabaseFilename");
-            sharedPreferencesEditor.putBoolean("mirror_database_switch", false);
-            sharedPreferencesEditor.apply();
+            PreferencesUtils.disableMirrorDatabase(sharedPreferences);
         }
     }
 

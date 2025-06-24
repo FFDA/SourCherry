@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ This file is part of SourCherry.
+  ~
+  ~ SourCherry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  ~
+  ~ SourCherry is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<androidx.preference.PreferenceScreen
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <Preference
+        android:key="mirror_database_message"
+        android:persistent="false"
+        android:selectable="false"
+        android:summary="@string/preferences_mirror_database_message_summary"/>
+
+    <SwitchPreferenceCompat
+        android:key="mirror_database_switch"
+        android:title="@string/preferences_mirror_database_title"
+        android:summary="@string/preferences_mirror_database_switch_summary"
+        android:defaultValue="false"/>
+
+    <Preference
+        android:key="mirror_database_folder_preference"
+        android:title="@string/preferences_mirror_database_mirror_database_folder_title"
+        android:persistent="false"
+        android:dependency="mirror_database_switch"/>
+
+    <Preference
+        android:key="mirror_database_file_preference"
+        android:title="@string/preferences_mirror_database_mirror_database_file_title"
+        android:persistent="false"
+        android:dependency="mirror_database_switch"/>
+
+    <SwitchPreferenceCompat
+        android:key="mirror_database_auto_export_switch"
+        android:title="@string/preferences_mirror_database_auto_export_switch_title"
+        android:summary="@string/preferences_mirror_database_auto_export_switch_summary"
+        android:defaultValue="false"
+        android:dependency="mirror_database_switch"/>
+
+    <Preference
+        android:key="mirror_database_last_modified_preference"
+        android:title="@string/preferences_mirror_database_mirror_database_file_last_modified_title"
+        android:persistent="false"
+        android:selectable="false"
+        app:isPreferenceVisible="false"/>
+
+    <Preference
+        android:key="mirror_database_more_info"
+        android:title="@string/preferences_mirror_database_mirror_database_more_info"
+        android:persistent="false">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://github.com/FFDA/SourCherry/wiki/MirrorDatabase"/>
+    </Preference>
+</androidx.preference.PreferenceScreen>
