@@ -1,0 +1,2 @@
+v1.7.1
+- Fixes crashes caused by pressing Enter while editing a node;

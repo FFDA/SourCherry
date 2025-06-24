@@ -1,0 +1,10 @@
+v1.4.0
+- Add commentMore actions
+- Saving a Rich Text node should not lose any formatting.
+- Editing: change foreground/background color, italic, bold, underline and strikethrough properties. Clear formatting.
+- Split Settings to multiple screens;
+- Added Vacuum function for SQL databases;
+- Added support for 4H, H5 and H6;
+- Enabled creation of Rich Text nodes. Made it a default option;
+- Confirmation dialog for “Delete node” action;
+- DrawerMenu items now have the same font color as in CherryTree;

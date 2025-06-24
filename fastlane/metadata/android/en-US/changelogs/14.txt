@@ -1,0 +1,6 @@
+v1.7.0
+- Support for monoscape font for node content and ability to toggle it for selected text in editing;
+- Node properties now display the node id and node group information;
+- Support for creating list (including changing status of checkboxes);
+- Option to use embedded file name on disk for multifile databases;
+- Some bug fixes;

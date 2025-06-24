@@ -1,0 +1,6 @@
+v1.6.0
+- Support for attaching files;
+- Support for inserting images;
+- Support for inserting, removing, and editing tables;
+- Support for shared nodes (fixed crashes caused by them)
+- Bug fixes and stability improvements;
