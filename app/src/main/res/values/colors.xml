@@ -2,7 +2,7 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="ic_launcher_background_color">#FFF7F3</color>
+    <color name="ic_launcher_background_color">#FFFFFF</color>
     <color name="ic_launcher_cherry_fill_color">#CA2A2A</color>
     <color name="codebox_background">#F6F8FA</color>
     <color name="monospace_background">#7f7f7f</color>
