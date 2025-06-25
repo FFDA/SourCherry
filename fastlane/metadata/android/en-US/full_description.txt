@@ -1,6 +1,7 @@
 Free and open-source application for opening CherryTree databases.
 
 Features:
+
 - Supports XML, SQLite and Multifile storage database
 - Supports password protected databases
 - Database search
