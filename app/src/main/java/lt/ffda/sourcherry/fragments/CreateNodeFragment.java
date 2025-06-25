@@ -26,6 +26,9 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import lt.ffda.sourcherry.MainView;
@@ -95,6 +98,11 @@ public class CreateNodeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_add_new_node, container, false);
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), insets.bottom);
+            return windowInsets;
+        });
         radioGroupNodeType = view.findViewById(R.id.radio_group_node_type);
         checkBoxExcludeFromSearchesThisNode = view.findViewById(R.id.exclude_from_searches_this_node);
         checkBoxExcludeFromSearchesSubnodes = view.findViewById(R.id.exclude_from_searches_subnodes);

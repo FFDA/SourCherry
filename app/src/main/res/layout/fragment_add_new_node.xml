@@ -8,7 +8,7 @@
   ~ You should have received a copy of the GNU General Public License along with SourCherry. If not, see <https://www.gnu.org/licenses/>.
   -->
 
-<androidx.constraintlayout.widget.ConstraintLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -16,150 +16,156 @@
     android:layout_height="match_parent"
     android:background="?android:attr/windowBackground">
 
-    <TextView
-        android:id="@+id/node_name"
-        android:layout_width="wrap_content"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="84dp"
-        android:labelFor="@+id/edit_text_node_name"
-        android:text="@string/node_name"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:background="?android:attr/windowBackground">
 
-    <EditText
-        android:id="@+id/edit_text_node_name"
-        android:layout_width="300dp"
-        android:minHeight="48dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="16dp"
-        android:ems="10"
-        android:inputType="text"
-        android:autofillHints="title"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/node_name" />
-
-    <TextView
-        android:id="@+id/note_type"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="36dp"
-        android:text="@string/node_type"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/edit_text_node_name" />
-
-    <RadioGroup
-        android:id="@+id/radio_group_node_type"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/note_type">
-
-        <RadioButton
-            android:id="@+id/radio_button_rich_text"
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/node_name"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/radio_button_rich_text" />
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="84dp"
+            android:labelFor="@+id/edit_text_node_name"
+            android:text="@string/node_name"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <RadioButton
-            android:id="@+id/radio_button_plain_text"
-            android:layout_width="match_parent"
+        <EditText
+            android:id="@+id/edit_text_node_name"
+            android:layout_width="300dp"
+            android:minHeight="48dp"
             android:layout_height="wrap_content"
-            android:text="@string/radio_button_plain_text"/>
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="16dp"
+            android:ems="10"
+            android:inputType="text"
+            android:autofillHints="title"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/node_name" />
 
-        <RadioButton
-            android:id="@+id/radio_button_automatic_syntax_highlighting"
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/note_type"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/radio_button_automatic_syntax_highlighting"/>
-    </RadioGroup>
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="36dp"
+            android:text="@string/node_type"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/edit_text_node_name" />
 
-    <TextView
-        android:id="@+id/exclude_from_searches"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="32dp"
-        android:text="@string/exclude_from_searches"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/radio_group_node_type" />
+        <RadioGroup
+            android:id="@+id/radio_group_node_type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/note_type">
 
-    <CheckBox
-        android:id="@+id/exclude_from_searches_this_node"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="16dp"
-        android:text="@string/exclude_from_searches_this_node"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches" />
+            <RadioButton
+                android:id="@+id/radio_button_rich_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/radio_button_rich_text" />
 
-    <CheckBox
-        android:id="@+id/exclude_from_searches_subnodes"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="16dp"
-        android:text="@string/exclude_from_searches_subnodes"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toEndOf="@+id/exclude_from_searches_this_node"
-        app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches" />
+            <RadioButton
+                android:id="@+id/radio_button_plain_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/radio_button_plain_text"/>
 
-    <TextView
-        android:id="@+id/properties_fragment_node_unique_id"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="16dp"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches_this_node" />
+            <RadioButton
+                android:id="@+id/radio_button_automatic_syntax_highlighting"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/radio_button_automatic_syntax_highlighting"/>
+        </RadioGroup>
 
-    <TextView
-        android:id="@+id/properties_fragment_shared_nodes_group"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="16dp"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/properties_fragment_node_unique_id" />
+        <TextView
+            android:id="@+id/exclude_from_searches"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="32dp"
+            android:text="@string/exclude_from_searches"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/radio_group_node_type" />
 
-    <Button
-        android:id="@+id/add_node_button_create"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="64dp"
-        android:text="@string/button_create"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/properties_fragment_shared_nodes_group" />
+        <CheckBox
+            android:id="@+id/exclude_from_searches_this_node"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/exclude_from_searches_this_node"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches" />
 
-    <Button
-        android:id="@+id/add_node_button_cancel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="48dp"
-        android:layout_marginTop="32dp"
-        android:text="@string/button_cancel"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/properties_fragment_shared_nodes_group" />
+        <CheckBox
+            android:id="@+id/exclude_from_searches_subnodes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/exclude_from_searches_subnodes"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toEndOf="@+id/exclude_from_searches_this_node"
+            app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/properties_fragment_node_unique_id"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/exclude_from_searches_this_node" />
+
+        <TextView
+            android:id="@+id/properties_fragment_shared_nodes_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/properties_fragment_node_unique_id" />
+
+        <Button
+            android:id="@+id/add_node_button_create"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:layout_marginEnd="64dp"
+            android:text="@string/button_create"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/properties_fragment_shared_nodes_group" />
+
+        <Button
+            android:id="@+id/add_node_button_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="48dp"
+            android:layout_marginTop="32dp"
+            android:text="@string/button_cancel"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/properties_fragment_shared_nodes_group" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
