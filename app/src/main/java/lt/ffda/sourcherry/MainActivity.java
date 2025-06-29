@@ -350,18 +350,7 @@ public class MainActivity extends AppCompatActivity {
         // If launched the app by opening a file from different app
         Intent intent = getIntent();
         if (intent.getAction().equals(Intent.ACTION_VIEW)) {
-            DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, intent.getData());
-            String databaseFileExtension = Files.getFileExtension(databaseDocumentFile.getName());
-            if (databaseFileExtension == null) {
-                Toast.makeText(this, R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
-                return;
-            }
-            saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, intent.getData().toString());
-            setMessageWithDatabaseName();
-            if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {
-                // If database is not protected it can be opened without any user interaction
-                openDatabase();
-            }
+            openIntent(intent);
         } else {
             // If app weren't launched by selecting a database file from external app
             CheckBox checkboxAutoOpen = findViewById(R.id.checkBox_auto_open);
@@ -415,6 +404,12 @@ public class MainActivity extends AppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         deleteTempFiles();
+    }
+
+    @Override
+    protected void onNewIntent(@NonNull Intent intent) {
+        super.onNewIntent(intent);
+        openIntent(intent);
     }
 
     @Override
@@ -508,6 +503,26 @@ public class MainActivity extends AppCompatActivity {
      */
     public void openGetSingleFileDatabase(View view) {
         getDatabaseSingle.launch(new String[]{"*/*",});
+    }
+
+    /**
+     * Opens database from passed intent. Does a file extension check. It has to match
+     * *.ctb, *.ctx, *.ctd or *.ctz.
+     * @param intent intent passed to the app using intent filter
+     */
+    private void openIntent(Intent intent) {
+        DocumentFile databaseDocumentFile = DocumentFile.fromSingleUri(this, intent.getData());
+        String databaseFileExtension = Files.getFileExtension(databaseDocumentFile.getName());
+        if (databaseFileExtension == null) {
+            Toast.makeText(this, R.string.toast_error_does_not_look_like_a_cherrytree_database, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        saveDatabaseToPrefs("shared", databaseDocumentFile.getName(), databaseFileExtension, intent.getData().toString());
+        setMessageWithDatabaseName();
+        if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {
+            // If database is not protected it can be opened without any user interaction
+            openDatabase();
+        }
     }
 
     /**
@@ -702,6 +717,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public void startMainViewActivity() {
         Intent openDatabase = new Intent(this, MainView.class);
+        openDatabase.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP );
         startActivity(openDatabase);
     }
 }
