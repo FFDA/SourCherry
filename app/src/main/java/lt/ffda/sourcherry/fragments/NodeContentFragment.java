@@ -159,8 +159,8 @@ public class NodeContentFragment extends Fragment {
             case "Caladea":
                 typeface = ResourcesCompat.getFont(getContext(), R.font.caladea_regular);
                 break;
-            case "Monospace":
-                typeface = Typeface.MONOSPACE;
+            case "DejaVuSansMono":
+                typeface = ResourcesCompat.getFont(getContext(), R.font.deja_vu_sans_mono);
                 break;
         }
         int textSize = sharedPreferences.getInt("preferences_text_size", 15);

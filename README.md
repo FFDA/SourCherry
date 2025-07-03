@@ -50,6 +50,7 @@ For the same reason (SAF) that prevents file extraction without saving files ins
 * Caladea (Apache 2.0)
 * Comfortaa (OFL)
 * Merriweather (OFL)
+* DejaVu Sans Mono (DejaVu Fonts License v1.00)
 
 ## Privacy policy
 

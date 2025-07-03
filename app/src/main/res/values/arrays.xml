@@ -36,7 +36,7 @@
 
     <string-array name="font_types">
         <item>Default</item>
-        <item>Monospace</item>
+        <item>DejaVuSansMono</item>
         <item>Comfortaa</item>
         <item>Merriweather</item>
         <item>Caladea</item>
