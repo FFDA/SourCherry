@@ -38,6 +38,7 @@ public class MainViewModel extends ViewModel {
     private ArrayList<ScNode> nodes;
     private ArrayList<ScNode> tempNodes;
     private ArrayList<ScNode> tempSearchNodes;
+    private boolean linewrap = false;
 
     /**
      * Adds result to FindInNodeResultStorage
@@ -330,5 +331,21 @@ public class MainViewModel extends ViewModel {
      */
     public void updateSavedCurrentNodes(ArrayList<ScNode> newNodes) {
         this.tempNodes = newNodes;
+    }
+
+    /**
+     * Is nodeContentFragment currently using linewrapping to dispaly content
+     * @return true - linewrap id enabled, false - otherwise
+     */
+    public boolean isLineWrap() {
+        return linewrap;
+    }
+
+    /**
+     * nodeContentFragment will use linewrapping to display content
+     * @param linewrap true - linewrap will be used, false - otherwise
+     */
+    public void setLinewrap(boolean linewrap) {
+        this.linewrap = linewrap;
     }
 }

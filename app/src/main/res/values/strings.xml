@@ -160,6 +160,7 @@
     <string name="preferences_default_file_action_title">Default file action</string>
     <string name="preferences_default_unsaved_changes_action_title">Default unsaved changes action</string>
     <string name="preferences_text_size_title">Text size</string>
+    <string name="preferences_disable_linewrapping">Disable line wrapping</string>
     <string name="preferences_font_type_title">Font type</string>
     <string name="preferences_category_padding_title">Padding</string>
     <string name="preferences_category_padding_summary">Padding for node content in DP</string>

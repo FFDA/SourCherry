@@ -1094,6 +1094,9 @@ public class SQLReader extends DatabaseReader implements DatabaseVacuum {
 
     @Override
     public ScNode getSingleMenuItem(String nodeUniqueID) {
+        if (nodeUniqueID == null) {
+            return null;
+        }
         ScNode scNode = null;
         try (Cursor cursor = sqlite.rawQuery("SELECT node.name, children.node_id, node.is_richtxt, node.syntax, node.is_ro, children.master_id FROM children LEFT JOIN node ON children.node_id=node.node_id WHERE children.node_id=?", new String[]{nodeUniqueID})) {
             if (cursor.move(1)) { // Cursor items starts at 1 not 0!!!

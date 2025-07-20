@@ -1400,6 +1400,9 @@ public class MultiReader extends DatabaseReader implements MultiDbFileShare {
 
     @Override
     public ScNode getSingleMenuItem(String nodeUniqueID) {
+        if (nodeUniqueID == null) {
+            return null;
+        }
         ScNode node = null;
         NodeList nodeList = drawerMenu.getElementsByTagName("node");
         for (int i = 0; i < nodeList.getLength(); i++) {

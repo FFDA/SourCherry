@@ -28,6 +28,11 @@
         android:defaultValue="15"
         app:showSeekBarValue="true"/>
 
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="preferences_linewrap"
+        android:title="@string/preferences_disable_linewrapping" />
+
     <ListPreference
         android:key="preference_font_type"
         android:title="@string/preferences_font_type_title"

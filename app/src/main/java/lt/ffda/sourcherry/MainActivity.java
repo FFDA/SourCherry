@@ -11,23 +11,7 @@
 package lt.ffda.sourcherry;
 
 import static lt.ffda.sourcherry.utils.Constants.DATABASE_EXPORT_NOTI;
-
-import androidx.activity.EdgeToEdge;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.graphics.Insets;
-import androidx.core.view.MenuProvider;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.documentfile.provider.DocumentFile;
-import androidx.lifecycle.Lifecycle;
-import androidx.preference.PreferenceManager;
+import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_DARK_MODE;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -57,6 +41,23 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.Insets;
+import androidx.core.view.MenuProvider;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.documentfile.provider.DocumentFile;
+import androidx.lifecycle.Lifecycle;
+import androidx.preference.PreferenceManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -699,7 +700,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void setNightMode() {
         SharedPreferences sharedPreferencesEditor = PreferenceManager.getDefaultSharedPreferences(this);
-        switch (sharedPreferencesEditor.getString("preferences_dark_mode", "System")) {
+        switch (sharedPreferencesEditor.getString(PREFERENCE_DARK_MODE, "System")) {
             case "System":
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
                 break;

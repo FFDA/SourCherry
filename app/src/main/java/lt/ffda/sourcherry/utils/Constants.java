@@ -12,4 +12,7 @@ package lt.ffda.sourcherry.utils;
 
 public class Constants {
     public final static String DATABASE_EXPORT_NOTI = "DATABASE_EXPORT_NOTI";
+
+    public final static String PREFERENCE_DARK_MODE = "preferences_dark_mode";
+    public final static String PREFERENCE_DISABLE_LINEWRAP = "preferences_linewrap";
 }

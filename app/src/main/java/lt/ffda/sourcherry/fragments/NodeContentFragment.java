@@ -10,6 +10,8 @@
 
 package lt.ffda.sourcherry.fragments;
 
+import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_DISABLE_LINEWRAP;
+
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -62,8 +64,13 @@ import lt.ffda.sourcherry.database.MultiReader;
 import lt.ffda.sourcherry.model.ScNodeContent;
 import lt.ffda.sourcherry.model.ScNodeContentTable;
 import lt.ffda.sourcherry.model.ScNodeContentText;
+import lt.ffda.sourcherry.utils.Calculations;
 
 public class NodeContentFragment extends Fragment {
+
+    public final static int CONTENT_FRAGMENT_LINEARLAYOUT = 10001;
+    public final static int CONTENT_HORIZONTAL_SCROLLVIEW = 10002;
+
     OnBackPressedCallback callbackDisplayToastBeforeExit = createCallbackDisplayToastBeforeExit();
     private boolean backToExit;
     private LinearLayout contentFragmentLinearLayout;
@@ -240,18 +247,31 @@ public class NodeContentFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         View rootView = inflater.inflate(R.layout.fragment_node_content, container, false);
-        contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
+        ScrollView scrollView = rootView.findViewById(R.id.content_fragment_scrollview);
+        contentFragmentLinearLayout = new LinearLayout(getContext());
+        contentFragmentLinearLayout.setId(CONTENT_FRAGMENT_LINEARLAYOUT);
+        contentFragmentLinearLayout.setOrientation(LinearLayout.VERTICAL);
+        if (sharedPreferences.getBoolean(PREFERENCE_DISABLE_LINEWRAP, false)) {
+            HorizontalScrollView horizontalScrollView = new HorizontalScrollView(getContext());
+            horizontalScrollView.setId(CONTENT_HORIZONTAL_SCROLLVIEW);
+            scrollView.addView(horizontalScrollView);
+            horizontalScrollView.addView(contentFragmentLinearLayout);
+            mainViewModel.setLinewrap(false);
+        } else {
+            scrollView.addView(contentFragmentLinearLayout);
+            mainViewModel.setLinewrap(true);
+        }
+        //contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
         ViewCompat.setOnApplyWindowInsetsListener(contentFragmentLinearLayout, (v, windowInsets) -> {
             Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), ((MainView) getActivity()).getFindInNodeToggle() ? 0 : insets.bottom);
             return windowInsets;
         });
-
-        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
         handler = appContainer.handler;
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         backToExit = false;
         final Observer<ArrayList<ScNodeContent>> contentObserver = new Observer<ArrayList<ScNodeContent>>() {
             @Override
@@ -265,11 +285,17 @@ public class NodeContentFragment extends Fragment {
 
     @Override
     public void onResume() {
-        super.onResume();
         // Top and bottom paddings are always the same: 14px (5dp)
         contentFragmentLinearLayout.setPadding(sharedPreferences.getInt("paddingStart", 14), 14, sharedPreferences.getInt("paddingEnd", 14), 14);
         // Otherwise when content is recreated insets won't be set and some of it will be under navigation bar
         ViewCompat.requestApplyInsets(contentFragmentLinearLayout);
+        boolean linewrapOff = sharedPreferences.getBoolean(PREFERENCE_DISABLE_LINEWRAP, false);
+        if (linewrapOff == mainViewModel.isLineWrap()) {
+            getParentFragmentManager().beginTransaction().detach(this).commit();
+            getParentFragmentManager().beginTransaction().attach(this).commit();
+            mainViewModel.setLinewrap(!linewrapOff);
+        }
+        super.onResume();
     }
 
     @Override
@@ -327,15 +353,20 @@ public class NodeContentFragment extends Fragment {
      * @param newResultIndex index of the TextView to add highlight to
      */
     public void switchFindInNodeHighlight(int previouslyHighlightedViewIndex, int newResultIndex) {
-        LinearLayout contentFragmentLinearLayout = getView().findViewById(R.id.content_fragment_linearlayout);
-        ScrollView contentFragmentScrollView = getView().findViewById(R.id.content_fragment_scrollview);
+        LinearLayout contentFragmentLinearLayout = getView().findViewById(CONTENT_FRAGMENT_LINEARLAYOUT);
+        ScrollView verticalScrollView = getView().findViewById(R.id.content_fragment_scrollview);
+        HorizontalScrollView horizontalScrollView = null;
+        if (!mainViewModel.isLineWrap()) {
+            horizontalScrollView = getView().findViewById(CONTENT_HORIZONTAL_SCROLLVIEW);
+        }
         int lineCounter = 0; // Needed to calculate position where view will have to be scrolled to
         int counter = 0; // Counts iteration over node layout. Counts every TextView
 
         int viewCounter = mainViewModel.getFindInNodeResult(newResultIndex)[0]; // Saved findInNodeStorage view index
         int startIndex = mainViewModel.getFindInNodeResult(newResultIndex)[1]; // Search result substring start index
         int endIndex = mainViewModel.getFindInNodeResult(newResultIndex)[2]; // Search result substring end index
-
+        boolean foundPrevious = false;
+        boolean foundResult = false;
         for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
             View view = contentFragmentLinearLayout.getChildAt(i);
             if (view instanceof TextView) {
@@ -348,6 +379,7 @@ public class NodeContentFragment extends Fragment {
                         SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
                         spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                         currentTextView.setText(spannedSearchQuery);
+                        foundPrevious = true;
                     }
                     if (viewCounter == counter) {
                         // If encountered the view that has to be marked now
@@ -356,11 +388,20 @@ public class NodeContentFragment extends Fragment {
                         spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         currentTextView.setText(spannedSearchQuery);
                         int line = currentTextView.getLayout().getLineForOffset(startIndex);
-                        int scrollTo = currentTextView.getLayout().getLineTop(line) + lineCounter;
-                        if (scrollTo < (contentFragmentLinearLayout.getHeight() - contentFragmentScrollView.getHeight())) {
-                            scrollTo -= 100;
+                        int scrollToY = currentTextView.getLayout().getLineTop(line) + lineCounter;
+                        if (scrollToY < (contentFragmentLinearLayout.getHeight() - verticalScrollView.getHeight())) {
+                            scrollToY -= 100;
                         }
-                        contentFragmentScrollView.scrollTo(0, scrollTo);
+                        if (!mainViewModel.isLineWrap()) {
+                            horizontalScrollView.scrollTo(Calculations.adjustScrollToX(
+                                    currentTextView.getLayout().getPrimaryHorizontal(startIndex)), scrollToY);
+                        } else {
+                            verticalScrollView.scrollTo(0, scrollToY);
+                        }
+                        foundResult = true;
+                    }
+                    if (foundPrevious && foundResult) {
+                        return;
                     }
                 } else {
                     // If substring that has to be marked IS IN the same view as previously marked substring
@@ -371,11 +412,17 @@ public class NodeContentFragment extends Fragment {
                         spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         currentTextView.setText(spannedSearchQuery);
                         int line = currentTextView.getLayout().getLineForOffset(startIndex);
-                        int scrollTo = currentTextView.getLayout().getLineTop(line) + lineCounter;
-                        if (scrollTo < (contentFragmentLinearLayout.getHeight() - contentFragmentScrollView.getHeight())) {
-                           scrollTo -= 100;
+                        int scrollToY = currentTextView.getLayout().getLineTop(line) + lineCounter;
+                        if (scrollToY < (contentFragmentLinearLayout.getHeight() - verticalScrollView.getHeight())) {
+                           scrollToY -= 100;
                         }
-                        contentFragmentScrollView.scrollTo(0, scrollTo);
+                        if (!mainViewModel.isLineWrap()) {
+                            horizontalScrollView.scrollTo(Calculations.adjustScrollToX(
+                                    currentTextView.getLayout().getPrimaryHorizontal(startIndex)), scrollToY);
+                        } else {
+                            verticalScrollView.scrollTo(0, scrollToY);
+                        }
+                        return;
                     }
                 }
                 lineCounter += currentTextView.getHeight();
@@ -393,16 +440,26 @@ public class NodeContentFragment extends Fragment {
                                 SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
                                 spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                                 ((TextView) tableRow.getChildAt(cell)).setText(spannedSearchQuery);
+                                foundPrevious = true;
                             }
                             if (viewCounter == counter) {
                                 // If encountered a view that has to be highlighted
                                 SpannableStringBuilder spannedSearchQuery = new SpannableStringBuilder();
                                 spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                                 spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                                ((TextView) tableRow.getChildAt(cell)).setText(spannedSearchQuery);
-                                contentFragmentScrollView.scrollTo(0, lineCounter - 100);
+                                TextView currentTextView = ((TextView) tableRow.getChildAt(cell));
+                                currentTextView.setText(spannedSearchQuery);
+                                foundResult = true;
+                                if (!mainViewModel.isLineWrap()) {
+                                    horizontalScrollView.scrollTo(currentTextView.getLeft(), lineCounter - 100);
+                                } else {
+                                    view.scrollTo(currentTextView.getLeft(), lineCounter - 100);
+                                }
                             }
                             counter++;
+                            if ((previouslyHighlightedViewIndex == -1 || foundPrevious) && foundResult) {
+                                return;
+                            }
                         }
                         lineCounter += tableRow.getHeight();
                     }
@@ -417,7 +474,8 @@ public class NodeContentFragment extends Fragment {
                                 spannedSearchQuery.append(mainViewModel.getfindInNodeStorageContent(counter));
                                 spannedSearchQuery.setSpan(new BackgroundColorSpan(getContext().getColor(R.color.cherry_red_200)), startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                                 ((TextView) tableRow.getChildAt(cell)).setText(spannedSearchQuery);
-                                contentFragmentScrollView.scrollTo(0, lineCounter - 100);
+                                verticalScrollView.scrollTo(0, lineCounter - 100);
+                                return;
                             }
                             counter++;
                         }

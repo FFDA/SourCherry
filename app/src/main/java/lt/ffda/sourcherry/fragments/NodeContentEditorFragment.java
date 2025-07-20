@@ -10,6 +10,7 @@
 
 package lt.ffda.sourcherry.fragments;
 
+import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_DISABLE_LINEWRAP;
 import static lt.ffda.sourcherry.utils.RegexPatterns.allCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.allListStarts;
 import static lt.ffda.sourcherry.utils.RegexPatterns.checkedCheckbox;
@@ -116,6 +117,9 @@ import lt.ffda.sourcherry.utils.UnorderedSwitch;
 public class NodeContentEditorFragment extends Fragment implements NodeContentEditorMainMenuActions,
         NodeContentEditorInsertMenuActions, NodeContentEditorTableMenuActions,
         NodeContentEditorMenuBackAction, NodeContentEditorListsMenuActions {
+
+    private final static int EDIT_FRAGMENT_LINEARLAYOUT = 10002;
+
     private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
     private boolean changesSaved = false;
     private int color;
@@ -1052,12 +1056,22 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), Math.max(insets.bottom, insetsIme.bottom));
             return windowInsets;
         });
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        ScrollView verticalScrollView = view.findViewById(R.id.edit_node_fragment_scrollview);
+        nodeEditorFragmentLinearLayout = new LinearLayout(getContext());
+        nodeEditorFragmentLinearLayout.setId(EDIT_FRAGMENT_LINEARLAYOUT);
+        nodeEditorFragmentLinearLayout.setOrientation(LinearLayout.VERTICAL);
+        if (sharedPreferences.getBoolean(PREFERENCE_DISABLE_LINEWRAP, false)) {
+            HorizontalScrollView horizontalScrollView = new HorizontalScrollView(getContext());
+            verticalScrollView.addView(horizontalScrollView);
+            horizontalScrollView.addView(nodeEditorFragmentLinearLayout);
+        } else {
+            verticalScrollView.addView(nodeEditorFragmentLinearLayout);
+        }
         onCustomTextEditFocusChangeListener = createOnCustomTextEditFocusChangeListener();
-        nodeEditorFragmentLinearLayout = view.findViewById(R.id.node_edit_fragment_linearlayout);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
         handler = appContainer.handler;
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         color = sharedPreferences.getInt("colorPickerColor", ColorPickerPresets.BLACK.getColor());
         return view;
     }

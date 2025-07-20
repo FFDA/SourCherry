@@ -12,6 +12,8 @@ package lt.ffda.sourcherry.preferences;
 
 import static android.content.Context.UI_MODE_SERVICE;
 
+import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_DARK_MODE;
+
 import android.app.UiModeManager;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -35,7 +37,7 @@ import androidx.preference.PreferenceManager;
 import androidx.preference.SeekBarPreference;
 
 import lt.ffda.sourcherry.R;
-import lt.ffda.sourcherry.utils.DpPxConverter;
+import lt.ffda.sourcherry.utils.Calculations;
 
 public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
     /**
@@ -56,7 +58,7 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
         setPreferencesFromResource(R.xml.preferences_appearance, rootKey);
 
         // Listener to detect when user changes theme to apply it
-        ListPreference darkModeListPreference = findPreference("preferences_dark_mode");
+        ListPreference darkModeListPreference = findPreference(PREFERENCE_DARK_MODE);
         darkModeListPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
@@ -97,7 +99,7 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
                 SharedPreferences.Editor sharedPrefEditor = sharedPreferences.edit();
-                sharedPrefEditor.putInt("paddingStart", DpPxConverter.dpToPx((int) newValue));
+                sharedPrefEditor.putInt("paddingStart", Calculations.dpToPx((int) newValue));
                 sharedPrefEditor.commit();
                 return true;
             }
@@ -108,7 +110,7 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
             @Override
             public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
                 SharedPreferences.Editor sharedPrefEditor = sharedPreferences.edit();
-                sharedPrefEditor.putInt("paddingEnd", DpPxConverter.dpToPx((int) newValue));
+                sharedPrefEditor.putInt("paddingEnd", Calculations.dpToPx((int) newValue));
                 sharedPrefEditor.commit();
                 return true;
             }

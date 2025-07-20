@@ -10,32 +10,7 @@
 
 package lt.ffda.sourcherry;
 
-import androidx.activity.EdgeToEdge;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.content.res.AppCompatResources;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentResultListener;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.preference.PreferenceManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import static lt.ffda.sourcherry.fragments.NodeContentFragment.CONTENT_FRAGMENT_LINEARLAYOUT;
 
 import android.app.Activity;
 import android.content.Context;
@@ -78,6 +53,33 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentResultListener;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.preference.PreferenceManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.android.material.snackbar.Snackbar;
 
 import org.xml.sax.SAXException;
@@ -105,14 +107,14 @@ import lt.ffda.sourcherry.database.MultiReader;
 import lt.ffda.sourcherry.dialogs.ExportDatabaseDialogFragment;
 import lt.ffda.sourcherry.dialogs.MenuItemActionDialogFragment;
 import lt.ffda.sourcherry.dialogs.SaveOpenDialogFragment;
-import lt.ffda.sourcherry.model.FileInfo;
 import lt.ffda.sourcherry.fragments.CreateNodeFragment;
 import lt.ffda.sourcherry.fragments.ImageViewFragment;
-import lt.ffda.sourcherry.fragments.NodeContentFragment;
-import lt.ffda.sourcherry.fragments.NodeContentEditorFragment;
 import lt.ffda.sourcherry.fragments.MoveNodeFragment;
+import lt.ffda.sourcherry.fragments.NodeContentEditorFragment;
+import lt.ffda.sourcherry.fragments.NodeContentFragment;
 import lt.ffda.sourcherry.fragments.NodePropertiesFragment;
 import lt.ffda.sourcherry.fragments.SearchFragment;
+import lt.ffda.sourcherry.model.FileInfo;
 import lt.ffda.sourcherry.model.ScNode;
 import lt.ffda.sourcherry.preferences.PreferencesActivity;
 import lt.ffda.sourcherry.runnables.CollectNodesBackgroundRunnable;
@@ -702,7 +704,7 @@ public class MainView extends AppCompatActivity {
      */
     private void highlightFindInNodeResult() {
         mainViewModel.findInNodeStorageReset();
-        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
+        LinearLayout contentFragmentLinearLayout = findViewById(CONTENT_FRAGMENT_LINEARLAYOUT);
         int counter = 0; // Iterator of the all the saved views from node content
         int resultCounter = 0;
         int[] currentResult;
@@ -1017,7 +1019,7 @@ public class MainView extends AppCompatActivity {
             // Reapply fragment insets
             Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.main_view_fragment);
             if (currentFragment != null && currentFragment.getView() != null) {
-                View contentFragmentLinearLayout = currentFragment.getView().findViewById(R.id.content_fragment_linearlayout);
+                View contentFragmentLinearLayout = currentFragment.getView().findViewById(CONTENT_FRAGMENT_LINEARLAYOUT);
                 if (contentFragmentLinearLayout != null) {
                     ViewCompat.requestApplyInsets(contentFragmentLinearLayout);
                 }
@@ -1674,7 +1676,7 @@ public class MainView extends AppCompatActivity {
             if (result.getResultCode() == Activity.RESULT_OK) {
                 // If user actually chose a location to save a file
                 try {
-                    LinearLayout nodeContent = findViewById(R.id.content_fragment_linearlayout);
+                    LinearLayout nodeContent = findViewById(CONTENT_FRAGMENT_LINEARLAYOUT);
                     PdfDocument document = new PdfDocument();
                     int padding = 25; // It's used not only pad the document, but to calculate where title will be placed on the page
                     int top = padding * 4; // This will used to move (translate) cursor where everything has to be drawn on canvas
@@ -1923,7 +1925,7 @@ public class MainView extends AppCompatActivity {
      * Resets all other variables and UI elements associated with FindInNode too.
      */
     private void restoreHighlightedView() {
-        LinearLayout contentFragmentLinearLayout = findViewById(R.id.content_fragment_linearlayout);
+        LinearLayout contentFragmentLinearLayout = findViewById(CONTENT_FRAGMENT_LINEARLAYOUT);
         if (currentFindInNodeMarked != -1 && contentFragmentLinearLayout != null && mainViewModel.getFindInNodeResultStorage().size() > 0) {
             int counter = 0;
             for (int i = 0; i < contentFragmentLinearLayout.getChildCount(); i++) {
@@ -1955,7 +1957,7 @@ public class MainView extends AppCompatActivity {
     /**
      * Function used when closing NodeEditorFragment depending on passed boolean variable displayed
      * node content will be reloaded or not. Node content is not read from database but read from
-     * MainViewModel, because at avery save it is stored there before saving it into database.
+     * MainViewModel, because at every save it is stored there before saving it into database.
      * Changes home button to hamburger button in toolbar
      * @param reloadContent true - reload node content
      */

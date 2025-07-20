@@ -949,6 +949,9 @@ public class XMLReader extends DatabaseReader {
 
     @Override
     public ScNode getSingleMenuItem(String nodeUniqueID) {
+        if (nodeUniqueID == null) {
+            return null;
+        }
         Node node = findNode(nodeUniqueID);
         if (node == null) {
             return null;

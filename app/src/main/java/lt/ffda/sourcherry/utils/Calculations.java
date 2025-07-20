@@ -12,7 +12,7 @@ package lt.ffda.sourcherry.utils;
 
 import android.content.res.Resources;
 
-public class DpPxConverter {
+public class Calculations {
     /**
      * Converts provided PX value to DP and returns it
      * @param paddingInPX padding value in PX to be converted
@@ -29,5 +29,17 @@ public class DpPxConverter {
      */
     public static int dpToPx(int paddingInDP) {
         return (int) (paddingInDP * Resources.getSystem().getDisplayMetrics().density);
+    }
+
+    /**
+     * Calculates position to scroll horizontally to display FindInNode result to the user
+     * @param scrollToX primary horizontal position
+     * @return posittion to scroll horizontally
+     */
+    public static int adjustScrollToX(float scrollToX) {
+        if (Resources.getSystem().getDisplayMetrics().density < scrollToX) {
+            scrollToX -= 40; // Arbitrary position adjustment
+        }
+        return (int) scrollToX;
     }
 }
