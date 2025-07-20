@@ -119,22 +119,21 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         NodeContentEditorMenuBackAction, NodeContentEditorListsMenuActions {
 
     private final static int EDIT_FRAGMENT_LINEARLAYOUT = 10002;
-
-    private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
+    CustomTextEdit focusedChild = null;
+    private final ActivityResultLauncher<PickVisualMediaRequest> pickImage = registerPickImage();
     private boolean changesSaved = false;
+    private View.OnClickListener clickListener;
     private int color;
     private Handler handler;
     private MainViewModel mainViewModel;
-    private LinearLayout nodeEditorFragmentLinearLayout;
-    private final ActivityResultLauncher<PickVisualMediaRequest> pickImage = registerPickImage();
     private final ActivityResultLauncher<String[]> attachFile = registerAttachFile();
+    private LinearLayout nodeEditorFragmentLinearLayout;
+    private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
     private SharedPreferences sharedPreferences;
-    private boolean unsavedChanges = false;
     private TextWatcher textWatcher;
-    private final OnBackPressedCallback onBackPressedCallback = createOnBackPressedCallback();
-    private View.OnClickListener clickListener;
     private boolean typing = true; // As apposed to pasting
-    CustomTextEdit focusedChild = null;
+    private boolean unsavedChanges = false;
+    private final OnBackPressedCallback onBackPressedCallback = createOnBackPressedCallback();
 
     @Override
     public void attachFile() {
@@ -629,6 +628,38 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     @Override
+    public void decreaseListItemIndentation() {
+        int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, focusedChild.getSelectionStart());
+        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
+        allListMatcher.region(indexOfLastNewline, focusedChild.getText().length());
+        if (allListMatcher.lookingAt()) {
+            if (allListMatcher.group(1).length() > 2) {
+                SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
+                updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+                Matcher orderedMatcher = orderdList.matcher(updatedListItem);
+                Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
+                if (orderedMatcher.find()) {
+                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) - 1;
+                    if (level < 0) {
+                        level = 3;
+                    }
+                    int position = getLastOrderedItemNumValueOfLevel(focusedChild, level);
+                    updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(position + 1));
+                    updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
+                } else if (unorderedMatcher.find()) {
+                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) - 1;
+                    if (level < 0) {
+                        level = 5;
+                    }
+                    updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
+                }
+                updatedListItem.replace(0, 3, "");
+                focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+            }
+        }
+    }
+
+    @Override
     public void deleteColumn() {
         HorizontalScrollView tableScrollView = (HorizontalScrollView) nodeEditorFragmentLinearLayout.getFocusedChild();
         ScTableLayout table = (ScTableLayout) tableScrollView.getFocusedChild();
@@ -701,25 +732,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
-     * Calculates which indentation level by the space infornt of the list item. Indentation starts
-     * at 0 spaces (level 0) and adds 3 spaces for each level going forward. Unordered list have 6
-     * level, ordered - 4.
-     * @param indentation spaces in front of the list item at the start of the line
-     * @param maxLevel maximum level for the list. Should be 6 for unordered list, 4 for ordered
-     * @return level of the indentation
-     */
-    private int getListIndentationLevel(int indentation, int maxLevel) {
-        if (indentation == 0) {
-            return 0;
-        }
-        int level = indentation / 3;
-        if (level >= maxLevel) {
-            level = level % maxLevel;
-        }
-        return level;
-    }
-
-    /**
      * Returns nummeric value of last ordered list item from the start of the provided EditText to
      * the posittion of the cursor. Returns nummeric value of specified level of the ordered item.
      * @param editText EditText to search for the nummeric value of the last ordered list item
@@ -738,6 +750,25 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
         }
         return orderedItem;
+    }
+
+    /**
+     * Calculates which indentation level by the space infornt of the list item. Indentation starts
+     * at 0 spaces (level 0) and adds 3 spaces for each level going forward. Unordered list have 6
+     * level, ordered - 4.
+     * @param indentation spaces in front of the list item at the start of the line
+     * @param maxLevel maximum level for the list. Should be 6 for unordered list, 4 for ordered
+     * @return level of the indentation
+     */
+    private int getListIndentationLevel(int indentation, int maxLevel) {
+        if (indentation == 0) {
+            return 0;
+        }
+        int level = indentation / 3;
+        if (level >= maxLevel) {
+            level = level % maxLevel;
+        }
+        return level;
     }
 
     /**
@@ -782,6 +813,29 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                 break;
         }
         return typeface;
+    }
+
+    @Override
+    public void increaseListItemIndentation() {
+        int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, focusedChild.getSelectionStart());
+        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
+        allListMatcher.region(indexOfLastNewline, focusedChild.getText().length());
+        if (allListMatcher.lookingAt()) {
+            SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
+            updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+            Matcher orderedMatcher = orderdList.matcher(updatedListItem);
+            Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
+            if (orderedMatcher.find()) {
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) + 1;
+                updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(1));
+                updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
+            } else if (unorderedMatcher.find()) {
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) + 1;
+                updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
+            }
+            updatedListItem.insert(0, "   ");
+            focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+        }
     }
 
     @Override
@@ -1096,8 +1150,9 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         textWatcher = new TextWatcher() {
-            int lineCount;
             boolean changedInput = false;
+            int lineCount;
+
             @Override
             public void afterTextChanged(Editable s) {
                 unsavedChanges = true;
@@ -1471,36 +1526,6 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     @Override
-    public void startUnordered() {
-        if (!isCursorPlaced()) {
-            Toast.makeText(getContext(), R.string.toast_message_start_list_place_cursor, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (isCursorInTable()) {
-            Toast.makeText(getContext(), R.string.toast_message_start_list_insert_into_table, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        int[] paraStartEnd = getParagraphStartEnd(focusedChild);
-        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
-        allListMatcher.region(paraStartEnd[0], paraStartEnd[1]);
-        // Checking if there is already a list at this line
-        if (allListMatcher.lookingAt()) {
-            Matcher unorderedMatcher = unorderedList.matcher(focusedChild.getText());
-            unorderedMatcher.region(paraStartEnd[0], paraStartEnd[1]);
-            if (unorderedMatcher.find()) {
-                // If it's a unordered list line - deleting it
-                focusedChild.getText().replace(unorderedMatcher.start(1), unorderedMatcher.end(1) + 1, "");
-            } else {
-                // If it's any other list line
-                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6);
-                focusedChild.getText().replace(allListMatcher.start(2), allListMatcher.end(2), UnorderedSwitch.getItemForLevel(level));
-            }
-        } else {
-            focusedChild.getText().insert(paraStartEnd[0], new StringBuilder(UnorderedSwitch.BULLTET.getString()).append(' '));
-        }
-    }
-
-    @Override
     public void startOrdered() {
         if (!isCursorPlaced()) {
             Toast.makeText(getContext(), R.string.toast_message_start_list_place_cursor, Toast.LENGTH_SHORT).show();
@@ -1531,57 +1556,32 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     @Override
-    public void decreaseListItemIndentation() {
-        int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, focusedChild.getSelectionStart());
-        Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
-        allListMatcher.region(indexOfLastNewline, focusedChild.getText().length());
-        if (allListMatcher.lookingAt()) {
-            if (allListMatcher.group(1).length() > 2) {
-                SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
-                updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
-                Matcher orderedMatcher = orderdList.matcher(updatedListItem);
-                Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
-                if (orderedMatcher.find()) {
-                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) - 1;
-                    if (level < 0) {
-                        level = 3;
-                    }
-                    int position = getLastOrderedItemNumValueOfLevel(focusedChild, level);
-                    updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(position + 1));
-                    updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
-                } else if (unorderedMatcher.find()) {
-                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) - 1;
-                    if (level < 0) {
-                        level = 5;
-                    }
-                    updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
-                }
-                updatedListItem.replace(0, 3, "");
-                focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
-            }
+    public void startUnordered() {
+        if (!isCursorPlaced()) {
+            Toast.makeText(getContext(), R.string.toast_message_start_list_place_cursor, Toast.LENGTH_SHORT).show();
+            return;
         }
-    }
-
-    @Override
-    public void increaseListItemIndentation() {
-        int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, focusedChild.getSelectionStart());
+        if (isCursorInTable()) {
+            Toast.makeText(getContext(), R.string.toast_message_start_list_insert_into_table, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int[] paraStartEnd = getParagraphStartEnd(focusedChild);
         Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
-        allListMatcher.region(indexOfLastNewline, focusedChild.getText().length());
+        allListMatcher.region(paraStartEnd[0], paraStartEnd[1]);
+        // Checking if there is already a list at this line
         if (allListMatcher.lookingAt()) {
-            SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
-            updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
-            Matcher orderedMatcher = orderdList.matcher(updatedListItem);
-            Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
-            if (orderedMatcher.find()) {
-                int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) + 1;
-                updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(1));
-                updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
-            } else if (unorderedMatcher.find()) {
-                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) + 1;
-                updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
+            Matcher unorderedMatcher = unorderedList.matcher(focusedChild.getText());
+            unorderedMatcher.region(paraStartEnd[0], paraStartEnd[1]);
+            if (unorderedMatcher.find()) {
+                // If it's a unordered list line - deleting it
+                focusedChild.getText().replace(unorderedMatcher.start(1), unorderedMatcher.end(1) + 1, "");
+            } else {
+                // If it's any other list line
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6);
+                focusedChild.getText().replace(allListMatcher.start(2), allListMatcher.end(2), UnorderedSwitch.getItemForLevel(level));
             }
-            updatedListItem.insert(0, "   ");
-            focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+        } else {
+            focusedChild.getText().insert(paraStartEnd[0], new StringBuilder(UnorderedSwitch.BULLTET.getString()).append(' '));
         }
     }
 
