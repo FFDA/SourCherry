@@ -1,0 +1,1 @@
+App zum Öffnen von CherryTree-Datenbanken
