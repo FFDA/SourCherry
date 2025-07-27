@@ -348,34 +348,6 @@ public class MainActivity extends AppCompatActivity {
             (new File (getExternalFilesDir(null), "databases")).mkdirs();
         }
 
-        // If launched the app by opening a file from different app
-        Intent intent = getIntent();
-        if (intent.getAction().equals(Intent.ACTION_VIEW)) {
-            openIntent(intent);
-        } else {
-            // If app weren't launched by selecting a database file from external app
-            CheckBox checkboxAutoOpen = findViewById(R.id.checkBox_auto_open);
-            if (savedInstanceState == null) {
-                if (checkboxAutoOpen.isChecked()) {
-                    // All these ifs are needed
-                    // startMainViewActivity() has to be launched from FragmentDialog
-                    // Otherwise it will be interrupted and database won't be copied
-                    if (sharedPreferences.getString("databaseUri", null) != null) {
-                        if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
-                            mirrorDatabase();
-                        } else {
-                            openDatabase();
-                        }
-                    }
-                } else {
-                    // If “Open this database on startup” isn't checked but "Mirror Database" might still be
-                    if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
-                        mirrorDatabase();
-                    }
-                }
-            }
-        }
-
         addMenuProvider(new MenuProvider() {
             @Override
             public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
@@ -399,6 +371,8 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         }, this, Lifecycle.State.RESUMED);
+
+        processIntent(getIntent(), savedInstanceState);
     }
 
     @Override
@@ -410,7 +384,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(@NonNull Intent intent) {
         super.onNewIntent(intent);
-        openIntent(intent);
+        processIntent(intent, null);
     }
 
     @Override
@@ -523,6 +497,39 @@ public class MainActivity extends AppCompatActivity {
         if (databaseFileExtension.equals("ctb") || databaseFileExtension.equals("ctd")) {
             // If database is not protected it can be opened without any user interaction
             openDatabase();
+        }
+    }
+
+    /**
+     * Opens database or shows mainView depending on intent and parameters
+     * @param intent intent that opened the app
+     * @param savedInstanceState bundle with parameters
+     */
+    private void processIntent(Intent intent, Bundle savedInstanceState) {
+        if (intent.getAction().equals(Intent.ACTION_VIEW)) {
+            openIntent(intent);
+        } else {
+            // If app weren't launched by selecting a database file from external app
+            CheckBox checkboxAutoOpen = findViewById(R.id.checkBox_auto_open);
+            if (savedInstanceState == null) {
+                if (checkboxAutoOpen.isChecked()) {
+                    // All these ifs are needed
+                    // startMainViewActivity() has to be launched from FragmentDialog
+                    // Otherwise it will be interrupted and database won't be copied
+                    if (sharedPreferences.getString("databaseUri", null) != null) {
+                        if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
+                            mirrorDatabase();
+                        } else {
+                            openDatabase();
+                        }
+                    }
+                } else {
+                    // If “Open this database on startup” isn't checked but "Mirror Database" might still be
+                    if (sharedPreferences.getBoolean("mirror_database_switch", false)) {
+                        mirrorDatabase();
+                    }
+                }
+            }
         }
     }
 
