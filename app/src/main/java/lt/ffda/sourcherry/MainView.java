@@ -1564,6 +1564,9 @@ public class MainView extends AppCompatActivity {
      * home button
      */
     private void openNodeEditor() {
+        if (findInNodeToggle) {
+            closeFindInNode();
+        }
         Bundle bundle = new Bundle();
         ScrollView scrollView = findViewById(R.id.content_fragment_scrollview);
         bundle.putString("nodeUniqueID", mainViewModel.getCurrentNode().getUniqueId());
