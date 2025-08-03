@@ -33,8 +33,13 @@ public class AboutActivity extends AppCompatActivity {
 
         Toolbar imageViewActivityToolbar = findViewById(R.id.about_activity_toolbar);
         ViewCompat.setOnApplyWindowInsetsListener(imageViewActivityToolbar, (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), insets.top, v.getPaddingRight(), v.getPaddingBottom());
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(insets.left, insets.top, insets.right, v.getPaddingBottom());
+            return windowInsets;
+        });
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.about_activity_linear_layout), (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(insets.left, v.getPaddingTop(), insets.right, v.getPaddingBottom());
             return windowInsets;
         });
         setSupportActionBar(imageViewActivityToolbar);
