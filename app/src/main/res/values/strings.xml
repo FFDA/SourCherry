@@ -195,7 +195,7 @@
     <string name="preferences_about_libraries_title">Software used</string>
     <string name="preferences_about_libraries_content" translatable="false">7-Zip-JBinding-4Android - https://github.com/omicronapps/7-Zip-JBinding-4Android\nJLatexMath Android - https://github.com/noties/jlatexmath-android\nColorPickerDialog - https://github.com/fennifith/ColorPickerDialog</string>
     <string name="preferences_about_fonts_title">Fonts used</string>
-    <string name="preferences_about_fonts_content" translatable="false">Caladea (Apache 2.0)\nComfortaa (OFL)\nMerriweather (OFL)</string>
+    <string name="preferences_about_fonts_content" translatable="false">Caladea (Apache 2.0)\nComfortaa (OFL)\nMerriweather (OFL)\nDejaVuSansMono(OFL)</string>
     <string name="preferences_about_activity_github" translatable="false">GitHub - https://github.com/FFDA/SourCherry</string>
     <string name="preferences_about_version_code">%1$s (%2$d)</string>
     <string name="mirror_database_fragment_enter_password_message">Please enter the password</string>
