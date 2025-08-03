@@ -1105,9 +1105,9 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_node_editor, container, false);
         ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
             Insets insetsIme = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), Math.max(insets.bottom, insetsIme.bottom));
+            v.setPadding(insets.left, v.getPaddingTop(), insets.right, Math.max(insets.bottom, insetsIme.bottom));
             return windowInsets;
         });
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());

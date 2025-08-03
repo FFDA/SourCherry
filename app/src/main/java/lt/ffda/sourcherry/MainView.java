@@ -156,6 +156,40 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
+     * Sets all necessery view insets for them to not overlap
+     * @param toolbar apps toolbar
+     */
+    private void applyInsets(Toolbar toolbar) {
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(insets.left, insets.top, insets.right, v.getPaddingBottom());
+            return windowInsets;
+        });
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_view_find_in_node_linear_layout), (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets insetsIme = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), Math.max(insets.bottom, insetsIme.bottom));
+
+            // Reapply fragment insets
+            Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.main_view_fragment);
+            if (currentFragment != null && currentFragment.getView() != null) {
+                View contentFragmentLinearLayout = currentFragment.getView().findViewById(CONTENT_FRAGMENT_LINEARLAYOUT);
+                if (contentFragmentLinearLayout != null) {
+                    ViewCompat.requestApplyInsets(contentFragmentLinearLayout);
+                }
+            }
+            return windowInsets;
+        });
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.navigationView), (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(insets.left, v.getPaddingTop(), insets.right, insets.bottom);
+            return windowInsets;
+        });
+    }
+
+    /**
      * Sets variables that were used to display bookmarks to their default values
      */
     private void bookmarkVariablesReset() {
@@ -1001,40 +1035,6 @@ public class MainView extends AppCompatActivity {
     }
 
     /**
-     * Sets all necessery view insets for them to not overlap
-     * @param toolbar apps toolbar
-     */
-    private void insetSetup(Toolbar toolbar) {
-        ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), insets.top, v.getPaddingRight(), v.getPaddingBottom());
-            return windowInsets;
-        });
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_view_find_in_node_linear_layout), (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            Insets insetsIme = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), Math.max(insets.bottom, insetsIme.bottom));
-
-            // Reapply fragment insets
-            Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.main_view_fragment);
-            if (currentFragment != null && currentFragment.getView() != null) {
-                View contentFragmentLinearLayout = currentFragment.getView().findViewById(CONTENT_FRAGMENT_LINEARLAYOUT);
-                if (contentFragmentLinearLayout != null) {
-                    ViewCompat.requestApplyInsets(contentFragmentLinearLayout);
-                }
-            }
-            return windowInsets;
-        });
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.navigationView), (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), insets.bottom);
-            return windowInsets;
-        });
-    }
-
-    /**
      * Displays create new node fragment
      * @param nodeUniqueID unique node ID of the node which action menu was launched
      * @param relation relation to the node selected. 0 - sibling, 1 - subnode
@@ -1153,7 +1153,7 @@ public class MainView extends AppCompatActivity {
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        insetSetup(toolbar);
+        applyInsets(toolbar);
 
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         AppContainer appContainer = ((ScApplication) getApplication()).appContainer;

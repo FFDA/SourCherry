@@ -102,8 +102,8 @@ public class SearchFragment extends Fragment {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_search, container, false);
         ViewCompat.setOnApplyWindowInsetsListener(view.findViewById(R.id.main_search_content), (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(),v.getPaddingTop(), v.getPaddingRight(), insets.bottom);
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(insets.left, v.getPaddingTop(), insets.right, insets.bottom);
             return windowInsets;
         });
         searchProgressBar = view.findViewById(R.id.search_fragment_progressBar);

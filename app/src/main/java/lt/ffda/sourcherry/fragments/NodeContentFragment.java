@@ -13,6 +13,7 @@ package lt.ffda.sourcherry.fragments;
 import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_DISABLE_LINEWRAP;
 
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -76,6 +77,21 @@ public class NodeContentFragment extends Fragment {
     private Handler handler;
     private MainViewModel mainViewModel;
     private SharedPreferences sharedPreferences;
+
+    /**
+     * Applies insets to views for edge-to-edge support
+     */
+    private void applyInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(contentFragmentLinearLayout, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                v.setPadding(insets.left, v.getPaddingTop(), insets.right, v.getPaddingBottom());
+            } else {
+                v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), ((MainView) getActivity()).getFindInNodeToggle() ? 0 : insets.bottom);
+            }
+            return windowInsets;
+        });
+    }
 
     /**
      * Create OnBackPressedCallback used to deal with clicks in NodeContentFragment fragemnt.
@@ -263,12 +279,7 @@ public class NodeContentFragment extends Fragment {
             scrollView.addView(contentFragmentLinearLayout);
             mainViewModel.setLinewrap(true);
         }
-        //contentFragmentLinearLayout = rootView.findViewById(R.id.content_fragment_linearlayout);
-        ViewCompat.setOnApplyWindowInsetsListener(contentFragmentLinearLayout, (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), ((MainView) getActivity()).getFindInNodeToggle() ? 0 : insets.bottom);
-            return windowInsets;
-        });
+        applyInsets();
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
         handler = appContainer.handler;
         backToExit = false;
