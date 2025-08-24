@@ -118,8 +118,9 @@ public class SearchFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        // Loading new menu for the fragment
-        // that only have a save button in it
+        if (savedInstanceState != null) {
+            ((MainView) getContext()).disableDrawerMenu();
+        }
         MenuHost menuHost = requireActivity();
         menuHost.addMenuProvider(new MenuProvider() {
             @Override
