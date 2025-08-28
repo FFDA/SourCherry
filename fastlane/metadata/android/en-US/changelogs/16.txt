@@ -1,0 +1,6 @@
+v1.8.0
+- Support for Android 15 (edge-to-edge);
+- Auto-export for MirrorDatabase;
+- Restored file associations;
+- Embedded monospace font;
+- New icon;
