@@ -48,6 +48,6 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
-    implementation 'com.github.omicronapps:7-Zip-JBinding-4Android:Release-16.02-2.02'
+    implementation 'com.github.omicronapps:7-Zip-JBinding-4Android:Release-16.02-2.03'
     implementation 'me.jfenn.ColorPickerDialog:base:0.2.2'
 }
