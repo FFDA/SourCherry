@@ -11,8 +11,14 @@
 package lt.ffda.sourcherry.utils;
 
 public class Constants {
+
     public final static String DATABASE_EXPORT_NOTI = "DATABASE_EXPORT_NOTI";
 
+    //APPEARANCE
     public final static String PREFERENCE_DARK_MODE = "preferences_dark_mode";
     public final static String PREFERENCE_DISABLE_LINEWRAP = "preferences_linewrap";
+
+    //EDITOR
+    public final static String PREFERENCE_USE_SPACES = "preferences_use_spaces";
+    public final static String PREFERENCE_SPACE_CHAR_COUNT = "preferences_space_char_count";
 }

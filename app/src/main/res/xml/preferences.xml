@@ -23,6 +23,12 @@
         android:fragment="lt.ffda.sourcherry.preferences.PreferencesAppearanceFragment"/>
 
     <Preference
+        android:key="preferences_editor"
+        android:title="@string/preferences_editor"
+        android:summary="@string/preferences_editor_summary"
+        android:fragment="lt.ffda.sourcherry.preferences.PreferencesEditorFragment"/>
+
+    <Preference
         android:key="preferences_database"
         android:title="@string/preferences_database"
         android:summary="@string/preferences_database_summary"

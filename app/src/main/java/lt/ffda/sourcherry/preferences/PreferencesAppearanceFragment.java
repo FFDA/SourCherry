@@ -50,11 +50,10 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
             getParentFragmentManager().popBackStack();
         }
     };
-    SharedPreferences sharedPreferences;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         setPreferencesFromResource(R.xml.preferences_appearance, rootKey);
 
         // Listener to detect when user changes theme to apply it

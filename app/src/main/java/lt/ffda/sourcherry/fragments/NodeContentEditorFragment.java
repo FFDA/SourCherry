@@ -11,6 +11,8 @@
 package lt.ffda.sourcherry.fragments;
 
 import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_DISABLE_LINEWRAP;
+import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_SPACE_CHAR_COUNT;
+import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_USE_SPACES;
 import static lt.ffda.sourcherry.utils.RegexPatterns.allCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.allListStarts;
 import static lt.ffda.sourcherry.utils.RegexPatterns.checkedCheckbox;
@@ -43,6 +45,7 @@ import android.text.style.UnderlineSpan;
 import android.util.Base64;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -129,9 +132,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     private final ActivityResultLauncher<String[]> attachFile = registerAttachFile();
     private LinearLayout nodeEditorFragmentLinearLayout;
     private View.OnFocusChangeListener onCustomTextEditFocusChangeListener;
+    private View.OnKeyListener onKeyListener;
     private SharedPreferences sharedPreferences;
+    private String tabCharacter;
     private TextWatcher textWatcher;
-    private boolean typing = true; // As apposed to pasting
+    private boolean typing = true; // As apposed to pasting/inserting text
     private boolean unsavedChanges = false;
     private final OnBackPressedCallback onBackPressedCallback = createOnBackPressedCallback();
 
@@ -370,6 +375,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize);
         editText.setTypeface(typeface);
         editText.setOnFocusChangeListener(onCustomTextEditFocusChangeListener);
+        editText.setOnKeyListener(onKeyListener);
         return editText;
     }
 
@@ -552,8 +558,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @param rowParams view parametres of the row
      * @param cellParams view paramteres of the cell
      * @param typeface typeface font be set on the text in the table. Null will use default android font.
-     * @param textSize textSize textSize to be set on the text in the table.
-     * @param colWidth default width of the cell. The cell will not expand more then set width. Does not apply to header cell.
+     * @param textSize textSize to be set on the text in the table.
+     * @param colWidth default width of the cell. The cell will not expand more than set width. Does not apply to header cell.
      * @return view with the row of the table ready to be added to one
      */
     private TableRow createTableRow(boolean header, int cols, TableRow.LayoutParams rowParams, ViewGroup.LayoutParams cellParams, Typeface typeface, int textSize, int colWidth) {
@@ -572,7 +578,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @param defaultWidth default width of the cell. The cell will not expand more then set width. Does not apply to header cell.
      * @param lightInterface set tables interface to be lightweight. 0 - normal interface, 1 - lightweight. Has no effect in mobile version
      * @param typeface typeface font be set on the text in the table. Null will use default android font.
-     * @param textSize textSize textSize to be set on the text in the table.
+     * @param textSize textSize to be set on the text in the table.
      * @return HorizontalScrollView that holds TableView
      */
     private HorizontalScrollView createTableView(int rows, int cols, int defaultWidth, byte lightInterface, Typeface typeface, int textSize) {
@@ -790,6 +796,22 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             end = paragraph.start();
         }
         return new int[] {start, end};
+    }
+
+    /**
+     * Returns tab character set in application preferences
+     * @return
+     */
+    private String getTabCharacter() {
+        if (tabCharacter != null) {
+            return tabCharacter;
+        }
+        if(sharedPreferences.getBoolean(PREFERENCE_USE_SPACES, false)) {
+            tabCharacter = " ".repeat(Integer.parseInt(sharedPreferences.getString(PREFERENCE_SPACE_CHAR_COUNT, "4")));
+            return tabCharacter;
+        }
+        tabCharacter = "\t";
+        return tabCharacter;
     }
 
     /**
@@ -1163,11 +1185,11 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                if (focusedChild == null) {
+                    focusedChild = (CustomTextEdit) nodeEditorFragmentLinearLayout.getFocusedChild();
+                }
                 typing = Math.abs(count - after) < 2;
                 if (typing) {
-                    if (focusedChild == null) {
-                        focusedChild = (CustomTextEdit) nodeEditorFragmentLinearLayout.getFocusedChild();
-                    }
                     if (!focusedChild.isTableCell() && !changedInput) {
                         lineCount = focusedChild.getLineCount();
                     }
@@ -1175,8 +1197,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             }
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (!focusedChild.isTableCell() && typing && !changedInput) {
+            public void onTextChanged(CharSequence s, int start, int before, int count) {if (!focusedChild.isTableCell() && typing && !changedInput) {
                     if (lineCount < focusedChild.getLineCount()) {
                         int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, start);
                         Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
@@ -1203,7 +1224,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                                 Matcher checkboxMatcher = checkedCheckbox.matcher(newListItem);
                                 Matcher orderedMatcher = orderdList.matcher(newListItem);
                                 if (checkboxMatcher.find()) {
-                                    // Checks if new line chas a checkbox that is in checked or crossed state
+                                    // Checks if new line has a checkbox that is in checked or crossed state
                                     // If so - replces it with empty checkbox
                                     newListItem.replace(checkboxMatcher.start(), checkboxMatcher.end(), CheckBoxSwitch.EMPTY.getString());
                                 } else if (orderedMatcher.find()) {
@@ -1224,6 +1245,18 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             @Override
             public void onClick(View view) {
                 checkBoxToggle((EditText) view);
+            }
+        };
+
+        onKeyListener = new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (keyCode == KeyEvent.KEYCODE_TAB && event.getAction() == KeyEvent.ACTION_DOWN) {
+                    EditText editText = (EditText) v;
+                    editText.getText().insert(editText.getSelectionStart(), getTabCharacter());
+                    return true;
+                }
+                return false;
             }
         };
 
@@ -1299,7 +1332,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     /**
-     * Applies provided span to the text to the portion of the span that is outside of the selected text
+     * Applies provided span to the text to the portion of the span that is outside the selected text
      * It needs to have two spans because any span object can be used only once
      * @param startOfSelection index of the text at the start of selection
      * @param endOfSelection index of the text at the end of selection
@@ -1317,7 +1350,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             // If start of selection is outside the span, but the end is inside
             focusedChild.getText().setSpan(span1, endOfSelection, endOfSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else if (startOfSelection >= startOfSpan) {
-            // If start if selection is inside of the span, but the end is outside
+            // If start of selection is inside the span, but the end is outside
             focusedChild.getText().setSpan(span1, startOfSpan, startOfSelection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
     }

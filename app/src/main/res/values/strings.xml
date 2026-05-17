@@ -153,6 +153,8 @@
     <string name="preferences_general_summary">Default actions and behaviour</string>
     <string name="preferences_appearance">Appearance</string>
     <string name="preferences_appearance_summary">Dark mode, font size, padding</string>
+    <string name="preferences_editor">Editor</string>
+    <string name="preferences_editor_summary">Editor prefences</string>
     <string name="preferences_database">Database</string>
     <string name="preferences_database_summary">Database management preferences</string>
     <string name="preferences_auto_open_summary">Automatically close drawer menu when selected node does not have subnodes</string>
@@ -161,6 +163,9 @@
     <string name="preferences_default_unsaved_changes_action_title">Default unsaved changes action</string>
     <string name="preferences_text_size_title">Text size</string>
     <string name="preferences_disable_linewrapping">Disable line wrapping</string>
+    <string name="preferences_use_spaces">Use spaces instead of tabs</string>
+    <string name="preferences_space_char_count">Tab width</string>
+    <string name="preferences_space_char_count_summary">Available only with spaces as tab characters</string>
     <string name="preferences_font_type_title">Font type</string>
     <string name="preferences_category_padding_title">Padding</string>
     <string name="preferences_category_padding_summary">Padding for node content in DP</string>
