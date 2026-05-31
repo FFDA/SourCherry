@@ -385,7 +385,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @return new ClickableSpanLink object
      */
     private ClickableSpanLink createFileFolderLink(ClickableSpanLink clickableSpanLink) {
-        // Needed to save context to memory. Otherwise will cause a crash
+        // Needed to save context to memory. Otherwise, will cause a crash
         Context context = getContext();
         ClickableSpanLink newClickableSpanLink = new ClickableSpanLink() {
             @Override
@@ -416,7 +416,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @return new ClickableSpanNode object
      */
     private ClickableSpanNode createNodeLink(ClickableSpanNode clickableSpanNode) {
-        // Needed to save context to memory. Otherwise will cause a crash
+        // Needed to save context to memory. Otherwise, will cause a crash
         Context context = getContext();
         ClickableSpanNode newClickableSpanNode = new ClickableSpanNode() {
             @Override
@@ -481,7 +481,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     /**
      * Creates focus change listiner for CustomEditText. It changes editor menu depending on where
      * the user puts cursor. When cursor in table it should have different editor menu items.
-     * Moreover, it adds text chagne listener to the focus view that was focused and removes the it
+     * Moreover, it adds text chagne listener to the focus view that was focused and removes it
      * from the view that lost focus.
      * @return OnFocusChangeListener for CustomEditText
      */
@@ -575,7 +575,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * Creates new empty table ready to be inserted in to fragments view
      * @param rows count of rows in the table
      * @param cols count of columns in the table
-     * @param defaultWidth default width of the cell. The cell will not expand more then set width. Does not apply to header cell.
+     * @param defaultWidth default width of the cell. The cell will not expand more than set width. Does not apply to header cell.
      * @param lightInterface set tables interface to be lightweight. 0 - normal interface, 1 - lightweight. Has no effect in mobile version
      * @param typeface typeface font be set on the text in the table. Null will use default android font.
      * @param textSize textSize to be set on the text in the table.
@@ -706,7 +706,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         View focusedTable = nodeEditorFragmentLinearLayout.getFocusedChild();
         int indexOfTable = nodeEditorFragmentLinearLayout.indexOfChild(focusedTable);
         if (indexOfTable > 0) {
-            // If table surrounded by by normal content they have to be merged again
+            // If table surrounded by normal content they have to be merged again
             if (nodeEditorFragmentLinearLayout.getChildAt(indexOfTable - 1) instanceof EditText && nodeEditorFragmentLinearLayout.getChildAt(indexOfTable + 1) instanceof EditText) {
                 ((EditText) nodeEditorFragmentLinearLayout.getChildAt(indexOfTable - 1)).getText().append(((EditText) nodeEditorFragmentLinearLayout.getChildAt(indexOfTable + 1)).getText());
                 nodeEditorFragmentLinearLayout.removeViewAt(indexOfTable);
@@ -722,7 +722,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     /**
      * Return index of last newLine char in the given editText. Looks from the start of the editText
-     * to the provided end index. Does no do any checks. End index should be valid.
+     * to the provided end index. Does not do any checks. End index should be valid.
      * @param editText edit text to search for new line chars
      * @param end index up to which search for new line
      * @return index of found last new line. If no new line was found return 0 - start of edit text
@@ -934,7 +934,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @param startOfSelection position where to insert the table in the focused edit text
      * @param rows count of rows in the table
      * @param cols count of columns in the table
-     * @param defaultWidth default width of the cell. The cell will not expand more then set width. Does not apply to header cell.
+     * @param defaultWidth default width of the cell. The cell will not expand more than set width. Does not apply to header cell.
      * @param lightInterface set tables interface to be lightweight. 0 - normal interface, 1 - lightweight. Has no effect in mobile version
      */
     private void insertTable(int indexOfChild, int startOfSelection, int rows, int cols, int defaultWidth, byte lightInterface) {
@@ -1397,7 +1397,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         ArrayList<ScNodeContent> nodeContent = new ArrayList<>();
         for (int i = 0; i < nodeEditorFragmentLinearLayout.getChildCount(); i++) {
             View view = nodeEditorFragmentLinearLayout.getChildAt(i);
-            // if it a table
+            // if it is a table
             if (view instanceof HorizontalScrollView) {
                 ScTableLayout tableLayout = (ScTableLayout) ((HorizontalScrollView) view).getChildAt(0);
                 String justification;
@@ -1576,7 +1576,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             Matcher orderedMatcher = orderedList.matcher(focusedChild.getText());
             orderedMatcher.region(paraStartEnd[0], paraStartEnd[1]);
             if (orderedMatcher.find()) {
-                // If it's a ordered list line - deleting it
+                // If it's ordered list line - deleting it
                 focusedChild.getText().replace(orderedMatcher.start(1), orderedMatcher.end(1) + 1, "");
             } else {
                 // If it's any other list line
@@ -1606,7 +1606,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
             Matcher unorderedMatcher = unorderedList.matcher(focusedChild.getText());
             unorderedMatcher.region(paraStartEnd[0], paraStartEnd[1]);
             if (unorderedMatcher.find()) {
-                // If it's a unordered list line - deleting it
+                // If it's unordered list line - deleting it
                 focusedChild.getText().replace(unorderedMatcher.start(1), unorderedMatcher.end(1) + 1, "");
             } else {
                 // If it's any other list line
