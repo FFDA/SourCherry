@@ -16,6 +16,8 @@ import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_USE_SPACES;
 import static lt.ffda.sourcherry.utils.RegexPatterns.allCheckbox;
 import static lt.ffda.sourcherry.utils.RegexPatterns.allListStarts;
 import static lt.ffda.sourcherry.utils.RegexPatterns.checkedCheckbox;
+import static lt.ffda.sourcherry.utils.RegexPatterns.indentatioStart;
+import static lt.ffda.sourcherry.utils.RegexPatterns.tabIndentationStart;
 import static lt.ffda.sourcherry.utils.RegexPatterns.lastNewline;
 import static lt.ffda.sourcherry.utils.RegexPatterns.orderdList;
 import static lt.ffda.sourcherry.utils.RegexPatterns.orderdListItem;
@@ -486,36 +488,36 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
      * @return OnFocusChangeListener for CustomEditText
      */
     private View.OnFocusChangeListener createOnCustomTextEditFocusChangeListener() {
-        if (mainViewModel.getCurrentNode().isRichText()) {
-            return new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View view, boolean hasFocus) {
-                    CustomTextEdit customTextEdit = (CustomTextEdit) view;
-                    if (hasFocus) {
-                        focusedChild = customTextEdit;
-                        customTextEdit.addTextChangedListener(textWatcher);
-                        FragmentManager fragmentManager = getChildFragmentManager();
-                        Fragment tableMenuFragment = fragmentManager.findFragmentByTag("tableMenuFragment");
-                        if (customTextEdit.isTableCell() && tableMenuFragment == null) {
-                            tableMenuFragment = new NodeContentEditorMenuTableFragment();
-                            ((NodeContentEditorMenuTableFragment) tableMenuFragment).setNodeContentEditorTableMenuActions(NodeContentEditorFragment.this);
-                            fragmentManager.beginTransaction()
-                                    .add(R.id.edit_node_fragment_button_row_fragment, tableMenuFragment, "tableMenuFragment")
-                                    .setReorderingAllowed(true)
-                                    .addToBackStack(null)
-                                    .commit();
-                        } else if (!customTextEdit.isTableCell() && tableMenuFragment != null) {
-                            if (!fragmentManager.isStateSaved()) {
-                                fragmentManager.popBackStack();
-                            }
-                        }
-                    } else {
-                        customTextEdit.removeTextChangedListener(textWatcher);
-                    }
-                }
-            };
+        if (!mainViewModel.getCurrentNode().isRichText()) {
+            return null;
         }
-        return null;
+        return new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean hasFocus) {
+                CustomTextEdit customTextEdit = (CustomTextEdit) view;
+                if (hasFocus) {
+                    focusedChild = customTextEdit;
+                    customTextEdit.addTextChangedListener(textWatcher);
+                    FragmentManager fragmentManager = getChildFragmentManager();
+                    Fragment tableMenuFragment = fragmentManager.findFragmentByTag("tableMenuFragment");
+                    if (customTextEdit.isTableCell() && tableMenuFragment == null) {
+                        tableMenuFragment = new NodeContentEditorMenuTableFragment();
+                        ((NodeContentEditorMenuTableFragment) tableMenuFragment).setNodeContentEditorTableMenuActions(NodeContentEditorFragment.this);
+                        fragmentManager.beginTransaction()
+                                .add(R.id.edit_node_fragment_button_row_fragment, tableMenuFragment, "tableMenuFragment")
+                                .setReorderingAllowed(true)
+                                .addToBackStack(null)
+                                .commit();
+                    } else if (!customTextEdit.isTableCell() && tableMenuFragment != null) {
+                        if (!fragmentManager.isStateSaved()) {
+                            fragmentManager.popBackStack();
+                        }
+                    }
+                } else {
+                    customTextEdit.removeTextChangedListener(textWatcher);
+                }
+            }
+        };
     }
 
     /**
@@ -634,34 +636,59 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     @Override
-    public void decreaseListItemIndentation() {
+    public boolean decreaseListItemIndentation() {
         int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, focusedChild.getSelectionStart());
         Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
         allListMatcher.region(indexOfLastNewline, focusedChild.getText().length());
-        if (allListMatcher.lookingAt()) {
-            if (allListMatcher.group(1).length() > 2) {
-                SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
-                updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
-                Matcher orderedMatcher = orderdList.matcher(updatedListItem);
-                Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
-                if (orderedMatcher.find()) {
-                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) - 1;
-                    if (level < 0) {
-                        level = 3;
-                    }
-                    int position = getLastOrderedItemNumValueOfLevel(focusedChild, level);
-                    updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(position + 1));
-                    updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
-                } else if (unorderedMatcher.find()) {
-                    int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) - 1;
-                    if (level < 0) {
-                        level = 5;
-                    }
-                    updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
+        if (!allListMatcher.lookingAt()) {
+            return false;
+        }
+        if (allListMatcher.group(1).length() > 2) {
+            SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
+            updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+            Matcher orderedMatcher = orderdList.matcher(updatedListItem);
+            Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
+            if (orderedMatcher.find()) {
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) - 1;
+                if (level < 0) {
+                    level = 3;
                 }
-                updatedListItem.replace(0, 3, "");
-                focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+                int position = getLastOrderedItemNumValueOfLevel(focusedChild, level);
+                updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(position + 1));
+                updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
+            } else if (unorderedMatcher.find()) {
+                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) - 1;
+                if (level < 0) {
+                    level = 5;
+                }
+                updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
             }
+            updatedListItem.replace(0, 3, "");
+            focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+        }
+        return true;
+    }
+
+    /**
+     * Decreases tab/space indentation for the current line. Indentation will be removed from start if the line
+     * @param editText EditText currently in focus
+     */
+    private void decreseLineIndentation(EditText editText) {
+        int indexOfLastNewline = getLastIndexOfNewLine(editText, editText.getSelectionStart());
+        Matcher indentatioStartMatcher = indentatioStart.matcher(editText.getText());
+        indentatioStartMatcher.region(indexOfLastNewline, editText.length());
+        if (!indentatioStartMatcher.lookingAt()) {
+            return;
+        }
+        Matcher tabIndentationStartMathcer = tabIndentationStart.matcher(editText.getText());
+        tabIndentationStartMathcer.region(indexOfLastNewline, editText.length());
+        if (tabIndentationStartMathcer.lookingAt()) {
+            editText.getText().replace(indexOfLastNewline, indexOfLastNewline + 1, "");
+            return;
+        }
+        int spaceIndentationLength = getTabCharacter().length();
+        if (getTabCharacter().equals(editText.getText().subSequence(indexOfLastNewline, indexOfLastNewline + spaceIndentationLength).toString())) {
+            editText.getText().replace(indexOfLastNewline, indexOfLastNewline + spaceIndentationLength, "");
         }
     }
 
@@ -800,7 +827,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
 
     /**
      * Returns tab character set in application preferences
-     * @return
+     * @return tab character or count of spaces set ir pregferences
      */
     private String getTabCharacter() {
         if (tabCharacter != null) {
@@ -838,26 +865,28 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     @Override
-    public void increaseListItemIndentation() {
+    public boolean increaseListItemIndentation() {
         int indexOfLastNewline = getLastIndexOfNewLine(focusedChild, focusedChild.getSelectionStart());
         Matcher allListMatcher = allListStarts.matcher(focusedChild.getText());
         allListMatcher.region(indexOfLastNewline, focusedChild.getText().length());
-        if (allListMatcher.lookingAt()) {
-            SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
-            updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
-            Matcher orderedMatcher = orderdList.matcher(updatedListItem);
-            Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
-            if (orderedMatcher.find()) {
-                int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) + 1;
-                updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(1));
-                updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
-            } else if (unorderedMatcher.find()) {
-                int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) + 1;
-                updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
-            }
-            updatedListItem.insert(0, "   ");
-            focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+        if (!allListMatcher.lookingAt()) {
+            return false;
         }
+        SpannableStringBuilder updatedListItem = new SpannableStringBuilder();
+        updatedListItem.append(focusedChild.getText().subSequence(indexOfLastNewline, allListMatcher.end()));
+        Matcher orderedMatcher = orderdList.matcher(updatedListItem);
+        Matcher unorderedMatcher = unorderedList.matcher(updatedListItem);
+        if (orderedMatcher.find()) {
+            int level = getListIndentationLevel(allListMatcher.group(1).length(), 4) + 1;
+            updatedListItem.replace(orderedMatcher.start(2), orderedMatcher.end(2), String.valueOf(1));
+            updatedListItem.replace(orderedMatcher.end(2), orderedMatcher.end(2) + 1, OrderedSwitch.getItemForLevel(level));
+        } else if (unorderedMatcher.find()) {
+            int level = getListIndentationLevel(allListMatcher.group(1).length(), 6) + 1;
+            updatedListItem.replace(unorderedMatcher.start(1), unorderedMatcher.end(1), UnorderedSwitch.getItemForLevel(level));
+        }
+        updatedListItem.insert(0, "   ");
+        focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end(), updatedListItem);
+        return true;
     }
 
     @Override
@@ -1035,6 +1064,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                         nodeEditorFragmentLinearLayout.addView(editText);
                     }
                 });
+                focusedChild = (CustomTextEdit) editText;
             } else {
                 HorizontalScrollView tableScrollView = new HorizontalScrollView(getActivity());
                 ScTableLayout table = new ScTableLayout(getActivity());
@@ -1189,10 +1219,8 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     focusedChild = (CustomTextEdit) nodeEditorFragmentLinearLayout.getFocusedChild();
                 }
                 typing = Math.abs(count - after) < 2;
-                if (typing) {
-                    if (!focusedChild.isTableCell() && !changedInput) {
-                        lineCount = focusedChild.getLineCount();
-                    }
+                if (typing && !focusedChild.isTableCell() && !changedInput) {
+                    lineCount = focusedChild.getLineCount();
                 }
             }
 
@@ -1212,8 +1240,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                                     focusedChild.getText().replace(allListMatcher.start(), allListMatcher.end() + 1, "");
                                 } else {
                                     // indentation should be lowered
-                                    focusedChild.getText().replace(allListMatcher.end() + 1, allListMatcher.end() + 2, ""); // Deleting newline at otherwise not only indentation will be removed
-                                    focusedChild.setSelection(focusedChild.getSelectionStart() - 1); // After replace selectionStart moves by one and decreaseListItemIndentation() methods starts to work incorrectly
+                                    focusedChild.getText().replace(allListMatcher.end(), allListMatcher.end() + 1, ""); // Deleting newline otherwise not only indentation will be removed
                                     decreaseListItemIndentation();
                                 }
                             } else {
@@ -1251,9 +1278,26 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         onKeyListener = new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (keyCode == KeyEvent.KEYCODE_TAB && event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (keyCode == KeyEvent.KEYCODE_TAB && event.getAction() == KeyEvent.ACTION_DOWN && !event.isShiftPressed()) {
+                    if (!mainViewModel.getCurrentNode().isRichText()) {
+                        return true;
+                    }
+                    if (increaseListItemIndentation()) {
+                        return true;
+                    }
+
                     EditText editText = (EditText) v;
                     editText.getText().insert(editText.getSelectionStart(), getTabCharacter());
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_TAB && event.getAction() == KeyEvent.ACTION_DOWN &&  event.isShiftPressed()) {
+                    if (!mainViewModel.getCurrentNode().isRichText()) {
+                        return true;
+                    }
+                    if (decreaseListItemIndentation()) {
+                        return true;
+                    }
+                    decreseLineIndentation((EditText) v);
                     return true;
                 }
                 return false;

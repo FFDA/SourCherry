@@ -60,4 +60,14 @@ public class RegexPatterns {
      * Matches ordered list items
      */
     public static final Pattern orderedList = Pattern.compile("^\\s*(\\d+[\\.\\)\\->])");
+
+    /**
+     * Matches indentation that starts with spaces or tabs
+     */
+    public static final Pattern indentatioStart = Pattern.compile("^[\t ]+");
+
+    /**
+     * Matches indentation that starts with single tab
+     */
+    public static final Pattern tabIndentationStart = Pattern.compile("^\t");
 }

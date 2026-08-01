@@ -13,16 +13,22 @@ package lt.ffda.sourcherry.fragments;
 public interface NodeContentEditorListsMenuActions {
 
     /**
+     * Decreases list item indentation. Changes list items symbol if necessary.
+     * @return true if indendation was decreased, false - otherwise
+     */
+    boolean decreaseListItemIndentation();
+
+    /**
+     * Increases list item indentation. Changes list items symbol if necessary.
+     * @return true if indendation was increased, false - otherwise
+     */
+    boolean increaseListItemIndentation();
+
+    /**
      * Starts checklist at the current line. Insert empty checkbox ant the beginning of the current
      * line. If there is a checkbox at the start of the line - removes it.
      */
     void startChecklist();
-
-    /**
-     * Starts unordered list at the current line. If the line is already an unordered list line -
-     * makes it a normal line.
-     */
-    void startUnordered();
 
     /**
      * Starts ordered list at the current line. If the line is already an ordered list line -
@@ -31,12 +37,8 @@ public interface NodeContentEditorListsMenuActions {
     void startOrdered();
 
     /**
-     * Decreases list item indentation. Changes list items symbol if necessary.
+     * Starts unordered list at the current line. If the line is already an unordered list line -
+     * makes it a normal line.
      */
-    void decreaseListItemIndentation();
-
-    /**
-     * Increases list item indentation. Changes list items symbol if necessary.
-     */
-    void increaseListItemIndentation();
+    void startUnordered();
 }

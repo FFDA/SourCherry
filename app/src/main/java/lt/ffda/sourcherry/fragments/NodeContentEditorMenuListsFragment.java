@@ -49,7 +49,7 @@ public class NodeContentEditorMenuListsFragment extends Fragment {
         startChecklists.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (nodeContentEditorMenuBackAction != null) {
+                if (nodeContentEditorListsMenuActions != null) {
                     nodeContentEditorListsMenuActions.startChecklist();
                 }
             }
@@ -58,7 +58,7 @@ public class NodeContentEditorMenuListsFragment extends Fragment {
         startUnordered.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (nodeContentEditorMenuBackAction != null) {
+                if (nodeContentEditorListsMenuActions != null) {
                     nodeContentEditorListsMenuActions.startUnordered();
                 }
             }
@@ -67,7 +67,7 @@ public class NodeContentEditorMenuListsFragment extends Fragment {
         startOrdered.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (nodeContentEditorMenuBackAction != null) {
+                if (nodeContentEditorListsMenuActions != null) {
                     nodeContentEditorListsMenuActions.startOrdered();
                 }
             }
@@ -76,7 +76,7 @@ public class NodeContentEditorMenuListsFragment extends Fragment {
         decreaseIndentation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (nodeContentEditorMenuBackAction != null) {
+                if (nodeContentEditorListsMenuActions != null) {
                     nodeContentEditorListsMenuActions.decreaseListItemIndentation();
                 }
             }
@@ -85,7 +85,7 @@ public class NodeContentEditorMenuListsFragment extends Fragment {
         increaseIndentation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (nodeContentEditorMenuBackAction != null) {
+                if (nodeContentEditorListsMenuActions != null) {
                     nodeContentEditorListsMenuActions.increaseListItemIndentation();
                 }
             }
