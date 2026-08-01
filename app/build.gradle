@@ -3,12 +3,12 @@ plugins {
 }
 
 android {
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'lt.ffda.sourcherry'
         minSdk 24
-        targetSdk 35
+        targetSdk 36
         versionCode 16
         versionName "1.8.0"
 
