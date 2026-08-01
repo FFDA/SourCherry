@@ -35,7 +35,7 @@ android {
 dependencies {
     implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.22"))
     implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.google.android.material:material:1.14.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.2'
     implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
@@ -50,4 +50,5 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
     implementation 'com.github.omicronapps:7-Zip-JBinding-4Android:Release-16.02-2.03'
     implementation 'me.jfenn.ColorPickerDialog:base:0.2.2'
+    implementation "androidx.documentfile:documentfile:1.1.0"
 }
