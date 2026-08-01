@@ -1300,6 +1300,9 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     decreseLineIndentation((EditText) v);
                     return true;
                 }
+                if (event.isCtrlPressed() && keyCode == KeyEvent.KEYCODE_S && event.getAction() == KeyEvent.ACTION_DOWN) {
+                    saveNodeContent();
+                }
                 return false;
             }
         };
