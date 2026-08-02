@@ -124,7 +124,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
         NodeContentEditorMenuBackAction, NodeContentEditorListsMenuActions {
 
     private final static int EDIT_FRAGMENT_LINEARLAYOUT = 10002;
-    CustomTextEdit focusedChild = null;
+    private CustomTextEdit focusedChild = null;
     private final ActivityResultLauncher<PickVisualMediaRequest> pickImage = registerPickImage();
     private boolean changesSaved = false;
     private View.OnClickListener clickListener;
@@ -1186,6 +1186,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     public void onDestroyView() {
         super.onDestroyView();
         nodeEditorFragmentLinearLayout = null;
+        focusedChild = null;
     }
 
     @Override
