@@ -88,6 +88,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 
@@ -1435,7 +1436,7 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
                     SpannableStringBuilder imageSpan = DatabaseReader.createImageSpan(getContext(), uri);
                     focusedChild.getText().insert(focusedChild.getSelectionStart(), imageSpan);
                 }
-            } catch (FileNotFoundException e) {
+            } catch (IOException e) {
                 Toast.makeText(getContext(), R.string.toast_error_failed_to_insert_image, Toast.LENGTH_SHORT).show();
             }
         });

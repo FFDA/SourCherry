@@ -42,6 +42,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -109,24 +110,25 @@ public abstract class DatabaseReader {
      * @param uri uri of the image file on the filesystem
      * @return formatted String with image span
      */
-    public static SpannableStringBuilder createImageSpan(Context context, Uri uri) throws FileNotFoundException {
-        InputStream is = context.getContentResolver().openInputStream(uri);
-        SpannableStringBuilder formattedImage = new SpannableStringBuilder(" ");
-        Bitmap bitmap = BitmapFactory.decodeStream(is);
-        Drawable image = new BitmapDrawable(context.getResources(), bitmap);
-        image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
-        ImageSpanImage imageSpanImage = new ImageSpanImage(image);
-        formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        int width = Resources.getSystem().getDisplayMetrics().widthPixels;
-        if (image.getIntrinsicWidth() > width - 10) {
-            // If image is wider than screen it is scaled down to fit the screen
-            float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
-            int newWidth = (int) (image.getIntrinsicWidth() * scale);
-            int newHeight = (int) (image.getIntrinsicHeight() * scale);
-            image.setBounds(0, 0, newWidth, newHeight);
+    public static SpannableStringBuilder createImageSpan(Context context, Uri uri) throws IOException {
+        try (InputStream is = context.getContentResolver().openInputStream(uri)) {
+            SpannableStringBuilder formattedImage = new SpannableStringBuilder(" ");
+            Bitmap bitmap = BitmapFactory.decodeStream(is);
+            Drawable image = new BitmapDrawable(context.getResources(), bitmap);
+            image.setBounds(0,0, image.getIntrinsicWidth(), image.getIntrinsicHeight());
+            ImageSpanImage imageSpanImage = new ImageSpanImage(image);
+            formattedImage.setSpan(imageSpanImage, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+            if (image.getIntrinsicWidth() > width - 10) {
+                // If image is wider than screen it is scaled down to fit the screen
+                float scale = ((float) width / image.getIntrinsicWidth()) - (float) 0.1;
+                int newWidth = (int) (image.getIntrinsicWidth() * scale);
+                int newHeight = (int) (image.getIntrinsicHeight() * scale);
+                image.setBounds(0, 0, newWidth, newHeight);
+            }
+            imageSpanImage.setSha256sum(uri.toString());
+            return formattedImage;
         }
-        imageSpanImage.setSha256sum(uri.toString());
-        return formattedImage;
     }
 
     /**

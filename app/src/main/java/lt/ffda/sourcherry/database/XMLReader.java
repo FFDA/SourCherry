@@ -2134,7 +2134,7 @@ public class XMLReader extends DatabaseReader {
 
     /**
      * Write opened database to the file
-     * App has to have the the permissions to write to said file
+     * App has to have the permissions to write to said file
      */
     private void writeIntoDatabase(){
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -2142,18 +2142,18 @@ public class XMLReader extends DatabaseReader {
         try {
             transformer = transformerFactory.newTransformer();
             DOMSource dSource = new DOMSource(doc);
-            OutputStream fileOutputStream;
-            if (databaseUri.startsWith("content://")) {
-                fileOutputStream = context.getContentResolver().openOutputStream(Uri.parse(databaseUri), "wt");
-            } else {
-                fileOutputStream = new FileOutputStream(databaseUri);
+            try (OutputStream fileOutputStream = databaseUri.startsWith("content://") ?
+                    context.getContentResolver().openOutputStream(Uri.parse(databaseUri), "wt") :
+                    new FileOutputStream(databaseUri)) {
+                StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
+                transformer.transform(dSource, result);
             }
-            StreamResult result = new StreamResult(fileOutputStream);  // To save it in the Internal Storage
-            transformer.transform(dSource, result);
         } catch (TransformerException e) {
             displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
         } catch (FileNotFoundException e) {
             displayToast(context.getString(R.string.toast_error_database_does_not_exists));
+        } catch (IOException e) {
+            displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
         }
     }
 }
