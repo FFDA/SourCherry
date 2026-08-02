@@ -72,7 +72,7 @@ public class NodeContentFragment extends Fragment {
     public final static int CONTENT_FRAGMENT_LINEARLAYOUT = 10001;
     public final static int CONTENT_HORIZONTAL_SCROLLVIEW = 10002;
     private boolean backToExit;
-    OnBackPressedCallback callbackDisplayToastBeforeExit = createCallbackDisplayToastBeforeExit();
+    private OnBackPressedCallback callbackDisplayToastBeforeExit = createCallbackDisplayToastBeforeExit();
     private LinearLayout contentFragmentLinearLayout;
     private Handler handler;
     private MainViewModel mainViewModel;
@@ -291,6 +291,12 @@ public class NodeContentFragment extends Fragment {
         };
         mainViewModel.getNodeContent().observe(getViewLifecycleOwner(), contentObserver);
         return rootView;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        contentFragmentLinearLayout = null;
     }
 
     @Override

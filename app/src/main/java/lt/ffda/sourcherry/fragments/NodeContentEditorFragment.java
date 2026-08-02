@@ -1183,6 +1183,12 @@ public class NodeContentEditorFragment extends Fragment implements NodeContentEd
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        nodeEditorFragmentLinearLayout = null;
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         // Top and bottom paddings are always the same: 14px (5dp)

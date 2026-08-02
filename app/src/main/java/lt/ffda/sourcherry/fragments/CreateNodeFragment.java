@@ -35,9 +35,9 @@ import lt.ffda.sourcherry.MainView;
 import lt.ffda.sourcherry.R;
 
 public class CreateNodeFragment extends Fragment {
-    CheckBox checkBoxExcludeFromSearchesSubnodes;
-    CheckBox checkBoxExcludeFromSearchesThisNode;
-    RadioGroup radioGroupNodeType;
+    private CheckBox checkBoxExcludeFromSearchesSubnodes;
+    private CheckBox checkBoxExcludeFromSearchesThisNode;
+    private RadioGroup radioGroupNodeType;
 
     /**
      * Convenience function to call createNewNode in MainView
@@ -107,6 +107,14 @@ public class CreateNodeFragment extends Fragment {
         checkBoxExcludeFromSearchesThisNode = view.findViewById(R.id.exclude_from_searches_this_node);
         checkBoxExcludeFromSearchesSubnodes = view.findViewById(R.id.exclude_from_searches_subnodes);
         return view;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        checkBoxExcludeFromSearchesSubnodes = null;
+        checkBoxExcludeFromSearchesThisNode = null;
+        radioGroupNodeType = null;
     }
 
     @Override

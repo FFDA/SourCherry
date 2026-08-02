@@ -36,9 +36,9 @@ import lt.ffda.sourcherry.database.DatabaseReaderFactory;
 import lt.ffda.sourcherry.model.ScNodeProperties;
 
 public class NodePropertiesFragment extends Fragment {
-    CheckBox checkBoxExcludeFromSearchesSubnodes;
-    CheckBox checkBoxExcludeFromSearchesThisNode;
-    RadioGroup radioGroupNodeType;
+    private CheckBox checkBoxExcludeFromSearchesSubnodes;
+    private CheckBox checkBoxExcludeFromSearchesThisNode;
+    private RadioGroup radioGroupNodeType;
 
     /**
      * Returns state of the "Exclude from searches: Subnodes" state
@@ -107,6 +107,14 @@ public class NodePropertiesFragment extends Fragment {
         checkBoxExcludeFromSearchesThisNode = view.findViewById(R.id.exclude_from_searches_this_node);
         checkBoxExcludeFromSearchesSubnodes = view.findViewById(R.id.exclude_from_searches_subnodes);
         return view;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        checkBoxExcludeFromSearchesSubnodes = null;
+        checkBoxExcludeFromSearchesThisNode = null;
+        radioGroupNodeType = null;
     }
 
     @Override

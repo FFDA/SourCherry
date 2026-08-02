@@ -307,6 +307,18 @@ public class ExportDatabaseDialogFragment extends DialogFragment {
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        buttonCancel = null;
+        buttonExport = null;
+        message = null;
+        password1 = null;
+        password2 = null;
+        passwordCheckBox = null;
+        progressBar = null;
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         AppContainer appContainer = ((ScApplication) getActivity().getApplication()).appContainer;
