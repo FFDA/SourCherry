@@ -1,0 +1,6 @@
+v1.9.0
+- Increased compile and target SDK versions per Play Store requirements;
+- Added Ctrl+S shortcut to save node content;
+- Added Tab key support;
+- Added Tab / Shift+Tab key support for list indentation;
+- Other small changes and dependency updates;
