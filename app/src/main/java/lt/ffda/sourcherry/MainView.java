@@ -671,26 +671,23 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked
      */
     public void goNodeUp(View view) {
-        ArrayList<ScNode> nodes = reader.getParentWithSubnodes(mainViewModel.getNodes().get(0).getUniqueId());
-        if (nodes != null && nodes.size() != mainViewModel.getNodes().size()) {
-            // If retrieved nodes are not null and array size do not match the one displayed
-            // it is definitely not the same node so it can go up
-            mainViewModel.setNodes(nodes);
-            currentNodePosition = -1;
-            adapter.markItemSelected(currentNodePosition);
-            adapter.notifyDataSetChanged();
-        } else {
-            // If both nodes arrays matches in size it might be the same node (especially main/top)
-            // This part checks if first and last nodes in arrays matches by comparing nodeUniqueID of both
-            if (nodes != null && nodes.get(0).getUniqueId().equals(mainViewModel.getNodes().get(0).getUniqueId()) && nodes.get(nodes.size() -1 ).getUniqueId().equals(mainViewModel.getNodes().get(mainViewModel.getNodes().size() -1 ).getUniqueId())) {
-                Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
-            } else {
-                mainViewModel.setNodes(nodes);
-                currentNodePosition = -1;
-                adapter.markItemSelected(currentNodePosition);
-                adapter.notifyDataSetChanged();
-            }
+        if (mainViewModel.getNodes() == null || mainViewModel.getNodes().isEmpty()) {
+            Toast.makeText(this, getString(R.string.toast_message_you_are_at_the_top), Toast.LENGTH_SHORT).show();
+            return;
         }
+        ArrayList<ScNode> nodes = reader.getParentWithSubnodes(mainViewModel.getNodes().get(0).getUniqueId());
+        if (nodes == null || nodes.isEmpty()) {
+            return;
+        }
+        if (nodes.get(0).getUniqueId().equals(mainViewModel.getNodes().get(0).getUniqueId())
+                && nodes.get(nodes.size() -1).getUniqueId().equals(mainViewModel.getNodes().get(mainViewModel.getNodes().size() -1 ).getUniqueId())) {
+            Toast.makeText(this, getString(R.string.toast_message_you_are_at_the_top), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        mainViewModel.setNodes(nodes);
+        currentNodePosition = -1;
+        adapter.markItemSelected(currentNodePosition);
+        adapter.notifyDataSetChanged();
     }
 
     /**

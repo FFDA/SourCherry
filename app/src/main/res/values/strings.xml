@@ -86,6 +86,7 @@
     <string name="toast_message_table_cant_be_inserted_here">Table can\'t be inserted here</string>
     <string name="toast_message_start_list_place_cursor">Place the cursor to mark where to start the list</string>
     <string name="toast_message_start_list_insert_into_table">List can\'t be in the table</string>
+    <string name="toast_message_you_are_at_the_top">You are at the top</string>
     <string name="open_database_fragment_copying_database_message">Copying database to app-specific storage</string>
     <string name="open_database_fragment_extracting_database_message">Extracting database</string>
     <string name="toast_error_failed_to_save_file">Failed to save the file</string>
