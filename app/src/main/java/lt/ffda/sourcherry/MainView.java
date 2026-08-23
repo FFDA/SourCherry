@@ -642,22 +642,29 @@ public class MainView extends AppCompatActivity {
      * @param view view that was clicked
      */
     public void goHome(View view) {
+        if (mainViewModel.getNodes() == null || mainViewModel.getNodes().isEmpty()) {
+            Toast.makeText(this, R.string.toast_message_you_are_at_the_top, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         ArrayList<ScNode> tempMainNodes = reader.getMainNodes();
         // Compares node sizes, first and last node's uniqueIDs in both arrays
-        if (tempMainNodes.size() == mainViewModel.getNodes().size() && tempMainNodes.get(0).getUniqueId().equals(mainViewModel.getNodes().get(0).getUniqueId()) && tempMainNodes.get(mainViewModel.getNodes().size() - 1).getUniqueId().equals(mainViewModel.getNodes().get(mainViewModel.getNodes().size() - 1).getUniqueId())) {
-            Toast.makeText(this, "Your are at the top", Toast.LENGTH_SHORT).show();
-        } else {
-            mainViewModel.setNodes(tempMainNodes);
-            currentNodePosition = -1;
-            if (bookmarksToggle && mainViewModel.getCurrentNode() != null) {
-                // Just in case user chose to come back from bookmarks to home and a node is selected
-                // it might me that selected node is in main menu
-                // this part checks for that and marks the node if it finds it
-                currentNodePosition = openedNodePositionInDrawerMenu();
-            }
-            adapter.markItemSelected(currentNodePosition);
-            adapter.notifyDataSetChanged();
+        if (tempMainNodes.size() == mainViewModel.getNodes().size() && tempMainNodes.get(0).getUniqueId().equals(mainViewModel.getNodes().get(0).getUniqueId())
+                && tempMainNodes.get(mainViewModel.getNodes().size() - 1).getUniqueId().equals(mainViewModel.getNodes().get(mainViewModel.getNodes().size() - 1).getUniqueId())) {
+            Toast.makeText(this, R.string.toast_message_you_are_at_the_top, Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        mainViewModel.setNodes(tempMainNodes);
+        currentNodePosition = -1;
+        if (bookmarksToggle && mainViewModel.getCurrentNode() != null) {
+            // Just in case user chose to come back from bookmarks to home and a node is selected
+            // it might be that selected node is in main menu
+            // this part checks for that and marks the node if it finds it
+            currentNodePosition = openedNodePositionInDrawerMenu();
+        }
+        adapter.markItemSelected(currentNodePosition);
+        adapter.notifyDataSetChanged();
 
         if (bookmarksToggle) {
             navigationNormalMode(true);
