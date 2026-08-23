@@ -2154,6 +2154,8 @@ public class XMLReader extends DatabaseReader {
             displayToast(context.getString(R.string.toast_error_database_does_not_exists));
         } catch (IOException e) {
             displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
+        } catch (SecurityException e) {
+            displayToast(context.getString(R.string.toast_error_failed_to_save_database_changes));
         }
     }
 }
