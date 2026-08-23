@@ -11,33 +11,12 @@
 package lt.ffda.sourcherry.preferences;
 
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
 
-import androidx.activity.OnBackPressedCallback;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.view.MenuHost;
-import androidx.core.view.MenuProvider;
-import androidx.lifecycle.Lifecycle;
-import androidx.preference.PreferenceFragmentCompat;
 
 import lt.ffda.sourcherry.R;
 
-public class PreferencesEditorFragment extends PreferenceFragmentCompat {
-
-    /**
-     * Handles back button and back arrow presses for the fragment
-     */
-    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
-        @Override
-        public void handleOnBackPressed() {
-            ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
-            getParentFragmentManager().popBackStack();
-        }
-    };
+public class PreferencesEditorFragment extends AbstractPreferenceFragment {
 
     @Override
     public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
@@ -50,25 +29,4 @@ public class PreferencesEditorFragment extends PreferenceFragmentCompat {
         ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_editor));
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        MenuHost menuHost = requireActivity();
-        menuHost.addMenuProvider(new MenuProvider() {
-            @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-
-            }
-
-            @Override
-            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                if (menuItem.getItemId() == android.R.id.home) {
-                    requireActivity().getOnBackPressedDispatcher().onBackPressed();
-                    return true;
-                }
-                return false;
-            }
-        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBackPressedCallback);
-    }
 }

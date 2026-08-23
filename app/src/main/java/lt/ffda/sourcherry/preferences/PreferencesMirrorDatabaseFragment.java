@@ -17,23 +17,15 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
 import android.widget.Toast;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
-import androidx.core.view.MenuHost;
-import androidx.core.view.MenuProvider;
 import androidx.documentfile.provider.DocumentFile;
-import androidx.lifecycle.Lifecycle;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
@@ -100,20 +92,6 @@ public class PreferencesMirrorDatabaseFragment extends PreferenceFragmentCompat 
             }
         }
     });
-    /**
-     * Handles back button and back arrow presses for the fragment
-     */
-    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
-        @Override
-        public void handleOnBackPressed() {
-            if (mirrorDatabaseSwitch.isChecked() && mirrorDatabaseFile.getSummary().equals(getContext().getString(R.string.preferences_mirror_database_mirror_database_file_summary))) {
-                createConfirmationDialog();
-            } else {
-                ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_database));
-                getParentFragmentManager().popBackStack();
-            }
-        }
-    };
 
     /**
      * Shows alert dialog to user with two options
@@ -220,28 +198,6 @@ public class PreferencesMirrorDatabaseFragment extends PreferenceFragmentCompat 
     public void onResume() {
         super.onResume();
         ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_mirror_database_title));
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        MenuHost menuHost = requireActivity();
-        menuHost.addMenuProvider(new MenuProvider() {
-            @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-
-            }
-
-            @Override
-            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                if (menuItem.getItemId() == android.R.id.home) {
-                    requireActivity().getOnBackPressedDispatcher().onBackPressed();
-                    return true;
-                }
-                return false;
-            }
-        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBackPressedCallback);
     }
 
     /**

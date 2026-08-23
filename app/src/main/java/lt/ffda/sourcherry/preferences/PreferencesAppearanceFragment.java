@@ -11,45 +11,24 @@
 package lt.ffda.sourcherry.preferences;
 
 import static android.content.Context.UI_MODE_SERVICE;
-
 import static lt.ffda.sourcherry.utils.Constants.PREFERENCE_DARK_MODE;
 
 import android.app.UiModeManager;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.core.view.MenuHost;
-import androidx.core.view.MenuProvider;
-import androidx.lifecycle.Lifecycle;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
-import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.SeekBarPreference;
 
 import lt.ffda.sourcherry.R;
 import lt.ffda.sourcherry.utils.Calculations;
 
-public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
-    /**
-     * Handles back button and back arrow presses for the fragment
-     */
-    private final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
-        @Override
-        public void handleOnBackPressed() {
-            ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.options_menu_item_settings));
-            getParentFragmentManager().popBackStack();
-        }
-    };
+public class PreferencesAppearanceFragment extends AbstractPreferenceFragment {
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -117,35 +96,9 @@ public class PreferencesAppearanceFragment extends PreferenceFragmentCompat {
     }
 
     @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-    }
-
-    @Override
     public void onResume() {
         super.onResume();
         ((PreferencesActivity) getActivity()).changeTitle(getString(R.string.preferences_appearance));
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        MenuHost menuHost = requireActivity();
-        menuHost.addMenuProvider(new MenuProvider() {
-            @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-
-            }
-
-            @Override
-            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                if (menuItem.getItemId() == android.R.id.home) {
-                    requireActivity().getOnBackPressedDispatcher().onBackPressed();
-                    return true;
-                }
-                return false;
-            }
-        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBackPressedCallback);
-    }
 }
